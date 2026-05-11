@@ -16,5 +16,5 @@ export const DEV_PROFILE = {
 
 export const DEV_USER = {
   id: 'dev-user-001',
-  email: 'dev@my420journal.com',
+  email: null,
 }
