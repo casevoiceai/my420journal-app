@@ -44,7 +44,7 @@ function publicUser(user) {
   if (!user) return null
   return {
     id: user.id,
-    email: user.email,
+    email: user.email || null,
     aud: 'local',
     role: 'authenticated',
     created_at: user.created_at,
@@ -53,25 +53,9 @@ function publicUser(user) {
 
 function getActiveUser() {
   const activeId = localStorage.getItem(ACTIVE_USER_KEY)
+  if (!activeId) return null
   const users = getUsers()
-  return publicUser(users.find((user) => user.id === activeId) || users[0] || null)
-}
-
-function ensureActiveUser() {
-  let user = getActiveUser()
-  if (user) return user
-
-  const users = getUsers()
-  const guest = {
-    id: makeId('guest'),
-    email: 'local@my420journal.app',
-    password: '',
-    created_at: nowIso(),
-  }
-  users.unshift(guest)
-  saveUsers(users)
-  localStorage.setItem(ACTIVE_USER_KEY, guest.id)
-  return publicUser(guest)
+  return publicUser(users.find((user) => user.id === activeId) || null)
 }
 
 function tableKey(table) {
@@ -105,6 +89,23 @@ function projectRow(row, columns) {
   const next = {}
   for (const column of wanted) next[column] = row[column]
   return next
+}
+
+async function credentialDigest(value, salt) {
+  const input = `${salt}:${String(value)}`
+
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const data = new TextEncoder().encode(input)
+    const buffer = await crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(buffer)).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  }
+
+  let hash = 0
+  for (let i = 0; i < input.length; i += 1) {
+    hash = ((hash << 5) - hash) + input.charCodeAt(i)
+    hash |= 0
+  }
+  return `fallback_${Math.abs(hash).toString(16)}`
 }
 
 class LocalQuery {
@@ -296,7 +297,7 @@ function localGuideReply(body = {}) {
   const latest = Array.isArray(body.messages) ? body.messages[body.messages.length - 1]?.content : ''
   const intro = guide === 'unit' || guide === 'tool'
     ? 'Logged locally.'
-    : 'I can help organize this locally on your device.'
+    : 'I can help organize this locally on this device.'
   const detail = latest ? ` I am reading your latest note as: ${String(latest).slice(0, 180)}` : ''
   return `${intro}${detail}`
 }
@@ -321,11 +322,16 @@ export const localStore = {
       const cleanEmail = normaliseEmail(email)
       if (!cleanEmail) return { data: null, error: new Error('Email is required.') }
       if (!password || password.length < 8) return { data: null, error: new Error('Password must be at least 8 characters.') }
+
       const users = getUsers()
       if (users.some((user) => user.email === cleanEmail)) {
-        return { data: null, error: new Error('An account with this email already exists.') }
+        return { data: null, error: new Error('An account with this email already exists on this device.') }
       }
-      const user = { id: makeId('user'), email: cleanEmail, password, created_at: nowIso() }
+
+      const credential_salt = makeId('salt')
+      const credential_hash = await credentialDigest(password, credential_salt)
+      const user = { id: makeId('user'), email: cleanEmail, credential_salt, credential_hash, created_at: nowIso() }
+
       users.unshift(user)
       saveUsers(users)
       localStorage.setItem(ACTIVE_USER_KEY, user.id)
@@ -334,8 +340,17 @@ export const localStore = {
     async signInWithPassword({ email, password }) {
       const cleanEmail = normaliseEmail(email)
       const users = getUsers()
-      const user = users.find((item) => item.email === cleanEmail && item.password === password)
-      if (!user) return { data: null, error: new Error('Local profile not found. Check your email and password, or create a new local profile.') }
+      const user = users.find((item) => item.email === cleanEmail)
+
+      if (!user || !user.credential_hash || !user.credential_salt) {
+        return { data: null, error: new Error('Local profile not found. Check your email, or create a new local profile on this device.') }
+      }
+
+      const attempted_hash = await credentialDigest(password, user.credential_salt)
+      if (attempted_hash !== user.credential_hash) {
+        return { data: null, error: new Error('Local profile not found. Check your email and password, or create a new local profile on this device.') }
+      }
+
       localStorage.setItem(ACTIVE_USER_KEY, user.id)
       return { data: { user: publicUser(user), session: { user: publicUser(user), access_token: 'local-only' } }, error: null }
     },
@@ -348,7 +363,6 @@ export const localStore = {
     },
   },
   from(table) {
-    ensureActiveUser()
     return new LocalQuery(table)
   },
   tools: {
