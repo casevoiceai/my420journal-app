@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #0A1A0A;
+  --color-surface: #1A2E1A;
+  --color-border: #2D4A2D;
+  --color-text-primary: #E8F0E8;
+  --color-text-secondary: #8FAF8F;
+  --color-gold: #C9A84C;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Playfair Display', serif;
+}
