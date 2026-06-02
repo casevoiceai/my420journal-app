@@ -135,7 +135,7 @@ function GuideObservation({ entry, guideKey, accent, guideName }) {
 
     async function loadObservation() {
       try {
-        const { data, error } = await localStore.tools.run('guide-response', {
+        const { data, error } = await localStore.tools.invoke('guide-response', {
           body: { messages, guide: guideKey, entryCount: 5, tier: 1 },
         })
         if (error) throw error
