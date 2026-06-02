@@ -155,7 +155,7 @@ async function placesAutocomplete(input, coords, radius = 64000) {
       lng: coords?.lng ?? -75.5022,
       radius,
     }
-    const response = await localStore.tools.run('place-lookup', { body })
+    const response = await localStore.tools.invoke('place-lookup', { body })
     if (response.error) return { status: 'ERROR', predictions: [] }
     const predictions = response?.data?.predictions || []
     if (predictions.length === 0) return { status: 'ZERO_RESULTS', predictions: [] }
@@ -178,7 +178,7 @@ function getUserCoords() {
 
 async function placesDetails(placeId) {
   try {
-    const { data, error } = await localStore.tools.run('place-lookup', {
+    const { data, error } = await localStore.tools.invoke('place-lookup', {
       body: { placeId, type: 'details' },
     })
     if (error || !data || data.error) return null
