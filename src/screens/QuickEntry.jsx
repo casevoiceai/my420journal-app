@@ -131,7 +131,7 @@ async function placesAutocomplete(input, coords, radius = 64000) {
       lng: coords?.lng ?? -75.6624,
       radius,
     }
-    const response = await localStore.tools.run('place-lookup', { body })
+    const response = await localStore.tools.invoke('place-lookup', { body })
     if (response.error) return { status: 'ERROR', predictions: [] }
     const predictions = response?.data?.predictions || []
     if (predictions.length === 0 || response.data?.status !== 'OK') {
@@ -145,7 +145,7 @@ async function placesAutocomplete(input, coords, radius = 64000) {
 
 async function placesDetails(placeId) {
   try {
-    const { data, error } = await localStore.tools.run('place-lookup', {
+    const { data, error } = await localStore.tools.invoke('place-lookup', {
       body: { placeId, type: 'details' },
     })
     if (error || !data || data.error) return null
@@ -181,7 +181,7 @@ async function getCoordsWithProfileFallback() {
       .from('user_profiles').select('home_city').eq('user_id', user.id).maybeSingle()
     const city = profile?.home_city?.trim()
     if (!city) return null
-    const { data, error } = await localStore.tools.run('place-lookup', {
+    const { data, error } = await localStore.tools.invoke('place-lookup', {
       body: { type: 'geocode', input: city },
     })
     if (error || !data?.lat) return null
