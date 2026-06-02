@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
@@ -155,7 +155,7 @@ async function placesAutocomplete(input, coords, radius = 64000) {
       lng: coords?.lng ?? -75.5022,
       radius,
     }
-    const response = await localStore.tools.invoke('place-lookup', { body })
+    const response = await localStore.tools.run('place-lookup', { body })
     if (response.error) return { status: 'ERROR', predictions: [] }
     const predictions = response?.data?.predictions || []
     if (predictions.length === 0) return { status: 'ZERO_RESULTS', predictions: [] }
@@ -178,7 +178,7 @@ function getUserCoords() {
 
 async function placesDetails(placeId) {
   try {
-    const { data, error } = await localStore.tools.invoke('place-lookup', {
+    const { data, error } = await localStore.tools.run('place-lookup', {
       body: { placeId, type: 'details' },
     })
     if (error || !data || data.error) return null
@@ -235,7 +235,7 @@ function DispensaryInfoCard({ value, accent, onClear, isFav, onToggleFav }) {
         }}
       >
         <span style={{ fontSize: '22px', color: isFav ? '#C9A84C' : '#8FAF8F', lineHeight: 1 }}>
-          {isFav ? 'â˜…' : 'â˜†'}
+          {isFav ? '★' : '☆'}
         </span>
         <span style={{ fontFamily: fontInter, fontSize: '10px', color: isFav ? '#C9A84C' : '#8FAF8F', lineHeight: 1 }}>
           {isFav ? 'Saved' : 'Save'}
@@ -247,17 +247,17 @@ function DispensaryInfoCard({ value, accent, onClear, isFav, onToggleFav }) {
       </p>
       {value.address && (
         <p style={{ fontFamily: fontInter, fontSize: '13px', color: '#8FAF8F', margin: 0, lineHeight: '1.4', display: 'flex', gap: '5px' }}>
-          <span>ðŸ“</span><span>{value.address}</span>
+          <span>📍</span><span>{value.address}</span>
         </p>
       )}
       {value.phone && (
         <p style={{ fontFamily: fontInter, fontSize: '13px', color: '#8FAF8F', margin: 0, display: 'flex', gap: '5px' }}>
-          <span>ðŸ“ž</span><span>{value.phone}</span>
+          <span>📞</span><span>{value.phone}</span>
         </p>
       )}
       {todayHrsOnly && (
         <p style={{ fontFamily: fontInter, fontSize: '13px', color: '#8FAF8F', margin: 0, display: 'flex', gap: '5px', alignItems: 'flex-start' }}>
-          <span>ðŸ•</span>
+          <span>🕐</span>
           <span>
             {openNow !== null && (
               <span style={{ color: openNow ? '#4CAF50' : '#EF4444', fontWeight: '600', marginRight: '6px' }}>
@@ -519,12 +519,12 @@ function DispensarySelector({ accent, value, onChange, category }) {
                   title={isFav ? 'Unstar' : 'Star'}
                   style={{ fontSize: '13px', lineHeight: 1, flexShrink: 0, opacity: isFav ? 1 : 0.45 }}
                 >
-                  {isFav ? 'â˜…' : 'â˜†'}
+                  {isFav ? '★' : '☆'}
                 </span>
                 <span>{d.name}</span>
                 <span role="button" onClick={(e) => handleRemoveSaved(d.place_id, e)}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', color: 'currentColor', flexShrink: 0, fontSize: '16px', lineHeight: 1, opacity: 0.6 }}>
-                  Ã—
+                  ×
                 </span>
               </button>
             )
@@ -622,7 +622,7 @@ function DispensarySelector({ accent, value, onChange, category }) {
                           )}
                         </div>
                         {isSaved && (
-                          <span style={{ fontSize: '14px', flexShrink: 0, color: S.gold }}>â˜…</span>
+                          <span style={{ fontSize: '14px', flexShrink: 0, color: S.gold }}>★</span>
                         )}
                       </button>
                       <button
@@ -644,7 +644,7 @@ function DispensarySelector({ accent, value, onChange, category }) {
                         onMouseLeave={(e) => { e.currentTarget.style.color = S.textSecondary }}
                         title="Hide this dispensary"
                       >
-                        Ã—
+                        ×
                       </button>
                     </div>
                   )
@@ -841,10 +841,10 @@ function TerpeneSection({ value, onChange, aiSuggested, accent, expanded, onTogg
 }
 
 const MOOD_FACES = [
-  { value: 'good', label: 'Good', emoji: 'ðŸ˜Š', accentOverride: null },
-  { value: 'meh',  label: 'Meh',  emoji: 'ðŸ˜', accentOverride: null },
-  { value: 'off',  label: 'Off',  emoji: 'ðŸ˜ž', accentOverride: null },
-  { value: 'eww',  label: 'Eww',  emoji: 'ðŸ¤¢', accentOverride: '#4CAF50' },
+  { value: 'good', label: 'Good', emoji: '😊', accentOverride: null },
+  { value: 'meh',  label: 'Meh',  emoji: '😐', accentOverride: null },
+  { value: 'off',  label: 'Off',  emoji: '😞', accentOverride: null },
+  { value: 'eww',  label: 'Eww',  emoji: '🤢', accentOverride: '#4CAF50' },
 ]
 
 function MoodFacePicker({ value, onChange, accent }) {
@@ -1055,7 +1055,7 @@ function VoiceCapture({ accent, onSaveDirect, onEditManually }) {
       )}
       <button onClick={() => onSaveDirect({ transcript: editedText, parsed })}
         style={{ width: '100%', height: '56px', backgroundColor: S.gold, color: S.bg, border: 'none', borderRadius: '10px', fontFamily: fontInter, fontSize: '15px', fontWeight: '700', cursor: 'pointer' }}>
-        Looks good â€” save it
+        Looks good — save it
       </button>
       <button onClick={() => onEditManually({ transcript: editedText, parsed })}
         style={{ width: '100%', height: '50px', backgroundColor: 'transparent', color: S.gold, border: `1px solid ${S.gold}`, borderRadius: '10px', fontFamily: fontInter, fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>
@@ -1295,7 +1295,7 @@ function CaptureSheet({ accent, notePrompt, onSave, saving, saveError, initialMe
           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        Note ðŸ“
+        Note 📝
       </button>
     </div>
   )
