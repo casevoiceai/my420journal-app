@@ -448,6 +448,8 @@ export default function Settings() {
   const [loading, setLoading] = useState(!isDevMode())
   const [togglingTool, setTogglingTool] = useState(false)
   const [pinRefresh, setPinRefresh] = useState(0)
+  const [showPrivacyReceipt, setShowPrivacyReceipt] = useState(false)
+  const [backupError, setBackupError] = useState('')
 
   useEffect(() => {
     if (isDevMode()) return
@@ -493,6 +495,89 @@ export default function Settings() {
     navigate('/onboarding?step=list')
   }
 
+  function handleLocalBackup() {
+    try {
+      const backup = {
+        app: 'my420journal',
+        version: 1,
+        exported_at: new Date().toISOString(),
+        storage_prefix: 'my420journal_local_v1',
+        data: {},
+      }
+
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('my420journal_local_v1')) {
+          backup.data[key] = localStorage.getItem(key)
+        }
+      }
+
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `my420journal-backup-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      setBackupError('')
+      setShowPrivacyReceipt(true)
+    } catch {
+      setBackupError('Could not create backup. Try again.')
+    }
+  }
+
+  if (showPrivacyReceipt) {
+    return (
+      <div style={{ minHeight: '100dvh', backgroundColor: S.bg, boxSizing: 'border-box' }}>
+        <div style={{
+          width: '100%', maxWidth: '480px', margin: '0 auto',
+          padding: '56px 24px 80px', boxSizing: 'border-box',
+        }}>
+          <h1 style={{
+            fontFamily: fontPlayfair, fontSize: '28px', fontWeight: '600',
+            color: S.textPrimary, margin: '0 0 24px 0', lineHeight: '1.2',
+          }}>
+            Privacy Receipt
+          </h1>
+
+          <div style={{
+            backgroundColor: S.surface,
+            border: `1px solid ${S.border}`,
+            borderRadius: '10px',
+            padding: '20px',
+            marginBottom: '24px',
+          }}>
+            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
+              Everything in this app stays on this device only.
+            </p>
+            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
+              No data was sent to any server.
+            </p>
+            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
+              No account exists on any server.
+            </p>
+            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: 0 }}>
+              The only copy of your journal is on this device.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowPrivacyReceipt(false)}
+            style={{
+              width: '100%', height: '56px', backgroundColor: S.gold,
+              color: S.bg, border: 'none', borderRadius: '10px',
+              fontFamily: fontInter, fontSize: '15px', fontWeight: '700',
+              cursor: 'pointer',
+            }}
+          >
+            I understand. I'm done.
+          </button>
+        </div>
+      </div>
+    )
+  }
   if (loading) {
     return (
       <div style={{ minHeight: '100dvh', backgroundColor: S.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -627,6 +712,31 @@ export default function Settings() {
         <Divider />
 
         {/* ── NOTIFICATIONS ───────────────────────────────────────────────── */}
+        <SectionHeading>Backup</SectionHeading>
+        <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: '0 0 16px 0' }}>
+          Download a local JSON backup of the journal data stored on this device.
+        </p>
+        <button
+          onClick={handleLocalBackup}
+          style={{
+            width: '100%', height: '48px', backgroundColor: 'transparent',
+            border: `1px solid ${S.gold}`, borderRadius: '8px',
+            color: S.gold, fontFamily: fontInter, fontSize: '14px',
+            fontWeight: '500', cursor: 'pointer', letterSpacing: '0.02em',
+            transition: 'background-color 0.15s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${S.gold}14` }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+        >
+          Download local backup
+        </button>
+        {backupError && (
+          <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.error, margin: '12px 0 0 0' }}>
+            {backupError}
+          </p>
+        )}
+
+        <Divider />
         <SectionHeading>Notifications</SectionHeading>
         <NotificationSettings />
 
