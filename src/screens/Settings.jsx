@@ -450,6 +450,8 @@ export default function Settings() {
   const [pinRefresh, setPinRefresh] = useState(0)
   const [showPrivacyReceipt, setShowPrivacyReceipt] = useState(false)
   const [backupError, setBackupError] = useState('')
+  const [restoreStatus, setRestoreStatus] = useState('')
+  const [restoreError, setRestoreError] = useState('')
 
   useEffect(() => {
     if (isDevMode()) return
@@ -526,6 +528,59 @@ export default function Settings() {
     } catch {
       setBackupError('Could not create backup. Try again.')
     }
+  }
+
+  function handleRestoreBackup(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    setRestoreStatus('')
+    setRestoreError('')
+
+    if (!file) return
+
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || ''))
+
+        if (
+          parsed?.app !== 'my420journal' ||
+          parsed?.storage_prefix !== 'my420journal_local_v1' ||
+          !parsed?.data ||
+          typeof parsed.data !== 'object' ||
+          Array.isArray(parsed.data)
+        ) {
+          setRestoreError('This is not a valid my420journal backup file.')
+          return
+        }
+
+        const entries = Object.entries(parsed.data)
+        const invalidKey = entries.find(([key, value]) =>
+          !key.startsWith('my420journal_local_v1') || typeof value !== 'string'
+        )
+
+        if (invalidKey) {
+          setRestoreError('This backup file has an invalid format. Nothing was imported.')
+          return
+        }
+
+        entries.forEach(([key, value]) => {
+          localStorage.setItem(key, value)
+        })
+
+        setRestoreStatus('Backup imported. Your local journal data has been restored on this device.')
+        setRestoreError('')
+      } catch {
+        setRestoreError('Could not read this backup file. Nothing was imported.')
+      }
+    }
+
+    reader.onerror = () => {
+      setRestoreError('Could not read this backup file. Nothing was imported.')
+    }
+
+    reader.readAsText(file)
   }
 
   if (showPrivacyReceipt) {
@@ -733,6 +788,37 @@ export default function Settings() {
         {backupError && (
           <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.error, margin: '12px 0 0 0' }}>
             {backupError}
+          </p>
+        )}
+
+        <div style={{ marginTop: '16px' }}>
+          <label
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '100%', height: '48px', backgroundColor: 'transparent',
+              border: `1px solid ${S.border}`, borderRadius: '8px',
+              color: S.textSecondary, fontFamily: fontInter, fontSize: '14px',
+              fontWeight: '500', cursor: 'pointer', letterSpacing: '0.02em',
+              boxSizing: 'border-box',
+            }}
+          >
+            Import local backup
+            <input
+              type="file"
+              accept="application/json,.json"
+              onChange={handleRestoreBackup}
+              style={{ display: 'none' }}
+            />
+          </label>
+        </div>
+        {restoreStatus && (
+          <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.success, margin: '12px 0 0 0', lineHeight: '1.5' }}>
+            {restoreStatus}
+          </p>
+        )}
+        {restoreError && (
+          <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.error, margin: '12px 0 0 0', lineHeight: '1.5' }}>
+            {restoreError}
           </p>
         )}
 
