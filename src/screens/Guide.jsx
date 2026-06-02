@@ -261,7 +261,7 @@ export default function Guide() {
     }
 
     try {
-      const { data, error } = await localStore.tools.run('guide-response', {
+      const { data, error } = await localStore.tools.invoke('guide-response', {
         body: {
           messages: updated.map((m) => ({ role: m.role, content: m.content })),
           guide,
