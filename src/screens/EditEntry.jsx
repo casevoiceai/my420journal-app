@@ -138,6 +138,20 @@ export default function EditEntry() {
   const [mindTags,    setMindTags]    = useState([])
   const [moodTags,    setMoodTags]    = useState([])
   const [moodFace,    setMoodFace]    = useState(null)
+  const [dispensaryName, setDispensaryName] = useState(null)
+  const [dispensaryPlaceId, setDispensaryPlaceId] = useState(null)
+  const [dispensaryAddress, setDispensaryAddress] = useState(null)
+  const [dispensaryPhone, setDispensaryPhone] = useState(null)
+  const [dispensaryHours, setDispensaryHours] = useState(null)
+  const [dispensaryMapsUrl, setDispensaryMapsUrl] = useState(null)
+  const [dispensaryLat, setDispensaryLat] = useState(null)
+  const [dispensaryLng, setDispensaryLng] = useState(null)
+  const [moodCustom, setMoodCustom] = useState(null)
+  const [cannabinoids, setCannabinoids] = useState(null)
+  const [terpenes, setTerpenes] = useState(null)
+  const [terpenesAiSuggested, setTerpenesAiSuggested] = useState(null)
+  const [voiceTranscript, setVoiceTranscript] = useState(null)
+  const [captureMode, setCaptureMode] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -170,6 +184,20 @@ export default function EditEntry() {
       setMindTags(entry.mind_tags || [])
       setMoodTags(entry.mood_tags || [])
       setMoodFace(entry.mood_face || null)
+      setDispensaryName(entry.dispensary_name || null)
+      setDispensaryPlaceId(entry.dispensary_place_id || null)
+      setDispensaryAddress(entry.dispensary_address || null)
+      setDispensaryPhone(entry.dispensary_phone || null)
+      setDispensaryHours(entry.dispensary_hours || null)
+      setDispensaryMapsUrl(entry.dispensary_maps_url || null)
+      setDispensaryLat(entry.dispensary_lat ?? null)
+      setDispensaryLng(entry.dispensary_lng ?? null)
+      setMoodCustom(entry.mood_custom || null)
+      setCannabinoids(entry.cannabinoids || null)
+      setTerpenes(entry.terpenes || null)
+      setTerpenesAiSuggested(entry.terpenes_ai_suggested || null)
+      setVoiceTranscript(entry.voice_transcript || null)
+      setCaptureMode(entry.capture_mode || null)
       setLoading(false)
     }
     load()
@@ -200,6 +228,20 @@ export default function EditEntry() {
       mind_tags:    mindTags,
       mood_tags:    moodTags,
       mood_face:    moodFace || null,
+      dispensary_name:      dispensaryName,
+      dispensary_place_id:  dispensaryPlaceId,
+      dispensary_address:   dispensaryAddress,
+      dispensary_phone:     dispensaryPhone,
+      dispensary_hours:     dispensaryHours,
+      dispensary_maps_url:  dispensaryMapsUrl,
+      dispensary_lat:       dispensaryLat,
+      dispensary_lng:       dispensaryLng,
+      mood_custom:          moodCustom,
+      cannabinoids:         cannabinoids,
+      terpenes:             terpenes,
+      terpenes_ai_suggested: terpenesAiSuggested,
+      voice_transcript:     voiceTranscript,
+      capture_mode:         captureMode,
       adverse_event_level: moodFace === 'eww' ? 1 : null,
       updated_at:   new Date().toISOString(),
     }).eq('id', id)
