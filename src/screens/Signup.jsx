@@ -16,8 +16,18 @@ const inputStyle = {
   transition: 'border-color 0.15s ease',
 }
 
+const passwordInputStyle = {
+  ...inputStyle,
+  paddingRight: '52px',
+}
+
 const inputErrorStyle = {
   ...inputStyle,
+  border: '1px solid #E05C5C',
+}
+
+const passwordInputErrorStyle = {
+  ...passwordInputStyle,
   border: '1px solid #E05C5C',
 }
 
@@ -38,6 +48,78 @@ const fieldErrorStyle = {
   color: '#E05C5C',
   marginTop: '6px',
   lineHeight: '1.4',
+}
+
+function EyeIcon({ crossed }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M2.5 12C4.5 7.8 7.8 5.7 12 5.7C16.2 5.7 19.5 7.8 21.5 12C19.5 16.2 16.2 18.3 12 18.3C7.8 18.3 4.5 16.2 2.5 12Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
+      {crossed && (
+        <path
+          d="M4 20L20 4"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      )}
+    </svg>
+  )
+}
+
+function PasswordField({ id, label, value, onChange, error, autoComplete, placeholder, onClearError }) {
+  const [visible, setVisible] = useState(false)
+
+  return (
+    <div style={{ marginBottom: id === 'confirm' ? '32px' : '20px' }}>
+      <label htmlFor={id} style={labelStyle}>{label}</label>
+      <div style={{ position: 'relative' }}>
+        <input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          autoComplete={autoComplete}
+          value={value}
+          onChange={onChange}
+          style={error ? passwordInputErrorStyle : passwordInputStyle}
+          onFocus={(e) => { if (!error) e.target.style.borderColor = '#4A7A4A' }}
+          onBlur={(e) => { if (!error) e.target.style.borderColor = '#2D4A2D' }}
+          placeholder={placeholder}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((current) => !current)}
+          aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          title={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          style={{
+            position: 'absolute',
+            right: '10px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '34px',
+            height: '34px',
+            border: 'none',
+            borderRadius: '8px',
+            background: 'transparent',
+            color: '#8FAF8F',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+          }}
+        >
+          <EyeIcon crossed={visible} />
+        </button>
+      </div>
+      {error && <p style={fieldErrorStyle}>{error}</p>}
+    </div>
+  )
 }
 
 function validate(email, password, confirm) {
@@ -194,37 +276,25 @@ export default function Signup() {
             {fieldErrors.email && <p style={fieldErrorStyle}>{fieldErrors.email}</p>}
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="password" style={labelStyle}>Password</label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); clearFieldError('password') }}
-              style={fieldErrors.password ? inputErrorStyle : inputStyle}
-              onFocus={(e) => { if (!fieldErrors.password) e.target.style.borderColor = '#4A7A4A' }}
-              onBlur={(e) => { if (!fieldErrors.password) e.target.style.borderColor = '#2D4A2D' }}
-              placeholder="Minimum 8 characters"
-            />
-            {fieldErrors.password && <p style={fieldErrorStyle}>{fieldErrors.password}</p>}
-          </div>
+          <PasswordField
+            id="password"
+            label="Password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); clearFieldError('password') }}
+            error={fieldErrors.password}
+            placeholder="Minimum 8 characters"
+          />
 
-          <div style={{ marginBottom: '32px' }}>
-            <label htmlFor="confirm" style={labelStyle}>Confirm password</label>
-            <input
-              id="confirm"
-              type="password"
-              autoComplete="new-password"
-              value={confirm}
-              onChange={(e) => { setConfirm(e.target.value); clearFieldError('confirm') }}
-              style={fieldErrors.confirm ? inputErrorStyle : inputStyle}
-              onFocus={(e) => { if (!fieldErrors.confirm) e.target.style.borderColor = '#4A7A4A' }}
-              onBlur={(e) => { if (!fieldErrors.confirm) e.target.style.borderColor = '#2D4A2D' }}
-              placeholder="Re-enter your password"
-            />
-            {fieldErrors.confirm && <p style={fieldErrorStyle}>{fieldErrors.confirm}</p>}
-          </div>
+          <PasswordField
+            id="confirm"
+            label="Confirm password"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => { setConfirm(e.target.value); clearFieldError('confirm') }}
+            error={fieldErrors.confirm}
+            placeholder="Re-enter your password"
+          />
 
           <button
             type="submit"
