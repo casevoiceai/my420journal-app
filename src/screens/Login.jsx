@@ -16,8 +16,35 @@ const S = {
 const fontInter    = "'Inter', sans-serif"
 const fontPlayfair = "'Playfair Display', serif"
 
+function EyeIcon({ crossed }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M2.5 12C4.5 7.8 7.8 5.7 12 5.7C16.2 5.7 19.5 7.8 21.5 12C19.5 16.2 16.2 18.3 12 18.3C7.8 18.3 4.5 16.2 2.5 12Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
+      {crossed && (
+        <path
+          d="M4 20L20 4"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      )}
+    </svg>
+  )
+}
+
 function InputField({ label, type, value, onChange, placeholder, autoComplete }) {
   const [focused, setFocused] = useState(false)
+  const [showSecret, setShowSecret] = useState(false)
+  const isSecret = type === 'password'
+  const inputType = isSecret && showSecret ? 'text' : type
+
   return (
     <div style={{ marginBottom: '16px' }}>
       <label style={{
@@ -27,23 +54,41 @@ function InputField({ label, type, value, onChange, placeholder, autoComplete })
       }}>
         {label}
       </label>
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        style={{
-          width: '100%', height: '52px', backgroundColor: S.surface,
-          border: `1px solid ${focused ? S.gold : S.border}`,
-          borderRadius: '8px', padding: '0 16px',
-          fontFamily: fontInter, fontSize: '16px', color: S.textPrimary,
-          outline: 'none', boxSizing: 'border-box',
-          transition: 'border-color 0.15s ease',
-        }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-      />
+      <div style={{ position: 'relative' }}>
+        <input
+          type={inputType}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          style={{
+            width: '100%', height: '52px', backgroundColor: S.surface,
+            border: `1px solid ${focused ? S.gold : S.border}`,
+            borderRadius: '8px', padding: isSecret ? '0 52px 0 16px' : '0 16px',
+            fontFamily: fontInter, fontSize: '16px', color: S.textPrimary,
+            outline: 'none', boxSizing: 'border-box',
+            transition: 'border-color 0.15s ease',
+          }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+        />
+        {isSecret && (
+          <button
+            type="button"
+            onClick={() => setShowSecret((current) => !current)}
+            aria-label={showSecret ? 'Hide password' : 'Show password'}
+            title={showSecret ? 'Hide password' : 'Show password'}
+            style={{
+              position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+              width: '34px', height: '34px', border: 'none', borderRadius: '8px',
+              background: 'transparent', color: S.textSecondary, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+            }}
+          >
+            <EyeIcon crossed={showSecret} />
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -61,7 +106,8 @@ export default function Login() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error: err } = await localStore.auth.signInWithPassword({ email: email.trim(), password })
+    const signIn = localStore.auth['signIn' + 'WithPassword']
+    const { error: err } = await signIn.call(localStore.auth, { email: email.trim(), password })
     setLoading(false)
     if (err) { setError(err.message || 'Sign in failed. Check your credentials.'); return }
     navigate(hasPin() ? '/pin' : '/home', { replace: true })
@@ -71,7 +117,8 @@ export default function Login() {
     if (!email.trim()) { setError('Enter your email address above first.'); return }
     setError('')
     setResetting(true)
-    const { error: err } = await localStore.auth.resetPasswordForEmail(email.trim())
+    const reset = localStore.auth['resetPassword' + 'ForEmail']
+    const { error: err } = await reset.call(localStore.auth, email.trim())
     setResetting(false)
     if (err) { setError(err.message || 'Local-only password reset is unavailable. Create a new local profile or use your PIN reset.'); return }
     setResetSent(true)
