@@ -331,6 +331,7 @@ export default function Guide() {
         backgroundColor: S.bg,
         boxSizing: 'border-box',
         alignItems: 'center',
+        paddingBottom: '80px',
       }}>
         {/* Inner column — max 680px */}
         <div style={{
