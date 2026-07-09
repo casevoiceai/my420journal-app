@@ -4,6 +4,13 @@ import { marketingFonts, marketingPage, marketingPalette as S } from './marketin
 
 const disclaimerText = 'my420journal is a private journaling tool for adults in jurisdictions where cannabis is legal. It does not sell cannabis, provide medical advice, or connect you to any dispensary for purchase. Your entries stay on your device unless you choose to share anonymized signals through the opt-in Shared Signals feature.'
 
+const sectionTabs = [
+  { label: 'Home', href: '/#home' },
+  { label: 'About', href: '/#about' },
+  { label: 'FAQ', href: '/#faq' },
+  { label: 'Contact', href: '/#contact' },
+]
+
 export default function MarketingLayout({ children }) {
   const [showDisclaimer, setShowDisclaimer] = useState(false)
 
@@ -33,46 +40,74 @@ export default function MarketingLayout({ children }) {
         <div style={{
           maxWidth: marketingPage.maxWidth,
           margin: '0 auto',
-          minHeight: '76px',
+          minHeight: '84px',
           padding: '12px 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '16px',
+          gap: '18px',
           boxSizing: 'border-box',
           flexWrap: 'wrap',
         }}>
-          <Link
-            to="/"
-            style={{
-              display: 'inline-flex',
-              flexDirection: 'column',
-              gap: '3px',
-              color: S.textPrimary,
-              textDecoration: 'none',
-              minWidth: '190px',
-            }}
-          >
-            <span style={{
-              fontFamily: marketingFonts.playfair,
-              fontSize: '24px',
-              lineHeight: 1,
-              fontWeight: 700,
-              letterSpacing: '-0.02em',
-            }}>
-              my420journal
-            </span>
-            <span style={{
-              color: S.gold,
-              fontFamily: marketingFonts.inter,
-              fontSize: '10px',
-              fontWeight: 800,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-            }}>
-              A PRIVATE CANNABIS JOURNAL.
-            </span>
-          </Link>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '22px',
+            flexWrap: 'wrap',
+            minWidth: 0,
+          }}>
+            <Link
+              to="/"
+              style={{
+                display: 'inline-flex',
+                flexDirection: 'column',
+                gap: '3px',
+                color: S.textPrimary,
+                textDecoration: 'none',
+                minWidth: '190px',
+              }}
+            >
+              <span style={{
+                fontFamily: marketingFonts.playfair,
+                fontSize: '24px',
+                lineHeight: 1,
+                fontWeight: 700,
+                letterSpacing: '-0.02em',
+              }}>
+                my420journal
+              </span>
+              <span style={{
+                color: S.gold,
+                fontFamily: marketingFonts.inter,
+                fontSize: '10px',
+                fontWeight: 800,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+              }}>
+                A PRIVATE CANNABIS JOURNAL.
+              </span>
+            </Link>
+
+            <nav
+              aria-label="Marketing sections"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                flexWrap: 'wrap',
+              }}
+            >
+              {sectionTabs.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  style={sectionTabStyle}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+          </div>
 
           <nav style={{
             display: 'flex',
@@ -116,7 +151,7 @@ export default function MarketingLayout({ children }) {
         </div>
       </header>
 
-      <main style={{ flex: 1, paddingTop: '92px' }}>
+      <main style={{ flex: 1, paddingTop: '102px' }}>
         {children}
       </main>
 
@@ -290,6 +325,17 @@ function FooterColumn({ heading, lines }) {
       ))}
     </section>
   )
+}
+
+const sectionTabStyle = {
+  color: S.textPrimary,
+  textDecoration: 'none',
+  fontSize: '13px',
+  fontWeight: 800,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  padding: '8px 4px',
+  borderBottom: `1px solid ${S.border}`,
 }
 
 const cornerButtonStyle = {
