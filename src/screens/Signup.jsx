@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
+import { TEST_EMAIL, TEST_PASSWORD, isRuntimeTestConvenienceEnabled } from '../lib/testConvenience'
+
+const TEST_CONVENIENCE_ENABLED = isRuntimeTestConvenienceEnabled()
 
 const inputStyle = {
   width: '100%',
@@ -144,9 +147,9 @@ function validate(email, password, confirm) {
 
 export default function Signup() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
+  const [email, setEmail] = useState(TEST_CONVENIENCE_ENABLED ? TEST_EMAIL : '')
+  const [password, setPassword] = useState(TEST_CONVENIENCE_ENABLED ? TEST_PASSWORD : '')
+  const [confirm, setConfirm] = useState(TEST_CONVENIENCE_ENABLED ? TEST_PASSWORD : '')
   const [fieldErrors, setFieldErrors] = useState({})
   const [localOnlyError, setLocalOnlyError] = useState('')
   const [loading, setLoading] = useState(false)
