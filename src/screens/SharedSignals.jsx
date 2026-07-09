@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import AggregateSignalCard from '../components/AggregateSignalCard'
 import MinimumPoolNotice from '../components/MinimumPoolNotice'
 import { fetchAggregateResults } from '../lib/sharedAggregateApi'
+import { retryQueuedSharedContributions } from '../lib/sharedContributionQueue'
 import { getSharedPrivacyState } from '../lib/sharedPrivacy'
 
 const S = {
@@ -110,6 +111,10 @@ export default function SharedSignals() {
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState(null)
   const [privacyState, setPrivacyState] = useState(() => getSharedPrivacyState())
+
+  useEffect(() => {
+    retryQueuedSharedContributions()
+  }, [])
 
   useEffect(() => {
     setProductInput(productKey)
