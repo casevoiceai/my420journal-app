@@ -87,13 +87,12 @@ export default function MarketingLayout({ children }) {
 
         <div style={{
           maxWidth: marketingPage.maxWidth,
+          height: '154px',
           margin: '0 auto',
-          height: '118px',
-          padding: '18px 20px',
+          padding: '22px 20px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '24px',
+          justifyContent: 'center',
           boxSizing: 'border-box',
         }}>
           <Link
@@ -101,67 +100,71 @@ export default function MarketingLayout({ children }) {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '14px',
+              justifyContent: 'center',
+              gap: '20px',
               color: S.textPrimary,
               textDecoration: 'none',
-              minWidth: '360px',
-              flex: '0 0 auto',
+              maxWidth: '100%',
             }}
           >
             <HeaderBrainMark />
             <span style={{
               display: 'inline-flex',
               flexDirection: 'column',
-              gap: '6px',
               minWidth: 0,
             }}>
               <span style={{
                 fontFamily: marketingFonts.playfair,
-                fontSize: '56px',
+                fontSize: '81px',
                 lineHeight: 0.92,
                 fontWeight: 700,
                 letterSpacing: '-0.03em',
+                whiteSpace: 'nowrap',
               }}>
                 my420journal
               </span>
               <span style={{
+                marginTop: '12px',
                 color: S.gold,
                 fontFamily: marketingFonts.inter,
                 fontSize: '13px',
+                lineHeight: 1,
                 fontWeight: 800,
                 letterSpacing: '0.16em',
                 textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
               }}>
                 A PRIVATE CANNABIS JOURNAL.
               </span>
             </span>
           </Link>
-
-          <nav
-            aria-label="Marketing sections"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              gap: '10px',
-              flex: '1 1 auto',
-              minWidth: 0,
-            }}
-          >
-            {sectionTabs.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                style={sectionTabStyle}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
         </div>
+
+        <nav
+          aria-label="Marketing sections"
+          style={{
+            height: '52px',
+            padding: '8px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '18px',
+            boxSizing: 'border-box',
+          }}
+        >
+          {sectionTabs.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              style={sectionTabStyle}
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
       </header>
 
-      <main style={{ flex: 1, paddingTop: '164px' }}>
+      <main style={{ flex: 1, paddingTop: '252px' }}>
         {children}
       </main>
 
@@ -309,9 +312,9 @@ export default function MarketingLayout({ children }) {
 function HeaderBrainMark() {
   return (
     <span style={{
-      width: '62px',
-      height: '62px',
-      borderRadius: '18px',
+      width: '90px',
+      height: '90px',
+      borderRadius: '26px',
       border: `1px solid ${S.border}`,
       backgroundColor: 'rgba(10,26,10,0.72)',
       display: 'inline-flex',
@@ -321,8 +324,8 @@ function HeaderBrainMark() {
       boxShadow: '0 10px 24px rgba(0,0,0,0.24)',
     }}>
       <svg
-        width="50"
-        height="50"
+        width="73"
+        height="73"
         viewBox="0 0 64 64"
         aria-hidden="true"
         focusable="false"
