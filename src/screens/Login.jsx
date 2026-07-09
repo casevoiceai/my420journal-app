@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { hasPin } from '../lib/pin'
+import { TEST_EMAIL, TEST_PASSWORD, isRuntimeTestConvenienceEnabled } from '../lib/testConvenience'
 
 const S = {
   bg:            '#0A1A0A',
@@ -15,6 +16,7 @@ const S = {
 }
 const fontInter    = "'Inter', sans-serif"
 const fontPlayfair = "'Playfair Display', serif"
+const TEST_CONVENIENCE_ENABLED = isRuntimeTestConvenienceEnabled()
 
 function EyeIcon({ crossed }) {
   return (
@@ -95,8 +97,8 @@ function InputField({ label, type, value, onChange, placeholder, autoComplete })
 
 export default function Login() {
   const navigate = useNavigate()
-  const [email,     setEmail]     = useState('')
-  const [password,  setPassword]  = useState('')
+  const [email,     setEmail]     = useState(TEST_CONVENIENCE_ENABLED ? TEST_EMAIL : '')
+  const [password,  setPassword]  = useState(TEST_CONVENIENCE_ENABLED ? TEST_PASSWORD : '')
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
   const [resetSent, setResetSent] = useState(false)
