@@ -124,13 +124,14 @@ export default function MarketingLayout({ children }) {
                 my420journal
               </span>
               <span style={{
-                marginTop: '12px',
+                marginTop: '18px',
                 color: S.gold,
                 fontFamily: marketingFonts.inter,
                 fontSize: '13px',
                 lineHeight: 1,
                 fontWeight: 800,
                 letterSpacing: '0.16em',
+                textAlign: 'center',
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap',
               }}>
