@@ -40,8 +40,8 @@ export default function MarketingLayout({ children }) {
         <div style={{
           maxWidth: marketingPage.maxWidth,
           margin: '0 auto',
-          minHeight: '84px',
-          padding: '12px 20px',
+          minHeight: '116px',
+          padding: '18px 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -61,22 +61,22 @@ export default function MarketingLayout({ children }) {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '14px',
                 color: S.textPrimary,
                 textDecoration: 'none',
-                minWidth: '250px',
+                minWidth: '360px',
               }}
             >
               <HeaderBrainMark />
               <span style={{
                 display: 'inline-flex',
                 flexDirection: 'column',
-                gap: '4px',
+                gap: '6px',
                 minWidth: 0,
               }}>
                 <span style={{
                   fontFamily: marketingFonts.playfair,
-                  fontSize: '36px',
+                  fontSize: '56px',
                   lineHeight: 0.92,
                   fontWeight: 700,
                   letterSpacing: '-0.03em',
@@ -86,7 +86,7 @@ export default function MarketingLayout({ children }) {
                 <span style={{
                   color: S.gold,
                   fontFamily: marketingFonts.inter,
-                  fontSize: '11px',
+                  fontSize: '13px',
                   fontWeight: 800,
                   letterSpacing: '0.16em',
                   textTransform: 'uppercase',
@@ -159,7 +159,7 @@ export default function MarketingLayout({ children }) {
         </div>
       </header>
 
-      <main style={{ flex: 1, paddingTop: '102px' }}>
+      <main style={{ flex: 1, paddingTop: '136px' }}>
         {children}
       </main>
 
@@ -307,9 +307,9 @@ export default function MarketingLayout({ children }) {
 function HeaderBrainMark() {
   return (
     <span style={{
-      width: '40px',
-      height: '40px',
-      borderRadius: '12px',
+      width: '62px',
+      height: '62px',
+      borderRadius: '18px',
       border: `1px solid ${S.border}`,
       backgroundColor: 'rgba(10,26,10,0.72)',
       display: 'inline-flex',
@@ -319,8 +319,8 @@ function HeaderBrainMark() {
       boxShadow: '0 10px 24px rgba(0,0,0,0.24)',
     }}>
       <svg
-        width="32"
-        height="32"
+        width="50"
+        height="50"
         viewBox="0 0 64 64"
         aria-hidden="true"
         focusable="false"
