@@ -1,5 +1,6 @@
 const PRODUCT_MINIMUM = 10
 const REGION_MINIMUM = 25
+const OPT_OUT_PURGE_DELAY_MS = 24 * 60 * 60 * 1000
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -69,22 +70,17 @@ async function requestOptOut(env, body) {
     SET is_active = 0,
         opted_out_at = ?,
         delete_requested_at = ?,
+        delete_completed_at = NULL,
         updated_at = ?
     WHERE anonymous_contributor_id = ?
   `).bind(now, now, now, id).run()
 
-  await env.DB.prepare(`
-    DELETE FROM shared_product_contributions
-    WHERE anonymous_contributor_id = ?
-  `).bind(id).run()
-
-  await env.DB.prepare(`
-    UPDATE shared_contributors
-    SET delete_completed_at = ?, updated_at = ?
-    WHERE anonymous_contributor_id = ?
-  `).bind(now, now, id).run()
-
-  return json({ ok: true, delete_completed_at: now })
+  return json({
+    ok: true,
+    opted_out_at: now,
+    delete_requested_at: now,
+    physical_delete_after_hours: 24,
+  })
 }
 
 async function createContribution(env, body) {
@@ -155,14 +151,21 @@ async function getAggregate(env, url) {
   const minimum = regionBucket ? REGION_MINIMUM : PRODUCT_MINIMUM
   const countRow = regionBucket
     ? await env.DB.prepare(`
-        SELECT COUNT(DISTINCT anonymous_contributor_id) AS contributor_count
-        FROM shared_product_contributions
-        WHERE product_key = ? AND region_bucket = ?
+        SELECT COUNT(DISTINCT c.anonymous_contributor_id) AS contributor_count
+        FROM shared_product_contributions c
+        INNER JOIN shared_contributors sc
+          ON sc.anonymous_contributor_id = c.anonymous_contributor_id
+        WHERE c.product_key = ?
+          AND c.region_bucket = ?
+          AND sc.is_active = 1
       `).bind(productKey, regionBucket).first()
     : await env.DB.prepare(`
-        SELECT COUNT(DISTINCT anonymous_contributor_id) AS contributor_count
-        FROM shared_product_contributions
-        WHERE product_key = ?
+        SELECT COUNT(DISTINCT c.anonymous_contributor_id) AS contributor_count
+        FROM shared_product_contributions c
+        INNER JOIN shared_contributors sc
+          ON sc.anonymous_contributor_id = c.anonymous_contributor_id
+        WHERE c.product_key = ?
+          AND sc.is_active = 1
       `).bind(productKey).first()
 
   const contributorCount = Number(countRow?.contributor_count || 0)
@@ -179,14 +182,21 @@ async function getAggregate(env, url) {
 
   const rows = regionBucket
     ? await env.DB.prepare(`
-        SELECT body_tags_json, mind_tags_json, mood_tags_json
-        FROM shared_product_contributions
-        WHERE product_key = ? AND region_bucket = ?
+        SELECT c.body_tags_json, c.mind_tags_json, c.mood_tags_json
+        FROM shared_product_contributions c
+        INNER JOIN shared_contributors sc
+          ON sc.anonymous_contributor_id = c.anonymous_contributor_id
+        WHERE c.product_key = ?
+          AND c.region_bucket = ?
+          AND sc.is_active = 1
       `).bind(productKey, regionBucket).all()
     : await env.DB.prepare(`
-        SELECT body_tags_json, mind_tags_json, mood_tags_json
-        FROM shared_product_contributions
-        WHERE product_key = ?
+        SELECT c.body_tags_json, c.mind_tags_json, c.mood_tags_json
+        FROM shared_product_contributions c
+        INNER JOIN shared_contributors sc
+          ON sc.anonymous_contributor_id = c.anonymous_contributor_id
+        WHERE c.product_key = ?
+          AND sc.is_active = 1
       `).bind(productKey).all()
 
   const counts = new Map()
@@ -214,6 +224,50 @@ async function getAggregate(env, url) {
   })
 }
 
+function deletedRowCount(result) {
+  return result?.meta?.changes || result?.changes || 0
+}
+
+async function purgeOptedOutContributors(env) {
+  const cutoff = new Date(Date.now() - OPT_OUT_PURGE_DELAY_MS).toISOString()
+  const rows = await env.DB.prepare(`
+    SELECT anonymous_contributor_id
+    FROM shared_contributors
+    WHERE is_active = 0
+      AND opted_out_at IS NOT NULL
+      AND opted_out_at <= ?
+  `).bind(cutoff).all()
+
+  let contributorsPurged = 0
+  let contributionsDeleted = 0
+
+  for (const row of rows.results || []) {
+    const contributorId = row.anonymous_contributor_id
+    if (!contributorId) continue
+
+    const contributionDelete = await env.DB.prepare(`
+      DELETE FROM shared_product_contributions
+      WHERE anonymous_contributor_id = ?
+    `).bind(contributorId).run()
+
+    await env.DB.prepare(`
+      DELETE FROM shared_contributors
+      WHERE anonymous_contributor_id = ?
+        AND is_active = 0
+    `).bind(contributorId).run()
+
+    contributorsPurged += 1
+    contributionsDeleted += deletedRowCount(contributionDelete)
+  }
+
+  return {
+    ok: true,
+    cutoff,
+    contributors_purged: contributorsPurged,
+    contributions_deleted: contributionsDeleted,
+  }
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS })
@@ -234,10 +288,19 @@ export default {
       return createContribution(env, await readJson(request))
     }
 
+    if (request.method === 'POST' && url.pathname === '/admin/purge-opted-out') {
+      return json(await purgeOptedOutContributors(env))
+    }
+
     if (request.method === 'GET' && url.pathname === '/aggregates') {
       return getAggregate(env, url)
     }
 
     return json({ ok: false, error: 'Not found' }, 404)
+  },
+
+  async scheduled(event, env, ctx) {
+    if (!env.DB) return
+    ctx.waitUntil(purgeOptedOutContributors(env))
   },
 }
