@@ -14,9 +14,9 @@ const processSteps = [
   },
   {
     step: 'Step 2',
-    title: 'Let your guide hold the thread.',
-    body: 'The real Guide screen is shown here inside a simple frame from the working app.',
-    appPreview: true,
+    title: 'App preview coming soon.',
+    body: 'A proper screenshot or mockup will be prepared separately. For now, this stays as a clean placeholder.',
+    placeholder: 'App preview coming soon',
   },
   {
     step: 'Step 3',
@@ -39,23 +39,25 @@ export default function MarketingHome() {
       <HeroSection />
       <ProcessSection />
       <FeatureGrid />
-      <AboutSection id="about" />
+      <AboutSection id="about" tone="surface" />
       <ClosingSection />
-      <FAQSection id="faq" />
-      <ContactSection id="contact" />
+      <FAQSection id="faq" tone="surface" />
+      <ContactSection id="contact" tone="base" />
     </MarketingLayout>
   )
 }
 
 function HeroSection() {
   return (
-    <section style={{
-      position: 'relative',
-      minHeight: 'calc(100dvh - 92px)',
-      overflow: 'hidden',
-      backgroundColor: S.surface,
-      borderBottom: `1px solid ${S.border}`,
-    }}>
+    <section
+      id="home"
+      className="marketing-section marketing-section-bg-base"
+      style={{
+        position: 'relative',
+        minHeight: 'calc(100dvh - 102px)',
+        overflow: 'hidden',
+      }}
+    >
       <div style={{
         position: 'absolute',
         inset: 0,
@@ -81,17 +83,18 @@ function HeroSection() {
         backgroundColor: 'rgba(10,26,10,0.64)',
       }} />
 
-      <div style={{
-        position: 'relative',
-        maxWidth: marketingPage.maxWidth,
-        margin: '0 auto',
-        minHeight: 'calc(100dvh - 92px)',
-        padding: '90px 20px 96px',
-        display: 'flex',
-        alignItems: 'center',
-        boxSizing: 'border-box',
-      }}>
+      <div
+        className="marketing-section-inner"
+        style={{
+          position: 'relative',
+          maxWidth: marketingPage.maxWidth,
+          minHeight: 'calc(100dvh - 102px)',
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
         <div style={{ maxWidth: '820px' }}>
+          <BrainMark />
           <p style={eyebrowStyle}>
             Private cannabis journaling
           </p>
@@ -152,67 +155,69 @@ function ProcessSection() {
   return (
     <section
       id="process"
-      style={{
-        maxWidth: marketingPage.maxWidth,
-        margin: '0 auto',
-        padding: '76px 20px 82px',
-        boxSizing: 'border-box',
-      }}
+      className="marketing-section marketing-section-bg-surface"
     >
-      <SectionHeader
-        eyebrow="The Process"
-        title="Three steps, one private record."
-        body="The structure stays simple. Log the moment, let the app keep track, and return to what your own history has already taught you."
-      />
+      <div
+        className="marketing-section-inner"
+        style={{
+          maxWidth: marketingPage.maxWidth,
+        }}
+      >
+        <SectionHeader
+          eyebrow="The Process"
+          title="Three steps, one private record."
+          body="The structure stays simple. Log the moment, let the app keep track, and return to what your own history has already taught you."
+        />
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-        gap: '18px',
-        alignItems: 'stretch',
-      }}>
-        {processSteps.map((item) => (
-          <article
-            key={item.step}
-            style={{
-              backgroundColor: S.surface,
-              border: `1px solid ${S.border}`,
-              borderRadius: marketingPage.radius,
-              padding: '18px',
-              boxSizing: 'border-box',
-              minWidth: 0,
-            }}
-          >
-            {item.appPreview ? <GuideFrame /> : <PlaceholderBox label={item.placeholder} minHeight="280px" />}
-            <p style={{
-              margin: '18px 0 8px 0',
-              color: S.gold,
-              fontSize: '12px',
-              fontWeight: 800,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-            }}>
-              {item.step}
-            </p>
-            <h3 style={{
-              margin: '0 0 10px 0',
-              color: S.textPrimary,
-              fontFamily: marketingFonts.playfair,
-              fontSize: '26px',
-              lineHeight: 1.18,
-            }}>
-              {item.title}
-            </h3>
-            <p style={{
-              margin: 0,
-              color: S.textSecondary,
-              fontSize: '15px',
-              lineHeight: 1.65,
-            }}>
-              {item.body}
-            </p>
-          </article>
-        ))}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '18px',
+          alignItems: 'stretch',
+        }}>
+          {processSteps.map((item) => (
+            <article
+              key={item.step}
+              style={{
+                backgroundColor: S.bg,
+                border: `1px solid ${S.border}`,
+                borderRadius: marketingPage.radius,
+                padding: '18px',
+                boxSizing: 'border-box',
+                minWidth: 0,
+              }}
+            >
+              <PlaceholderBox label={item.placeholder} minHeight="280px" />
+              <p style={{
+                margin: '18px 0 8px 0',
+                color: S.gold,
+                fontSize: '12px',
+                fontWeight: 800,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+              }}>
+                {item.step}
+              </p>
+              <h3 style={{
+                margin: '0 0 10px 0',
+                color: S.textPrimary,
+                fontFamily: marketingFonts.playfair,
+                fontSize: '26px',
+                lineHeight: 1.18,
+              }}>
+                {item.title}
+              </h3>
+              <p style={{
+                margin: 0,
+                color: S.textSecondary,
+                fontSize: '15px',
+                lineHeight: 1.65,
+              }}>
+                {item.body}
+              </p>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   )
@@ -220,17 +225,13 @@ function ProcessSection() {
 
 function FeatureGrid() {
   return (
-    <section style={{
-      backgroundColor: 'rgba(26,46,26,0.58)',
-      borderTop: `1px solid ${S.border}`,
-      borderBottom: `1px solid ${S.border}`,
-    }}>
-      <div style={{
-        maxWidth: marketingPage.maxWidth,
-        margin: '0 auto',
-        padding: '76px 20px 82px',
-        boxSizing: 'border-box',
-      }}>
+    <section className="marketing-section marketing-section-bg-base">
+      <div
+        className="marketing-section-inner"
+        style={{
+          maxWidth: marketingPage.maxWidth,
+        }}
+      >
         <SectionHeader
           eyebrow="Built for real use"
           title="Small actions that make the next visit easier."
@@ -246,7 +247,7 @@ function FeatureGrid() {
             <article
               key={label}
               style={{
-                backgroundColor: S.bg,
+                backgroundColor: S.surface,
                 border: `1px solid ${S.border}`,
                 borderRadius: marketingPage.radius,
                 padding: '16px',
@@ -273,21 +274,17 @@ function FeatureGrid() {
 
 function ClosingSection() {
   return (
-    <section style={{
-      borderTop: `1px solid ${S.border}`,
-      borderBottom: `1px solid ${S.border}`,
-      backgroundColor: 'rgba(10,26,10,0.72)',
-    }}>
-      <div style={{
-        maxWidth: marketingPage.maxWidth,
-        margin: '0 auto',
-        padding: '78px 20px',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '28px',
-        alignItems: 'center',
-        boxSizing: 'border-box',
-      }}>
+    <section className="marketing-section marketing-section-bg-base">
+      <div
+        className="marketing-section-inner"
+        style={{
+          maxWidth: marketingPage.maxWidth,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '28px',
+          alignItems: 'center',
+        }}
+      >
         <PlaceholderBox label="Private record placeholder" minHeight="320px" />
         <p style={{
           margin: 0,
@@ -356,38 +353,32 @@ function PlaceholderBox({ label, minHeight }) {
   )
 }
 
-function GuideFrame() {
+function BrainMark() {
   return (
     <div style={{
-      width: '100%',
-      minHeight: '280px',
-      borderRadius: '26px',
-      backgroundColor: '#050D05',
-      border: '1px solid rgba(232,240,232,0.18)',
-      padding: '12px',
-      boxSizing: 'border-box',
-      boxShadow: '0 18px 46px rgba(0,0,0,0.34)',
+      width: '58px',
+      height: '58px',
+      borderRadius: '18px',
+      border: `1px solid ${S.border}`,
+      backgroundColor: 'rgba(10,26,10,0.72)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: '18px',
+      boxShadow: '0 14px 30px rgba(0,0,0,0.28)',
     }}>
-      <div style={{
-        width: '100%',
-        height: '420px',
-        borderRadius: '18px',
-        overflow: 'hidden',
-        backgroundColor: S.bg,
-        border: `1px solid ${S.border}`,
-      }}>
-        <iframe
-          src="/guide"
-          title="Guide screen preview"
-          style={{
-            width: '100%',
-            height: '100%',
-            border: '0',
-            display: 'block',
-            pointerEvents: 'none',
-          }}
+      <svg
+        width="46"
+        height="46"
+        viewBox="0 0 64 64"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          fill={S.success}
+          d="M34 9c-9.9 0-18 7.6-18 17 0 4.8 2.1 9.1 5.5 12.2 1.2 1.1 1.8 2.6 1.8 4.2v6.2c0 3.5 2.9 6.4 6.4 6.4h8.9c3.1 0 5.7-2.2 6.3-5.2l.4-2.2h4.1c2.2 0 3.9-1.8 3.9-3.9v-5.8c0-1.2.4-2.4 1.1-3.4l2.6-3.7c.8-1.2.5-2.8-.7-3.6l-3.2-2.1C51.4 14.1 43.3 9 34 9Zm-7.2 13.7c.9-3.1 3.8-5.3 7.2-5.3 3.2 0 6 2 7 4.9 2.7.4 4.9 2.6 5.4 5.3 2 .8 3.4 2.7 3.4 5 0 2.9-2.3 5.3-5.2 5.4-.9 2.4-3.2 4.2-5.9 4.2-1.8 0-3.4-.8-4.6-2-1.3 1.4-3.1 2.2-5.2 2.2-3.9 0-7.1-3.1-7.1-7 0-.9.2-1.8.5-2.6-1.6-1.3-2.6-3.2-2.6-5.4 0-3.2 2.1-5.9 5.1-6.7Zm7.2-.3c-1.9 0-3.5 1.5-3.6 3.4l-.1 1.9-1.9.1c-2 .1-3.6 1.7-3.6 3.7 0 1.5.9 2.8 2.2 3.4l1.7.8-.8 1.7c-.2.5-.4 1-.4 1.6 0 2 1.6 3.6 3.6 3.6 1.4 0 2.6-.8 3.2-2l1.8-3.4 1.7 3.4c.5 1 1.5 1.6 2.7 1.6 1.6 0 3-1.3 3.1-2.9l.1-1.9 1.9-.1c1.5 0 2.7-1.3 2.7-2.8 0-1.3-.9-2.4-2.1-2.7l-1.5-.4-.1-1.5c-.2-1.9-1.8-3.4-3.8-3.4h-1.7l-.4-1.6c-.4-1.5-1.8-2.5-3.5-2.5Z"
         />
-      </div>
+      </svg>
     </div>
   )
 }
