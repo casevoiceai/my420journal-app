@@ -111,6 +111,38 @@ export async function requestOptOutDeletion(sharedState = {}) {
   }
 }
 
+export async function submitContribution(contribution = {}) {
+  if (!contribution.anonymous_contributor_id) {
+    return {
+      ok: false,
+      connected: false,
+      status: 'missing_anonymous_contributor_id',
+      action: 'submit_contribution',
+      message: 'Anonymous contributor ID is required before submitting a shared contribution.',
+    }
+  }
+
+  if (!contribution.product_key) {
+    return {
+      ok: false,
+      connected: false,
+      status: 'missing_product_key',
+      action: 'submit_contribution',
+      message: 'Product key is required before submitting a shared contribution.',
+    }
+  }
+
+  const result = await workerRequest('/contributions', {
+    method: 'POST',
+    body: JSON.stringify(contribution),
+  })
+
+  return {
+    ...result,
+    action: 'submit_contribution',
+  }
+}
+
 export async function fetchAggregateResults({ productKey, regionBucket } = {}) {
   const params = new URLSearchParams()
   if (productKey) params.set('product_key', productKey)
