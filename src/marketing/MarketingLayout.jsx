@@ -60,31 +60,39 @@ export default function MarketingLayout({ children }) {
               to="/"
               style={{
                 display: 'inline-flex',
-                flexDirection: 'column',
-                gap: '3px',
+                alignItems: 'center',
+                gap: '10px',
                 color: S.textPrimary,
                 textDecoration: 'none',
-                minWidth: '190px',
+                minWidth: '250px',
               }}
             >
+              <HeaderBrainMark />
               <span style={{
-                fontFamily: marketingFonts.playfair,
-                fontSize: '24px',
-                lineHeight: 1,
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
+                display: 'inline-flex',
+                flexDirection: 'column',
+                gap: '4px',
+                minWidth: 0,
               }}>
-                my420journal
-              </span>
-              <span style={{
-                color: S.gold,
-                fontFamily: marketingFonts.inter,
-                fontSize: '10px',
-                fontWeight: 800,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-              }}>
-                A PRIVATE CANNABIS JOURNAL.
+                <span style={{
+                  fontFamily: marketingFonts.playfair,
+                  fontSize: '36px',
+                  lineHeight: 0.92,
+                  fontWeight: 700,
+                  letterSpacing: '-0.03em',
+                }}>
+                  my420journal
+                </span>
+                <span style={{
+                  color: S.gold,
+                  fontFamily: marketingFonts.inter,
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                }}>
+                  A PRIVATE CANNABIS JOURNAL.
+                </span>
               </span>
             </Link>
 
@@ -293,6 +301,36 @@ export default function MarketingLayout({ children }) {
         </div>
       )}
     </div>
+  )
+}
+
+function HeaderBrainMark() {
+  return (
+    <span style={{
+      width: '40px',
+      height: '40px',
+      borderRadius: '12px',
+      border: `1px solid ${S.border}`,
+      backgroundColor: 'rgba(10,26,10,0.72)',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flex: '0 0 auto',
+      boxShadow: '0 10px 24px rgba(0,0,0,0.24)',
+    }}>
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 64 64"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          fill={S.success}
+          d="M34 9c-9.9 0-18 7.6-18 17 0 4.8 2.1 9.1 5.5 12.2 1.2 1.1 1.8 2.6 1.8 4.2v6.2c0 3.5 2.9 6.4 6.4 6.4h8.9c3.1 0 5.7-2.2 6.3-5.2l.4-2.2h4.1c2.2 0 3.9-1.8 3.9-3.9v-5.8c0-1.2.4-2.4 1.1-3.4l2.6-3.7c.8-1.2.5-2.8-.7-3.6l-3.2-2.1C51.4 14.1 43.3 9 34 9Zm-7.2 13.7c.9-3.1 3.8-5.3 7.2-5.3 3.2 0 6 2 7 4.9 2.7.4 4.9 2.6 5.4 5.3 2 .8 3.4 2.7 3.4 5 0 2.9-2.3 5.3-5.2 5.4-.9 2.4-3.2 4.2-5.9 4.2-1.8 0-3.4-.8-4.6-2-1.3 1.4-3.1 2.2-5.2 2.2-3.9 0-7.1-3.1-7.1-7 0-.9.2-1.8.5-2.6-1.6-1.3-2.6-3.2-2.6-5.4 0-3.2 2.1-5.9 5.1-6.7Zm7.2-.3c-1.9 0-3.5 1.5-3.6 3.4l-.1 1.9-1.9.1c-2 .1-3.6 1.7-3.6 3.7 0 1.5.9 2.8 2.2 3.4l1.7.8-.8 1.7c-.2.5-.4 1-.4 1.6 0 2 1.6 3.6 3.6 3.6 1.4 0 2.6-.8 3.2-2l1.8-3.4 1.7 3.4c.5 1 1.5 1.6 2.7 1.6 1.6 0 3-1.3 3.1-2.9l.1-1.9 1.9-.1c1.5 0 2.7-1.3 2.7-2.8 0-1.3-.9-2.4-2.1-2.7l-1.5-.4-.1-1.5c-.2-1.9-1.8-3.4-3.8-3.4h-1.7l-.4-1.6c-.4-1.5-1.8-2.5-3.5-2.5Z"
+        />
+      </svg>
+    </span>
   )
 }
 
