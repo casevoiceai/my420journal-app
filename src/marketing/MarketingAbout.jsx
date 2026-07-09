@@ -10,48 +10,53 @@ const paragraphs = [
   'This was built because we needed it. If you have ever walked out of a dispensary trying to remember what you bought last time and whether it was worth buying again, this was built for you.',
 ]
 
-export function AboutSection({ id = undefined }) {
+export function AboutSection({ id = undefined, tone = 'base' }) {
+  const cardBackground = tone === 'surface' ? S.bg : S.surface
+
   return (
     <section
       id={id}
-      style={{
-        maxWidth: marketingPage.contentWidth,
-        margin: '0 auto',
-        padding: '64px 20px 78px',
-        boxSizing: 'border-box',
-      }}
+      className={`marketing-section marketing-section-bg-${tone}`}
     >
-      <h1 style={{
-        margin: '0 0 28px 0',
-        color: S.textPrimary,
-        fontFamily: marketingFonts.playfair,
-        fontSize: 'clamp(40px, 7vw, 68px)',
-        lineHeight: 1.02,
-        letterSpacing: '-0.03em',
-      }}>
-        Why this exists.
-      </h1>
+      <div
+        className="marketing-section-inner"
+        style={{
+          maxWidth: marketingPage.contentWidth,
+        }}
+      >
+        <p style={eyebrowStyle}>About</p>
+        <h1 style={{
+          margin: '0 0 28px 0',
+          color: S.textPrimary,
+          fontFamily: marketingFonts.playfair,
+          fontSize: 'clamp(40px, 7vw, 68px)',
+          lineHeight: 1.02,
+          letterSpacing: '-0.03em',
+        }}>
+          Why this exists.
+        </h1>
 
-      <div style={{
-        backgroundColor: S.surface,
-        border: `1px solid ${S.border}`,
-        borderRadius: marketingPage.radius,
-        padding: '28px',
-        boxSizing: 'border-box',
-      }}>
-        {paragraphs.map((paragraph) => (
-          <p
-            key={paragraph.slice(0, 40)}
-            style={{
-              margin: '0 0 20px 0',
-              color: S.textSecondary,
-              fontSize: '17px',
-              lineHeight: 1.75,
-            }}
-          >
-            {paragraph}
-          </p>
-        ))}
+        <div style={{
+          backgroundColor: cardBackground,
+          border: `1px solid ${S.border}`,
+          borderRadius: marketingPage.radius,
+          padding: '28px',
+          boxSizing: 'border-box',
+        }}>
+          {paragraphs.map((paragraph) => (
+            <p
+              key={paragraph.slice(0, 40)}
+              style={{
+                margin: '0 0 20px 0',
+                color: S.textSecondary,
+                fontSize: '17px',
+                lineHeight: 1.75,
+              }}
+            >
+              {paragraph}
+            </p>
+          ))}
+        </div>
       </div>
     </section>
   )
@@ -60,7 +65,17 @@ export function AboutSection({ id = undefined }) {
 export default function MarketingAbout() {
   return (
     <MarketingLayout>
-      <AboutSection />
+      <AboutSection id="about" tone="base" />
     </MarketingLayout>
   )
+}
+
+const eyebrowStyle = {
+  margin: '0 0 14px 0',
+  color: S.gold,
+  fontFamily: marketingFonts.inter,
+  fontSize: '12px',
+  fontWeight: 800,
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
 }
