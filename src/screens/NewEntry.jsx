@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
+import { submitEntryContribution } from '../lib/sharedContributionQueue'
 
 const S = {
   bg: '#0A1A0A',
@@ -1403,6 +1404,7 @@ export default function NewEntry() {
       if (isDevMode()) { console.error('Dev save error:', error) }
       else { setSaveError('Could not save entry. Try again.'); return }
     }
+    submitEntryContribution(fields)
     navigate('/journal')
   }
 
