@@ -96,9 +96,9 @@ const GUIDE_META = {
   tool:  { accent: '#C9A84C', notePrompt: 'Notes.' },
 }
 
-const BODY_TAGS   = ['Relaxed', 'Heavy', 'Floaty', 'Pain Relief', 'Energized', 'Tense', 'Numb', 'Tired']
-const MIND_TAGS   = ['Focused', 'Scattered', 'Creative', 'Anxious', 'Giggly', 'Clear', 'Racing', 'Foggy']
-const MOOD_TAGS = ['Introspective', 'Disconnected', 'Time Is Different', 'Everything Is Funny', 'Universe Makes Sense']
+const BODY_TAGS   = ['Relaxed', 'Heavy', 'Floaty', 'Pain Relief', 'Energized', 'Tense', 'Tingly', 'Numb', 'Tired', 'Sleepy']
+const MIND_TAGS   = ['Focused', 'Clear', 'Scattered', 'Introspective', 'Creative', 'Anxious', 'Giggly', 'Racing', 'Foggy', 'Paranoid']
+const MOOD_TAGS = ['Happy', 'Uplifted', 'Calm', 'Motivated', 'Content', 'Irritable', 'Disconnected', 'Time Is Different', 'Everything Is Funny', 'Universe Makes Sense']
 const ALL_EFFECT_TAGS = [...BODY_TAGS, ...MIND_TAGS, ...MOOD_TAGS]
 
 const SAVED_KEY    = 'm420_dispensaries'
