@@ -36,59 +36,68 @@ const faqs = [
   },
 ]
 
-export default function MarketingFAQ() {
+export function FAQSection({ id = undefined }) {
   return (
-    <MarketingLayout>
-      <section style={{
+    <section
+      id={id}
+      style={{
         maxWidth: marketingPage.contentWidth,
         margin: '0 auto',
         padding: '64px 20px 78px',
         boxSizing: 'border-box',
+      }}
+    >
+      <h1 style={{
+        margin: '0 0 28px 0',
+        color: S.textPrimary,
+        fontFamily: marketingFonts.playfair,
+        fontSize: 'clamp(40px, 7vw, 68px)',
+        lineHeight: 1.02,
+        letterSpacing: '-0.03em',
       }}>
-        <h1 style={{
-          margin: '0 0 28px 0',
-          color: S.textPrimary,
-          fontFamily: marketingFonts.playfair,
-          fontSize: 'clamp(40px, 7vw, 68px)',
-          lineHeight: 1.02,
-          letterSpacing: '-0.03em',
-        }}>
-          FAQs
-        </h1>
+        FAQs
+      </h1>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {faqs.map((item) => (
-            <article
-              key={item.question}
-              style={{
-                backgroundColor: S.surface,
-                border: `1px solid ${S.border}`,
-                borderRadius: marketingPage.radius,
-                padding: '22px',
-                boxSizing: 'border-box',
-              }}
-            >
-              <h2 style={{
-                margin: '0 0 10px 0',
-                color: S.textPrimary,
-                fontFamily: marketingFonts.playfair,
-                fontSize: '24px',
-                lineHeight: 1.25,
-              }}>
-                Q: {item.question}
-              </h2>
-              <p style={{
-                margin: 0,
-                color: S.textSecondary,
-                fontSize: '16px',
-                lineHeight: 1.7,
-              }}>
-                A: {item.answer}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {faqs.map((item) => (
+          <article
+            key={item.question}
+            style={{
+              backgroundColor: S.surface,
+              border: `1px solid ${S.border}`,
+              borderRadius: marketingPage.radius,
+              padding: '22px',
+              boxSizing: 'border-box',
+            }}
+          >
+            <h2 style={{
+              margin: '0 0 10px 0',
+              color: S.textPrimary,
+              fontFamily: marketingFonts.playfair,
+              fontSize: '24px',
+              lineHeight: 1.25,
+            }}>
+              Q: {item.question}
+            </h2>
+            <p style={{
+              margin: 0,
+              color: S.textSecondary,
+              fontSize: '16px',
+              lineHeight: 1.7,
+            }}>
+              A: {item.answer}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+export default function MarketingFAQ() {
+  return (
+    <MarketingLayout>
+      <FAQSection />
     </MarketingLayout>
   )
 }
