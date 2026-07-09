@@ -38,91 +38,18 @@ export default function MarketingLayout({ children }) {
         boxShadow: '0 10px 28px rgba(0,0,0,0.22)',
       }}>
         <div style={{
-          maxWidth: marketingPage.maxWidth,
-          margin: '0 auto',
-          minHeight: '116px',
-          padding: '18px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '18px',
-          boxSizing: 'border-box',
-          flexWrap: 'wrap',
+          borderBottom: `1px solid ${S.border}`,
         }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '22px',
-            flexWrap: 'wrap',
-            minWidth: 0,
-          }}>
-            <Link
-              to="/"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '14px',
-                color: S.textPrimary,
-                textDecoration: 'none',
-                minWidth: '360px',
-              }}
-            >
-              <HeaderBrainMark />
-              <span style={{
-                display: 'inline-flex',
-                flexDirection: 'column',
-                gap: '6px',
-                minWidth: 0,
-              }}>
-                <span style={{
-                  fontFamily: marketingFonts.playfair,
-                  fontSize: '56px',
-                  lineHeight: 0.92,
-                  fontWeight: 700,
-                  letterSpacing: '-0.03em',
-                }}>
-                  my420journal
-                </span>
-                <span style={{
-                  color: S.gold,
-                  fontFamily: marketingFonts.inter,
-                  fontSize: '13px',
-                  fontWeight: 800,
-                  letterSpacing: '0.16em',
-                  textTransform: 'uppercase',
-                }}>
-                  A PRIVATE CANNABIS JOURNAL.
-                </span>
-              </span>
-            </Link>
-
-            <nav
-              aria-label="Marketing sections"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                flexWrap: 'wrap',
-              }}
-            >
-              {sectionTabs.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  style={sectionTabStyle}
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
-          </div>
-
           <nav style={{
+            maxWidth: marketingPage.maxWidth,
+            height: '44px',
+            margin: '0 auto',
+            padding: '6px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
             gap: '12px',
-            flexWrap: 'wrap',
+            boxSizing: 'border-box',
           }}>
             <Link
               to="/app"
@@ -157,9 +84,84 @@ export default function MarketingLayout({ children }) {
             </a>
           </nav>
         </div>
+
+        <div style={{
+          maxWidth: marketingPage.maxWidth,
+          margin: '0 auto',
+          height: '118px',
+          padding: '18px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '24px',
+          boxSizing: 'border-box',
+        }}>
+          <Link
+            to="/"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '14px',
+              color: S.textPrimary,
+              textDecoration: 'none',
+              minWidth: '360px',
+              flex: '0 0 auto',
+            }}
+          >
+            <HeaderBrainMark />
+            <span style={{
+              display: 'inline-flex',
+              flexDirection: 'column',
+              gap: '6px',
+              minWidth: 0,
+            }}>
+              <span style={{
+                fontFamily: marketingFonts.playfair,
+                fontSize: '56px',
+                lineHeight: 0.92,
+                fontWeight: 700,
+                letterSpacing: '-0.03em',
+              }}>
+                my420journal
+              </span>
+              <span style={{
+                color: S.gold,
+                fontFamily: marketingFonts.inter,
+                fontSize: '13px',
+                fontWeight: 800,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+              }}>
+                A PRIVATE CANNABIS JOURNAL.
+              </span>
+            </span>
+          </Link>
+
+          <nav
+            aria-label="Marketing sections"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '10px',
+              flex: '1 1 auto',
+              minWidth: 0,
+            }}
+          >
+            {sectionTabs.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                style={sectionTabStyle}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
       </header>
 
-      <main style={{ flex: 1, paddingTop: '136px' }}>
+      <main style={{ flex: 1, paddingTop: '164px' }}>
         {children}
       </main>
 
