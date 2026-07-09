@@ -11,10 +11,11 @@ const initialForm = {
   message: '',
 }
 
-export function ContactSection({ id = undefined }) {
+export function ContactSection({ id = undefined, tone = 'base' }) {
   const [form, setForm] = useState(initialForm)
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')
+  const cardBackground = tone === 'surface' ? S.bg : S.surface
 
   function updateField(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
@@ -57,115 +58,118 @@ export function ContactSection({ id = undefined }) {
   return (
     <section
       id={id}
-      style={{
-        maxWidth: marketingPage.contentWidth,
-        margin: '0 auto',
-        padding: '64px 20px 78px',
-        boxSizing: 'border-box',
-      }}
+      className={`marketing-section marketing-section-bg-${tone}`}
     >
-      <h1 style={{
-        margin: '0 0 18px 0',
-        color: S.textPrimary,
-        fontFamily: marketingFonts.playfair,
-        fontSize: 'clamp(40px, 7vw, 68px)',
-        lineHeight: 1.02,
-        letterSpacing: '-0.03em',
-      }}>
-        Get in touch.
-      </h1>
-      <p style={{
-        margin: '0 0 28px 0',
-        color: S.textSecondary,
-        fontSize: '18px',
-        lineHeight: 1.6,
-      }}>
-        Questions, bug reports, early access requests, or anything else. We read everything.
-      </p>
-
-      <form
-        onSubmit={handleSubmit}
+      <div
+        className="marketing-section-inner"
         style={{
-          backgroundColor: S.surface,
-          border: `1px solid ${S.border}`,
-          borderRadius: marketingPage.radius,
-          padding: '24px',
-          boxSizing: 'border-box',
+          maxWidth: marketingPage.contentWidth,
         }}
       >
-        <label style={labelStyle}>
-          Name
-          <input
-            required
-            value={form.name}
-            onChange={(event) => updateField('name', event.target.value)}
-            style={inputStyle}
-            autoComplete="name"
-          />
-        </label>
+        <p style={eyebrowStyle}>Contact</p>
+        <h1 style={{
+          margin: '0 0 18px 0',
+          color: S.textPrimary,
+          fontFamily: marketingFonts.playfair,
+          fontSize: 'clamp(40px, 7vw, 68px)',
+          lineHeight: 1.02,
+          letterSpacing: '-0.03em',
+        }}>
+          Get in touch.
+        </h1>
+        <p style={{
+          margin: '0 0 28px 0',
+          color: S.textSecondary,
+          fontSize: '18px',
+          lineHeight: 1.6,
+        }}>
+          Questions, bug reports, early access requests, or anything else. We read everything.
+        </p>
 
-        <label style={labelStyle}>
-          Email
-          <input
-            required
-            type="email"
-            value={form.email}
-            onChange={(event) => updateField('email', event.target.value)}
-            style={inputStyle}
-            autoComplete="email"
-          />
-        </label>
-
-        <label style={labelStyle}>
-          Message
-          <textarea
-            required
-            value={form.message}
-            onChange={(event) => updateField('message', event.target.value)}
-            style={{ ...inputStyle, minHeight: '150px', paddingTop: '14px', resize: 'vertical' }}
-          />
-        </label>
-
-        <button
-          type="submit"
-          disabled={submitting}
+        <form
+          onSubmit={handleSubmit}
           style={{
-            width: '100%',
-            minHeight: '52px',
-            border: 'none',
-            borderRadius: '12px',
-            backgroundColor: submitting ? '#5A4A20' : S.gold,
-            color: submitting ? '#B8A060' : S.bg,
-            fontFamily: marketingFonts.inter,
-            fontSize: '16px',
-            fontWeight: 800,
-            cursor: submitting ? 'default' : 'pointer',
+            backgroundColor: cardBackground,
+            border: `1px solid ${S.border}`,
+            borderRadius: marketingPage.radius,
+            padding: '24px',
+            boxSizing: 'border-box',
           }}
         >
-          {submitting ? 'Sending' : 'Send it'}
-        </button>
+          <label style={labelStyle}>
+            Name
+            <input
+              required
+              value={form.name}
+              onChange={(event) => updateField('name', event.target.value)}
+              style={inputStyle}
+              autoComplete="name"
+            />
+          </label>
 
-        {status === 'success' && (
-          <p style={{ margin: '16px 0 0 0', color: S.success, fontSize: '14px', lineHeight: 1.5 }}>
-            Message sent. Thank you for reaching out.
-          </p>
-        )}
+          <label style={labelStyle}>
+            Email
+            <input
+              required
+              type="email"
+              value={form.email}
+              onChange={(event) => updateField('email', event.target.value)}
+              style={inputStyle}
+              autoComplete="email"
+            />
+          </label>
 
-        {status === 'error' && (
-          <p style={{ margin: '16px 0 0 0', color: S.error, fontSize: '14px', lineHeight: 1.5 }}>
-            {error}
-          </p>
-        )}
-      </form>
+          <label style={labelStyle}>
+            Message
+            <textarea
+              required
+              value={form.message}
+              onChange={(event) => updateField('message', event.target.value)}
+              style={{ ...inputStyle, minHeight: '150px', paddingTop: '14px', resize: 'vertical' }}
+            />
+          </label>
 
-      <p style={{
-        margin: '22px 0 0 0',
-        color: S.textSecondary,
-        fontSize: '15px',
-        lineHeight: 1.65,
-      }}>
-        If you are a dispensary owner interested in the mycannabisjournal.ai partner program, use the message field and tell us where you are located. We will be in touch when we have availability in your area.
-      </p>
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{
+              width: '100%',
+              minHeight: '52px',
+              border: 'none',
+              borderRadius: '12px',
+              backgroundColor: submitting ? '#5A4A20' : S.gold,
+              color: submitting ? '#B8A060' : S.bg,
+              fontFamily: marketingFonts.inter,
+              fontSize: '16px',
+              fontWeight: 800,
+              cursor: submitting ? 'default' : 'pointer',
+            }}
+          >
+            {submitting ? 'Sending' : 'Send it'}
+          </button>
+
+          {status === 'success' && (
+            <p style={{ margin: '16px 0 0 0', color: S.success, fontSize: '14px', lineHeight: 1.5 }}>
+              Message sent. Thank you for reaching out.
+            </p>
+          )}
+
+          {status === 'error' && (
+            <p style={{ margin: '16px 0 0 0', color: S.error, fontSize: '14px', lineHeight: 1.5 }}>
+              {error}
+            </p>
+          )}
+        </form>
+
+        <p style={{
+          margin: '22px 0 0 0',
+          color: S.textSecondary,
+          fontSize: '15px',
+          lineHeight: 1.65,
+        }}>
+          If you are a dispensary owner interested in the mycannabisjournal.ai partner program, use the message field and tell us where you are located. We will be in touch when we have availability in your area.
+        </p>
+      </div>
     </section>
   )
 }
@@ -173,9 +177,19 @@ export function ContactSection({ id = undefined }) {
 export default function MarketingContact() {
   return (
     <MarketingLayout>
-      <ContactSection />
+      <ContactSection id="contact" tone="base" />
     </MarketingLayout>
   )
+}
+
+const eyebrowStyle = {
+  margin: '0 0 14px 0',
+  color: S.gold,
+  fontFamily: marketingFonts.inter,
+  fontSize: '12px',
+  fontWeight: 800,
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
 }
 
 const labelStyle = {
