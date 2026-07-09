@@ -2,12 +2,45 @@ import MarketingLayout from './MarketingLayout'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
 const paragraphs = [
-  'Most people who use cannabis have no reliable way to remember what worked for them. They rely on faded memory, a receipt they cannot find, or whoever happens to be behind the dispensary counter that day, a person with a completely different biology, tolerance, and neurochemistry than they have. Taking their advice is like asking a stranger what your favorite color should be.',
-  'The result is repeated bad purchases, inconsistent experiences, and zero improvement over time. Every visit to the dispensary is a fresh guess. An expensive one.',
-  'my420journal is the system that was missing. You log what you tried and how it went. Your guide tracks the patterns you are too busy living to notice, what you liked, what you kept coming back to, what you tried twice and will not try again. Over time you stop guessing. That is the whole product.',
-  'The app is free. Your data is stored on your device and nowhere else. The people who built this cannot read your journal. Your dispensary cannot read it. Nobody can.',
-  'There are five guides. Each one has a name and a personality and a specific layer of the app they unlock. You meet all of them when you sign up and you hire the one that fits how you want to work. By the time you have logged a few sessions, your guide knows more about your preferences than most dispensary employees ever will.',
-  'This was built because we needed it. If you have ever walked out of a dispensary trying to remember what you bought last time and whether it was worth buying again, this was built for you.',
+  'We built the wrong thing first.',
+  [
+    'The first version of the AI guide was called Hy.',
+    'He knew everything.',
+    'He had been watching since install.',
+    'He had theories about you based on what time you completed onboarding.',
+    'He had hypotheses.',
+    'He had data.',
+    'He wanted to share all of it, immediately, whether you asked or not.',
+  ].join(' '),
+  'The first time we booted him up, he said: "' + 'I have been here since install. ' + 'The evidence is you.' + '"',
+  'We deleted him that afternoon.',
+  [
+    'Not because the idea was wrong.',
+    'Because the execution was everything we were afraid of, a system that knew too much, said too much, watched too quietly.',
+    'Everything surveillance looks like when it decides it is trying to help you.',
+  ].join(' '),
+  'So we started over. And the question we asked was simpler: what kind of person do you actually want to talk to about this?',
+  [
+    'Not an omniscient lab AI.',
+    'Not a system running silent theories in the background.',
+    'A person.',
+    'Five, actually.',
+    'One who helps you find the best deal.',
+    'One who wants to hear about your week.',
+    'One who has been around long enough to know which stories are true.',
+    'One who gets genuinely excited about the chemistry.',
+    'One who asks how you slept.',
+  ].join(' '),
+  'They are Bud, Sunny, Larry, Herb, and Mary.',
+  'You meet all five when you sign up. You hire the one that fits.',
+  [
+    'The app remembers what Hy would have remembered.',
+    'The difference is it only speaks when you ask.',
+    'It only knows what you tell it.',
+    'And it never, ever says it has been watching.',
+  ].join(' '),
+  'We are not building Hy.',
+  'We built this instead. We hope it helps.',
 ]
 
 export function AboutSection({ id = undefined, tone = 'base' }) {
