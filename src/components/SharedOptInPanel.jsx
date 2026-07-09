@@ -3,6 +3,10 @@ import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
 import { requestOptOutDeletion, syncOptInStatus } from '../lib/sharedAggregateApi'
 import {
+  clearSharedContributionQueue,
+  retryQueuedSharedContributions,
+} from '../lib/sharedContributionQueue'
+import {
   disableSharedOptIn,
   enableSharedOptIn,
   getSharedPrivacyState,
@@ -30,6 +34,10 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
   useEffect(() => {
     setState(getSharedPrivacyState(profile))
   }, [profile])
+
+  useEffect(() => {
+    retryQueuedSharedContributions()
+  }, [])
 
   const enabled = state.shared_opt_in_enabled === true
 
@@ -59,13 +67,14 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
         setState(next)
         await saveProfileFields(next)
         await syncOptInStatus(next)
-        setStatus('Opt-in saved locally. Shared signals backend is not connected yet, so nothing is being uploaded now.')
+        setStatus('Opt-in saved. New entries you save from now on can contribute anonymous product signals. Entries from before opt-in are not backfilled.')
       } else {
         const next = disableSharedOptIn(state)
         setState(next)
+        clearSharedContributionQueue()
         await saveProfileFields(next)
         await requestOptOutDeletion(next)
-        setStatus('Opt-out saved locally. When the backend is live, your shared data must be removed from the aggregate pool within 24 hours.')
+        setStatus('Opt-out saved. Pending shared contribution retries were cleared. Your anonymous contributions should be removed from the shared aggregate pool within 24 hours.')
       }
     } catch {
       setError('Could not update Shared Journey settings. Try again.')
@@ -88,7 +97,7 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
             Shared Journey View
           </p>
           <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-            Off by default. If you turn it on, anonymous product signals can be added to aggregate counts only. Individual journal entries are never shown to anyone.
+            Off by default. If you turn it on, new entries saved going forward can contribute anonymous product signals to aggregate counts only. Entries from before opt-in are not backfilled.
           </p>
         </div>
         <button
@@ -115,10 +124,10 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
 
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-          Only aggregate counts and percentages can be shared. No names, notes, raw entries, or one-person records are displayed.
+          Only aggregate counts and percentages can be shared. No private notes, raw entries, exact addresses, GPS coordinates, or one-person records are displayed.
         </p>
         <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-          If you opt out later, your anonymous contributions must be removed from the shared aggregate pool within 24 hours.
+          If you opt out later, pending retries are cleared and your anonymous contributions must be removed from the shared aggregate pool within 24 hours.
         </p>
       </div>
 
