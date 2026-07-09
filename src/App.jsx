@@ -31,6 +31,7 @@ import Guide from './screens/Guide'
 import SleepEntryDetail from './screens/SleepEntryDetail'
 import NoteEntry from './screens/NoteEntry'
 import DevBar from './components/DevBar'
+import { retryQueuedSharedContributions } from './lib/sharedContributionQueue'
 
 const fontInter = "'Inter', sans-serif"
 
@@ -260,6 +261,10 @@ function HomeGuard() {
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
+  useEffect(() => {
+    retryQueuedSharedContributions()
+  }, [])
+
   return (
     <BrowserRouter>
       <RecoveryHandler />
