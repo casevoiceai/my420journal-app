@@ -31,12 +31,28 @@ import Guide from './screens/Guide'
 import SleepEntryDetail from './screens/SleepEntryDetail'
 import NoteEntry from './screens/NoteEntry'
 import DevBar from './components/DevBar'
+import MarketingHome from './marketing/MarketingHome'
+import MarketingAbout from './marketing/MarketingAbout'
+import MarketingFAQ from './marketing/MarketingFAQ'
+import MarketingContact from './marketing/MarketingContact'
 import { retryQueuedSharedContributions } from './lib/sharedContributionQueue'
 
 const fontInter = "'Inter', sans-serif"
 
 // ── Routes where the bottom nav should NOT render ────────────────────────────
-const NO_NAV_ROUTES = new Set(['/', '/signup', '/login', '/onboarding', '/pin', '/pin-setup', '/forgot-password'])
+const NO_NAV_ROUTES = new Set([
+  '/',
+  '/about',
+  '/faq',
+  '/contact',
+  '/app',
+  '/signup',
+  '/login',
+  '/onboarding',
+  '/pin',
+  '/pin-setup',
+  '/forgot-password',
+])
 
 function routeHidesNav(pathname) {
   if (NO_NAV_ROUTES.has(pathname)) return true
@@ -174,7 +190,7 @@ function BottomNav() {
 
 // ── Auth utilities ────────────────────────────────────────────────────────────
 
-const HIDDEN_EXIT_ROUTES = new Set(['/', '/signup'])
+const HIDDEN_EXIT_ROUTES = new Set(['/', '/about', '/faq', '/contact', '/app', '/signup'])
 
 function EmergencyExit() {
   const navigate  = useNavigate()
@@ -270,7 +286,11 @@ export default function App() {
       <RecoveryHandler />
       <EmergencyExit />
       <Routes>
-        <Route path="/"                  element={<AgeGate />} />
+        <Route path="/"                  element={<MarketingHome />} />
+        <Route path="/about"             element={<MarketingAbout />} />
+        <Route path="/faq"               element={<MarketingFAQ />} />
+        <Route path="/contact"           element={<MarketingContact />} />
+        <Route path="/app"               element={<AgeGate />} />
         <Route path="/signup"            element={<Signup />} />
         <Route path="/login"             element={<Login />} />
         <Route path="/forgot-password"   element={<ForgotPassword />} />
