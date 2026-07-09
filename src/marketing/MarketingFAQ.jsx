@@ -36,59 +36,72 @@ const faqs = [
   },
 ]
 
-export function FAQSection({ id = undefined }) {
+export function FAQSection({ id = undefined, tone = 'base' }) {
+  const cardBackground = tone === 'surface' ? S.bg : S.surface
+
   return (
     <section
       id={id}
-      style={{
-        maxWidth: marketingPage.contentWidth,
-        margin: '0 auto',
-        padding: '64px 20px 78px',
-        boxSizing: 'border-box',
-      }}
+      className={`marketing-section marketing-section-bg-${tone}`}
     >
-      <h1 style={{
-        margin: '0 0 28px 0',
-        color: S.textPrimary,
-        fontFamily: marketingFonts.playfair,
-        fontSize: 'clamp(40px, 7vw, 68px)',
-        lineHeight: 1.02,
-        letterSpacing: '-0.03em',
-      }}>
-        FAQs
-      </h1>
+      <div
+        className="marketing-section-inner"
+        style={{
+          maxWidth: marketingPage.contentWidth,
+        }}
+      >
+        <p style={eyebrowStyle}>FAQ</p>
+        <h1 style={{
+          margin: '0 0 18px 0',
+          color: S.textPrimary,
+          fontFamily: marketingFonts.playfair,
+          fontSize: 'clamp(40px, 7vw, 68px)',
+          lineHeight: 1.02,
+          letterSpacing: '-0.03em',
+        }}>
+          FAQs
+        </h1>
+        <p style={{
+          margin: '0 0 34px 0',
+          color: S.textSecondary,
+          fontSize: '17px',
+          lineHeight: 1.7,
+        }}>
+          Clear answers about privacy, storage, legality, guides, and how the app works.
+        </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {faqs.map((item) => (
-          <article
-            key={item.question}
-            style={{
-              backgroundColor: S.surface,
-              border: `1px solid ${S.border}`,
-              borderRadius: marketingPage.radius,
-              padding: '22px',
-              boxSizing: 'border-box',
-            }}
-          >
-            <h2 style={{
-              margin: '0 0 10px 0',
-              color: S.textPrimary,
-              fontFamily: marketingFonts.playfair,
-              fontSize: '24px',
-              lineHeight: 1.25,
-            }}>
-              Q: {item.question}
-            </h2>
-            <p style={{
-              margin: 0,
-              color: S.textSecondary,
-              fontSize: '16px',
-              lineHeight: 1.7,
-            }}>
-              A: {item.answer}
-            </p>
-          </article>
-        ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {faqs.map((item) => (
+            <article
+              key={item.question}
+              style={{
+                backgroundColor: cardBackground,
+                border: `1px solid ${S.border}`,
+                borderRadius: marketingPage.radius,
+                padding: '22px',
+                boxSizing: 'border-box',
+              }}
+            >
+              <h2 style={{
+                margin: '0 0 10px 0',
+                color: S.textPrimary,
+                fontFamily: marketingFonts.playfair,
+                fontSize: '24px',
+                lineHeight: 1.25,
+              }}>
+                Q: {item.question}
+              </h2>
+              <p style={{
+                margin: 0,
+                color: S.textSecondary,
+                fontSize: '16px',
+                lineHeight: 1.7,
+              }}>
+                A: {item.answer}
+              </p>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   )
@@ -97,7 +110,17 @@ export function FAQSection({ id = undefined }) {
 export default function MarketingFAQ() {
   return (
     <MarketingLayout>
-      <FAQSection />
+      <FAQSection id="faq" tone="base" />
     </MarketingLayout>
   )
+}
+
+const eyebrowStyle = {
+  margin: '0 0 14px 0',
+  color: S.gold,
+  fontFamily: marketingFonts.inter,
+  fontSize: '12px',
+  fontWeight: 800,
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
 }
