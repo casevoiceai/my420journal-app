@@ -17,6 +17,7 @@ import EditEntry from './screens/EditEntry'
 import Stash from './screens/Stash'
 import StashDetail from './screens/StashDetail'
 import Insights from './screens/Insights'
+import SharedSignals from './screens/SharedSignals'
 import Profile from './screens/Profile'
 import Settings from './screens/Settings'
 import Strains from './screens/Strains'
@@ -282,6 +283,7 @@ export default function App() {
         <Route path="/strains"           element={<Strains />} />
         <Route path="/strains/:id"       element={<StrainDetail />} />
         <Route path="/insights"          element={<Insights />} />
+        <Route path="/shared-signals"    element={<SharedSignals />} />
         <Route path="/profile"           element={<Profile />} />
         <Route path="/settings"          element={<Settings />} />
         <Route path="/quick"             element={<QuickEntry />} />
