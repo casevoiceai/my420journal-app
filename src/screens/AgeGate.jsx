@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { isDevMode } from '../lib/dev'
+import { AGE_GATE_TEST_CODE, isRuntimeTestConvenienceEnabled } from '../lib/testConvenience'
 
 const MONTHS = [
   { value: 1, label: 'January' },
@@ -32,15 +33,23 @@ function isAtLeast21(month, day, year) {
 }
 
 const DEV_MODE = isDevMode()
+const TEST_CONVENIENCE_ENABLED = isRuntimeTestConvenienceEnabled()
 
 export default function AgeGate() {
   const navigate = useNavigate()
   const [month, setMonth] = useState('')
   const [day, setDay] = useState('')
   const [year, setYear] = useState('')
+  const [testCode, setTestCode] = useState('')
   const [error, setError] = useState('')
 
   function handleContinue() {
+    if (TEST_CONVENIENCE_ENABLED && testCode.trim() === AGE_GATE_TEST_CODE) {
+      setError('')
+      navigate('/signup')
+      return
+    }
+
     if (!month || !day || !year) {
       setError('Please select your full date of birth.')
       return
@@ -70,6 +79,19 @@ export default function AgeGate() {
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'right 12px center',
     paddingRight: '36px',
+    boxSizing: 'border-box',
+  }
+
+  const inputStyle = {
+    backgroundColor: '#1A2E1A',
+    color: '#E8F0E8',
+    border: '1px solid #2D4A2D',
+    borderRadius: '8px',
+    padding: '11px 14px',
+    fontSize: '15px',
+    fontFamily: "'Inter', sans-serif",
+    outline: 'none',
+    width: '100%',
     boxSizing: 'border-box',
   }
 
@@ -139,7 +161,7 @@ export default function AgeGate() {
           display: 'grid',
           gridTemplateColumns: '1fr 80px 104px',
           gap: '12px',
-          marginBottom: '32px',
+          marginBottom: TEST_CONVENIENCE_ENABLED ? '18px' : '32px',
         }}>
           <div>
             <label style={labelStyle}>Month</label>
@@ -189,6 +211,18 @@ export default function AgeGate() {
             </select>
           </div>
         </div>
+
+        {TEST_CONVENIENCE_ENABLED && (
+          <div style={{ width: '100%', marginBottom: '32px' }}>
+            <label style={labelStyle}>Code</label>
+            <input
+              value={testCode}
+              onChange={(e) => { setTestCode(e.target.value); setError('') }}
+              style={inputStyle}
+              autoComplete="off"
+            />
+          </div>
+        )}
 
         <button
           onClick={handleContinue}
