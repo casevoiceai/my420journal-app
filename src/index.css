@@ -9,6 +9,10 @@
   --color-gold: #C9A84C;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -19,8 +23,40 @@ body {
   color: var(--color-text-primary);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Playfair Display', serif;
+}
+
+.marketing-section {
+  border-top: 1px solid var(--color-border);
+  scroll-margin-top: 118px;
+}
+
+.marketing-section:first-child {
+  border-top: 0;
+}
+
+.marketing-section-bg-base {
+  background-color: var(--color-bg);
+}
+
+.marketing-section-bg-surface {
+  background-color: var(--color-surface);
+}
+
+.marketing-section-inner {
+  width: 100%;
+  margin: 0 auto;
+  padding: 80px 20px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .marketing-section-inner {
+    padding-top: 120px;
+    padding-bottom: 120px;
+  }
 }
