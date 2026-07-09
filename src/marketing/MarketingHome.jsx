@@ -1,47 +1,105 @@
 import { Link } from 'react-router-dom'
 import MarketingLayout from './MarketingLayout'
+import { AboutSection } from './MarketingAbout'
+import { FAQSection } from './MarketingFAQ'
+import { ContactSection } from './MarketingContact'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
-const cards = [
+const processSteps = [
   {
-    title: 'Free. Always.',
-    body: 'No subscription. No paywall. No version of your data sold to anyone for any reason.',
+    step: 'Step 1',
+    title: 'Log what happened.',
+    body: 'Capture what you tried and how it felt before the memory gets blurry.',
+    placeholder: 'Log what happened.',
   },
   {
-    title: 'Log a session in under thirty seconds.',
-    body: 'Scan a label or receipt. Tap how it went. Your guide does the rest.',
+    step: 'Step 2',
+    title: 'Let your guide hold the thread.',
+    body: 'The real Guide screen is shown here inside a simple frame from the working app.',
+    appPreview: true,
   },
   {
-    title: 'Five guides. One is yours.',
-    body: 'Meet them all during setup. Hire the one that fits. The app reshapes itself around your choice.',
+    step: 'Step 3',
+    title: "See what you've learned about yourself.",
+    body: 'Come back to patterns instead of starting from scratch every time.',
+    placeholder: "See what you've learned about yourself.",
   },
+]
+
+const featureCards = [
+  'Scan any label',
+  'Log by voice',
+  'Nothing stored without your choice',
+  'Leave instantly, anytime.',
 ]
 
 export default function MarketingHome() {
   return (
     <MarketingLayout>
-      <section style={{
+      <HeroSection />
+      <ProcessSection />
+      <FeatureGrid />
+      <AboutSection id="about" />
+      <ClosingSection />
+      <FAQSection id="faq" />
+      <ContactSection id="contact" />
+    </MarketingLayout>
+  )
+}
+
+function HeroSection() {
+  return (
+    <section style={{
+      position: 'relative',
+      minHeight: 'calc(100dvh - 92px)',
+      overflow: 'hidden',
+      backgroundColor: S.surface,
+      borderBottom: `1px solid ${S.border}`,
+    }}>
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0A1A0A 0%, #1A2E1A 55%, #2D4A2D 100%)',
+        color: 'rgba(232,240,232,0.28)',
+        fontSize: '13px',
+        fontWeight: 800,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        textAlign: 'center',
+        padding: '20px',
+        boxSizing: 'border-box',
+      }}>
+        Hero photo placeholder
+      </div>
+
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundColor: 'rgba(10,26,10,0.64)',
+      }} />
+
+      <div style={{
+        position: 'relative',
         maxWidth: marketingPage.maxWidth,
         margin: '0 auto',
-        padding: '72px 20px 110px',
+        minHeight: 'calc(100dvh - 92px)',
+        padding: '90px 20px 96px',
+        display: 'flex',
+        alignItems: 'center',
         boxSizing: 'border-box',
       }}>
         <div style={{ maxWidth: '820px' }}>
-          <p style={{
-            margin: '0 0 14px 0',
-            color: S.gold,
-            fontSize: '12px',
-            fontWeight: 700,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-          }}>
+          <p style={eyebrowStyle}>
             Private cannabis journaling
           </p>
           <h1 style={{
             margin: '0 0 22px 0',
             color: S.textPrimary,
             fontFamily: marketingFonts.playfair,
-            fontSize: 'clamp(44px, 8vw, 82px)',
+            fontSize: 'clamp(44px, 8vw, 86px)',
             lineHeight: 0.98,
             letterSpacing: '-0.04em',
             fontWeight: 700,
@@ -50,100 +108,310 @@ export default function MarketingHome() {
           </h1>
           <p style={{
             margin: '0 0 34px 0',
-            color: S.textSecondary,
+            color: S.textPrimary,
             fontSize: 'clamp(18px, 3vw, 24px)',
             lineHeight: 1.5,
-            maxWidth: '760px',
+            maxWidth: '780px',
+            textShadow: '0 2px 18px rgba(0,0,0,0.34)',
           }}>
-            A private cannabis journal that tracks what you tried, remembers what worked, and helps you stop starting from scratch every time you walk into a dispensary.
+            We built the wrong thing first. It knew too much and said too much and watched too quietly. We deleted it. Then we built five people instead. You hire the one that fits.
           </p>
-          <Link
-            to="/app"
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            flexWrap: 'wrap',
+          }}>
+            <Link
+              to="/app"
+              style={primaryButtonStyle}
+            >
+              Start your research
+            </Link>
+            <a
+              href="#process"
+              style={{
+                color: S.textPrimary,
+                fontSize: '15px',
+                fontWeight: 800,
+                textDecoration: 'none',
+                borderBottom: `1px solid ${S.gold}`,
+                paddingBottom: '4px',
+              }}
+            >
+              Learn how it works below
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ProcessSection() {
+  return (
+    <section
+      id="process"
+      style={{
+        maxWidth: marketingPage.maxWidth,
+        margin: '0 auto',
+        padding: '76px 20px 82px',
+        boxSizing: 'border-box',
+      }}
+    >
+      <SectionHeader
+        eyebrow="The Process"
+        title="Three steps, one private record."
+        body="The structure stays simple. Log the moment, let the app keep track, and return to what your own history has already taught you."
+      />
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+        gap: '18px',
+        alignItems: 'stretch',
+      }}>
+        {processSteps.map((item) => (
+          <article
+            key={item.step}
             style={{
-              display: 'inline-flex',
-              minHeight: '54px',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 24px',
-              borderRadius: '12px',
-              backgroundColor: S.gold,
-              color: S.bg,
-              fontSize: '16px',
-              fontWeight: 800,
-              textDecoration: 'none',
-              boxShadow: '0 12px 30px rgba(0,0,0,0.28)',
+              backgroundColor: S.surface,
+              border: `1px solid ${S.border}`,
+              borderRadius: marketingPage.radius,
+              padding: '18px',
+              boxSizing: 'border-box',
+              minWidth: 0,
             }}
           >
-            Start your research
-          </Link>
-        </div>
+            {item.appPreview ? <GuideFrame /> : <PlaceholderBox label={item.placeholder} minHeight="280px" />}
+            <p style={{
+              margin: '18px 0 8px 0',
+              color: S.gold,
+              fontSize: '12px',
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+            }}>
+              {item.step}
+            </p>
+            <h3 style={{
+              margin: '0 0 10px 0',
+              color: S.textPrimary,
+              fontFamily: marketingFonts.playfair,
+              fontSize: '26px',
+              lineHeight: 1.18,
+            }}>
+              {item.title}
+            </h3>
+            <p style={{
+              margin: 0,
+              color: S.textSecondary,
+              fontSize: '15px',
+              lineHeight: 1.65,
+            }}>
+              {item.body}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function FeatureGrid() {
+  return (
+    <section style={{
+      backgroundColor: 'rgba(26,46,26,0.58)',
+      borderTop: `1px solid ${S.border}`,
+      borderBottom: `1px solid ${S.border}`,
+    }}>
+      <div style={{
+        maxWidth: marketingPage.maxWidth,
+        margin: '0 auto',
+        padding: '76px 20px 82px',
+        boxSizing: 'border-box',
+      }}>
+        <SectionHeader
+          eyebrow="Built for real use"
+          title="Small actions that make the next visit easier."
+          body="Every feature exists to help you remember what worked without turning your private journal into someone else's data source."
+        />
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
           gap: '16px',
-          marginTop: '54px',
         }}>
-          {cards.map((card) => (
+          {featureCards.map((label) => (
             <article
-              key={card.title}
+              key={label}
               style={{
-                backgroundColor: S.surface,
+                backgroundColor: S.bg,
                 border: `1px solid ${S.border}`,
-                borderLeft: `4px solid ${S.gold}`,
                 borderRadius: marketingPage.radius,
-                padding: '22px',
+                padding: '16px',
                 boxSizing: 'border-box',
               }}
             >
-              <h2 style={{
-                margin: '0 0 10px 0',
+              <PlaceholderBox label={label} minHeight="190px" />
+              <h3 style={{
+                margin: '16px 0 0 0',
                 color: S.textPrimary,
                 fontFamily: marketingFonts.playfair,
-                fontSize: '24px',
+                fontSize: '23px',
                 lineHeight: 1.2,
               }}>
-                {card.title}
-              </h2>
-              <p style={{
-                margin: 0,
-                color: S.textSecondary,
-                fontSize: '15px',
-                lineHeight: 1.65,
-              }}>
-                {card.body}
-              </p>
+                {label}
+              </h3>
             </article>
           ))}
         </div>
-      </section>
+      </div>
+    </section>
+  )
+}
 
+function ClosingSection() {
+  return (
+    <section style={{
+      borderTop: `1px solid ${S.border}`,
+      borderBottom: `1px solid ${S.border}`,
+      backgroundColor: 'rgba(10,26,10,0.72)',
+    }}>
       <div style={{
-        position: 'fixed',
-        left: '16px',
-        right: '16px',
-        bottom: '16px',
-        zIndex: 30,
-        display: 'flex',
-        justifyContent: 'center',
-        pointerEvents: 'none',
+        maxWidth: marketingPage.maxWidth,
+        margin: '0 auto',
+        padding: '78px 20px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '28px',
+        alignItems: 'center',
+        boxSizing: 'border-box',
       }}>
+        <PlaceholderBox label="Private record placeholder" minHeight="320px" />
         <p style={{
           margin: 0,
-          maxWidth: '860px',
-          backgroundColor: 'rgba(26,46,26,0.96)',
-          border: `1px solid ${S.border}`,
-          borderRadius: '9999px',
-          padding: '10px 16px',
-          color: S.textSecondary,
-          fontSize: '12px',
-          lineHeight: 1.4,
-          textAlign: 'center',
-          boxShadow: '0 12px 30px rgba(0,0,0,0.28)',
+          color: S.textPrimary,
+          fontFamily: marketingFonts.playfair,
+          fontSize: 'clamp(30px, 5vw, 52px)',
+          lineHeight: 1.1,
+          letterSpacing: '-0.03em',
         }}>
-          my420journal is a private journaling tool for adults in jurisdictions where cannabis is legal. Nothing here is medical advice.
+          What you get is simple. A private record of what actually worked, ready whenever you need to remember it.
         </p>
       </div>
-    </MarketingLayout>
+    </section>
   )
+}
+
+function SectionHeader({ eyebrow, title, body }) {
+  return (
+    <div style={{ maxWidth: '760px', marginBottom: '34px' }}>
+      <p style={eyebrowStyle}>{eyebrow}</p>
+      <h2 style={{
+        margin: '0 0 14px 0',
+        color: S.textPrimary,
+        fontFamily: marketingFonts.playfair,
+        fontSize: 'clamp(36px, 6vw, 58px)',
+        lineHeight: 1.02,
+        letterSpacing: '-0.03em',
+      }}>
+        {title}
+      </h2>
+      <p style={{
+        margin: 0,
+        color: S.textSecondary,
+        fontSize: '17px',
+        lineHeight: 1.7,
+      }}>
+        {body}
+      </p>
+    </div>
+  )
+}
+
+function PlaceholderBox({ label, minHeight }) {
+  return (
+    <div style={{
+      minHeight,
+      width: '100%',
+      borderRadius: '14px',
+      border: `1px solid ${S.border}`,
+      background: 'linear-gradient(135deg, #102610 0%, #1A2E1A 52%, #2D4A2D 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '18px',
+      boxSizing: 'border-box',
+      color: S.textSecondary,
+      fontSize: '12px',
+      fontWeight: 800,
+      letterSpacing: '0.08em',
+      lineHeight: 1.4,
+      textTransform: 'uppercase',
+      textAlign: 'center',
+    }}>
+      {label}
+    </div>
+  )
+}
+
+function GuideFrame() {
+  return (
+    <div style={{
+      width: '100%',
+      minHeight: '280px',
+      borderRadius: '26px',
+      backgroundColor: '#050D05',
+      border: '1px solid rgba(232,240,232,0.18)',
+      padding: '12px',
+      boxSizing: 'border-box',
+      boxShadow: '0 18px 46px rgba(0,0,0,0.34)',
+    }}>
+      <div style={{
+        width: '100%',
+        height: '420px',
+        borderRadius: '18px',
+        overflow: 'hidden',
+        backgroundColor: S.bg,
+        border: `1px solid ${S.border}`,
+      }}>
+        <iframe
+          src="/guide"
+          title="Guide screen preview"
+          style={{
+            width: '100%',
+            height: '100%',
+            border: '0',
+            display: 'block',
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+const eyebrowStyle = {
+  margin: '0 0 14px 0',
+  color: S.gold,
+  fontSize: '12px',
+  fontWeight: 800,
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+}
+
+const primaryButtonStyle = {
+  display: 'inline-flex',
+  minHeight: '54px',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0 24px',
+  borderRadius: '12px',
+  backgroundColor: S.gold,
+  color: S.bg,
+  fontSize: '16px',
+  fontWeight: 800,
+  textDecoration: 'none',
+  boxShadow: '0 12px 30px rgba(0,0,0,0.28)',
 }
