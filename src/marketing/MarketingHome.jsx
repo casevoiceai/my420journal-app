@@ -103,7 +103,7 @@ function HeroSection() {
             letterSpacing: '-0.04em',
             fontWeight: 700,
           }}>
-            The part of you that doesn't forget.
+            Stop guessing at the dispensary.
           </h1>
           <p style={{
             margin: '0 0 34px 0',
@@ -113,7 +113,7 @@ function HeroSection() {
             maxWidth: '780px',
             textShadow: '0 2px 18px rgba(0,0,0,0.34)',
           }}>
-            We built the wrong thing first. It knew too much and said too much and watched too quietly. We deleted it. Then we built five people instead. You hire the one that fits.
+            Log what you tried. See what actually worked. Nothing leaves your device unless you choose to share it.
           </p>
           <div style={{
             display: 'flex',
