@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { hasPin, verifyPin, clearPin, storePin } from '../lib/pin'
 import { isDevMode, DEV_PROFILE } from '../lib/dev'
+import SharedOptInPanel from '../components/SharedOptInPanel'
 
 const GUIDE_META = {
   bud:   { name: 'Bud Tendar',     accent: '#C9A84C', description: 'Dispensary deals and trip planning.' },
@@ -460,7 +461,7 @@ export default function Settings() {
       if (!user) { setLoading(false); return }
       const { data } = await localStore
         .from('user_profiles')
-        .select('guide_selected, guide_name, accent_color')
+        .select('guide_selected, guide_name, accent_color, shared_opt_in_enabled, shared_opt_in_at, shared_opt_out_at, anonymous_contributor_id, last_shared_sync_at, pending_shared_delete')
         .eq('user_id', user.id)
         .maybeSingle()
       setProfile(data)
@@ -745,6 +746,8 @@ export default function Settings() {
 
         {/* ── PRIVACY ─────────────────────────────────────────────────────── */}
         <SectionHeading>Privacy</SectionHeading>
+
+        <SharedOptInPanel profile={profile} onProfileChange={setProfile} />
 
         {/* App PIN row */}
         <div style={{
