@@ -25,9 +25,9 @@ const CATEGORIES        = ['Flower', 'Vape', 'Extract', 'Orally Administered', '
 const STRAIN_TYPES      = ['Indica', 'Sativa', 'Hybrid', 'CBD', 'N/A']
 const CATEGORIES_WITH_STRAIN = ['Flower', 'Vape', 'Extract']
 
-const BODY_TAGS  = ['Relaxed', 'Tingly', 'Floaty', 'Sleepy', 'Energetic', 'Numb', 'Heavy', 'Pain Relief']
-const MIND_TAGS  = ['Creative', 'Focused', 'Foggy', 'Scattered', 'Introspective', 'Clear', 'Giggly', 'Paranoid']
-const MOOD_TAGS  = ['Happy', 'Uplifted', 'Calm', 'Anxious', 'Motivated', 'Disconnected', 'Content', 'Irritable']
+const BODY_TAGS  = ['Relaxed', 'Heavy', 'Floaty', 'Pain Relief', 'Energized', 'Tense', 'Tingly', 'Numb', 'Tired', 'Sleepy']
+const MIND_TAGS  = ['Focused', 'Clear', 'Scattered', 'Introspective', 'Creative', 'Anxious', 'Giggly', 'Racing', 'Foggy', 'Paranoid']
+const MOOD_TAGS  = ['Happy', 'Uplifted', 'Calm', 'Motivated', 'Content', 'Irritable', 'Disconnected', 'Time Is Different', 'Everything Is Funny', 'Universe Makes Sense']
 const MOOD_FACES = ['good', 'meh', 'off', 'eww']
 const MOOD_EMOJI = { good: '😊', meh: '😐', off: '😞', eww: '🤢' }
 
