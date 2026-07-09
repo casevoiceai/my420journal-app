@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
 
@@ -151,6 +152,7 @@ function TagList({ title, counts }) {
 }
 
 export default function Insights() {
+  const navigate = useNavigate()
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -238,11 +240,35 @@ export default function Insights() {
           fontFamily: fontInter,
           fontSize: '15px',
           color: S.textSecondary,
-          margin: '0 0 28px 0',
+          margin: '0 0 18px 0',
           lineHeight: 1.6,
         }}>
           A simple look at what you have logged on this device.
         </p>
+
+        <button
+          onClick={() => navigate('/shared-signals')}
+          style={{
+            width: '100%',
+            minHeight: '52px',
+            backgroundColor: S.surface,
+            border: `1px solid ${S.gold}`,
+            borderRadius: '10px',
+            color: S.gold,
+            fontFamily: fontInter,
+            fontSize: '14px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            marginBottom: '24px',
+            padding: '12px 16px',
+            textAlign: 'left',
+          }}
+        >
+          Shared Signals
+          <span style={{ display: 'block', color: S.textSecondary, fontSize: '12px', fontWeight: '400', marginTop: '4px', lineHeight: 1.4 }}>
+            View opt-in aggregate product signals when the shared backend is connected.
+          </span>
+        </button>
 
         {patterns.total === 0 ? (
           <div style={{
