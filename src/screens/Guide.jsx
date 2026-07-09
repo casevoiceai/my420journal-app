@@ -21,7 +21,7 @@ const GUIDE_META = {
   mary:  { name: 'Mary Jayne',     accent: '#B088B0' },
   unit:   { name: 'Unit',           accent: '#888888' },
   tool:   { name: 'Tool',           accent: '#C9A84C' },
-  stoner: { name: 'Just the journal.', accent: '#C9A84C', notePrompt: 'Notes.' },
+  stoner: { name: 'S.T.O.N.E.R.', accent: '#C9A84C', notePrompt: 'Notes.' },
 }
 
 function getTier(count) {
