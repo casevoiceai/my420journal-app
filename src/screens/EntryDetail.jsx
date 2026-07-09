@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
+import { normalizeProductKey } from '../lib/sharedContributionBuckets'
+import { getSharedPrivacyState } from '../lib/sharedPrivacy'
 
 const S = {
   bg:            '#0A1A0A',
@@ -189,9 +191,11 @@ export default function EntryDetail() {
   const [guideKey,    setGuideKey]    = useState('bud')
   const [deleting,    setDeleting]    = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [sharedOptedIn, setSharedOptedIn] = useState(() => getSharedPrivacyState().shared_opt_in_enabled === true)
 
   useEffect(() => {
     async function load() {
+      setSharedOptedIn(getSharedPrivacyState().shared_opt_in_enabled === true)
       if (isDevMode()) {
         setEntry(DEV_ENTRY)
         setGuideKey('sunny')
@@ -244,6 +248,8 @@ export default function EntryDetail() {
   const hasTerpenes     = entry.terpenes     && Object.keys(entry.terpenes).length     > 0
   const hasDetails      = entry.category || entry.strain_type || entry.amount || entry.price
   const showGuideObs    = guideKey !== 'stoner' && guideKey !== 'unit' && guideKey !== 'tool'
+  const sharedProductKey = normalizeProductKey(entry.product_name)
+  const showSharedSignalsLink = sharedOptedIn && sharedProductKey
 
   return (
     <>
@@ -285,6 +291,21 @@ export default function EntryDetail() {
           <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: '0 0 20px 0' }}>
             {formatEntryDate(entry.created_at)}
           </p>
+
+          {showSharedSignalsLink && (
+            <button
+              onClick={() => navigate(`/shared-signals?product_key=${encodeURIComponent(sharedProductKey)}`)}
+              style={{
+                width: '100%', minHeight: '46px', marginBottom: '20px',
+                backgroundColor: `${accent}18`, color: accent,
+                border: `1px solid ${accent}80`, borderRadius: '10px',
+                fontFamily: fontInter, fontSize: '14px', fontWeight: '700',
+                cursor: 'pointer', textAlign: 'center',
+              }}
+            >
+              See shared signals for this product
+            </button>
+          )}
 
           {/* Mood */}
           {mood && (
