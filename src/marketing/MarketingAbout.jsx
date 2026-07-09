@@ -10,48 +10,57 @@ const paragraphs = [
   'This was built because we needed it. If you have ever walked out of a dispensary trying to remember what you bought last time and whether it was worth buying again, this was built for you.',
 ]
 
-export default function MarketingAbout() {
+export function AboutSection({ id = undefined }) {
   return (
-    <MarketingLayout>
-      <section style={{
+    <section
+      id={id}
+      style={{
         maxWidth: marketingPage.contentWidth,
         margin: '0 auto',
         padding: '64px 20px 78px',
         boxSizing: 'border-box',
+      }}
+    >
+      <h1 style={{
+        margin: '0 0 28px 0',
+        color: S.textPrimary,
+        fontFamily: marketingFonts.playfair,
+        fontSize: 'clamp(40px, 7vw, 68px)',
+        lineHeight: 1.02,
+        letterSpacing: '-0.03em',
       }}>
-        <h1 style={{
-          margin: '0 0 28px 0',
-          color: S.textPrimary,
-          fontFamily: marketingFonts.playfair,
-          fontSize: 'clamp(40px, 7vw, 68px)',
-          lineHeight: 1.02,
-          letterSpacing: '-0.03em',
-        }}>
-          Why this exists.
-        </h1>
+        Why this exists.
+      </h1>
 
-        <div style={{
-          backgroundColor: S.surface,
-          border: `1px solid ${S.border}`,
-          borderRadius: marketingPage.radius,
-          padding: '28px',
-          boxSizing: 'border-box',
-        }}>
-          {paragraphs.map((paragraph) => (
-            <p
-              key={paragraph.slice(0, 40)}
-              style={{
-                margin: '0 0 20px 0',
-                color: S.textSecondary,
-                fontSize: '17px',
-                lineHeight: 1.75,
-              }}
-            >
-              {paragraph}
-            </p>
-          ))}
-        </div>
-      </section>
+      <div style={{
+        backgroundColor: S.surface,
+        border: `1px solid ${S.border}`,
+        borderRadius: marketingPage.radius,
+        padding: '28px',
+        boxSizing: 'border-box',
+      }}>
+        {paragraphs.map((paragraph) => (
+          <p
+            key={paragraph.slice(0, 40)}
+            style={{
+              margin: '0 0 20px 0',
+              color: S.textSecondary,
+              fontSize: '17px',
+              lineHeight: 1.75,
+            }}
+          >
+            {paragraph}
+          </p>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+export default function MarketingAbout() {
+  return (
+    <MarketingLayout>
+      <AboutSection />
     </MarketingLayout>
   )
 }
