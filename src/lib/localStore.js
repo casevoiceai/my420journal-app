@@ -1,3 +1,5 @@
+import { SHARED_PROFILE_DEFAULTS } from './sharedPrivacy'
+
 const STORAGE_PREFIX = 'my420journal_local_v1'
 const ACTIVE_USER_KEY = `${STORAGE_PREFIX}:active_user`
 const USERS_KEY = `${STORAGE_PREFIX}:users`
@@ -68,6 +70,17 @@ function readTable(table) {
 
 function writeTable(table, rows) {
   writeJson(tableKey(table), rows)
+}
+
+function withTableDefaults(table, row) {
+  if (!row) return row
+  if (table !== 'user_profiles') return row
+  return {
+    ...SHARED_PROFILE_DEFAULTS,
+    ...row,
+    shared_opt_in_enabled: row.shared_opt_in_enabled === true,
+    pending_shared_delete: row.pending_shared_delete === true,
+  }
 }
 
 function cloneRow(row) {
@@ -209,7 +222,7 @@ class LocalQuery {
 
       if (this.action === 'insert') {
         const list = Array.isArray(this.payload) ? this.payload : [this.payload]
-        const created = list.map((item) => ({
+        const created = list.map((item) => withTableDefaults(this.table, {
           id: item?.id || makeId(this.table),
           created_at: item?.created_at || nowIso(),
           updated_at: item?.updated_at || nowIso(),
@@ -228,20 +241,20 @@ class LocalQuery {
           const conflictValue = item?.[conflictKey]
           const existingIndex = nextRows.findIndex((row) => row?.[conflictKey] === conflictValue)
           if (existingIndex >= 0) {
-            nextRows[existingIndex] = {
+            nextRows[existingIndex] = withTableDefaults(this.table, {
               ...nextRows[existingIndex],
               ...item,
               id: nextRows[existingIndex].id || item?.id || makeId(this.table),
               updated_at: nowIso(),
-            }
+            })
             saved.push(nextRows[existingIndex])
           } else {
-            const fresh = {
+            const fresh = withTableDefaults(this.table, {
               id: item?.id || makeId(this.table),
               created_at: item?.created_at || nowIso(),
               updated_at: item?.updated_at || nowIso(),
               ...item,
-            }
+            })
             nextRows.unshift(fresh)
             saved.push(fresh)
           }
@@ -254,7 +267,7 @@ class LocalQuery {
         const updated = []
         const nextRows = rows.map((row) => {
           if (!this._matches(row)) return row
-          const next = { ...row, ...this.payload, updated_at: nowIso() }
+          const next = withTableDefaults(this.table, { ...row, ...this.payload, updated_at: nowIso() })
           updated.push(next)
           return next
         })
@@ -284,7 +297,7 @@ class LocalQuery {
         })
       }
       if (Number.isFinite(this.limitCount)) result = result.slice(0, this.limitCount)
-      result = result.map((row) => projectRow(row, this.columns))
+      result = result.map((row) => projectRow(withTableDefaults(this.table, row), this.columns))
       return { data: this.singleMode ? result[0] || null : result, error: null }
     } catch (error) {
       return { data: this.singleMode ? null : [], error }
