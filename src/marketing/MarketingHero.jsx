@@ -32,18 +32,18 @@ export function HeroSection() {
         className="marketing-section-inner"
         style={{
           position: 'relative',
-          maxWidth: marketingPage.maxWidth,
           minHeight: 'calc(100dvh - 102px)',
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'flex-end',
           paddingBottom: '10vh',
+          paddingRight: '5vw',
           boxSizing: 'border-box',
         }}
       >
         <div style={{ maxWidth: '560px', textAlign: 'center' }}>
           <h1 style={{
-            margin: '0 0 22px 0',
+            margin: '0 0 34px 0',
             color: S.textPrimary,
             fontFamily: marketingFonts.playfair,
             fontSize: 'clamp(24px, 3.4vw, 42px)',
