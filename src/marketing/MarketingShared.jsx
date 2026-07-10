@@ -1,6 +1,6 @@
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
-export function SectionHeader({ eyebrow, title, body }) {
+export function SectionHeader({ eyebrow, title, body, titleStyle }) {
   return (
     <div style={{ maxWidth: '760px', marginBottom: '34px' }}>
       <p style={eyebrowStyle}>{eyebrow}</p>
@@ -11,6 +11,7 @@ export function SectionHeader({ eyebrow, title, body }) {
         fontSize: 'clamp(36px, 6vw, 58px)',
         lineHeight: 1.02,
         letterSpacing: '-0.03em',
+        ...titleStyle,
       }}>
         {title}
       </h2>
