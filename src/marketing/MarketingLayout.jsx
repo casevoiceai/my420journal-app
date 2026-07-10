@@ -135,7 +135,7 @@ export default function MarketingLayout({ children }) {
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap',
               }}>
-                A PRIVATE CANNABIS JOURNAL.
+                A PRIVATE CANNABIS JOURNAL
               </span>
             </span>
           </Link>
