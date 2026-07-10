@@ -60,7 +60,9 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
               <h2 className="origin-story-section-title">
                 TLDR:
                 <br />
-                Built a baby panopticon. Deleted it the same day.
+                Built a baby panopticon.
+                <br />
+                Deleted it the same day.
               </h2>
             </div>
             <div className="origin-story-copy">
@@ -114,22 +116,22 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 Instead of one AI trying to know everything about you, my420journal gives you a choice of guides. Each one has a different focus and a different way of talking to you, so you pick the voice that actually fits how you want to journal.
               </p>
               <p>
-                Bud Tendar is the dispensary-savvy one. He talks deals, trip planning, and budget, in a warm, knowledgeable-friend kind of way. Short answers, no lectures.
+                <span className="origin-story-guide-name">Bud Tendar</span> is the dispensary-savvy one. He talks deals, trip planning, and budget, in a warm, knowledgeable-friend kind of way. Short answers, no lectures.
               </p>
               <p>
-                Sunny Day is there for conversation. She checks in on how you are actually doing, not just what you logged, with an easy, unhurried warmth.
+                <span className="origin-story-guide-name">Sunny Day</span> is there for conversation. She checks in on how you are actually doing, not just what you logged, with an easy, unhurried warmth.
               </p>
               <p>
-                Lucky Larry is the old head. He has been around cannabis culture since the 1970s and talks strain history and folklore like a guy who has a story for everything, because he does. Dry, unhurried, never in a rush to finish a sentence.
+                <span className="origin-story-guide-name">Lucky Larry</span> is the old head. He has been around cannabis culture since the 1970s and talks strain history and folklore like a guy who has a story for everything, because he does. Dry, unhurried, never in a rush to finish a sentence.
               </p>
               <p>
-                Herb N. Spices is the science one. Terpenes, cannabinoids, pattern analysis. He says little out loud and thinks in the details, because for him the chemistry explains everything.
+                <span className="origin-story-guide-name">Herb N. Spices</span> is the science one. Terpenes, cannabinoids, pattern analysis. He says little out loud and thinks in the details, because for him the chemistry explains everything.
               </p>
               <p>
-                Mary Jayne focuses on wellness, sleep, and self-care. She asks one honest question at a time and never plays doctor. Just direct, personal, and to the point.
+                <span className="origin-story-guide-name">Mary Jayne</span> focuses on wellness, sleep, and self-care. She asks one honest question at a time and never plays doctor. Just direct, personal, and to the point.
               </p>
               <p>
-                And then there is S.T.O.N.E.R., Streamlined Tracking Of Notable Experiences Recorded.
+                And then there is <span className="origin-story-guide-name">S.T.O.N.E.R.</span>, Streamlined Tracking Of Notable Experiences Recorded.
                 <br />
                 No guide voice.
                 <br />
@@ -262,15 +264,20 @@ const originStoryStyles = `
     color: ${S.textPrimary};
     font-family: ${marketingFonts.playfair};
     font-size: 21px;
+    font-style: italic;
     line-height: 1.55;
   }
 
   .origin-story-threat {
     color: ${S.textPrimary} !important;
     font-family: ${marketingFonts.playfair} !important;
-    font-size: 28px !important;
+    font-style: italic;
     font-weight: 700;
-    line-height: 1.2 !important;
+  }
+
+  .origin-story-guide-name {
+    color: ${S.textPrimary};
+    font-weight: 800;
   }
 
   .origin-story-closing {
@@ -326,7 +333,6 @@ const originStoryStyles = `
       line-height: 1.58;
     }
 
-    .origin-story-threat,
     .origin-story-closing {
       font-size: 32px !important;
     }
