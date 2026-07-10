@@ -64,13 +64,13 @@ function HeroSection() {
         inset: 0,
         backgroundImage: `url(${heroDispensaryImage})`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center 30%',
+        backgroundPosition: 'center',
       }} />
 
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'linear-gradient(270deg, rgba(10,26,10,0.92) 0%, rgba(10,26,10,0.62) 55%, rgba(10,26,10,0.38) 100%)',
+        background: 'linear-gradient(270deg, rgba(10,26,10,0.55) 0%, rgba(10,26,10,0.32) 45%, rgba(10,26,10,0.08) 100%)',
       }} />
 
       <div
@@ -80,13 +80,14 @@ function HeroSection() {
           maxWidth: marketingPage.maxWidth,
           minHeight: 'calc(100dvh - 102px)',
           display: 'flex',
-          alignItems: 'flex-end',
+          flexDirection: 'column',
           justifyContent: 'flex-end',
-          paddingBottom: '72px',
+          alignItems: 'flex-end',
+          paddingBottom: '14vh',
           boxSizing: 'border-box',
         }}
       >
-        <div style={{ maxWidth: '820px', textAlign: 'right' }}>
+        <div style={{ maxWidth: '620px', textAlign: 'center' }}>
           <h1 style={{
             margin: '0 0 22px 0',
             color: S.textPrimary,
@@ -111,7 +112,7 @@ function HeroSection() {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-end',
+            justifyContent: 'center',
             gap: '14px',
             flexWrap: 'wrap',
           }}>
