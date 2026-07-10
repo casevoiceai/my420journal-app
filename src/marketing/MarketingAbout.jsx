@@ -1,7 +1,34 @@
+import { useEffect, useRef, useState } from 'react'
 import MarketingLayout from './MarketingLayout'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
 export function AboutSection({ id = undefined, tone = 'base' }) {
+  const [isNoTraceModalOpen, setIsNoTraceModalOpen] = useState(false)
+  const noTraceTriggerRef = useRef(null)
+  const modalCloseRef = useRef(null)
+
+  useEffect(() => {
+    if (!isNoTraceModalOpen) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    modalCloseRef.current?.focus()
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsNoTraceModalOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      noTraceTriggerRef.current?.focus()
+    }
+  }, [isNoTraceModalOpen])
+
   return (
     <>
       <style>{originStoryStyles}</style>
@@ -95,7 +122,22 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 It is a threat.
               </p>
               <p>
-                After I saw what that looks like from the inside, I built No Trace Ever as a hard rule across this app, not as a policy I could soften later.
+                After I saw what that looks like from the inside, I started looking at AI differently.
+              </p>
+              <p>
+                Tech companies have spent years training us to believe privacy and convenience cannot coexist, that if you want a service to work for you, you have to hand over your information first.
+              </p>
+              <p>
+                I do not accept that trade. So I built{' '}
+                <button
+                  ref={noTraceTriggerRef}
+                  type="button"
+                  className="origin-story-inline-link"
+                  onClick={() => setIsNoTraceModalOpen(true)}
+                >
+                  No Trace Ever
+                </button>{' '}
+                as a hard rule across this app, not as a policy I could soften later.
               </p>
               <p>
                 And I vowed I would never build "Hy" again.
@@ -175,6 +217,63 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
           </article>
         </div>
       </section>
+
+      {isNoTraceModalOpen && (
+        <div
+          className="origin-story-modal-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsNoTraceModalOpen(false)
+            }
+          }}
+        >
+          <div
+            className="origin-story-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="no-trace-ever-title"
+          >
+            <button
+              ref={modalCloseRef}
+              type="button"
+              className="origin-story-modal-close"
+              aria-label="Close No Trace Ever dialog"
+              onClick={() => setIsNoTraceModalOpen(false)}
+            >
+              ×
+            </button>
+            <h2 id="no-trace-ever-title" className="origin-story-modal-title">
+              No Trace Ever
+            </h2>
+            <div className="origin-story-modal-body">
+              <p>
+                No Trace Ever is the privacy architecture behind every product built by Vogtcom LLC.
+              </p>
+              <p>
+                For us as a company, it means a simple rule: if we do not need your personal data to make the app work, we do not collect it, store it, or send it anywhere.
+              </p>
+              <p>
+                For you as a user, it means:
+              </p>
+              <p>
+                Your journal entries stay on your device. They are not stored on our servers.
+              </p>
+              <p>
+                We do not sell, share, or transmit your personal data to advertisers, dispensaries, or data brokers.
+              </p>
+              <p>
+                You do not need an account to use the app.
+              </p>
+              <p>
+                Nothing you write is used to build a profile on you.
+              </p>
+              <p>
+                This is not a marketing claim. It is a hard rule built into how the app works, not a policy we can quietly change later.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
@@ -289,12 +388,118 @@ const originStoryStyles = `
     font-weight: 800;
   }
 
+  .origin-story-inline-link {
+    appearance: none;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: ${S.gold};
+    font: inherit;
+    font-weight: 800;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+  }
+
+  .origin-story-inline-link:hover {
+    color: ${S.textPrimary};
+  }
+
+  .origin-story-inline-link:focus-visible,
+  .origin-story-modal-close:focus-visible {
+    outline: 3px solid ${S.gold};
+    outline-offset: 4px;
+  }
+
   .origin-story-closing {
     color: ${S.gold} !important;
     font-family: ${marketingFonts.playfair} !important;
     font-size: 28px !important;
     font-weight: 700;
     line-height: 1.25 !important;
+  }
+
+  .origin-story-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow-y: auto;
+    background: rgba(1, 8, 1, 0.82);
+    backdrop-filter: blur(5px);
+  }
+
+  .origin-story-modal {
+    position: relative;
+    width: min(720px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    padding: 34px;
+    border: 1px solid ${S.gold};
+    border-radius: ${marketingPage.radius};
+    background: #0A1A0A;
+    box-shadow: 0 26px 90px rgba(0, 0, 0, 0.58);
+  }
+
+  .origin-story-modal-title {
+    margin: 0 52px 24px 0;
+    color: ${S.textPrimary};
+    font-family: ${marketingFonts.playfair};
+    font-size: clamp(32px, 7vw, 46px);
+    line-height: 1.05;
+  }
+
+  .origin-story-modal-body p {
+    margin: 0 0 18px;
+    color: ${S.textSecondary};
+    font-family: ${marketingFonts.inter};
+    font-size: 17px;
+    line-height: 1.72;
+  }
+
+  .origin-story-modal-body p:last-child {
+    margin-bottom: 0;
+  }
+
+  .origin-story-modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid ${S.border};
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: ${S.gold};
+    font-family: ${marketingFonts.inter};
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .origin-story-modal-close:hover {
+    border-color: ${S.gold};
+    color: ${S.textPrimary};
+  }
+
+  @media (max-width: 599px) {
+    .origin-story-modal-overlay {
+      align-items: flex-start;
+      padding: 16px;
+    }
+
+    .origin-story-modal {
+      max-height: calc(100vh - 32px);
+      padding: 28px 22px;
+    }
   }
 
   @media (min-width: 900px) {
