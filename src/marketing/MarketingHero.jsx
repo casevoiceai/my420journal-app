@@ -46,7 +46,8 @@ export function HeroSection() {
             margin: '0 0 22px 0',
             color: S.textPrimary,
             fontFamily: marketingFonts.playfair,
-            fontSize: 'clamp(34px, 5vw, 54px)',
+            fontSize: 'clamp(24px, 3.4vw, 42px)',
+            whiteSpace: 'nowrap',
             lineHeight: 1.05,
             letterSpacing: '-0.03em',
             fontWeight: 700,
@@ -61,7 +62,8 @@ export function HeroSection() {
             lineHeight: 1.55,
             textShadow: '0 2px 18px rgba(0,0,0,0.4)',
           }}>
-            Log what you tried. See what actually worked. Nothing leaves your device unless you choose to share it.
+            Log what you tried. See what actually worked. <br />
+            Nothing leaves your device unless you choose to share it.
           </p>
           <div style={{
             display: 'flex',
