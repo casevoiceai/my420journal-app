@@ -20,7 +20,10 @@ export function FeatureGrid() {
         <SectionHeader
           eyebrow="Built for real use"
           title="Small actions that make the next visit easier."
-          body="Every feature exists to help you remember what worked without turning your private journal into someone else's data source."
+          titleStyle={{
+            whiteSpace: 'nowrap',
+            fontSize: 'clamp(20px, 3.6vw, 44px)',
+          }}
         />
 
         <div style={{

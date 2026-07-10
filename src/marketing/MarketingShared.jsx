@@ -15,14 +15,16 @@ export function SectionHeader({ eyebrow, title, body, titleStyle }) {
       }}>
         {title}
       </h2>
-      <p style={{
-        margin: 0,
-        color: S.textSecondary,
-        fontSize: '17px',
-        lineHeight: 1.7,
-      }}>
-        {body}
-      </p>
+      {body && (
+        <p style={{
+          margin: 0,
+          color: S.textSecondary,
+          fontSize: '17px',
+          lineHeight: 1.7,
+        }}>
+          {body}
+        </p>
+      )}
     </div>
   )
 }

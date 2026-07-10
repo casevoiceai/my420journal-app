@@ -37,7 +37,6 @@ export function ProcessSection() {
         <SectionHeader
           eyebrow="The Process"
           title="Log it. Track it. Remember it."
-          body="You write down what happened. The app keeps track so you don't have to. That's the whole system."
           titleStyle={{
             whiteSpace: 'nowrap',
             fontSize: 'clamp(28px, 5vw, 52px)',
