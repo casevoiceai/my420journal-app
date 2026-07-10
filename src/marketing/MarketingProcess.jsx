@@ -36,8 +36,12 @@ export function ProcessSection() {
       >
         <SectionHeader
           eyebrow="The Process"
-          title="Three steps, one private record."
-          body="The structure stays simple. Log the moment, let the app keep track, and return to what your own history has already taught you."
+          title="Log it. Track it. Remember it."
+          body="You write down what happened. The app keeps track so you don't have to. That's the whole system."
+          titleStyle={{
+            whiteSpace: 'nowrap',
+            fontSize: 'clamp(28px, 5vw, 52px)',
+          }}
         />
 
         <div style={{
