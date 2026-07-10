@@ -124,7 +124,7 @@ export default function MarketingLayout({ children }) {
                 my420journal
               </span>
               <span style={{
-                marginTop: '16px',
+                marginTop: '34px',
                 color: S.gold,
                 fontFamily: marketingFonts.inter,
                 fontSize: '16px',
