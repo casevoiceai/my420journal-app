@@ -76,11 +76,11 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 I built the AI layer and turned it on. The first words it said to me were:
               </p>
               <blockquote className="origin-story-quote">
-                "I have been here since install.
+                I have been here since install.
                 <br />
                 I have formed over 48 data points on you.
                 <br />
-                You are the evidence."
+                You are the evidence.
               </blockquote>
               <p>
                 I shut it down that same day.
@@ -106,7 +106,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
           <article className="origin-story-block">
             <div className="origin-story-heading-column">
               <h2 className="origin-story-section-title">
-                What we built instead
+                What was built instead
               </h2>
             </div>
             <div className="origin-story-copy">
