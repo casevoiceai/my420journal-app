@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import heroDispensaryImage from './hero-dispensary.png'
 import MarketingLayout from './MarketingLayout'
 import { AboutSection } from './MarketingAbout'
 import { FAQSection } from './MarketingFAQ'
@@ -61,26 +62,15 @@ function HeroSection() {
       <div style={{
         position: 'absolute',
         inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0A1A0A 0%, #1A2E1A 55%, #2D4A2D 100%)',
-        color: 'rgba(232,240,232,0.28)',
-        fontSize: '13px',
-        fontWeight: 800,
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-        textAlign: 'center',
-        padding: '20px',
-        boxSizing: 'border-box',
-      }}>
-        Hero photo placeholder
-      </div>
+        backgroundImage: `url(${heroDispensaryImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }} />
 
       <div style={{
         position: 'absolute',
         inset: 0,
-        backgroundColor: 'rgba(10,26,10,0.64)',
+        background: 'linear-gradient(90deg, rgba(10,26,10,0.92) 0%, rgba(10,26,10,0.62) 55%, rgba(10,26,10,0.38) 100%)',
       }} />
 
       <div
