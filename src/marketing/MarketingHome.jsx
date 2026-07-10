@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import heroDispensaryImage from './hero-dispensary.png'
+import heroBrainMark from './hero-brain-mark.png'
 import MarketingLayout from './MarketingLayout'
 import { AboutSection } from './MarketingAbout'
 import { FAQSection } from './MarketingFAQ'
@@ -53,59 +54,87 @@ function HeroSection() {
     <section
       id="home"
       className="marketing-section marketing-section-bg-base"
-      style={{
-        position: 'relative',
-        minHeight: 'calc(100dvh - 102px)',
-      }}
+      style={{ position: 'relative' }}
     >
       <div
-        className="marketing-section-inner hero-split"
+        className="marketing-section-inner"
         style={{
           maxWidth: marketingPage.maxWidth,
-          minHeight: 'calc(100dvh - 102px)',
           boxSizing: 'border-box',
         }}
       >
         <div style={{
+          position: 'relative',
           width: '100%',
-          maxWidth: '460px',
-          aspectRatio: '4 / 3',
+          maxWidth: '640px',
+          margin: '0 auto',
           borderRadius: '20px',
           overflow: 'hidden',
           boxShadow: '0 30px 60px rgba(0,0,0,0.35)',
-          flexShrink: 0,
         }}>
           <img
             src={heroDispensaryImage}
             alt="A customer checking my420journal on their phone at a dispensary counter"
             style={{
               width: '100%',
-              height: '100%',
-              objectFit: 'cover',
+              height: 'auto',
               display: 'block',
             }}
           />
+
+          <div style={{
+            position: 'absolute',
+            left: '44.7%',
+            top: '28.4%',
+            width: '15.9%',
+            height: '46.6%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            textAlign: 'center',
+            overflow: 'hidden',
+            padding: '4% 3%',
+            boxSizing: 'border-box',
+          }}>
+            <img
+              src={heroBrainMark}
+              alt=""
+              style={{
+                width: '38%',
+                height: 'auto',
+                marginBottom: '6%',
+                flexShrink: 0,
+              }}
+            />
+            <h1 style={{
+              margin: '0 0 4% 0',
+              color: '#12210f',
+              fontFamily: marketingFonts.playfair,
+              fontSize: 'clamp(9px, 2.6vw, 15px)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.01em',
+              fontWeight: 700,
+            }}>
+              Stop guessing at the dispensary.
+            </h1>
+            <p style={{
+              margin: 0,
+              color: '#3a4a35',
+              fontSize: 'clamp(6px, 1.5vw, 9px)',
+              lineHeight: 1.3,
+            }}>
+              Log what you tried. See what actually worked.
+            </p>
+          </div>
         </div>
 
-        <div style={{ maxWidth: '620px', textAlign: 'center' }}>
-          <h1 style={{
-            margin: '0 0 22px 0',
-            color: S.textPrimary,
-            fontFamily: marketingFonts.playfair,
-            fontSize: 'clamp(44px, 8vw, 86px)',
-            lineHeight: 0.98,
-            letterSpacing: '-0.04em',
-            fontWeight: 700,
-          }}>
-            Stop guessing at the dispensary.
-          </h1>
+        <div style={{ maxWidth: '620px', textAlign: 'center', margin: '40px auto 0' }}>
           <p style={{
-            margin: '0 0 34px 0',
+            margin: '0 0 28px 0',
             color: S.textPrimary,
             fontSize: 'clamp(18px, 3vw, 24px)',
             lineHeight: 1.5,
-            maxWidth: '780px',
-            textShadow: '0 2px 18px rgba(0,0,0,0.34)',
           }}>
             Log what you tried. See what actually worked. Nothing leaves your device unless you choose to share it.
           </p>
