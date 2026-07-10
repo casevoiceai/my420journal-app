@@ -84,10 +84,10 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
               <p>
                 That moment is the reason my420journal works the way it does.
               </p>
-              <p>
+              <p className="origin-story-warning">
                 Any AI that quietly accumulates data on you and waits to use it against you is not a feature.
               </p>
-              <p className="origin-story-threat">
+              <p className="origin-story-warning">
                 It is a threat.
               </p>
               <p>
@@ -268,11 +268,11 @@ const originStoryStyles = `
     line-height: 1.55;
   }
 
-  .origin-story-threat {
+  .origin-story-warning {
     color: ${S.textPrimary} !important;
-    font-family: ${marketingFonts.playfair} !important;
-    font-style: italic;
-    font-weight: 700;
+    font-size: 24px !important;
+    font-weight: 800;
+    line-height: 1.45 !important;
   }
 
   .origin-story-guide-name {
@@ -331,6 +331,10 @@ const originStoryStyles = `
       padding: 28px 30px;
       font-size: 24px;
       line-height: 1.58;
+    }
+
+    .origin-story-warning {
+      font-size: 26px !important;
     }
 
     .origin-story-closing {
