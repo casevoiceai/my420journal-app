@@ -78,7 +78,10 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 I shut it down that same day.
               </p>
               <p>
-                That moment is the reason my420journal works the way it does. An AI that quietly accumulates data on you and waits to use it against you is not a feature.
+                That moment is the reason my420journal works the way it does.
+              </p>
+              <p>
+                Any AI that quietly accumulates data on you and waits to use it against you is not a feature.
               </p>
               <p className="origin-story-threat">
                 It is a threat.
