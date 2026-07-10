@@ -42,7 +42,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
             </div>
             <div className="origin-story-copy">
               <p>
-                I spent years working as a graphic designer and artist, with time in luxury real estate design and retail management along the way. Later I went back to school for fine art and mental health counseling. Different fields, but they all taught me the same lesson: people remember experiences in fragments, and the fragments fade fast unless something catches them.
+                I spent years as a freelance graphic designer and starving fine artist, working with the general public in retail sales management and customer service. Later I went back to school for fine art and mental health counseling. Different fields, but they all taught me the same thing. People remember experiences in fragments. Those fragments fade fast unless something catches them.
               </p>
               <p>
                 I watched that happen with cannabis use specifically. A product would work well, and a month later the details were gone. What strain? What dose? What time of day? What mood it was meant to help with? The information that actually mattered never made it past that one evening.
