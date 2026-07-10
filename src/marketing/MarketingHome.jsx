@@ -66,7 +66,7 @@ function HeroSection() {
         <div style={{
           position: 'relative',
           width: '100%',
-          maxWidth: '640px',
+          maxWidth: '920px',
           margin: '0 auto',
           borderRadius: '20px',
           overflow: 'hidden',
