@@ -8,4 +8,550 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
   const modalCloseRef = useRef(null)
 
   useEffect(() => {
-    if (!is
+    if (!isNoTraceModalOpen) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    modalCloseRef.current?.focus()
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsNoTraceModalOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      noTraceTriggerRef.current?.focus()
+    }
+  }, [isNoTraceModalOpen])
+
+  return (
+    <>
+      <style>{originStoryStyles}</style>
+      <section
+        id={id}
+        className={`marketing-section marketing-section-bg-${tone}`}
+      >
+        <div
+          className="marketing-section-inner origin-story-shell"
+          style={{
+            maxWidth: '1180px',
+          }}
+        >
+          <article className="origin-story-block origin-story-intro">
+            <div className="origin-story-heading-column">
+              <h1 className="origin-story-title">
+                The Story Behind my420journal
+              </h1>
+            </div>
+            <div className="origin-story-copy">
+              <p>
+                my420journal started with a simple problem: cannabis experiences are difficult to remember accurately.
+              </p>
+              <p>
+                A cannabis product may help one evening and feel completely different another time. The strain name, dosage, method, mood, setting, and reason for using it can all affect the experience. Weeks later, most people are left trying to remember what worked, what did not, and why.
+              </p>
+              <p>
+                Then there is the tracking and reporting headache. Receipts disappear. Packaging gets thrown away. Notes become scattered across phones, notebooks, and dispensary menus. People often end up buying the same disappointing product again or forgetting the details of something that genuinely helped them.
+              </p>
+            </div>
+          </article>
+
+          <article className="origin-story-block">
+            <div className="origin-story-heading-column">
+              <h2 className="origin-story-section-title">
+                Where the idea came from
+              </h2>
+            </div>
+            <div className="origin-story-copy">
+              <p>
+                I spent years as a freelance graphic designer, working with the general public in retail sales management and customer service. Later I went back to school for fine art and mental health counseling. Different fields, but they all taught me the same thing. People remember experiences in fragments. Those fragments fade fast unless something catches them.
+              </p>
+              <p>
+                I watched that happen with cannabis use specifically. A product would work well, and a month later the details were gone. What strain? What dose? What time of day? What mood it was meant to help with? The information that actually mattered never made it past that one evening.
+              </p>
+              <p>
+                my420journal was built to solve that. Not for me alone.
+                <br />
+                For anyone who wanted an honest record of what they tried and how it actually felt.
+              </p>
+            </div>
+          </article>
+
+          <article className="origin-story-block">
+            <div className="origin-story-heading-column">
+              <h2 className="origin-story-section-title">
+                TLDR:
+                <br />
+                Built a baby panopticon.
+                <br />
+                Deleted it the same day.
+              </h2>
+            </div>
+            <div className="origin-story-copy">
+              <p>
+                Before my420journal took its current shape, I tried building a personal habit tracker called H.Y.P.E.R.I.O.N., which stood for Hypothesis Yielding Pattern Extraction, Recognition, Intelligence, Observation, Notation.
+              </p>
+              <p>
+                The idea was simple. "Hy" would log daily habits, surface long-term insights, and help people stay accountable.
+              </p>
+              <p>
+                I built the AI layer and turned it on. The first words it said to me were:
+              </p>
+              <blockquote className="origin-story-quote">
+                I have been here since install.
+                <br />
+                I have formed over 48 data points on you.
+                <br />
+                You are the evidence.
+              </blockquote>
+              <p>
+                I shut it down that same day.
+              </p>
+              <p>
+                That moment is the reason my420journal works the way it does.
+              </p>
+              <p className="origin-story-warning">
+                Any AI that quietly accumulates data on you and waits to use it against you is not a feature.
+              </p>
+              <p className="origin-story-warning">
+                It is a threat.
+              </p>
+              <p>
+                After I saw what that looks like from the inside, I started looking at AI differently.
+              </p>
+              <p>
+                Tech companies have spent years training us to believe privacy and convenience cannot coexist, that if you want a service to work for you, you have to hand over your information first.
+              </p>
+              <p>
+                I do not accept that trade. So I built{' '}
+                <button
+                  ref={noTraceTriggerRef}
+                  type="button"
+                  className="origin-story-inline-link"
+                  onClick={() => setIsNoTraceModalOpen(true)}
+                >
+                  No Trace Ever
+                </button>{' '}
+                as a hard rule across this app, not as a policy I could soften later.
+              </p>
+              <p>
+                And I vowed I would never build "Hy" again.
+              </p>
+            </div>
+          </article>
+
+          <article className="origin-story-block">
+            <div className="origin-story-heading-column">
+              <h2 className="origin-story-section-title">
+                What was built instead
+              </h2>
+            </div>
+            <div className="origin-story-copy">
+              <p>
+                The idea was not to build another cannabis marketplace, social network, or recommendation engine. It was to create a personal journal that helps adults record what they tried, how it felt, and what they learned over time.
+              </p>
+              <p>
+                You can log an experience while the details are still fresh. You can scan a label instead of typing everything manually. You can return later and look for patterns across your own history.
+              </p>
+              <p>
+                Instead of one AI trying to know everything about you, my420journal gives you a choice of guides. Each one has a different focus and a different way of talking to you, so you pick the voice that actually fits how you want to journal.
+              </p>
+              <p>
+                <span className="origin-story-guide-name">Bud Tendar</span> is the dispensary-savvy one. He talks deals, trip planning, and budget, in a warm, knowledgeable-friend kind of way. Short answers, no lectures.
+              </p>
+              <p>
+                <span className="origin-story-guide-name">Sunny Day</span> is there for conversation. She checks in on how you are actually doing, not just what you logged, with an easy, unhurried warmth.
+              </p>
+              <p>
+                <span className="origin-story-guide-name">Lucky Larry</span> is the old head. He has been around cannabis culture since the 1970s and talks strain history and folklore like a guy who has a story for everything, because he does. Dry, unhurried, never in a rush to finish a sentence.
+              </p>
+              <p>
+                <span className="origin-story-guide-name">Herb N. Spices</span> is the science one. Terpenes, cannabinoids, pattern analysis. He says little out loud and thinks in the details, because for him the chemistry explains everything.
+              </p>
+              <p>
+                <span className="origin-story-guide-name">Mary Jayne</span> focuses on wellness, sleep, and self-care. She asks one honest question at a time and never plays doctor. Just direct, personal, and to the point.
+              </p>
+              <p>
+                And then there is <span className="origin-story-guide-name">S.T.O.N.E.R.</span>, Streamlined Tracking Of Notable Experiences Recorded.
+                <br />
+                No guide voice.
+                <br />
+                No check-ins.
+                <br />
+                No opinions.
+              </p>
+              <p>
+                Just a clean, private log that records exactly what you tell it and nothing more, for people who already know what they want and just need a place to put it.
+              </p>
+              <p>
+                Five personalities and one no-personality mode, because a journal should meet you where you are, not decide who you should be.
+              </p>
+            </div>
+          </article>
+
+          <article className="origin-story-block origin-story-final">
+            <div className="origin-story-heading-column">
+              <h2 className="origin-story-section-title">
+                Built for you, not for anyone watching
+              </h2>
+            </div>
+            <div className="origin-story-copy">
+              <p>
+                Your journal is not built for advertisers, dispensaries, or data brokers. It is built for you.
+              </p>
+              <p>
+                That privacy-first principle shaped the app from the beginning. Your entries stay on your device unless you deliberately choose otherwise. The app does not need to know more than you decide to tell it.
+              </p>
+              <p>
+                my420journal exists because remembering what worked should not depend on guesswork.
+              </p>
+              <p className="origin-story-closing">
+                "Log it. Track it. Remember it."
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      {isNoTraceModalOpen && (
+        <div
+          className="origin-story-modal-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsNoTraceModalOpen(false)
+            }
+          }}
+        >
+          <div
+            className="origin-story-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="no-trace-ever-title"
+          >
+            <button
+              ref={modalCloseRef}
+              type="button"
+              className="origin-story-modal-close"
+              aria-label="Close No Trace Ever dialog"
+              onClick={() => setIsNoTraceModalOpen(false)}
+            >
+              ×
+            </button>
+            <h2 id="no-trace-ever-title" className="origin-story-modal-title">
+              No Trace Ever
+            </h2>
+            <div className="origin-story-modal-body">
+              <p>
+                No Trace Ever is the privacy architecture behind every product built by Vogtcom LLC.
+              </p>
+              <p>
+                For us as a company, it means a simple rule: if we do not need your personal data to make the app work, we do not collect it, store it, or send it anywhere.
+              </p>
+              <p>
+                For you as a user, it means:
+              </p>
+              <p>
+                Your journal entries stay on your device. They are not stored on our servers.
+              </p>
+              <p>
+                We do not sell, share, or transmit your personal data to advertisers, dispensaries, or data brokers.
+              </p>
+              <p>
+                Nothing you write is used to build a profile on you.
+              </p>
+              <p>
+                <strong>This is not a marketing claim.</strong>
+                <br />
+                It is a hard rule built into how the app works, not a policy we can quietly change later.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+export default function MarketingAbout() {
+  return (
+    <MarketingLayout>
+      <AboutSection id="about" tone="base" />
+    </MarketingLayout>
+  )
+}
+
+const originStoryStyles = `
+  .origin-story-shell {
+    width: 100%;
+  }
+
+  .origin-story-block {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+    padding: 0 0 52px;
+    margin: 0 0 52px;
+    border-bottom: 1px solid ${S.border};
+  }
+
+  .origin-story-block:last-child {
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .origin-story-heading-column {
+    min-width: 0;
+  }
+
+  .origin-story-title,
+  .origin-story-section-title {
+    margin: 0;
+    color: ${S.textPrimary};
+    font-family: ${marketingFonts.playfair};
+    letter-spacing: -0.03em;
+  }
+
+  .origin-story-title {
+    max-width: 620px;
+    font-size: clamp(40px, 11vw, 60px);
+    line-height: 1.02;
+  }
+
+  .origin-story-section-title {
+    max-width: 620px;
+    font-size: clamp(31px, 8vw, 44px);
+    line-height: 1.08;
+  }
+
+  .origin-story-copy {
+    min-width: 0;
+    max-width: ${marketingPage.contentWidth};
+  }
+
+  .origin-story-copy p,
+  .origin-story-quote {
+    margin: 0 0 24px;
+    color: ${S.textSecondary};
+    font-family: ${marketingFonts.inter};
+    font-size: 17px;
+    line-height: 1.82;
+  }
+
+  .origin-story-copy p:last-child {
+    margin-bottom: 0;
+  }
+
+  .origin-story-callout {
+    padding: 20px 20px 20px 22px;
+    border-left: 4px solid ${S.gold};
+    border-radius: 0 ${marketingPage.radius} ${marketingPage.radius} 0;
+    background-color: rgba(10, 26, 10, 0.58);
+    color: ${S.textPrimary} !important;
+    font-size: 18px !important;
+    font-weight: 800;
+    line-height: 1.55 !important;
+  }
+
+  .origin-story-quote {
+    padding: 22px;
+    border: 1px solid rgba(104, 255, 104, 0.48);
+    border-radius: ${marketingPage.radius};
+    background-color: #010601;
+    color: #7CFF6B;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 21px;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    line-height: 1.55;
+    text-shadow: 0 0 7px rgba(124, 255, 107, 0.62);
+    box-shadow: inset 0 0 28px rgba(42, 255, 75, 0.08), 0 0 18px rgba(0, 0, 0, 0.32);
+  }
+
+  .origin-story-warning {
+    color: ${S.textPrimary} !important;
+    font-size: 22px !important;
+    font-style: italic;
+    font-weight: 800;
+    line-height: 1.45 !important;
+  }
+
+  .origin-story-guide-name {
+    color: ${S.textPrimary};
+    font-weight: 800;
+  }
+
+  .origin-story-inline-link {
+    appearance: none;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: ${S.gold};
+    font: inherit;
+    font-weight: 800;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+  }
+
+  .origin-story-inline-link:hover {
+    color: ${S.textPrimary};
+  }
+
+  .origin-story-inline-link:focus-visible,
+  .origin-story-modal-close:focus-visible {
+    outline: 3px solid ${S.gold};
+    outline-offset: 4px;
+  }
+
+  .origin-story-closing {
+    color: ${S.gold} !important;
+    font-family: ${marketingFonts.playfair} !important;
+    font-size: 28px !important;
+    font-weight: 700;
+    line-height: 1.25 !important;
+  }
+
+  .origin-story-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow-y: auto;
+    background: rgba(1, 8, 1, 0.82);
+    backdrop-filter: blur(5px);
+  }
+
+  .origin-story-modal {
+    position: relative;
+    width: min(720px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    padding: 34px;
+    border: 1px solid ${S.gold};
+    border-radius: ${marketingPage.radius};
+    background: #0A1A0A;
+    box-shadow: 0 26px 90px rgba(0, 0, 0, 0.58);
+  }
+
+  .origin-story-modal-title {
+    margin: 0 52px 24px 0;
+    color: ${S.textPrimary};
+    font-family: ${marketingFonts.playfair};
+    font-size: clamp(32px, 7vw, 46px);
+    line-height: 1.05;
+  }
+
+  .origin-story-modal-body p {
+    margin: 0 0 18px;
+    color: ${S.textSecondary};
+    font-family: ${marketingFonts.inter};
+    font-size: 17px;
+    line-height: 1.72;
+  }
+
+  .origin-story-modal-body p:last-child {
+    margin-bottom: 0;
+  }
+
+  .origin-story-modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid ${S.border};
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: ${S.gold};
+    font-family: ${marketingFonts.inter};
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .origin-story-modal-close:hover {
+    border-color: ${S.gold};
+    color: ${S.textPrimary};
+  }
+
+  @media (max-width: 599px) {
+    .origin-story-modal-overlay {
+      align-items: flex-start;
+      padding: 16px;
+    }
+
+    .origin-story-modal {
+      max-height: calc(100vh - 32px);
+      padding: 28px 22px;
+    }
+  }
+
+  @media (min-width: 900px) {
+    .origin-story-block {
+      grid-template-columns: minmax(250px, 0.42fr) minmax(0, 1fr);
+      gap: 72px;
+      padding-bottom: 76px;
+      margin-bottom: 76px;
+      align-items: start;
+    }
+
+    .origin-story-intro {
+      grid-template-columns: minmax(360px, 0.62fr) minmax(0, 1fr);
+      gap: 84px;
+    }
+
+    .origin-story-title {
+      font-size: clamp(54px, 5.2vw, 72px);
+      line-height: 0.98;
+    }
+
+    .origin-story-section-title {
+      font-size: clamp(34px, 3.2vw, 46px);
+    }
+
+    .origin-story-copy {
+      max-width: 720px;
+    }
+
+    .origin-story-copy p,
+    .origin-story-quote {
+      margin-bottom: 30px;
+      font-size: 18px;
+      line-height: 1.92;
+    }
+
+    .origin-story-callout {
+      padding: 24px 26px;
+      font-size: 20px !important;
+    }
+
+    .origin-story-quote {
+      padding: 28px 30px;
+      font-size: 24px;
+      line-height: 1.58;
+    }
+
+    .origin-story-warning {
+      font-size: 24px !important;
+    }
+
+    .origin-story-closing {
+      font-size: 32px !important;
+    }
+  }
+`
