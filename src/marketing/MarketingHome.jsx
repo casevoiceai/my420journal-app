@@ -70,7 +70,7 @@ function HeroSection() {
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'linear-gradient(270deg, rgba(10,26,10,0.55) 0%, rgba(10,26,10,0.32) 45%, rgba(10,26,10,0.08) 100%)',
+        background: 'linear-gradient(90deg, rgba(10,26,10,0.62) 0%, rgba(10,26,10,0.36) 42%, rgba(10,26,10,0.08) 100%)',
       }} />
 
       <div
@@ -82,7 +82,7 @@ function HeroSection() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-end',
-          alignItems: 'flex-end',
+          alignItems: 'flex-start',
           paddingBottom: '14vh',
           boxSizing: 'border-box',
         }}
