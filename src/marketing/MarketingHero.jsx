@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import heroDispensaryImage from './hero-dispensary.png'
-import heroBrainMark from './hero-brain-mark.png'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 import { primaryButtonStyle } from './MarketingShared'
 
@@ -9,87 +8,58 @@ export function HeroSection() {
     <section
       id="home"
       className="marketing-section marketing-section-bg-base"
-      style={{ position: 'relative' }}
+      style={{
+        position: 'relative',
+        minHeight: 'calc(100dvh - 102px)',
+        overflow: 'hidden',
+      }}
     >
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: `url(${heroDispensaryImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center 35%',
+      }} />
+
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(90deg, rgba(10,26,10,0.15) 0%, rgba(10,26,10,0.30) 40%, rgba(10,26,10,0.70) 68%, rgba(10,26,10,0.88) 100%)',
+      }} />
+
       <div
         className="marketing-section-inner"
         style={{
+          position: 'relative',
           maxWidth: marketingPage.maxWidth,
+          minHeight: 'calc(100dvh - 102px)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'flex-end',
+          paddingBottom: '10vh',
           boxSizing: 'border-box',
         }}
       >
-        <div style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: '920px',
-          margin: '0 auto',
-          borderRadius: '20px',
-          overflow: 'hidden',
-          boxShadow: '0 30px 60px rgba(0,0,0,0.35)',
-        }}>
-          <img
-            src={heroDispensaryImage}
-            alt="A customer checking my420journal on their phone at a dispensary counter"
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'block',
-            }}
-          />
-
-          <div style={{
-            position: 'absolute',
-            left: '44.7%',
-            top: '28.4%',
-            width: '15.9%',
-            height: '46.6%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            textAlign: 'center',
-            overflow: 'hidden',
-            padding: '4% 3%',
-            boxSizing: 'border-box',
-          }}>
-            <img
-              src={heroBrainMark}
-              alt=""
-              style={{
-                width: '38%',
-                height: 'auto',
-                marginBottom: '6%',
-                flexShrink: 0,
-              }}
-            />
-            <h1 style={{
-              margin: '0 0 4% 0',
-              color: '#12210f',
-              fontFamily: marketingFonts.playfair,
-              fontSize: 'clamp(9px, 2.6vw, 15px)',
-              lineHeight: 1.05,
-              letterSpacing: '-0.01em',
-              fontWeight: 700,
-            }}>
-              Stop guessing at the dispensary.
-            </h1>
-            <p style={{
-              margin: 0,
-              color: '#3a4a35',
-              fontSize: 'clamp(6px, 1.5vw, 9px)',
-              lineHeight: 1.3,
-            }}>
-              Log what you tried. See what actually worked.
-            </p>
-          </div>
-        </div>
-
-        <div style={{ maxWidth: '620px', textAlign: 'center', margin: '40px auto 0' }}>
-          <p style={{
-            margin: '0 0 28px 0',
+        <div style={{ maxWidth: '560px', textAlign: 'center' }}>
+          <h1 style={{
+            margin: '0 0 22px 0',
             color: S.textPrimary,
-            fontSize: 'clamp(18px, 3vw, 24px)',
-            lineHeight: 1.5,
+            fontFamily: marketingFonts.playfair,
+            fontSize: 'clamp(34px, 5vw, 54px)',
+            lineHeight: 1.05,
+            letterSpacing: '-0.03em',
+            fontWeight: 700,
+            textShadow: '0 4px 24px rgba(0,0,0,0.4)',
+          }}>
+            Stop guessing at the dispensary.
+          </h1>
+          <p style={{
+            margin: '0 0 30px 0',
+            color: S.textPrimary,
+            fontSize: 'clamp(16px, 2vw, 19px)',
+            lineHeight: 1.55,
+            textShadow: '0 2px 18px rgba(0,0,0,0.4)',
           }}>
             Log what you tried. See what actually worked. Nothing leaves your device unless you choose to share it.
           </p>
@@ -115,6 +85,7 @@ export function HeroSection() {
                 textDecoration: 'none',
                 borderBottom: `1px solid ${S.gold}`,
                 paddingBottom: '4px',
+                textShadow: '0 2px 12px rgba(0,0,0,0.4)',
               }}
             >
               Learn how it works below
