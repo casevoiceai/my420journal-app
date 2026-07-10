@@ -278,7 +278,8 @@ const originStoryStyles = `
 
   .origin-story-warning {
     color: ${S.textPrimary} !important;
-    font-size: 24px !important;
+    font-size: 22px !important;
+    font-style: italic;
     font-weight: 800;
     line-height: 1.45 !important;
   }
@@ -342,7 +343,7 @@ const originStoryStyles = `
     }
 
     .origin-story-warning {
-      font-size: 26px !important;
+      font-size: 24px !important;
     }
 
     .origin-story-closing {
