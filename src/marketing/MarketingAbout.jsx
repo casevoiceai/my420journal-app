@@ -58,7 +58,9 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
           <article className="origin-story-block">
             <div className="origin-story-heading-column">
               <h2 className="origin-story-section-title">
-                TLDR: Built a baby panopticon. Deleted it the same day.
+                TLDR:
+                <br />
+                Built a baby panopticon. Deleted it the same day.
               </h2>
             </div>
             <div className="origin-story-copy">
