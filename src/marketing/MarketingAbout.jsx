@@ -76,7 +76,11 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 I built the AI layer and turned it on. The first words it said to me were:
               </p>
               <blockquote className="origin-story-quote">
-                "I have been here since install. I have formed over 48 data points on you. You are the evidence."
+                "I have been here since install.
+                <br />
+                I have formed over 48 data points on you.
+                <br />
+                You are the evidence."
               </blockquote>
               <p>
                 I shut it down that same day.
@@ -258,14 +262,18 @@ const originStoryStyles = `
 
   .origin-story-quote {
     padding: 22px;
-    border: 1px solid ${S.border};
+    border: 1px solid rgba(104, 255, 104, 0.48);
     border-radius: ${marketingPage.radius};
-    background-color: rgba(10, 26, 10, 0.72);
-    color: ${S.textPrimary};
-    font-family: ${marketingFonts.playfair};
+    background-color: #010601;
+    color: #7CFF6B;
+    font-family: "Courier New", Courier, monospace;
     font-size: 21px;
-    font-style: italic;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.025em;
     line-height: 1.55;
+    text-shadow: 0 0 7px rgba(124, 255, 107, 0.62);
+    box-shadow: inset 0 0 28px rgba(42, 255, 75, 0.08), 0 0 18px rgba(0, 0, 0, 0.32);
   }
 
   .origin-story-warning {
