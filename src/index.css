@@ -60,3 +60,19 @@ h1, h2, h3, h4, h5, h6 {
     padding-bottom: 120px;
   }
 }
+
+.hero-split {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+@media (min-width: 900px) {
+  .hero-split {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 64px;
+  }
+}
