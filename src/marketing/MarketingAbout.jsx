@@ -262,9 +262,6 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 We do not sell, share, or transmit your personal data to advertisers, dispensaries, or data brokers.
               </p>
               <p>
-                You do not need an account to use the app.
-              </p>
-              <p>
                 Nothing you write is used to build a profile on you.
               </p>
               <p>
