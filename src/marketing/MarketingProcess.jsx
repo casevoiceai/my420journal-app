@@ -10,8 +10,8 @@ const processSteps = [
   },
   {
     step: 'Step 2',
-    title: 'App preview coming soon.',
-    body: 'A proper screenshot or mockup will be prepared separately. For now, this stays as a clean placeholder.',
+    title: 'Your guide helps you notice patterns.',
+    body: 'Ask your guide what stands out. It only speaks when you ask, and it only knows what you have logged yourself.',
     placeholder: 'App preview coming soon',
   },
   {
