@@ -28,7 +28,6 @@ export default function MarketingLayout({ children }) {
       flexDirection: 'column',
     }}>
       <header style={{
-        height: '64px',
         borderBottom: `1px solid ${S.border}`,
         backgroundColor: 'rgba(10,26,10,0.98)',
         position: 'fixed',
@@ -38,45 +37,121 @@ export default function MarketingLayout({ children }) {
         zIndex: 70,
         boxShadow: '0 10px 28px rgba(0,0,0,0.22)',
       }}>
-        <nav
-          aria-label="Marketing navigation"
-          style={{
-            width: '100%',
-            height: '64px',
-            padding: '8px 20px',
+        <div style={{
+          borderBottom: `1px solid ${S.border}`,
+        }}>
+          <nav style={{
+            maxWidth: marketingPage.maxWidth,
+            height: '44px',
+            margin: '0 auto',
+            padding: '6px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            gap: '14px',
+            gap: '12px',
             boxSizing: 'border-box',
-            whiteSpace: 'nowrap',
-            overflowX: 'auto',
-          }}
-        >
+          }}>
+            <Link
+              to="/app"
+              style={{
+                color: S.textSecondary,
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: 600,
+                lineHeight: 1.2,
+              }}
+            >
+              Already have an account? Sign in
+            </Link>
+            <a
+              href="/#contact"
+              style={{
+                minHeight: '36px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 14px',
+                border: `1px solid ${S.gold}`,
+                borderRadius: '9999px',
+                color: S.gold,
+                textDecoration: 'none',
+                fontSize: '13px',
+                fontWeight: 800,
+                lineHeight: 1,
+              }}
+            >
+              Report an Issue
+            </a>
+          </nav>
+        </div>
+
+        <div style={{
+          maxWidth: marketingPage.maxWidth,
+          height: '154px',
+          margin: '0 auto',
+          padding: '22px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxSizing: 'border-box',
+        }}>
           <Link
             to="/"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '10px',
+              justifyContent: 'center',
+              gap: '20px',
               color: S.textPrimary,
               textDecoration: 'none',
-              flex: '0 0 auto',
+              maxWidth: '100%',
             }}
           >
             <HeaderBrainMark />
             <span style={{
-              fontFamily: marketingFonts.playfair,
-              fontSize: '26px',
-              lineHeight: 1,
-              fontWeight: 700,
-              letterSpacing: '-0.03em',
-              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              flexDirection: 'column',
+              minWidth: 0,
             }}>
-              my420journal
+              <span style={{
+                fontFamily: marketingFonts.playfair,
+                fontSize: '81px',
+                lineHeight: 0.92,
+                fontWeight: 700,
+                letterSpacing: '-0.03em',
+                whiteSpace: 'nowrap',
+              }}>
+                my420journal
+              </span>
+              <span style={{
+                marginTop: '12px',
+                color: S.gold,
+                fontFamily: marketingFonts.inter,
+                fontSize: '13px',
+                lineHeight: 1,
+                fontWeight: 800,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+              }}>
+                A PRIVATE CANNABIS JOURNAL.
+              </span>
             </span>
           </Link>
+        </div>
 
+        <nav
+          aria-label="Marketing sections"
+          style={{
+            height: '52px',
+            padding: '8px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '18px',
+            boxSizing: 'border-box',
+          }}
+        >
           {sectionTabs.map((item) => (
             <a
               key={item.href}
@@ -86,54 +161,10 @@ export default function MarketingLayout({ children }) {
               {item.label}
             </a>
           ))}
-
-          <span
-            aria-hidden="true"
-            style={{
-              width: '1px',
-              height: '28px',
-              backgroundColor: S.border,
-              flex: '0 0 auto',
-            }}
-          />
-
-          <Link
-            to="/app"
-            style={{
-              color: S.textSecondary,
-              textDecoration: 'none',
-              fontSize: '14px',
-              fontWeight: 600,
-              lineHeight: 1.2,
-              flex: '0 0 auto',
-            }}
-          >
-            Already have an account? Sign in
-          </Link>
-          <a
-            href="/#contact"
-            style={{
-              minHeight: '36px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 14px',
-              border: `1px solid ${S.gold}`,
-              borderRadius: '9999px',
-              color: S.gold,
-              textDecoration: 'none',
-              fontSize: '13px',
-              fontWeight: 800,
-              lineHeight: 1,
-              flex: '0 0 auto',
-            }}
-          >
-            Report an Issue
-          </a>
         </nav>
       </header>
 
-      <main style={{ flex: 1, paddingTop: '64px' }}>
+      <main style={{ flex: 1, paddingTop: '252px' }}>
         {children}
       </main>
 
@@ -281,20 +312,20 @@ export default function MarketingLayout({ children }) {
 function HeaderBrainMark() {
   return (
     <span style={{
-      width: '36px',
-      height: '36px',
-      borderRadius: '10px',
+      width: '90px',
+      height: '90px',
+      borderRadius: '26px',
       border: `1px solid ${S.border}`,
       backgroundColor: 'rgba(10,26,10,0.72)',
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
       flex: '0 0 auto',
-      boxShadow: '0 6px 16px rgba(0,0,0,0.24)',
+      boxShadow: '0 10px 24px rgba(0,0,0,0.24)',
     }}>
       <svg
-        width="29"
-        height="29"
+        width="73"
+        height="73"
         viewBox="0 0 64 64"
         aria-hidden="true"
         focusable="false"
@@ -348,7 +379,6 @@ const sectionTabStyle = {
   textTransform: 'uppercase',
   padding: '8px 4px',
   borderBottom: `1px solid ${S.border}`,
-  flex: '0 0 auto',
 }
 
 const cornerButtonStyle = {
