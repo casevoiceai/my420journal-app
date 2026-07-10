@@ -162,6 +162,22 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 Instead of one AI trying to know everything about you, my420journal gives you a choice of guides. Each one has a different focus and a different way of talking to you, so you pick the voice that actually fits how you want to journal.
               </p>
               <p>
+                None of them push you. None of them judge what you log or how much you use. They are here to help you remember, not to decide anything for you.
+              </p>
+              <p>
+                You can switch guides any time, the moment one stops feeling right for you.
+              </p>
+            </div>
+          </article>
+
+          <article className="origin-story-block">
+            <div className="origin-story-heading-column">
+              <h2 className="origin-story-section-title">
+                Meet Your Guide
+              </h2>
+            </div>
+            <div className="origin-story-copy">
+              <p>
                 <span className="origin-story-guide-name">Bud Tendar</span> is the dispensary-savvy one. He talks deals, trip planning, and budget, in a warm, knowledgeable-friend kind of way. Short answers, no lectures.
               </p>
               <p>
