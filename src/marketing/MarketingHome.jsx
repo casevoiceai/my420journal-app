@@ -56,37 +56,37 @@ function HeroSection() {
       style={{
         position: 'relative',
         minHeight: 'calc(100dvh - 102px)',
-        overflow: 'hidden',
       }}
     >
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundImage: `url(${heroDispensaryImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }} />
-
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'linear-gradient(90deg, rgba(10,26,10,0.62) 0%, rgba(10,26,10,0.36) 42%, rgba(10,26,10,0.08) 100%)',
-      }} />
-
       <div
-        className="marketing-section-inner"
+        className="marketing-section-inner hero-split"
         style={{
-          position: 'relative',
           maxWidth: marketingPage.maxWidth,
           minHeight: 'calc(100dvh - 102px)',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          alignItems: 'flex-start',
-          paddingBottom: '14vh',
           boxSizing: 'border-box',
         }}
       >
+        <div style={{
+          width: '100%',
+          maxWidth: '460px',
+          aspectRatio: '4 / 3',
+          borderRadius: '20px',
+          overflow: 'hidden',
+          boxShadow: '0 30px 60px rgba(0,0,0,0.35)',
+          flexShrink: 0,
+        }}>
+          <img
+            src={heroDispensaryImage}
+            alt="A customer checking my420journal on their phone at a dispensary counter"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+        </div>
+
         <div style={{ maxWidth: '620px', textAlign: 'center' }}>
           <h1 style={{
             margin: '0 0 22px 0',
