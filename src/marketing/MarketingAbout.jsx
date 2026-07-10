@@ -52,9 +52,16 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 <br />
                 For anyone who wanted an honest record of what they tried and how it actually felt.
               </p>
-              <p className="origin-story-callout">
+            </div>
+          </article>
+
+          <article className="origin-story-block">
+            <div className="origin-story-heading-column">
+              <h2 className="origin-story-section-title">
                 TLDR: I built a baby panopticon. I deleted it the same day.
-              </p>
+              </h2>
+            </div>
+            <div className="origin-story-copy">
               <p>
                 Before my420journal took its current shape, I tried building a personal habit tracker called H.Y.P.E.R.I.O.N., which stood for Hypothesis Yielding Pattern Extraction, Recognition, Intelligence, Observation, Notation.
               </p>
