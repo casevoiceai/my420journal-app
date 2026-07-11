@@ -2,9 +2,18 @@ import { marketingFonts, marketingPage, marketingPalette as S } from './marketin
 import { PlaceholderBox } from './MarketingShared'
 
 const featureCards = [
-  'Scan any label',
-  'Log by voice',
-  'Nothing stored without your choice',
+  {
+    title: 'Scan any label',
+    body: 'Point your camera at the label. It logs itself, no typing required.',
+  },
+  {
+    title: 'Log by voice',
+    body: 'Say what happened. Your voice becomes the entry.',
+  },
+  {
+    title: 'Nothing stored without your choice',
+    body: 'Nothing saves until you say so. You decide what stays.',
+  },
 ]
 
 export function FeatureGrid() {
@@ -37,9 +46,9 @@ export function FeatureGrid() {
           gap: '18px',
           alignItems: 'stretch',
         }}>
-          {featureCards.map((label) => (
+          {featureCards.map((item) => (
             <article
-              key={label}
+              key={item.title}
               style={{
                 backgroundColor: S.surface,
                 border: `1px solid ${S.border}`,
@@ -49,16 +58,26 @@ export function FeatureGrid() {
                 minWidth: 0,
               }}
             >
-              <PlaceholderBox label={label} minHeight="350px" />
+              <PlaceholderBox label={item.title} minHeight="350px" />
               <h3 style={{
-                margin: '16px 0 0 0',
+                margin: '16px 0 10px 0',
                 color: S.textPrimary,
                 fontFamily: marketingFonts.playfair,
                 fontSize: '23px',
                 lineHeight: 1.2,
+                textAlign: 'center',
               }}>
-                {label}
+                {item.title}
               </h3>
+              <p style={{
+                margin: 0,
+                color: S.textSecondary,
+                fontSize: '15px',
+                lineHeight: 1.65,
+                textAlign: 'center',
+              }}>
+                {item.body}
+              </p>
             </article>
           ))}
         </div>
