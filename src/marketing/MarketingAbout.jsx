@@ -88,9 +88,9 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 TLDR:
                 <br />
                 Built a baby panopticon.
-                <br />
-                <br />
-                Deleted it the same day.
+                <span style={{ display: 'block', marginTop: '0.28em' }}>
+                  Deleted it the same day.
+                </span>
               </h2>
             </div>
             <div className="origin-story-copy">
