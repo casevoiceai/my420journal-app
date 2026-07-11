@@ -31,7 +31,7 @@ export function ProcessSection() {
       <div
         className="marketing-section-inner"
         style={{
-          maxWidth: marketingPage.maxWidth,
+          maxWidth: '1304px',
         }}
       >
         <div style={{ marginBottom: '34px' }}>
@@ -51,7 +51,7 @@ export function ProcessSection() {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(325px, 100%), 1fr))',
           gap: '18px',
           alignItems: 'stretch',
         }}>
@@ -67,7 +67,7 @@ export function ProcessSection() {
                 minWidth: 0,
               }}
             >
-              <PlaceholderBox label={item.placeholder} minHeight="280px" />
+              <PlaceholderBox label={item.placeholder} minHeight="350px" />
               <p style={{
                 margin: '18px 0 8px 0',
                 color: S.gold,
