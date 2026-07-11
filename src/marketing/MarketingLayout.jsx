@@ -86,6 +86,8 @@ export default function MarketingLayout({ children }) {
         </div>
 
         <div style={{
+          position: 'relative',
+          width: '100%',
           maxWidth: marketingPage.maxWidth,
           height: '154px',
           margin: '0 auto',
@@ -105,6 +107,7 @@ export default function MarketingLayout({ children }) {
               color: S.textPrimary,
               textDecoration: 'none',
               maxWidth: '100%',
+              margin: '0 auto',
             }}
           >
             <HeaderBrainMark />
@@ -112,6 +115,7 @@ export default function MarketingLayout({ children }) {
               display: 'inline-flex',
               flexDirection: 'column',
               minWidth: 0,
+              paddingBottom: '50px',
             }}>
               <span style={{
                 fontFamily: marketingFonts.playfair,
@@ -123,28 +127,34 @@ export default function MarketingLayout({ children }) {
               }}>
                 my420journal
               </span>
-              <span style={{
-                marginTop: '34px',
-                color: S.gold,
-                fontFamily: marketingFonts.inter,
-                fontSize: '16px',
-                lineHeight: 1,
-                fontWeight: 800,
-                letterSpacing: '0.16em',
-                textAlign: 'center',
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-              }}>
-                A PRIVATE CANNABIS JOURNAL
-              </span>
             </span>
           </Link>
+          <span style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: '15px',
+            transform: 'translateX(-50%)',
+            color: S.gold,
+            fontFamily: marketingFonts.inter,
+            fontSize: '16px',
+            lineHeight: 1,
+            fontWeight: 800,
+            letterSpacing: '0.16em',
+            textAlign: 'center',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+          }}>
+            A PRIVATE CANNABIS JOURNAL
+          </span>
         </div>
 
         <nav
           aria-label="Marketing sections"
           style={{
+            width: '100%',
+            maxWidth: marketingPage.maxWidth,
             height: '52px',
+            margin: '0 auto',
             padding: '8px 20px',
             display: 'flex',
             alignItems: 'center',
