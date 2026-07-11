@@ -223,7 +223,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 my420journal exists because remembering what worked should not depend on guesswork.
               </p>
               <p className="origin-story-closing">
-                "Log it. Track it. Remember it."
+                Log it. Track it. Remember it.
               </p>
             </div>
           </article>
