@@ -117,10 +117,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 That moment is the reason my420journal works the way it does.
               </p>
               <p className="origin-story-warning">
-                Any AI that quietly accumulates data on you and waits to use it against you is not a feature.
-              </p>
-              <p className="origin-story-warning">
-                It is a threat.
+                Any AI that quietly accumulates data on you and waits to use it against you is not a feature... it is a threat.
               </p>
               <p>
                 After I saw what that looks like from the inside, I started looking at AI differently.
