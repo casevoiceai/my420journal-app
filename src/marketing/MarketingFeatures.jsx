@@ -5,7 +5,6 @@ const featureCards = [
   'Scan any label',
   'Log by voice',
   'Nothing stored without your choice',
-  'Leave instantly, anytime.',
 ]
 
 export function FeatureGrid() {
@@ -14,10 +13,10 @@ export function FeatureGrid() {
       <div
         className="marketing-section-inner"
         style={{
-          maxWidth: '1296px',
+          maxWidth: '1304px',
         }}
       >
-        <div style={{ maxWidth: '760px', marginBottom: '34px' }}>
+        <div style={{ marginBottom: '56px' }}>
           <h2 style={{
             margin: '0 0 14px 0',
             color: S.textPrimary,
@@ -26,6 +25,7 @@ export function FeatureGrid() {
             lineHeight: 1.02,
             letterSpacing: '-0.03em',
             whiteSpace: 'nowrap',
+            textAlign: 'center',
           }}>
             Small actions that make the next visit easier.
           </h2>
@@ -33,8 +33,9 @@ export function FeatureGrid() {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(262.5px, 100%), 1fr))',
-          gap: '16px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(325px, 100%), 1fr))',
+          gap: '18px',
+          alignItems: 'stretch',
         }}>
           {featureCards.map((label) => (
             <article
@@ -43,12 +44,12 @@ export function FeatureGrid() {
                 backgroundColor: S.surface,
                 border: `1px solid ${S.border}`,
                 borderRadius: marketingPage.radius,
-                padding: '16px',
+                padding: '18px',
                 boxSizing: 'border-box',
                 minWidth: 0,
               }}
             >
-              <PlaceholderBox label={label} minHeight="237.5px" />
+              <PlaceholderBox label={label} minHeight="350px" />
               <h3 style={{
                 margin: '16px 0 0 0',
                 color: S.textPrimary,
