@@ -1,4 +1,4 @@
-import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
+import { marketingFonts, marketingPalette as S } from './marketingStyles'
 import { PlaceholderBox } from './MarketingShared'
 
 const featureCards = [
@@ -14,7 +14,7 @@ export function FeatureGrid() {
       <div
         className="marketing-section-inner"
         style={{
-          maxWidth: marketingPage.maxWidth,
+          maxWidth: '1296px',
         }}
       >
         <div style={{ maxWidth: '760px', marginBottom: '34px' }}>
@@ -33,7 +33,7 @@ export function FeatureGrid() {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(262.5px, 100%), 1fr))',
           gap: '16px',
         }}>
           {featureCards.map((label) => (
@@ -42,12 +42,13 @@ export function FeatureGrid() {
               style={{
                 backgroundColor: S.surface,
                 border: `1px solid ${S.border}`,
-                borderRadius: marketingPage.radius,
+                borderRadius: '16px',
                 padding: '16px',
                 boxSizing: 'border-box',
+                minWidth: 0,
               }}
             >
-              <PlaceholderBox label={label} minHeight="190px" />
+              <PlaceholderBox label={label} minHeight="237.5px" />
               <h3 style={{
                 margin: '16px 0 0 0',
                 color: S.textPrimary,
