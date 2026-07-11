@@ -1,5 +1,5 @@
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
-import { SectionHeader, PlaceholderBox } from './MarketingShared'
+import { eyebrowStyle, PlaceholderBox } from './MarketingShared'
 
 const processSteps = [
   {
@@ -34,14 +34,21 @@ export function ProcessSection() {
           maxWidth: marketingPage.maxWidth,
         }}
       >
-        <SectionHeader
-          eyebrow="The Process"
-          title="Log it. Track it. Remember it."
-          titleStyle={{
-            whiteSpace: 'nowrap',
+        <div style={{ marginBottom: '34px' }}>
+          <p style={eyebrowStyle}>The Process</p>
+          <h2 style={{
+            margin: '0 0 14px 0',
+            color: S.gold,
+            fontFamily: marketingFonts.playfair,
             fontSize: 'clamp(28px, 5vw, 52px)',
-          }}
-        />
+            lineHeight: 1.02,
+            letterSpacing: '-0.03em',
+            whiteSpace: 'nowrap',
+            textAlign: 'center',
+          }}>
+            Log it. Track it. Remember it.
+          </h2>
+        </div>
 
         <div style={{
           display: 'grid',
