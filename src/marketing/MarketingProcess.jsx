@@ -1,5 +1,5 @@
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
-import { eyebrowStyle, PlaceholderBox } from './MarketingShared'
+import { PlaceholderBox } from './MarketingShared'
 
 const processSteps = [
   {
@@ -35,7 +35,6 @@ export function ProcessSection() {
         }}
       >
         <div style={{ marginBottom: '34px' }}>
-          <p style={eyebrowStyle}>The Process</p>
           <h2 style={{
             margin: '0 0 14px 0',
             color: S.gold,
