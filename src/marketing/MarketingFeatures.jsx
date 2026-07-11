@@ -1,4 +1,4 @@
-import { marketingFonts, marketingPalette as S } from './marketingStyles'
+import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 import { PlaceholderBox } from './MarketingShared'
 
 const featureCards = [
@@ -42,7 +42,7 @@ export function FeatureGrid() {
               style={{
                 backgroundColor: S.surface,
                 border: `1px solid ${S.border}`,
-                borderRadius: '16px',
+                borderRadius: marketingPage.radius,
                 padding: '16px',
                 boxSizing: 'border-box',
                 minWidth: 0,
