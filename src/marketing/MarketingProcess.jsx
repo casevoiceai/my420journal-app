@@ -34,7 +34,7 @@ export function ProcessSection() {
           maxWidth: '1304px',
         }}
       >
-        <div style={{ marginBottom: '34px' }}>
+        <div style={{ marginBottom: '56px' }}>
           <h2 style={{
             margin: '0 0 14px 0',
             color: S.gold,
