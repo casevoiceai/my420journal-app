@@ -75,6 +75,7 @@ export function ProcessSection() {
                 fontWeight: 800,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
+                textAlign: 'center',
               }}>
                 {item.step}
               </p>
@@ -84,6 +85,7 @@ export function ProcessSection() {
                 fontFamily: marketingFonts.playfair,
                 fontSize: '26px',
                 lineHeight: 1.18,
+                textAlign: 'center',
               }}>
                 {item.title}
               </h3>
@@ -92,6 +94,7 @@ export function ProcessSection() {
                 color: S.textSecondary,
                 fontSize: '15px',
                 lineHeight: 1.65,
+                textAlign: 'center',
               }}>
                 {item.body}
               </p>
