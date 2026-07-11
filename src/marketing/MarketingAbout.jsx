@@ -89,6 +89,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 <br />
                 Built a baby panopticon.
                 <br />
+                <br />
                 Deleted it the same day.
               </h2>
             </div>
