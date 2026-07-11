@@ -1,5 +1,5 @@
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
-import { SectionHeader, PlaceholderBox } from './MarketingShared'
+import { PlaceholderBox } from './MarketingShared'
 
 const featureCards = [
   'Scan any label',
@@ -17,14 +17,19 @@ export function FeatureGrid() {
           maxWidth: marketingPage.maxWidth,
         }}
       >
-        <SectionHeader
-          eyebrow="Built for real use"
-          title="Small actions that make the next visit easier."
-          titleStyle={{
-            whiteSpace: 'nowrap',
+        <div style={{ maxWidth: '760px', marginBottom: '34px' }}>
+          <h2 style={{
+            margin: '0 0 14px 0',
+            color: S.textPrimary,
+            fontFamily: marketingFonts.playfair,
             fontSize: 'clamp(20px, 3.6vw, 44px)',
-          }}
-        />
+            lineHeight: 1.02,
+            letterSpacing: '-0.03em',
+            whiteSpace: 'nowrap',
+          }}>
+            Small actions that make the next visit easier.
+          </h2>
+        </div>
 
         <div style={{
           display: 'grid',
