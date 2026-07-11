@@ -193,7 +193,9 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 <span className="origin-story-guide-name">Mary Jayne</span> focuses on wellness, sleep, and self-care. She asks one honest question at a time and never plays doctor. Just direct, personal, and to the point.
               </p>
               <p>
-                And then there is <span className="origin-story-guide-name">S.T.O.N.E.R.</span>, Streamlined Tracking Of Notable Experiences Recorded.
+                And then there is
+                <br />
+                <span className="origin-story-guide-name">S.T.O.N.E.R.</span>: Streamlined Tracking Of Notable Experiences Recorded.
                 <br />
                 No guide voice. No check-ins. No opinions.
                 <br />
