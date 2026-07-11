@@ -197,6 +197,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 <br />
                 <span className="origin-story-guide-name">S.T.O.N.E.R.</span>: Streamlined Tracking Of Notable Experiences Recorded.
                 <br />
+                <br />
                 No guide voice. No check-ins. No opinions.
                 <br />
                 Just a clean, private log that records exactly what you tell it and nothing more, for people who already know what they want and just need a place to put it.
