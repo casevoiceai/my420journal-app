@@ -39,7 +39,7 @@ export function ProcessSection() {
             margin: '0 0 14px 0',
             color: S.gold,
             fontFamily: marketingFonts.playfair,
-            fontSize: 'clamp(28px, 5vw, 52px)',
+            fontSize: 'clamp(34px, 6vw, 64px)',
             lineHeight: 1.02,
             letterSpacing: '-0.03em',
             whiteSpace: 'nowrap',
