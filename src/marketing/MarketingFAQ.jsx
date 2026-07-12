@@ -50,7 +50,6 @@ export function FAQSection({ id = undefined, tone = 'base' }) {
           maxWidth: marketingPage.contentWidth,
         }}
       >
-        <p style={eyebrowStyle}>FAQ</p>
         <h1 style={{
           margin: '0 0 18px 0',
           color: S.textPrimary,
