@@ -24,7 +24,11 @@ const processSteps = [
   {
     step: 'Step 3',
     title: 'Learn What Works',
-    body: "Track patterns pulled from your own entries. Instead of starting from scratch every time, see what actually helped, what didn't, and what's worth trying again.",
+    body: <>
+      Track patterns pulled from your own entries.<br />
+      Instead of starting from scratch every time,<br />
+      see what helped, what didn't, and what's worth trying again.
+    </>,
     placeholder: 'Learn What Works',
   },
 ]
