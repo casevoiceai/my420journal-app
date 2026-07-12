@@ -4,15 +4,15 @@ import { PlaceholderBox } from './MarketingShared'
 const featureCards = [
   {
     title: 'Scan any label',
-    body: 'Point your camera at the label. It logs itself, no typing required.',
+    body: 'Point your camera at the label. It reads the details and logs the entry itself. No typing required.',
   },
   {
     title: 'Log by voice',
-    body: 'Say what happened. Your voice becomes the entry.',
+    body: 'Say what happened out loud. Your voice becomes the entry. No typing, no forms.',
   },
   {
     title: 'Nothing stored without your choice',
-    body: 'Nothing saves until you say so. You decide what stays.',
+    body: 'Nothing saves until you say so. You decide what stays. Delete anything, anytime.',
   },
 ]
 
