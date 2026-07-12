@@ -66,7 +66,6 @@ export function ContactSection({ id = undefined, tone = 'base' }) {
           maxWidth: marketingPage.contentWidth,
         }}
       >
-        <p style={eyebrowStyle}>Contact</p>
         <h1 style={{
           margin: '0 0 18px 0',
           color: S.textPrimary,
