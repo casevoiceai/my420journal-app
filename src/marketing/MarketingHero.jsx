@@ -37,7 +37,7 @@ export function HeroSection() {
           alignItems: 'flex-end',
           justifyContent: 'flex-end',
           paddingBottom: '10vh',
-          paddingRight: '5vw',
+          paddingRight: '8vw',
           boxSizing: 'border-box',
         }}
       >
@@ -47,7 +47,8 @@ export function HeroSection() {
             color: S.textPrimary,
             fontFamily: marketingFonts.playfair,
             fontSize: 'clamp(30px, 4.25vw, 53px)',
-            whiteSpace: 'nowrap',
+            maxWidth: '90%',
+            whiteSpace: 'normal',
             lineHeight: 1.05,
             letterSpacing: '-0.03em',
             fontWeight: 700,
