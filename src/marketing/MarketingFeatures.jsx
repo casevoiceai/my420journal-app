@@ -34,7 +34,7 @@ export function FeatureGrid() {
       <div
         className="marketing-section-inner"
         style={{
-          maxWidth: '1304px',
+          maxWidth: '1600px',
         }}
       >
         <div style={{ marginBottom: '56px' }}>
