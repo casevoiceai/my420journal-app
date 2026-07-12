@@ -27,7 +27,7 @@ const processSteps = [
     body: <>
       Track patterns pulled from your own entries.<br />
       No guesswork. No starting from scratch every time.<br />
-      See what worked, what didn't, and what's worth trying again.
+      See what worked and what's worth another try.
     </>,
     placeholder: 'Learn What Works',
   },
