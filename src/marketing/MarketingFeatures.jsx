@@ -5,7 +5,7 @@ const featureCards = [
   {
     title: 'Scan any label',
     body: <>
-      Point your camera at any label and let it capture the details for you.<br />
+      Point your camera at any label and let it capture the details.<br />
       It reads the strain, dose, and method automatically.<br />
       No manual typing, no guessing at what you jotted down later.
     </>,
