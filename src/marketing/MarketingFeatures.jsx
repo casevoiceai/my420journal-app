@@ -23,7 +23,7 @@ const featureCards = [
     body: <>
       Nothing saves anywhere until you decide it should.<br />
       You control exactly what gets kept and what doesn't.<br />
-      Delete any entry, any time, no questions asked.
+      Delete any entry, any time. No trace, ever.
     </>,
   },
 ]
