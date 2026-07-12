@@ -4,15 +4,27 @@ import { PlaceholderBox } from './MarketingShared'
 const featureCards = [
   {
     title: 'Scan any label',
-    body: 'Point your camera at the label. It reads the details and logs the entry itself. No typing required.',
+    body: <>
+      Point your camera at any label and let it capture the details for you.<br />
+      It reads the strain, dose, and method automatically.<br />
+      No manual typing, no guessing at what you jotted down later.
+    </>,
   },
   {
     title: 'Log by voice',
-    body: 'Say what happened out loud. Your voice becomes the entry. No typing, no forms.',
+    body: <>
+      Say what happened out loud and let it become the entry.<br />
+      Your words get logged exactly as spoken, hands free.<br />
+      No typing, no forms, no digging for your phone's keyboard.
+    </>,
   },
   {
     title: 'Nothing stored without your choice',
-    body: 'Nothing saves until you say so. You decide what stays. Delete anything, anytime.',
+    body: <>
+      Nothing saves anywhere until you decide it should.<br />
+      You control exactly what gets kept and what doesn't.<br />
+      Delete any entry, any time, no questions asked.
+    </>,
   },
 ]
 
