@@ -37,17 +37,16 @@ export function HeroSection() {
           alignItems: 'flex-end',
           justifyContent: 'flex-end',
           paddingBottom: '10vh',
-          paddingRight: '8vw',
+          paddingRight: '10vw',
           boxSizing: 'border-box',
         }}
       >
-        <div style={{ maxWidth: '560px', textAlign: 'center' }}>
+        <div style={{ width: '100%', maxWidth: '820px', textAlign: 'center' }}>
           <h1 style={{
             margin: '0 0 34px 0',
             color: S.textPrimary,
             fontFamily: marketingFonts.playfair,
             fontSize: 'clamp(30px, 4.25vw, 53px)',
-            maxWidth: '90%',
             whiteSpace: 'normal',
             lineHeight: 1.05,
             letterSpacing: '-0.03em',
