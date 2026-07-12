@@ -5,7 +5,10 @@ const processSteps = [
   {
     step: 'Step 1',
     title: 'Log Your Experience',
-    body: 'Capture what you tried and how it felt before the memory gets blurry. Strain, dose, method, mood before and after.',
+    body: <>
+      Strain - Dose - Method - Mood<br />
+      Capture what you tried and how it felt before the memory gets blurry
+    </>,
     placeholder: 'Log Your Experience',
   },
   {
