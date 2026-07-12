@@ -4,21 +4,21 @@ import { PlaceholderBox } from './MarketingShared'
 const processSteps = [
   {
     step: 'Step 1',
-    title: 'Log what happened.',
+    title: 'Log Your Experience',
     body: 'Capture what you tried and how it felt before the memory gets blurry. Strain, dose, method, mood before and after.',
-    placeholder: 'Log what happened.',
+    placeholder: 'Log Your Experience',
   },
   {
     step: 'Step 2',
-    title: 'Your guide helps you notice patterns.',
+    title: 'Meet Your Guide',
     body: 'Ask your guide what stands out. Your chosen guide only speaks when you ask, and only knows what you have logged yourself. No outside data. No assumptions.',
     placeholder: 'App preview coming soon',
   },
   {
     step: 'Step 3',
-    title: "See what you've learned about yourself.",
+    title: 'Learn What Works',
     body: "Track patterns pulled from your own entries. Instead of starting from scratch every time, see what actually helped, what didn't, and what's worth trying again.",
-    placeholder: "See what you've learned about yourself.",
+    placeholder: 'Learn What Works',
   },
 ]
 
