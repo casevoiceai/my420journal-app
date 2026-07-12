@@ -37,7 +37,7 @@ export function HeroSection() {
           alignItems: 'flex-end',
           justifyContent: 'flex-end',
           paddingBottom: '10vh',
-          paddingRight: '6vw',
+          paddingRight: '4vw',
           boxSizing: 'border-box',
         }}
       >
