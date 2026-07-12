@@ -46,7 +46,7 @@ export function HeroSection() {
             margin: '0 0 34px 0',
             color: S.textPrimary,
             fontFamily: marketingFonts.playfair,
-            fontSize: 'clamp(24px, 3.4vw, 42px)',
+            fontSize: 'clamp(30px, 4.25vw, 53px)',
             whiteSpace: 'nowrap',
             lineHeight: 1.05,
             letterSpacing: '-0.03em',
@@ -58,7 +58,7 @@ export function HeroSection() {
           <p style={{
             margin: '0 0 30px 0',
             color: S.textPrimary,
-            fontSize: 'clamp(16px, 2vw, 19px)',
+            fontSize: 'clamp(20px, 2.5vw, 24px)',
             lineHeight: 1.55,
             textShadow: '0 2px 18px rgba(0,0,0,0.4)',
           }}>
