@@ -15,7 +15,7 @@ const processSteps = [
   {
     step: 'Step 2',
     title: 'Meet Your Guide',
-    body: 'Ask your guide what stands out. Your chosen guide only speaks when you ask, and only knows what you have logged yourself. No outside data. No assumptions.',
+    body: "Ask your guide what stands out in your own entries. No outside data. No assumptions. They never know more than what you've logged.",
     placeholder: 'App preview coming soon',
   },
   {
