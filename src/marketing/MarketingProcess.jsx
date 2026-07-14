@@ -32,6 +32,8 @@ const processSteps = [
       See what worked and what's worth another try.
     </>,
     image: processStep3Image,
+    imageHeight: '430px',
+    imagePosition: '28% center',
   },
 ]
 
@@ -86,8 +88,9 @@ export function ProcessSection() {
                 style={{
                   display: 'block',
                   width: '100%',
-                  height: '350px',
+                  height: item.imageHeight ?? '350px',
                   objectFit: 'cover',
+                  objectPosition: item.imagePosition ?? 'center',
                   borderRadius: '14px',
                   border: `1px solid ${S.border}`,
                   boxSizing: 'border-box',
