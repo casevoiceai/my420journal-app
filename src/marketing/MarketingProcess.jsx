@@ -1,6 +1,6 @@
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 import processStep1Image from './ProcessStep1.png'
-import processStep2Image from './ProcessStep2.png'
+import processStep2Image from './FeatureCard2.png'
 import processStep3Image from './ProcessStep3.png'
 
 const processSteps = [
