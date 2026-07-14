@@ -42,7 +42,7 @@ export function ProcessSection() {
       <div
         className="marketing-section-inner"
         style={{
-          maxWidth: '1304px',
+          maxWidth: '1600px',
         }}
       >
         <div style={{ marginBottom: '106px' }}>
