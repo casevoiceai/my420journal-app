@@ -1,5 +1,7 @@
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
-import { PlaceholderBox } from './MarketingShared'
+import processStep1Image from './ProcessStep1.png'
+import processStep2Image from './ProcessStep2.png'
+import processStep3Image from './ProcessStep3.png'
 
 const processSteps = [
   {
@@ -10,7 +12,7 @@ const processSteps = [
       Capture what you tried and how it felt<br />
       before the memory gets blurry
     </>,
-    placeholder: 'Log Your Experience',
+    image: processStep1Image,
   },
   {
     step: 'Step 2',
@@ -19,7 +21,7 @@ const processSteps = [
       Ask your guide what stands out in your own entries. No outside data. No assumptions.<br />
       They never know more than what you've logged.
     </>,
-    placeholder: 'App preview coming soon',
+    image: processStep2Image,
   },
   {
     step: 'Step 3',
@@ -29,7 +31,7 @@ const processSteps = [
       No guesswork. No starting from scratch every time.<br />
       See what worked and what's worth another try.
     </>,
-    placeholder: 'Learn What Works',
+    image: processStep3Image,
   },
 ]
 
@@ -78,7 +80,19 @@ export function ProcessSection() {
                 minWidth: 0,
               }}
             >
-              <PlaceholderBox label={item.placeholder} minHeight="350px" />
+              <img
+                src={item.image}
+                alt={item.title}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '350px',
+                  objectFit: 'cover',
+                  borderRadius: '14px',
+                  border: `1px solid ${S.border}`,
+                  boxSizing: 'border-box',
+                }}
+              />
               <p style={{
                 margin: '18px 0 8px 0',
                 color: S.gold,
