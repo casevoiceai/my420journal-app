@@ -1,5 +1,7 @@
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
-import { PlaceholderBox } from './MarketingShared'
+import featureCard1Image from './FeatureCard1.png'
+import featureCard2Image from './FeatureCard2.png'
+import featureCard3Image from './FeatureCard3.png'
 
 const featureCards = [
   {
@@ -9,6 +11,7 @@ const featureCards = [
       It reads the strain, dose, and method automatically.<br />
       No manual typing, no guessing at what you jotted down later.
     </>,
+    image: featureCard1Image,
   },
   {
     title: 'Log by voice',
@@ -17,6 +20,7 @@ const featureCards = [
       Your words get logged exactly as spoken, hands free.<br />
       No typing, no forms, no digging for your phone's keyboard.
     </>,
+    image: featureCard2Image,
   },
   {
     title: 'Nothing stored without your choice',
@@ -25,6 +29,7 @@ const featureCards = [
       You control exactly what gets kept and what doesn't.<br />
       Delete any entry, any time. No trace, ever.
     </>,
+    image: featureCard3Image,
   },
 ]
 
@@ -70,7 +75,19 @@ export function FeatureGrid() {
                 minWidth: 0,
               }}
             >
-              <PlaceholderBox label={item.title} minHeight="350px" />
+              <img
+                src={item.image}
+                alt={item.title}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '350px',
+                  objectFit: 'cover',
+                  borderRadius: '14px',
+                  border: `1px solid ${S.border}`,
+                  boxSizing: 'border-box',
+                }}
+              />
               <h3 style={{
                 margin: '16px 0 10px 0',
                 color: S.textPrimary,
