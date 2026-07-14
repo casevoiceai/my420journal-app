@@ -1,6 +1,6 @@
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 import featureCard1Image from './FeatureCard1.png'
-import featureCard2Image from './FeatureCard2.png'
+import featureCard2Image from './ProcessStep2.png'
 import featureCard3Image from './FeatureCard3.png'
 
 const featureCards = [
