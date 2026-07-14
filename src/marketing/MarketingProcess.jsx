@@ -70,7 +70,7 @@ export function ProcessSection() {
             <article
               key={item.step}
               style={{
-                backgroundColor: S.bg,
+                backgroundColor: S.surface,
                 border: `1px solid ${S.border}`,
                 borderRadius: marketingPage.radius,
                 padding: '18px',
