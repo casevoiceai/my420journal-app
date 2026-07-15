@@ -33,8 +33,8 @@ const processSteps = [
       See what worked and what's worth another try.
     </>,
     image: processStep3Image,
-    imageHeight: '430px',
-    imagePosition: '28% center',
+    imageScale: 1.23,
+    imageOrigin: '28% 50%',
   },
 ]
 
@@ -83,20 +83,43 @@ export function ProcessSection() {
                 minWidth: 0,
               }}
             >
-              <img
-                src={item.image}
-                alt={item.title}
-                style={{
-                  display: 'block',
+              {item.imageScale ? (
+                <div style={{
                   width: '100%',
-                  height: item.imageHeight ?? '350px',
-                  objectFit: 'cover',
-                  objectPosition: item.imagePosition ?? 'center',
+                  height: '350px',
+                  overflow: 'hidden',
                   borderRadius: '14px',
                   border: `1px solid ${S.border}`,
                   boxSizing: 'border-box',
-                }}
-              />
+                }}>
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      transform: `scale(${item.imageScale})`,
+                      transformOrigin: item.imageOrigin,
+                    }}
+                  />
+                </div>
+              ) : (
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    height: '350px',
+                    objectFit: 'cover',
+                    borderRadius: '14px',
+                    border: `1px solid ${S.border}`,
+                    boxSizing: 'border-box',
+                  }}
+                />
+              )}
               <p style={{
                 margin: '18px 0 8px 0',
                 color: S.gold,
