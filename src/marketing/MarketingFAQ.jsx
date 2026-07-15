@@ -30,10 +30,6 @@ const faqs = [
     question: 'Can I switch guides after I choose one?',
     answer: 'Yes. Your default guide is the one the app opens to, but all five are accessible any time with one tap. Your data is the same regardless of which guide you are talking to. Only the voice changes.',
   },
-  {
-    question: 'What are the games?',
-    answer: 'There are three text-based games built into the app. They are narrated by your chosen guide and use your real logged data in ways that will make sense when you play them. They are the reason to open the app on days you are not logging anything.',
-  },
 ]
 
 export function FAQSection({ id = undefined, tone = 'base' }) {
