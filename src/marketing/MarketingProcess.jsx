@@ -71,31 +71,6 @@ export function ProcessSection() {
         .card-copy-mobile {
           display: none;
         }
-
-        @media (max-width: 767px) {
-          .card-copy-desktop {
-            display: none;
-          }
-
-          .card-copy-mobile {
-            display: flex;
-            width: 100%;
-            margin: 0;
-            flex-direction: column;
-            gap: 7px;
-            font-size: 16px;
-            line-height: 1.5;
-            text-align: left;
-            overflow-wrap: normal;
-            word-break: normal;
-            hyphens: none;
-          }
-
-          .card-copy-mobile-line {
-            display: block;
-            margin: 0;
-          }
-        }
       `}</style>
 
       <div
