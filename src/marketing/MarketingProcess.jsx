@@ -47,6 +47,39 @@ export function ProcessSection() {
       id="process"
       className="marketing-section marketing-section-bg-surface"
     >
+      <style>{`
+        .card-copy-desktop {
+          display: block;
+          width: 100%;
+          margin: 0 auto;
+          font-size: 15px;
+          line-height: 1.65;
+          text-align: center;
+        }
+
+        .card-copy-mobile {
+          display: none;
+        }
+
+        @media (max-width: 767px) {
+          .card-copy-desktop {
+            display: none;
+          }
+
+          .card-copy-mobile {
+            display: block;
+            width: 100%;
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.6;
+            text-align: left;
+            overflow-wrap: normal;
+            word-break: normal;
+            hyphens: none;
+          }
+        }
+      `}</style>
+
       <div
         className="marketing-section-inner"
         style={{ maxWidth: '1600px' }}
