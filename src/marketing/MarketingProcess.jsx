@@ -7,31 +7,19 @@ const processSteps = [
   {
     step: 'Step 1',
     title: 'Log Your Experience',
-    body: <>
-      Strain - Dose - Method - Mood<br className="desktop-card-break" />{' '}
-      Capture what you tried and how it felt<br className="desktop-card-break" />{' '}
-      before the memory gets blurry
-    </>,
+    body: 'Strain - Dose - Method - Mood. Capture what you tried and how it felt before the memory gets blurry.',
     image: processStep1Image,
   },
   {
     step: 'Step 2',
     title: 'Meet Your Guide',
-    body: <>
-      Ask your guide what stands out in your own entries.<br className="desktop-card-break" />{' '}
-      No outside data. No assumptions.<br className="desktop-card-break" />{' '}
-      They never know more than what you've logged.
-    </>,
+    body: "Ask your guide what stands out in your own entries. No outside data. No assumptions. They never know more than what you've logged.",
     image: processStep2Image,
   },
   {
     step: 'Step 3',
     title: 'Learn What Works',
-    body: <>
-      Track patterns pulled from your own entries.<br className="desktop-card-break" />{' '}
-      No guesswork. No starting from scratch every time.<br className="desktop-card-break" />{' '}
-      See what worked and what's worth another try.
-    </>,
+    body: "Track patterns pulled from your own entries. No guesswork. No starting from scratch every time. See what worked and what's worth another try.",
     image: processStep3Image,
     imageScale: 1.23,
     imageOrigin: '28% 50%',
@@ -151,6 +139,9 @@ export function ProcessSection() {
                 fontSize: '15px',
                 lineHeight: 1.65,
                 textAlign: 'center',
+                overflowWrap: 'normal',
+                wordBreak: 'normal',
+                hyphens: 'none',
               }}>
                 {item.body}
               </p>
