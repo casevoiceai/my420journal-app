@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
@@ -13,6 +13,25 @@ const sectionTabs = [
 
 export default function MarketingLayout({ children }) {
   const [showDisclaimer, setShowDisclaimer] = useState(false)
+  const headerRef = useRef(null)
+
+  useEffect(() => {
+    const headerEl = headerRef.current
+    if (!headerEl) return
+
+    function updateHeaderHeight() {
+      document.documentElement.style.setProperty('--header-height', `${headerEl.offsetHeight}px`)
+    }
+
+    updateHeaderHeight()
+    const observer = new ResizeObserver(updateHeaderHeight)
+    observer.observe(headerEl)
+    window.addEventListener('resize', updateHeaderHeight)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateHeaderHeight)
+    }
+  }, [])
 
   function exitNow() {
     window.location.assign('https://www.google.com')
@@ -27,7 +46,7 @@ export default function MarketingLayout({ children }) {
       display: 'flex',
       flexDirection: 'column',
     }}>
-      <header style={{
+      <header ref={headerRef} style={{
         borderBottom: `1px solid ${S.border}`,
         backgroundColor: 'rgba(10,26,10,0.98)',
         position: 'fixed',
@@ -37,18 +56,17 @@ export default function MarketingLayout({ children }) {
         zIndex: 70,
         boxShadow: '0 10px 28px rgba(0,0,0,0.22)',
       }}>
-        <div style={{
-          borderBottom: `1px solid ${S.border}`,
-        }}>
+        <div style={{ borderBottom: `1px solid ${S.border}` }}>
           <nav style={{
             maxWidth: marketingPage.maxWidth,
-            height: '44px',
             margin: '0 auto',
-            padding: '6px 20px',
+            padding: '6px 16px',
+            minHeight: '44px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            gap: '12px',
+            gap: '10px',
+            flexWrap: 'wrap',
             boxSizing: 'border-box',
           }}>
             <Link
@@ -56,28 +74,29 @@ export default function MarketingLayout({ children }) {
               style={{
                 color: S.textSecondary,
                 textDecoration: 'none',
-                fontSize: '14px',
+                fontSize: 'clamp(12px, 3vw, 14px)',
                 fontWeight: 600,
                 lineHeight: 1.2,
               }}
             >
               Already have an account? Sign in
             </Link>
-            <a
+            
               href="/#contact"
               style={{
-                minHeight: '36px',
+                minHeight: '32px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '0 14px',
+                padding: '0 12px',
                 border: `1px solid ${S.gold}`,
                 borderRadius: '9999px',
                 color: S.gold,
                 textDecoration: 'none',
-                fontSize: '13px',
+                fontSize: 'clamp(11px, 2.8vw, 13px)',
                 fontWeight: 800,
                 lineHeight: 1,
+                whiteSpace: 'nowrap',
               }}
             >
               Report an Issue
@@ -86,15 +105,14 @@ export default function MarketingLayout({ children }) {
         </div>
 
         <div style={{
-          position: 'relative',
           width: '100%',
           maxWidth: marketingPage.maxWidth,
-          height: '154px',
           margin: '0 auto',
-          padding: '22px 20px',
+          padding: 'clamp(14px, 3vw, 22px) 16px',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
+          gap: 'clamp(4px, 1.5vw, 8px)',
           boxSizing: 'border-box',
         }}>
           <Link
@@ -103,43 +121,31 @@ export default function MarketingLayout({ children }) {
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '20px',
+              gap: 'clamp(10px, 3vw, 20px)',
               color: S.textPrimary,
               textDecoration: 'none',
               maxWidth: '100%',
-              margin: '0 auto',
             }}
           >
             <HeaderBrainMark />
             <span style={{
-              display: 'inline-flex',
-              flexDirection: 'column',
-              minWidth: 0,
-              paddingBottom: '50px',
+              fontFamily: marketingFonts.playfair,
+              fontSize: 'clamp(30px, 9vw, 81px)',
+              lineHeight: 0.92,
+              fontWeight: 700,
+              letterSpacing: '-0.03em',
+              whiteSpace: 'nowrap',
             }}>
-              <span style={{
-                fontFamily: marketingFonts.playfair,
-                fontSize: '81px',
-                lineHeight: 0.92,
-                fontWeight: 700,
-                letterSpacing: '-0.03em',
-                whiteSpace: 'nowrap',
-              }}>
-                my420journal
-              </span>
+              my420journal
             </span>
           </Link>
           <span style={{
-            position: 'absolute',
-            left: '50%',
-            bottom: '15px',
-            transform: 'translateX(-50%)',
             color: S.gold,
             fontFamily: marketingFonts.inter,
-            fontSize: '16px',
+            fontSize: 'clamp(10px, 2.8vw, 16px)',
             lineHeight: 1,
             fontWeight: 800,
-            letterSpacing: '0.16em',
+            letterSpacing: '0.14em',
             textAlign: 'center',
             textTransform: 'uppercase',
             whiteSpace: 'nowrap',
@@ -153,29 +159,26 @@ export default function MarketingLayout({ children }) {
           style={{
             width: '100%',
             maxWidth: marketingPage.maxWidth,
-            height: '52px',
             margin: '0 auto',
-            padding: '8px 20px',
+            padding: '8px 16px',
+            minHeight: '44px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '18px',
+            gap: 'clamp(10px, 3vw, 18px)',
+            flexWrap: 'wrap',
             boxSizing: 'border-box',
           }}
         >
           {sectionTabs.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              style={sectionTabStyle}
-            >
+            <a key={item.href} href={item.href} style={sectionTabStyle}>
               {item.label}
             </a>
           ))}
         </nav>
       </header>
 
-      <main style={{ flex: 1, paddingTop: '252px' }}>
+      <main style={{ flex: 1, paddingTop: 'var(--header-height, 220px)' }}>
         {children}
       </main>
 
@@ -221,32 +224,14 @@ export default function MarketingLayout({ children }) {
         </div>
       </footer>
 
-      <div style={{
-        position: 'fixed',
-        left: '14px',
-        bottom: '14px',
-        zIndex: 85,
-      }}>
-        <button
-          type="button"
-          onClick={() => setShowDisclaimer(true)}
-          style={cornerButtonStyle}
-        >
+      <div style={{ position: 'fixed', left: '14px', bottom: '14px', zIndex: 85 }}>
+        <button type="button" onClick={() => setShowDisclaimer(true)} style={cornerButtonStyle}>
           Disclaimer
         </button>
       </div>
 
-      <div style={{
-        position: 'fixed',
-        right: '14px',
-        bottom: '14px',
-        zIndex: 85,
-      }}>
-        <button
-          type="button"
-          onClick={exitNow}
-          style={cornerButtonStyle}
-        >
+      <div style={{ position: 'fixed', right: '14px', bottom: '14px', zIndex: 85 }}>
+        <button type="button" onClick={exitNow} style={cornerButtonStyle}>
           Exit Now
         </button>
       </div>
@@ -323,9 +308,9 @@ export default function MarketingLayout({ children }) {
 function HeaderBrainMark() {
   return (
     <span style={{
-      width: '90px',
-      height: '90px',
-      borderRadius: '26px',
+      width: 'clamp(56px, 16vw, 90px)',
+      height: 'clamp(56px, 16vw, 90px)',
+      borderRadius: '22%',
       border: `1px solid ${S.border}`,
       backgroundColor: 'rgba(10,26,10,0.72)',
       display: 'inline-flex',
@@ -335,8 +320,8 @@ function HeaderBrainMark() {
       boxShadow: '0 10px 24px rgba(0,0,0,0.24)',
     }}>
       <svg
-        width="73"
-        height="73"
+        width="81%"
+        height="81%"
         viewBox="0 0 64 64"
         aria-hidden="true"
         focusable="false"
@@ -365,15 +350,7 @@ function FooterColumn({ heading, lines }) {
         {heading}
       </h2>
       {lines.map((line) => (
-        <p
-          key={line}
-          style={{
-            margin: '0 0 8px 0',
-            color: S.textSecondary,
-            fontSize: '14px',
-            lineHeight: 1.6,
-          }}
-        >
+        <p key={line} style={{ margin: '0 0 8px 0', color: S.textSecondary, fontSize: '14px', lineHeight: 1.6 }}>
           {line}
         </p>
       ))}
