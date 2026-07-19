@@ -9,8 +9,7 @@ const processSteps = [
     title: 'Log Your Experience',
     mobileLines: [
       'Strain - Dose - Method - Mood.',
-      'Capture what you tried and how it felt',
-      'before the memory gets blurry.',
+      'Capture what you tried and how it felt before the memory gets blurry.',
     ],
     desktopLines: [
       'Strain - Dose - Method - Mood',
