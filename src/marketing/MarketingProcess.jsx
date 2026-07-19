@@ -74,15 +74,27 @@ export function ProcessSection() {
 
         @media (max-width: 767px) {
           .card-copy-desktop {
-            font-size: 15px;
-            line-height: 1.6;
-            letter-spacing: 0;
+            display: none;
           }
 
-          .card-copy-desktop > div {
-            white-space: normal;
+          .card-copy-mobile {
+            display: flex;
+            width: 100%;
+            margin: 0;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 17px;
+            line-height: 1.5;
+            text-align: center;
             overflow-wrap: normal;
             word-break: normal;
+            hyphens: none;
+          }
+
+          .card-copy-mobile-line {
+            display: block;
+            width: 100%;
+            margin: 0;
           }
         }
       `}</style>
