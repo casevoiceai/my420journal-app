@@ -51,17 +51,21 @@ export function ProcessSection() {
         }}
       >
         <div style={{ marginBottom: '106px' }}>
-          <h2 style={{
-            margin: '0 0 14px 0',
-            color: S.gold,
-            fontFamily: marketingFonts.playfair,
-            fontSize: 'clamp(34px, 6vw, 64px)',
-            lineHeight: 1.02,
-            letterSpacing: '-0.03em',
-            whiteSpace: 'nowrap',
-            textAlign: 'center',
-          }}>
-            Log it. Track it. Remember it.
+          <h2
+            className="marketing-process-heading"
+            style={{
+              margin: '0 0 14px 0',
+              color: S.gold,
+              fontFamily: marketingFonts.playfair,
+              fontSize: 'clamp(34px, 6vw, 64px)',
+              lineHeight: 1.02,
+              letterSpacing: '-0.03em',
+              textAlign: 'center',
+            }}
+          >
+            <span>Log it.</span>{' '}
+            <span>Track it.</span>{' '}
+            <span>Remember it.</span>
           </h2>
         </div>
 
