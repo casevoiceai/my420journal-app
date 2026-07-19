@@ -7,7 +7,11 @@ const processSteps = [
   {
     step: 'Step 1',
     title: 'Log Your Experience',
-    mobileBody: 'Strain - Dose - Method - Mood. Capture what you tried and how it felt before the memory gets blurry.',
+    mobileLines: [
+      'Strain - Dose - Method - Mood.',
+      'Capture what you tried and how it felt',
+      'before the memory gets blurry.',
+    ],
     desktopLines: [
       'Strain - Dose - Method - Mood',
       'Capture what you tried and how it felt',
@@ -18,7 +22,11 @@ const processSteps = [
   {
     step: 'Step 2',
     title: 'Meet Your Guide',
-    mobileBody: "Ask your guide what stands out in your own entries. No outside data. No assumptions. They never know more than what you've logged.",
+    mobileLines: [
+      'Ask your guide what stands out in your own entries.',
+      'No outside data. No assumptions.',
+      "They never know more than what you've logged.",
+    ],
     desktopLines: [
       'Ask your guide what stands out in your own entries.',
       'No outside data. No assumptions.',
@@ -29,7 +37,11 @@ const processSteps = [
   {
     step: 'Step 3',
     title: 'Learn What Works',
-    mobileBody: "Track patterns pulled from your own entries. No guesswork. No starting from scratch every time. See what worked and what's worth another try.",
+    mobileLines: [
+      'Track patterns pulled from your own entries.',
+      'No guesswork. No starting from scratch every time.',
+      "See what worked and what's worth another try.",
+    ],
     desktopLines: [
       'Track patterns pulled from your own entries.',
       'No guesswork. No starting from scratch every time.',
@@ -67,15 +79,22 @@ export function ProcessSection() {
           }
 
           .card-copy-mobile {
-            display: block;
+            display: flex;
             width: 100%;
             margin: 0;
+            flex-direction: column;
+            gap: 7px;
             font-size: 16px;
-            line-height: 1.6;
+            line-height: 1.5;
             text-align: left;
             overflow-wrap: normal;
             word-break: normal;
             hyphens: none;
+          }
+
+          .card-copy-mobile-line {
+            display: block;
+            margin: 0;
           }
         }
       `}</style>
@@ -188,9 +207,11 @@ export function ProcessSection() {
                 ))}
               </div>
 
-              <p className="card-copy-mobile" style={{ color: S.textPrimary }}>
-                {item.mobileBody}
-              </p>
+              <div className="card-copy-mobile" style={{ color: S.textPrimary }}>
+                {item.mobileLines.map((line) => (
+                  <p className="card-copy-mobile-line" key={line}>{line}</p>
+                ))}
+              </div>
             </article>
           ))}
         </div>
