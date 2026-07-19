@@ -7,8 +7,8 @@ const featureCards = [
   {
     title: 'Scan any label',
     body: <>
-      Point your camera at any label and let it capture the details.<br />
-      It reads the strain, dose, and method automatically.<br />
+      Point your camera at any label and let it capture the details.<br className="desktop-card-break" />{' '}
+      It reads the strain, dose, and method automatically.<br className="desktop-card-break" />{' '}
       No manual typing, no guessing at what you jotted down later.
     </>,
     image: featureCard1Image,
@@ -16,8 +16,8 @@ const featureCards = [
   {
     title: 'Log by voice',
     body: <>
-      Say what happened out loud and let it become the entry.<br />
-      Your words get logged exactly as spoken, hands free.<br />
+      Say what happened out loud and let it become the entry.<br className="desktop-card-break" />{' '}
+      Your words get logged exactly as spoken, hands free.<br className="desktop-card-break" />{' '}
       No typing, no forms, no digging for your phone's keyboard.
     </>,
     image: featureCard2Image,
@@ -25,8 +25,8 @@ const featureCards = [
   {
     title: 'Nothing stored without your choice',
     body: <>
-      Nothing saves anywhere until you decide it should.<br />
-      You control exactly what gets kept and what doesn't.<br />
+      Nothing saves anywhere until you decide it should.<br className="desktop-card-break" />{' '}
+      You control exactly what gets kept and what doesn't.<br className="desktop-card-break" />{' '}
       Delete any entry, any time. No trace, ever.
     </>,
     image: featureCard3Image,
