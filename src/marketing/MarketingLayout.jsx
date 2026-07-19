@@ -59,26 +59,28 @@ export default function MarketingLayout({ children }) {
       }}>
         <div style={{ borderBottom: `1px solid ${S.border}` }}>
           <nav style={{
+            width: '100%',
             maxWidth: marketingPage.maxWidth,
             margin: '0 auto',
-            padding: '6px 12px',
-            minHeight: '44px',
+            padding: '8px 14px',
+            minHeight: '52px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: '8px',
+            justifyContent: 'center',
+            gap: '10px',
             flexWrap: 'wrap',
             boxSizing: 'border-box',
+            textAlign: 'center',
           }}>
             <Link
               to="/app"
               style={{
                 color: S.textSecondary,
                 textDecoration: 'none',
-                fontSize: 'clamp(11px, 3vw, 14px)',
-                fontWeight: 600,
-                lineHeight: 1.2,
-                textAlign: 'right',
+                fontSize: 'clamp(13px, 3.7vw, 16px)',
+                fontWeight: 700,
+                lineHeight: 1.25,
+                textAlign: 'center',
               }}
             >
               Already have an account? Sign in
@@ -86,16 +88,16 @@ export default function MarketingLayout({ children }) {
             <a
               href="/#contact"
               style={{
-                minHeight: '32px',
+                minHeight: '36px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '0 11px',
+                padding: '0 14px',
                 border: `1px solid ${S.gold}`,
                 borderRadius: '9999px',
                 color: S.gold,
                 textDecoration: 'none',
-                fontSize: 'clamp(10px, 2.7vw, 13px)',
+                fontSize: 'clamp(11px, 3vw, 14px)',
                 fontWeight: 800,
                 lineHeight: 1,
                 whiteSpace: 'nowrap',
@@ -110,13 +112,14 @@ export default function MarketingLayout({ children }) {
           width: '100%',
           maxWidth: marketingPage.maxWidth,
           margin: '0 auto',
-          padding: 'clamp(12px, 3vw, 22px) 12px',
+          padding: 'clamp(16px, 4vw, 26px) 14px clamp(12px, 3vw, 20px)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 'clamp(5px, 1.4vw, 9px)',
+          justifyContent: 'center',
+          gap: 'clamp(8px, 2vw, 12px)',
           boxSizing: 'border-box',
-          overflow: 'hidden',
+          textAlign: 'center',
         }}>
           <Link
             to="/"
@@ -129,32 +132,38 @@ export default function MarketingLayout({ children }) {
               color: S.textPrimary,
               textDecoration: 'none',
               minWidth: 0,
+              textAlign: 'center',
             }}
           >
             <HeaderBrainMark />
             <span style={{
               minWidth: 0,
               fontFamily: marketingFonts.playfair,
-              fontSize: 'clamp(27px, 8.2vw, 81px)',
-              lineHeight: 0.92,
+              fontSize: 'clamp(34px, 9.4vw, 81px)',
+              lineHeight: 0.95,
               fontWeight: 700,
-              letterSpacing: '-0.03em',
+              letterSpacing: '-0.035em',
               whiteSpace: 'nowrap',
+              textAlign: 'center',
             }}>
               my420journal
             </span>
           </Link>
           <span style={{
+            width: '100%',
             maxWidth: '100%',
+            padding: '0 8px',
+            boxSizing: 'border-box',
             color: S.gold,
             fontFamily: marketingFonts.inter,
-            fontSize: 'clamp(8px, 2.35vw, 16px)',
-            lineHeight: 1.15,
+            fontSize: 'clamp(11px, 3.1vw, 16px)',
+            lineHeight: 1.3,
             fontWeight: 800,
-            letterSpacing: 'clamp(0.08em, 0.5vw, 0.16em)',
+            letterSpacing: 'clamp(0.07em, 0.45vw, 0.16em)',
             textAlign: 'center',
             textTransform: 'uppercase',
-            whiteSpace: 'nowrap',
+            whiteSpace: 'normal',
+            overflowWrap: 'anywhere',
           }}>
             A PRIVATE CANNABIS JOURNAL
           </span>
@@ -166,12 +175,12 @@ export default function MarketingLayout({ children }) {
             width: '100%',
             maxWidth: marketingPage.maxWidth,
             margin: '0 auto',
-            padding: '6px 10px',
-            minHeight: '44px',
+            padding: '7px 8px 9px',
+            minHeight: '48px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 'clamp(6px, 2.5vw, 18px)',
+            gap: 'clamp(5px, 2.2vw, 18px)',
             flexWrap: 'nowrap',
             boxSizing: 'border-box',
           }}
@@ -184,7 +193,7 @@ export default function MarketingLayout({ children }) {
         </nav>
       </header>
 
-      <main style={{ flex: 1, paddingTop: 'var(--header-height, 220px)' }}>
+      <main style={{ flex: 1, paddingTop: 'var(--header-height, 240px)' }}>
         {children}
       </main>
 
@@ -314,8 +323,8 @@ export default function MarketingLayout({ children }) {
 function HeaderBrainMark() {
   return (
     <span style={{
-      width: 'clamp(48px, 14vw, 90px)',
-      height: 'clamp(48px, 14vw, 90px)',
+      width: 'clamp(52px, 14.5vw, 90px)',
+      height: 'clamp(52px, 14.5vw, 90px)',
       borderRadius: '22%',
       border: `1px solid ${S.border}`,
       backgroundColor: 'rgba(10,26,10,0.72)',
@@ -365,13 +374,16 @@ function FooterColumn({ heading, lines }) {
 }
 
 const sectionTabStyle = {
+  flex: '1 1 0',
+  minWidth: 0,
   color: S.textPrimary,
   textDecoration: 'none',
-  fontSize: 'clamp(10px, 2.9vw, 13px)',
+  fontSize: 'clamp(11px, 3vw, 13px)',
   fontWeight: 800,
-  letterSpacing: '0.03em',
+  letterSpacing: '0.035em',
   textTransform: 'uppercase',
-  padding: '8px 3px',
+  textAlign: 'center',
+  padding: '8px 2px',
   borderBottom: `1px solid ${S.border}`,
   whiteSpace: 'nowrap',
 }
