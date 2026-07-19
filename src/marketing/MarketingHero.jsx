@@ -36,31 +36,38 @@ export function HeroSection() {
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'flex-end',
-          paddingBottom: '10vh',
-          paddingRight: '0vw',
+          paddingBottom: 'clamp(40px, 10vh, 90px)',
           boxSizing: 'border-box',
         }}
       >
-        <div style={{ width: '100%', maxWidth: '820px', textAlign: 'center' }}>
+        <div style={{
+          width: '100%',
+          maxWidth: '820px',
+          textAlign: 'center',
+          backgroundColor: 'rgba(6,16,6,0.62)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+          border: `1px solid ${S.border}`,
+          borderRadius: marketingPage.radius,
+          padding: 'clamp(20px, 4vw, 40px)',
+          boxSizing: 'border-box',
+        }}>
           <h1 style={{
-            margin: '0 0 34px 0',
+            margin: '0 0 20px 0',
             color: S.textPrimary,
             fontFamily: marketingFonts.playfair,
-            fontSize: 'clamp(30px, 4.25vw, 53px)',
-            whiteSpace: 'normal',
-            lineHeight: 1.05,
+            fontSize: 'clamp(28px, 6vw, 53px)',
+            lineHeight: 1.08,
             letterSpacing: '-0.03em',
             fontWeight: 700,
-            textShadow: '0 4px 24px rgba(0,0,0,0.4)',
           }}>
             Stop guessing at the dispensary.
           </h1>
           <p style={{
-            margin: '0 0 30px 0',
+            margin: '0 0 26px 0',
             color: S.textPrimary,
-            fontSize: 'clamp(20px, 2.5vw, 24px)',
+            fontSize: 'clamp(16px, 3vw, 24px)',
             lineHeight: 1.55,
-            textShadow: '0 2px 18px rgba(0,0,0,0.4)',
           }}>
             Log what you tried. See what actually worked. <br />
             Nothing leaves your device unless you choose to share it.
@@ -72,10 +79,7 @@ export function HeroSection() {
             gap: '14px',
             flexWrap: 'wrap',
           }}>
-            <Link
-              to="/app"
-              style={primaryButtonStyle}
-            >
+            <Link to="/app" style={primaryButtonStyle}>
               Start your research
             </Link>
             <a
@@ -87,7 +91,6 @@ export function HeroSection() {
                 textDecoration: 'none',
                 borderBottom: `1px solid ${S.gold}`,
                 paddingBottom: '4px',
-                textShadow: '0 2px 12px rgba(0,0,0,0.4)',
               }}
             >
               Learn how it works below
