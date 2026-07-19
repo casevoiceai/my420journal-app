@@ -81,7 +81,7 @@ export default function MarketingLayout({ children }) {
             >
               Already have an account? Sign in
             </Link>
-            
+            <a
               href="/#contact"
               style={{
                 minHeight: '32px',
