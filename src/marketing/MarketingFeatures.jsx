@@ -6,17 +6,32 @@ import featureCard3Image from './FeatureCard3.png'
 const featureCards = [
   {
     title: 'Scan any label',
-    body: 'Point your camera at any label and let it capture the details. It reads the strain, dose, and method automatically. No manual typing, no guessing at what you jotted down later.',
+    mobileBody: 'Point your camera at any label and let it capture the details. It reads the strain, dose, and method automatically. No manual typing, no guessing at what you jotted down later.',
+    desktopLines: [
+      'Point your camera at any label and let it capture the details.',
+      'It reads the strain, dose, and method automatically.',
+      'No manual typing, no guessing at what you jotted down later.',
+    ],
     image: featureCard1Image,
   },
   {
     title: 'Log by voice',
-    body: "Say what happened out loud and let it become the entry. Your words get logged exactly as spoken, hands free. No typing, no forms, no digging for your phone's keyboard.",
+    mobileBody: "Say what happened out loud and let it become the entry. Your words get logged exactly as spoken, hands free. No typing, no forms, no digging for your phone's keyboard.",
+    desktopLines: [
+      'Say what happened out loud and let it become the entry.',
+      'Your words get logged exactly as spoken, hands free.',
+      "No typing, no forms, no digging for your phone's keyboard.",
+    ],
     image: featureCard2Image,
   },
   {
     title: 'Nothing stored without your choice',
-    body: "Nothing saves anywhere until you decide it should. You control exactly what gets kept and what doesn't. Delete any entry, any time. No trace, ever.",
+    mobileBody: "Nothing saves anywhere until you decide it should. You control exactly what gets kept and what doesn't. Delete any entry, any time. No trace, ever.",
+    desktopLines: [
+      'Nothing saves anywhere until you decide it should.',
+      "You control exactly what gets kept and what doesn't.",
+      'Delete any entry, any time. No trace, ever.',
+    ],
     image: featureCard3Image,
   },
 ]
@@ -26,9 +41,7 @@ export function FeatureGrid() {
     <section className="marketing-section marketing-section-bg-base">
       <div
         className="marketing-section-inner"
-        style={{
-          maxWidth: '1600px',
-        }}
+        style={{ maxWidth: '1600px' }}
       >
         <div style={{ marginBottom: '56px' }}>
           <h2
@@ -79,6 +92,7 @@ export function FeatureGrid() {
                   boxSizing: 'border-box',
                 }}
               />
+
               <h3 style={{
                 margin: '16px 0 10px 0',
                 color: S.textPrimary,
@@ -89,19 +103,15 @@ export function FeatureGrid() {
               }}>
                 {item.title}
               </h3>
-              <p style={{
-                width: '100%',
-                maxWidth: '38ch',
-                margin: '0 auto',
-                color: S.textPrimary,
-                fontSize: '16px',
-                lineHeight: 1.6,
-                textAlign: 'left',
-                overflowWrap: 'normal',
-                wordBreak: 'normal',
-                hyphens: 'none',
-              }}>
-                {item.body}
+
+              <div className="card-copy-desktop" style={{ color: S.textPrimary }}>
+                {item.desktopLines.map((line) => (
+                  <div key={line}>{line}</div>
+                ))}
+              </div>
+
+              <p className="card-copy-mobile" style={{ color: S.textPrimary }}>
+                {item.mobileBody}
               </p>
             </article>
           ))}
