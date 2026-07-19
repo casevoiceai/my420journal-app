@@ -115,17 +115,119 @@ nav[aria-label="Marketing sections"] a:hover {
 }
 
 @media (max-width: 430px) {
+  header > div:nth-child(2) {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  header > div:nth-child(2) > a {
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 8px !important;
+    overflow: visible !important;
+  }
+
+  header > div:nth-child(2) > a > span:first-child {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  header > div:nth-child(2) > a > span:last-child {
+    min-width: 0 !important;
+    font-size: clamp(32px, 10vw, 43px) !important;
+    letter-spacing: -0.045em !important;
+    white-space: nowrap !important;
+  }
+
+  header > div:nth-child(2) > span {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    font-size: clamp(11px, 3.5vw, 14px) !important;
+    letter-spacing: 0.11em !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+  }
+
   nav[aria-label="Marketing sections"] {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     gap: 6px !important;
-    padding-left: 8px !important;
-    padding-right: 8px !important;
+    padding: 8px 8px 10px !important;
   }
 
   nav[aria-label="Marketing sections"] a {
-    min-height: 36px;
-    padding: 7px 6px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 38px;
+    padding: 7px 3px !important;
     font-size: 11px !important;
-    letter-spacing: 0.02em !important;
+    letter-spacing: 0.01em !important;
+    white-space: nowrap !important;
+  }
+
+  .marketing-hero {
+    width: 100vw !important;
+    max-width: none !important;
+    min-height: calc(100dvh - var(--header-height, 220px)) !important;
+    margin: 0 !important;
+  }
+
+  .marketing-hero-image,
+  .marketing-hero-overlay {
+    width: 100% !important;
+    right: 0 !important;
+    left: 0 !important;
+  }
+
+  .marketing-hero-image {
+    background-position: center center !important;
+  }
+
+  .marketing-hero-overlay {
+    background: linear-gradient(180deg, rgba(10,26,10,0.18) 0%, rgba(10,26,10,0.38) 48%, rgba(10,26,10,0.82) 100%) !important;
+  }
+
+  .marketing-hero-inner {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: calc(100dvh - var(--header-height, 220px)) !important;
+    padding: 72px 20px 74px !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .marketing-hero-copy {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+  }
+
+  .marketing-hero-copy h1 {
+    margin-bottom: 26px !important;
+    font-size: clamp(39px, 12vw, 52px) !important;
+    line-height: 1.02 !important;
+  }
+
+  .marketing-hero-copy p {
+    margin-bottom: 30px !important;
+    font-size: clamp(20px, 5.8vw, 25px) !important;
+    line-height: 1.48 !important;
+  }
+
+  .marketing-hero-actions {
+    width: 100% !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .marketing-hero-cta {
+    width: min(100%, 340px) !important;
+    min-height: 58px !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    font-size: 18px !important;
   }
 }
 
