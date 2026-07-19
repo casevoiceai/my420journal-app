@@ -1,20 +1,20 @@
 import { Link } from 'react-router-dom'
 import heroDispensaryImage from './hero-dispensary.png'
-import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
+import { marketingFonts, marketingPalette as S } from './marketingStyles'
 import { primaryButtonStyle } from './MarketingShared'
 
 export function HeroSection() {
   return (
     <section
       id="home"
-      className="marketing-section marketing-section-bg-base"
+      className="marketing-section marketing-section-bg-base marketing-hero"
       style={{
         position: 'relative',
         minHeight: 'calc(100dvh - 102px)',
         overflow: 'hidden',
       }}
     >
-      <div style={{
+      <div className="marketing-hero-image" style={{
         position: 'absolute',
         inset: 0,
         backgroundImage: `url(${heroDispensaryImage})`,
@@ -22,14 +22,14 @@ export function HeroSection() {
         backgroundPosition: 'center 35%',
       }} />
 
-      <div style={{
+      <div className="marketing-hero-overlay" style={{
         position: 'absolute',
         inset: 0,
         background: 'linear-gradient(90deg, rgba(10,26,10,0.15) 0%, rgba(10,26,10,0.30) 40%, rgba(10,26,10,0.70) 68%, rgba(10,26,10,0.88) 100%)',
       }} />
 
       <div
-        className="marketing-section-inner"
+        className="marketing-section-inner marketing-hero-inner"
         style={{
           position: 'relative',
           minHeight: 'calc(100dvh - 102px)',
@@ -41,7 +41,7 @@ export function HeroSection() {
           boxSizing: 'border-box',
         }}
       >
-        <div style={{ width: '100%', maxWidth: '820px', textAlign: 'center' }}>
+        <div className="marketing-hero-copy" style={{ width: '100%', maxWidth: '820px', textAlign: 'center' }}>
           <h1 style={{
             margin: '0 0 34px 0',
             color: S.textPrimary,
@@ -65,7 +65,7 @@ export function HeroSection() {
             Log what you tried. See what actually worked. <br />
             Nothing leaves your device unless you choose to share it.
           </p>
-          <div style={{
+          <div className="marketing-hero-actions" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -73,6 +73,7 @@ export function HeroSection() {
             flexWrap: 'wrap',
           }}>
             <Link
+              className="marketing-hero-cta"
               to="/app"
               style={primaryButtonStyle}
             >
