@@ -134,11 +134,13 @@ export function ProcessSection() {
                 {item.title}
               </h3>
               <p style={{
-                margin: 0,
+                width: '100%',
+                maxWidth: '38ch',
+                margin: '0 auto',
                 color: S.textPrimary,
-                fontSize: '15px',
-                lineHeight: 1.65,
-                textAlign: 'center',
+                fontSize: '16px',
+                lineHeight: 1.6,
+                textAlign: 'left',
                 overflowWrap: 'normal',
                 wordBreak: 'normal',
                 hyphens: 'none',
