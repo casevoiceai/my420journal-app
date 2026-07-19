@@ -43,17 +43,20 @@ export function FeatureGrid() {
         }}
       >
         <div style={{ marginBottom: '56px' }}>
-          <h2 style={{
-            margin: '0 0 14px 0',
-            color: S.gold,
-            fontFamily: marketingFonts.playfair,
-            fontSize: 'clamp(34px, 6vw, 64px)',
-            lineHeight: 1.02,
-            letterSpacing: '-0.03em',
-            whiteSpace: 'nowrap',
-            textAlign: 'center',
-          }}>
-            Small habits. Better visits.
+          <h2
+            className="marketing-features-heading"
+            style={{
+              margin: '0 0 14px 0',
+              color: S.gold,
+              fontFamily: marketingFonts.playfair,
+              fontSize: 'clamp(34px, 6vw, 64px)',
+              lineHeight: 1.02,
+              letterSpacing: '-0.03em',
+              textAlign: 'center',
+            }}
+          >
+            <span>Small habits.</span>{' '}
+            <span>Better visits.</span>
           </h2>
         </div>
 
@@ -100,7 +103,7 @@ export function FeatureGrid() {
               </h3>
               <p style={{
                 margin: 0,
-                color: S.textSecondary,
+                color: S.textPrimary,
                 fontSize: '15px',
                 lineHeight: 1.65,
                 textAlign: 'center',
