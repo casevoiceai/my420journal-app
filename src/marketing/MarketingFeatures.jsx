@@ -6,7 +6,11 @@ import featureCard3Image from './FeatureCard3.png'
 const featureCards = [
   {
     title: 'Scan any label',
-    mobileBody: 'Point your camera at any label and let it capture the details. It reads the strain, dose, and method automatically. No manual typing, no guessing at what you jotted down later.',
+    mobileLines: [
+      'Point your camera at any label and let it capture the details.',
+      'It reads the strain, dose, and method automatically.',
+      'No manual typing, no guessing at what you jotted down later.',
+    ],
     desktopLines: [
       'Point your camera at any label and let it capture the details.',
       'It reads the strain, dose, and method automatically.',
@@ -16,7 +20,11 @@ const featureCards = [
   },
   {
     title: 'Log by voice',
-    mobileBody: "Say what happened out loud and let it become the entry. Your words get logged exactly as spoken, hands free. No typing, no forms, no digging for your phone's keyboard.",
+    mobileLines: [
+      'Say what happened out loud and let it become the entry.',
+      'Your words get logged exactly as spoken, hands free.',
+      "No typing, no forms, no digging for your phone's keyboard.",
+    ],
     desktopLines: [
       'Say what happened out loud and let it become the entry.',
       'Your words get logged exactly as spoken, hands free.',
@@ -26,7 +34,11 @@ const featureCards = [
   },
   {
     title: 'Nothing stored without your choice',
-    mobileBody: "Nothing saves anywhere until you decide it should. You control exactly what gets kept and what doesn't. Delete any entry, any time. No trace, ever.",
+    mobileLines: [
+      'Nothing saves anywhere until you decide it should.',
+      "You control exactly what gets kept and what doesn't.",
+      'Delete any entry, any time. No trace, ever.',
+    ],
     desktopLines: [
       'Nothing saves anywhere until you decide it should.',
       "You control exactly what gets kept and what doesn't.",
@@ -110,9 +122,11 @@ export function FeatureGrid() {
                 ))}
               </div>
 
-              <p className="card-copy-mobile" style={{ color: S.textPrimary }}>
-                {item.mobileBody}
-              </p>
+              <div className="card-copy-mobile" style={{ color: S.textPrimary }}>
+                {item.mobileLines.map((line) => (
+                  <p className="card-copy-mobile-line" key={line}>{line}</p>
+                ))}
+              </div>
             </article>
           ))}
         </div>
