@@ -44,13 +44,13 @@ export function FeatureGrid() {
       >
         <div style={{ marginBottom: '56px' }}>
           <h2 style={{
-            margin: '0 0 14px 0',
+            margin: '0 auto 14px auto',
+            maxWidth: '600px',
             color: S.gold,
             fontFamily: marketingFonts.playfair,
-            fontSize: 'clamp(34px, 6vw, 64px)',
-            lineHeight: 1.02,
+            fontSize: 'clamp(28px, 7vw, 64px)',
+            lineHeight: 1.1,
             letterSpacing: '-0.03em',
-            whiteSpace: 'nowrap',
             textAlign: 'center',
           }}>
             Small habits. Better visits.
