@@ -6,29 +6,29 @@ import featureCard3Image from './FeatureCard3.png'
 const featureCards = [
   {
     title: 'Scan any label',
-    body: [
-      'Point your camera at any label and let it capture the details.',
-      'It reads the strain, dose, and method automatically.',
-      'No manual typing, no guessing at what you jotted down later.',
-    ],
+    body: <>
+      Point your camera at any label and let it capture the details.<br className="desktop-card-break" />{' '}
+      It reads the strain, dose, and method automatically.<br className="desktop-card-break" />{' '}
+      No manual typing, no guessing at what you jotted down later.
+    </>,
     image: featureCard1Image,
   },
   {
     title: 'Log by voice',
-    body: [
-      'Say what happened out loud and let it become the entry.',
-      'Your words get logged exactly as spoken, hands free.',
-      "No typing, no forms, no digging for your phone's keyboard.",
-    ],
+    body: <>
+      Say what happened out loud and let it become the entry.<br className="desktop-card-break" />{' '}
+      Your words get logged exactly as spoken, hands free.<br className="desktop-card-break" />{' '}
+      No typing, no forms, no digging for your phone's keyboard.
+    </>,
     image: featureCard2Image,
   },
   {
     title: 'Nothing stored without your choice',
-    body: [
-      'Nothing saves anywhere until you decide it should.',
-      "You control exactly what gets kept and what doesn't.",
-      'Delete any entry, any time. No trace, ever.',
-    ],
+    body: <>
+      Nothing saves anywhere until you decide it should.<br className="desktop-card-break" />{' '}
+      You control exactly what gets kept and what doesn't.<br className="desktop-card-break" />{' '}
+      Delete any entry, any time. No trace, ever.
+    </>,
     image: featureCard3Image,
   },
 ]
@@ -105,11 +105,7 @@ export function FeatureGrid() {
                 lineHeight: 1.65,
                 textAlign: 'center',
               }}>
-                {item.body.map((line) => (
-                  <span key={line} style={{ display: 'block' }}>
-                    {line}
-                  </span>
-                ))}
+                {item.body}
               </p>
             </article>
           ))}
