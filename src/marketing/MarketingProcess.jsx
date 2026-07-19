@@ -147,7 +147,7 @@ export function ProcessSection() {
               </h3>
               <p style={{
                 margin: 0,
-                color: S.textSecondary,
+                color: S.textPrimary,
                 fontSize: '15px',
                 lineHeight: 1.65,
                 textAlign: 'center',
