@@ -182,6 +182,10 @@ nav[aria-label="Marketing sections"] a:hover {
     text-align: center;
   }
 
+  .desktop-card-break {
+    display: none;
+  }
+
   .marketing-hero {
     width: 100vw !important;
     max-width: none !important;
