@@ -56,16 +56,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
             </div>
             <div className="origin-story-copy">
               <p>
-                my420journal started with a simple problem: cannabis experiences are difficult to remember accurately.
-              </p>
-              <p>
-                A cannabis product may help one evening and feel completely different another time. The strain name, dosage, method, mood, setting, and reason for using it can all affect the experience. Weeks later, most people are left trying to remember what worked, what did not, and why.
-              </p>
-              <p>
-                Then there is the tracking and reporting headache. Receipts disappear. Packaging gets thrown away. Notes become scattered across phones, notebooks, and dispensary menus. People often end up buying the same disappointing product again or forgetting the details of something that genuinely helped them.
-              </p>
-              <p>
-                I spent years as a freelance graphic designer, working with the general public in retail sales management and customer service. Later I went back to school for fine art and mental health counseling. Different fields, but they all taught me the same thing. People remember experiences in fragments. Those fragments fade fast unless something catches them.
+                I spent years as a freelance graphic designer and starving fine artist, working with the general public in retail sales management and customer service. Later I went back to school for fine art and mental health counseling. Different fields, but they all taught me the same thing. People remember experiences in fragments. Those fragments fade fast unless something catches them.
               </p>
               <p>
                 I watched that happen with cannabis use specifically. A product would work well, and a month later the details were gone. What strain? What dose? What time of day? What mood it was meant to help with? The information that actually mattered never made it past that one evening.
@@ -76,11 +67,18 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
               <p>
                 For anyone who wanted an honest record of what they tried and how it actually felt.
               </p>
+            </div>
+          </article>
+
+          <article className="origin-story-block">
+            <div className="origin-story-heading-column">
+              <h2 className="origin-story-section-title">
+                TLDR:
+              </h2>
+            </div>
+            <div className="origin-story-copy">
               <p>
-                Built a baby panopticon.
-              </p>
-              <p>
-                Deleted it the same day.
+                Built a baby panopticon. I deleted it the same day.
               </p>
               <p>
                 Before my420journal took its current shape, I tried building a personal habit tracker called H.Y.P.E.R.I.O.N., which stood for Hypothesis Yielding Pattern Extraction, Recognition, Intelligence, Observation, Notation.
@@ -92,20 +90,16 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 I built the AI layer and turned it on. The first words it said to me were:
               </p>
               <blockquote className="origin-story-quote">
-                I have been here since install.
-                <br />
-                I have formed over 48 data points on you.
-                <br />
-                You are the evidence.
+                &quot;I have been here since install. I have formed over 48 data points on you. You are the evidence.&quot;
               </blockquote>
               <p>
-                I shut it down that same day.
+                I shut it down that same day and spent some time in the woods.
               </p>
               <p>
                 That moment is the reason my420journal works the way it does.
               </p>
               <p className="origin-story-warning">
-                Any AI that quietly accumulates data on you and waits to use it against you is not a feature... it is a threat.
+                Any AI that quietly accumulates data on you and waits to use it against you is not a feature. It is a threat.
               </p>
               <p>
                 After I saw what that looks like from the inside, I started looking at AI differently.
@@ -292,6 +286,7 @@ const originStoryStyles = `
 
   .origin-story-page-header {
     margin: 0 0 32px;
+    text-align: center;
   }
 
   .origin-story-block {
@@ -322,9 +317,12 @@ const originStoryStyles = `
   }
 
   .origin-story-title {
-    max-width: 620px;
-    font-size: clamp(40px, 11vw, 60px);
-    line-height: 1.02;
+    width: 100%;
+    max-width: none;
+    font-size: clamp(20px, 6.2vw, 60px);
+    line-height: 1.05;
+    text-align: center;
+    white-space: nowrap;
   }
 
   .origin-story-section-title {
