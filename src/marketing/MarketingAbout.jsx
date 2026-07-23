@@ -72,8 +72,13 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
 
           <article className="origin-story-block">
             <div className="origin-story-heading-column">
-              <h2 className="origin-story-section-title">
-                What we built: (TLDR: Built a baby panopticon. I deleted it the same day.)
+              <h2 className="origin-story-section-title origin-story-section-title-built">
+                <span className="origin-story-section-title-main">
+                  What we built:
+                </span>
+                <span className="origin-story-section-title-detail">
+                  (TLDR: Built a baby panopticon. I deleted it the same day.)
+                </span>
               </h2>
             </div>
             <div className="origin-story-copy">
@@ -326,6 +331,22 @@ const originStoryStyles = `
     max-width: 620px;
     font-size: clamp(31px, 8vw, 44px);
     line-height: 1.08;
+  }
+
+  .origin-story-section-title-built {
+    max-width: 100%;
+  }
+
+  .origin-story-section-title-main,
+  .origin-story-section-title-detail {
+    display: block;
+  }
+
+  .origin-story-section-title-detail {
+    margin-top: 12px;
+    font-size: 0.6em;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
   }
 
   .origin-story-copy {
