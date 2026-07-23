@@ -42,11 +42,17 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
             maxWidth: '1180px',
           }}
         >
-          <article className="origin-story-block origin-story-intro">
+          <header className="origin-story-page-header">
+            <h1 className="origin-story-title">
+              The Story Behind my420journal
+            </h1>
+          </header>
+
+          <article className="origin-story-block">
             <div className="origin-story-heading-column">
-              <h1 className="origin-story-title">
-                The Story Behind my420journal
-              </h1>
+              <h2 className="origin-story-section-title">
+                Where the idea came from
+              </h2>
             </div>
             <div className="origin-story-copy">
               <p>
@@ -58,16 +64,6 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
               <p>
                 Then there is the tracking and reporting headache. Receipts disappear. Packaging gets thrown away. Notes become scattered across phones, notebooks, and dispensary menus. People often end up buying the same disappointing product again or forgetting the details of something that genuinely helped them.
               </p>
-            </div>
-          </article>
-
-          <article className="origin-story-block">
-            <div className="origin-story-heading-column">
-              <h2 className="origin-story-section-title">
-                Where the idea came from
-              </h2>
-            </div>
-            <div className="origin-story-copy">
               <p>
                 I spent years as a freelance graphic designer, working with the general public in retail sales management and customer service. Later I went back to school for fine art and mental health counseling. Different fields, but they all taught me the same thing. People remember experiences in fragments. Those fragments fade fast unless something catches them.
               </p>
@@ -76,7 +72,8 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
               </p>
               <p>
                 my420journal was built to solve that. Not for me alone.
-                <br />
+              </p>
+              <p>
                 For anyone who wanted an honest record of what they tried and how it actually felt.
               </p>
             </div>
@@ -300,6 +297,10 @@ export default function MarketingAbout() {
 const originStoryStyles = `
   .origin-story-shell {
     width: 100%;
+  }
+
+  .origin-story-page-header {
+    margin: 0 0 32px;
   }
 
   .origin-story-block {
