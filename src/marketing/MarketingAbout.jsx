@@ -53,6 +53,14 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
               <h2 className="origin-story-section-title">
                 Where the idea came from
               </h2>
+              <h2 className="origin-story-section-title" style={{ marginTop: '1.1em' }}>
+                TLDR:
+                <br />
+                Built a baby panopticon.
+                <span style={{ display: 'block', marginTop: '0.28em' }}>
+                  Deleted it the same day.
+                </span>
+              </h2>
             </div>
             <div className="origin-story-copy">
               <p>
@@ -76,21 +84,6 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
               <p>
                 For anyone who wanted an honest record of what they tried and how it actually felt.
               </p>
-            </div>
-          </article>
-
-          <article className="origin-story-block">
-            <div className="origin-story-heading-column">
-              <h2 className="origin-story-section-title">
-                TLDR:
-                <br />
-                Built a baby panopticon.
-                <span style={{ display: 'block', marginTop: '0.28em' }}>
-                  Deleted it the same day.
-                </span>
-              </h2>
-            </div>
-            <div className="origin-story-copy">
               <p>
                 Before my420journal took its current shape, I tried building a personal habit tracker called H.Y.P.E.R.I.O.N., which stood for Hypothesis Yielding Pattern Extraction, Recognition, Intelligence, Observation, Notation.
               </p>
