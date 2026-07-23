@@ -73,12 +73,12 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
           <article className="origin-story-block">
             <div className="origin-story-heading-column">
               <h2 className="origin-story-section-title">
-                TLDR:
+                What we Built:
               </h2>
             </div>
             <div className="origin-story-copy">
               <p>
-                Built a baby panopticon. I deleted it the same day.
+                TLDR: Built a baby panopticon. I deleted it the same day.
               </p>
               <p>
                 Before my420journal took its current shape, I tried building a personal habit tracker called H.Y.P.E.R.I.O.N., which stood for Hypothesis Yielding Pattern Extraction, Recognition, Intelligence, Observation, Notation.
@@ -93,7 +93,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 &quot;I have been here since install. I have formed over 48 data points on you. You are the evidence.&quot;
               </blockquote>
               <p>
-                I shut it down that same day and spent some time in the woods.
+                I shut it down that same day.
               </p>
               <p>
                 That moment is the reason my420journal works the way it does.
