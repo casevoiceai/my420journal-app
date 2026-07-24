@@ -1,4 +1,5 @@
 import MarketingLayout from './MarketingLayout'
+import { ContactSection } from './MarketingContact'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
 const howItWorks = [
@@ -55,29 +56,17 @@ export default function MarketingPartners() {
 
           <section className="partners-page-section partners-page-getting-started">
             <h2>GETTING STARTED</h2>
-            <div>
-              <p>
-                Let's have a short conversation about giving my420journal a look. Consider an early, full-access pilot, so we can learn together what's most useful to see before any tier or pricing commitment.
-              </p>
-              <a className="partners-page-action" href="/#contact">
-                Talk with us about a pilot
-              </a>
-            </div>
-          </section>
-
-          <section className="partners-page-section partners-page-contact">
-            <h2>Get in touch.</h2>
-            <div>
-              <p>
-                If you own or operate a dispensary and want to learn how my420journal could work with your menu, your customers, and your existing systems, tell us a little about your dispensary and what you would most like to understand. We will follow up to discuss partnership and pilot options.
-              </p>
-              <a className="partners-page-action" href="/#contact">
-                Contact us about your dispensary
-              </a>
-            </div>
+            <p>
+              Let's have a short conversation about giving my420journal a look. Consider an early, full-access pilot, so we can learn together what's most useful to see before any tier or pricing commitment.
+            </p>
+            <a className="partners-page-action" href="/#contact">
+              Talk with us about a pilot
+            </a>
           </section>
         </div>
       </section>
+
+      <ContactSection id="partners-contact" tone="surface" />
     </MarketingLayout>
   )
 }
@@ -172,8 +161,7 @@ const partnersPageStyles = `
 
   .partners-page-copy p,
   .partners-page-card p,
-  .partners-page-getting-started p,
-  .partners-page-contact p {
+  .partners-page-getting-started > p {
     margin: 0 0 24px;
     color: ${S.textSecondary};
     font-family: ${marketingFonts.inter};
@@ -183,8 +171,7 @@ const partnersPageStyles = `
 
   .partners-page-copy p:last-child,
   .partners-page-card p:last-child,
-  .partners-page-getting-started p:last-of-type,
-  .partners-page-contact p:last-of-type {
+  .partners-page-getting-started > p:last-of-type {
     margin-bottom: 0;
   }
 
@@ -203,10 +190,6 @@ const partnersPageStyles = `
   }
 
   .partners-page-getting-started {
-    padding-bottom: 56px;
-  }
-
-  .partners-page-contact {
     padding-bottom: 16px;
   }
 
@@ -253,17 +236,12 @@ const partnersPageStyles = `
 
     .partners-page-copy p,
     .partners-page-card p,
-    .partners-page-getting-started p,
-    .partners-page-contact p {
+    .partners-page-getting-started > p {
       font-size: 18px;
       line-height: 1.9;
     }
 
     .partners-page-getting-started {
-      padding-bottom: 72px;
-    }
-
-    .partners-page-contact {
       padding-bottom: 28px;
     }
   }
