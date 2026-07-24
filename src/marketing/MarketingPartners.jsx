@@ -66,7 +66,7 @@ export default function MarketingPartners() {
       <ContactSection
         id="partners-contact"
         tone="surface"
-        title="Talk with us about a pilot"
+        mode="partners"
       />
     </MarketingLayout>
   )
