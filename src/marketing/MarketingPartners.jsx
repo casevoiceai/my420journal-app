@@ -59,14 +59,15 @@ export default function MarketingPartners() {
             <p>
               Let's have a short conversation about giving my420journal a look. Consider an early, full-access pilot, so we can learn together what's most useful to see before any tier or pricing commitment.
             </p>
-            <a className="partners-page-action" href="/#contact">
-              Talk with us about a pilot
-            </a>
           </section>
         </div>
       </section>
 
-      <ContactSection id="partners-contact" tone="surface" />
+      <ContactSection
+        id="partners-contact"
+        tone="surface"
+        title="Talk with us about a pilot"
+      />
     </MarketingLayout>
   )
 }
@@ -191,35 +192,6 @@ const partnersPageStyles = `
 
   .partners-page-getting-started {
     padding-bottom: 16px;
-  }
-
-  .partners-page-action {
-    display: inline-flex;
-    width: fit-content;
-    min-height: 50px;
-    align-items: center;
-    justify-content: center;
-    margin-top: 28px;
-    padding: 0 24px;
-    border: 1px solid ${S.gold};
-    border-radius: 9999px;
-    background: ${S.gold};
-    color: ${S.bg};
-    font-family: ${marketingFonts.inter};
-    font-size: 15px;
-    font-weight: 800;
-    line-height: 1.2;
-    text-align: center;
-    text-decoration: none;
-  }
-
-  .partners-page-action:hover {
-    filter: brightness(1.08);
-  }
-
-  .partners-page-action:focus-visible {
-    outline: 3px solid ${S.textPrimary};
-    outline-offset: 4px;
   }
 
   @media (min-width: 860px) {
