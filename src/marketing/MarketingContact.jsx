@@ -11,7 +11,7 @@ const initialForm = {
   message: '',
 }
 
-export function ContactSection({ id = undefined, tone = 'base' }) {
+export function ContactSection({ id = undefined, tone = 'base', title = 'Get in touch.' }) {
   const [form, setForm] = useState(initialForm)
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')
@@ -74,7 +74,7 @@ export function ContactSection({ id = undefined, tone = 'base' }) {
           lineHeight: 1.02,
           letterSpacing: '-0.03em',
         }}>
-          Get in touch.
+          {title}
         </h1>
         <p style={{
           margin: '0 0 28px 0',
