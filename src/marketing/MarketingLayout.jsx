@@ -9,6 +9,7 @@ const sectionTabs = [
   { label: 'About', href: '/#about' },
   { label: 'FAQ', href: '/#faq' },
   { label: 'Contact', href: '/#contact' },
+  { label: 'Partners', href: '/partners' },
 ]
 
 export default function MarketingLayout({ children }) {
