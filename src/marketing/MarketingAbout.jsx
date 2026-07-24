@@ -77,7 +77,11 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                   What we built:
                 </span>
                 <span className="origin-story-section-title-detail">
-                  (TLDR: Built a baby panopticon. I deleted it the same day.)
+                  (TLDR:
+                  <br />
+                  Built a baby panopticon.
+                  <br />
+                  Deleted it same day.)
                 </span>
               </h2>
             </div>
