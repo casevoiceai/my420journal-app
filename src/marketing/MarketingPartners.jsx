@@ -2,27 +2,27 @@ import MarketingLayout from './MarketingLayout'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
 const howItWorks = [
-  'The customer logs what they tried, the dose, the method, and how it affected their body, mind, and mood. Everything stays on their own device. No account required, no server storage of their personal entries.',
+  'The customer logs what they tried, the dose, the method, and how it affected their body, mind, and mood. Everything stays on their own device. No account is required, and there is no server storage of their personal entries.',
   'They can pick from five guide personalities, or a no-personality mode called S.T.O.N.E.R., depending on how they want to journal.',
-  'If they choose to, they can opt in to share fully anonymized, aggregated signals into a shared pool. No individual is ever identified, aggregate only.',
+  'If they choose to, they can opt in to share fully anonymized, aggregated signals into a shared pool. No individual is ever identified. Everything shared stays aggregate only.',
 ]
 
 const dispensaryLayer = [
-  'Free: a behavioral preview based on your own public menu, no user data involved.',
-  'Tier 1, own-product intelligence: aggregate signals specific to the products you carry. Activates once 50 opted-in users are contributing data.',
-  'Tier 2, cross-product and competitor benchmarking: see how your products compare to others in the category. Activates once 400 opted-in users are contributing data.',
-  'Tier 3, cultivator and brand network intelligence: aggregate insight across the full brand and cultivator network, for larger operations.',
+  'The free tier gives you a behavioral preview based on your own public menu. No user data is involved.',
+  'Tier 1 gives you own-product intelligence: aggregate signals specific to the products you carry. It activates once 50 opted-in users are contributing data.',
+  'Tier 2 gives you cross-product and competitor benchmarking, so you can see how your products compare to others in the category. It activates once 400 opted-in users are contributing data.',
+  'Tier 3 gives you cultivator and brand network intelligence: aggregate insight across the full brand and cultivator network, for larger operations.',
 ]
 
 const valueCase = [
-  'Better restocking decisions, based on what customers actually report back, not just what sells once.',
-  'Product recommendations grounded in real aggregate outcomes instead of guesswork or rep pitches.',
-  "Understanding your customer base's experience without adding any survey, loyalty app, or data collection burden on your staff.",
+  'You make better restocking decisions, because they are based on what customers actually report back, not just what sold once.',
+  'Your product recommendations are grounded in real aggregate outcomes instead of guesswork or rep pitches.',
+  "You understand your customer base's experience without adding a survey, a loyalty app, or any data collection burden on your staff.",
 ]
 
 const whatWeAreNot = [
-  'Not a loyalty program. Not an ad platform. We do not sell or show any individual customer\'s data, ever. Aggregate only, opt-in only.',
-  'Not a replacement for your point-of-sale or inventory system. Additional insight layered on top of what you already do.',
+  "my420journal is not a loyalty program. It is not an ad platform. We do not sell or show any individual customer's data, ever. Everything stays aggregate and opt-in only.",
+  'It does not replace your point-of-sale or inventory system. It adds insight on top of what you already do.',
 ]
 
 export default function MarketingPartners() {
@@ -40,7 +40,7 @@ export default function MarketingPartners() {
             </h1>
             <div className="partners-page-intro">
               <p>
-                my420journal gives your customers a private way to track what actually works for them, and gives you anonymized, aggregate insight into what's working across your customer base, without ever seeing one individual's data.
+                my420journal gives your customers a private way to track what actually works for them, and it gives you anonymized, aggregate insight into what's working across your customer base, without ever seeing one individual's data.
               </p>
               <p>
                 You sell a product once. What happens after your customer walks out the door is usually a blank spot. Did it work for them? Would they buy it again? Right now the only way you find out is if they come back and tell you, or they don't come back and you never know why.
@@ -56,7 +56,7 @@ export default function MarketingPartners() {
           <section className="partners-page-section partners-page-getting-started">
             <h2>GETTING STARTED</h2>
             <p>
-              A short conversation about giving my420journal a look, and considering an early, full-access pilot so we can learn together what's most useful to see, before any tier or pricing commitment.
+              Let's have a short conversation about giving my420journal a look. Consider an early, full-access pilot, so we can learn together what's most useful to see before any tier or pricing commitment.
             </p>
             <a className="partners-page-action" href="/#contact">
               Talk with us about a pilot
