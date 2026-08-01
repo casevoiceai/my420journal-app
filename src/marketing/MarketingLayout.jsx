@@ -226,16 +226,28 @@ export default function MarketingLayout({ children }) {
               lines={['Not medical advice', 'Not a dispensary or seller', 'Not connected to law enforcement.']}
             />
           </div>
-          <p style={{
+          <div style={{
             margin: '30px 0 0 0',
             paddingTop: '18px',
             borderTop: `1px solid ${S.border}`,
-            color: S.textSecondary,
-            fontSize: '13px',
-            lineHeight: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '14px',
+            flexWrap: 'wrap',
           }}>
-            © 2026 Vogtcom LLC.
-          </p>
+            <p style={{
+              margin: 0,
+              color: S.textSecondary,
+              fontSize: '13px',
+              lineHeight: 1.5,
+            }}>
+              © 2026 Vogtcom LLC.
+            </p>
+            <Link to="/privacy" style={footerLinkStyle}>
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </footer>
 
@@ -386,6 +398,16 @@ const sectionTabStyle = {
   padding: '8px 2px',
   borderBottom: `1px solid ${S.border}`,
   whiteSpace: 'nowrap',
+}
+
+const footerLinkStyle = {
+  color: S.gold,
+  fontFamily: marketingFonts.inter,
+  fontSize: '13px',
+  fontWeight: 700,
+  lineHeight: 1.5,
+  textDecoration: 'underline',
+  textUnderlineOffset: '3px',
 }
 
 const cornerButtonStyle = {
