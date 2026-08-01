@@ -66,15 +66,30 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
         const next = enableSharedOptIn(state)
         setState(next)
         await saveProfileFields(next)
-        await syncOptInStatus(next)
-        setStatus('Opt-in saved. New entries you save from now on can contribute anonymous product signals. Entries from before opt-in are not backfilled.')
+
+        const result = await syncOptInStatus(next)
+        if (!result.ok) {
+          const reverted = disableSharedOptIn(next)
+          setState(reverted)
+          await saveProfileFields(reverted)
+          setError(result.message || 'Shared Journey View could not be enabled for this device.')
+          return
+        }
+
+        setStatus('Opt-in saved. New entries you save from now on can contribute product signals. Each contribution stays in temporary staging for 3 days before it can be added to shared totals.')
       } else {
         const next = disableSharedOptIn(state)
         setState(next)
         clearSharedContributionQueue()
         await saveProfileFields(next)
-        await requestOptOutDeletion(next)
-        setStatus('Opt-out saved. Pending shared contribution retries were cleared. Your anonymous contributions should be removed from the shared aggregate pool within 24 hours.')
+
+        const result = await requestOptOutDeletion(next)
+        if (!result.ok) {
+          setError('Opt-out is saved on this device and pending retries were cleared, but the server could not confirm the deletion request. Try again when you are online.')
+          return
+        }
+
+        setStatus('Opt-out saved. Future contributions from this device are blocked. Contributions still in the 3-day staging window were deleted. Older contributions were already folded into shared totals and cannot be individually identified or removed.')
       }
     } catch {
       setError('Could not update Shared Journey settings. Try again.')
@@ -97,7 +112,7 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
             Shared Journey View
           </p>
           <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-            Off by default. If you turn it on, new entries saved going forward can contribute anonymous product signals to aggregate counts only. Entries from before opt-in are not backfilled.
+            Off by default. If you turn it on, new entries saved going forward can contribute product signals to shared totals. Entries from before opt-in are not backfilled.
           </p>
         </div>
         <button
@@ -124,10 +139,10 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
 
       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-          Only aggregate counts and percentages can be shared. No private notes, raw entries, exact addresses, GPS coordinates, or one-person records are displayed.
+          Contributions stay in temporary staging for 3 days. During that time, they are linked to this device's anonymous contributor ID so duplicates can be blocked and pending contributions can be deleted.
         </p>
         <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-          If you opt out later, pending retries are cleared and your anonymous contributions must be removed from the shared aggregate pool within 24 hours.
+          After 3 days, a contribution is folded into shared totals and the link to this device is deleted. Opting out blocks future contributions and deletes anything still pending, but older totals cannot be individually traced or removed.
         </p>
       </div>
 
