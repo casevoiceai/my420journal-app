@@ -15,6 +15,9 @@ function failureMessage(response, body) {
   if (body?.message) return body.message
   if (response.status === 400) return 'The shared signals request was missing required information.'
   if (response.status === 404) return 'The shared signals route was not found.'
+  if (response.status === 409) return 'This device cannot submit that shared contribution.'
+  if (response.status === 429) return 'The shared contribution rate limit was reached.'
+  if (response.status === 503) return 'The shared signals service is temporarily unavailable.'
   return 'The shared signals request failed.'
 }
 
@@ -140,6 +143,38 @@ export async function submitContribution(contribution = {}) {
   return {
     ...result,
     action: 'submit_contribution',
+  }
+}
+
+export async function retractPendingContribution(contribution = {}) {
+  if (!contribution.anonymous_contributor_id) {
+    return {
+      ok: false,
+      connected: false,
+      status: 'missing_anonymous_contributor_id',
+      action: 'retract_pending_contribution',
+      message: 'Anonymous contributor ID is required before retracting a pending contribution.',
+    }
+  }
+
+  if (!contribution.combination_key && !contribution.product_key) {
+    return {
+      ok: false,
+      connected: false,
+      status: 'missing_combination',
+      action: 'retract_pending_contribution',
+      message: 'A combination key or complete contribution is required before retracting it.',
+    }
+  }
+
+  const result = await workerRequest('/contributions/retract', {
+    method: 'POST',
+    body: JSON.stringify(contribution),
+  })
+
+  return {
+    ...result,
+    action: 'retract_pending_contribution',
   }
 }
 
