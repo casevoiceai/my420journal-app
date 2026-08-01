@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
 const disclaimerText = 'my420journal is a private journaling tool for adults in jurisdictions where cannabis is legal. It does not sell cannabis, provide medical advice, or connect you to any dispensary for purchase. Your entries stay on your device unless you choose to share anonymized signals through the opt-in Shared Signals feature.'
@@ -9,11 +9,18 @@ const sectionTabs = [
   { label: 'About', href: '/#about' },
   { label: 'FAQ', href: '/#faq' },
   { label: 'Partners', href: '/partners' },
+  { label: 'Privacy', href: '/privacy' },
 ]
 
 export default function MarketingLayout({ children }) {
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   const headerRef = useRef(null)
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.hash) return
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname, location.hash])
 
   useEffect(() => {
     const headerEl = headerRef.current
