@@ -84,63 +84,84 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
   }
 
   return (
-    <div style={{
-      backgroundColor: S.surface,
-      border: `1px solid ${S.border}`,
-      borderRadius: '10px',
-      padding: '16px 20px',
-      marginBottom: '20px',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, margin: '0 0 4px 0', fontWeight: '600' }}>
-            Shared Journey View
+    <>
+      <div style={{
+        backgroundColor: S.surface,
+        border: `1px solid ${S.border}`,
+        borderRadius: '10px',
+        padding: '16px 20px',
+        marginBottom: '20px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, margin: '0 0 4px 0', fontWeight: '600' }}>
+              Shared Journey View
+            </p>
+            <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
+              Off by default. If you turn it on, new entries saved going forward can contribute anonymous product signals to aggregate counts only. Entries from before opt-in are not backfilled.
+            </p>
+          </div>
+          <button
+            onClick={handleToggle}
+            disabled={saving}
+            aria-label="Toggle Shared Journey View"
+            style={{
+              width: '48px', height: '28px', borderRadius: '14px', border: 'none',
+              backgroundColor: enabled ? S.gold : S.border,
+              cursor: saving ? 'not-allowed' : 'pointer',
+              position: 'relative', transition: 'background-color 0.2s ease',
+              flexShrink: 0, padding: 0, marginTop: '2px',
+            }}
+          >
+            <div style={{
+              position: 'absolute', top: '3px',
+              left: enabled ? '23px' : '3px',
+              width: '22px', height: '22px', borderRadius: '11px',
+              backgroundColor: '#fff', transition: 'left 0.2s ease',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+            }} />
+          </button>
+        </div>
+
+        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
+            Only aggregate counts and percentages can be shared. No private notes, raw entries, exact addresses, GPS coordinates, or one-person records are displayed.
           </p>
-          <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-            Off by default. If you turn it on, new entries saved going forward can contribute anonymous product signals to aggregate counts only. Entries from before opt-in are not backfilled.
+          <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
+            If you opt out later, pending retries are cleared and your anonymous contributions must be removed from the shared aggregate pool within 24 hours.
           </p>
         </div>
-        <button
-          onClick={handleToggle}
-          disabled={saving}
-          aria-label="Toggle Shared Journey View"
-          style={{
-            width: '48px', height: '28px', borderRadius: '14px', border: 'none',
-            backgroundColor: enabled ? S.gold : S.border,
-            cursor: saving ? 'not-allowed' : 'pointer',
-            position: 'relative', transition: 'background-color 0.2s ease',
-            flexShrink: 0, padding: 0, marginTop: '2px',
-          }}
-        >
-          <div style={{
-            position: 'absolute', top: '3px',
-            left: enabled ? '23px' : '3px',
-            width: '22px', height: '22px', borderRadius: '11px',
-            backgroundColor: '#fff', transition: 'left 0.2s ease',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-          }} />
-        </button>
+
+        {status && (
+          <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.success, margin: '12px 0 0 0', lineHeight: 1.5 }}>
+            {status}
+          </p>
+        )}
+        {error && (
+          <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.error, margin: '12px 0 0 0', lineHeight: 1.5 }}>
+            {error}
+          </p>
+        )}
       </div>
 
-      <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-          Only aggregate counts and percentages can be shared. No private notes, raw entries, exact addresses, GPS coordinates, or one-person records are displayed.
-        </p>
-        <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-          If you opt out later, pending retries are cleared and your anonymous contributions must be removed from the shared aggregate pool within 24 hours.
-        </p>
-      </div>
-
-      {status && (
-        <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.success, margin: '12px 0 0 0', lineHeight: 1.5 }}>
-          {status}
-        </p>
-      )}
-      {error && (
-        <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.error, margin: '12px 0 0 0', lineHeight: 1.5 }}>
-          {error}
-        </p>
-      )}
-    </div>
+      <a
+        href="https://my420journal.app/privacy"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'inline-block',
+          margin: '-4px 0 20px 0',
+          color: S.gold,
+          fontFamily: fontInter,
+          fontSize: '14px',
+          fontWeight: '600',
+          lineHeight: 1.5,
+          textDecoration: 'underline',
+          textUnderlineOffset: '3px',
+        }}
+      >
+        Privacy Policy
+      </a>
+    </>
   )
 }

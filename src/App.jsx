@@ -36,6 +36,7 @@ import MarketingAbout from './marketing/MarketingAbout'
 import MarketingFAQ from './marketing/MarketingFAQ'
 import MarketingContact from './marketing/MarketingContact'
 import MarketingPartners from './marketing/MarketingPartners'
+import MarketingPrivacy from './marketing/MarketingPrivacy'
 import { retryQueuedSharedContributions } from './lib/sharedContributionQueue'
 
 const fontInter = "'Inter', sans-serif"
@@ -47,6 +48,7 @@ const NO_NAV_ROUTES = new Set([
   '/faq',
   '/contact',
   '/partners',
+  '/privacy',
   '/app',
   '/signup',
   '/login',
@@ -192,7 +194,7 @@ function BottomNav() {
 
 // ── Auth utilities ────────────────────────────────────────────────────────────
 
-const HIDDEN_EXIT_ROUTES = new Set(['/', '/about', '/faq', '/contact', '/partners', '/app', '/signup'])
+const HIDDEN_EXIT_ROUTES = new Set(['/', '/about', '/faq', '/contact', '/partners', '/privacy', '/app', '/signup'])
 
 function EmergencyExit() {
   const navigate  = useNavigate()
@@ -293,6 +295,7 @@ export default function App() {
         <Route path="/faq"               element={<MarketingFAQ />} />
         <Route path="/contact"           element={<MarketingContact />} />
         <Route path="/partners"          element={<MarketingPartners />} />
+        <Route path="/privacy"           element={<MarketingPrivacy />} />
         <Route path="/app"               element={<AgeGate />} />
         <Route path="/signup"            element={<Signup />} />
         <Route path="/login"             element={<Login />} />
