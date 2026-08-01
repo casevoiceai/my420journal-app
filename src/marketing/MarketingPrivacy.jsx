@@ -5,8 +5,8 @@ const sections = [
   {
     heading: 'WHO WE ARE',
     paragraphs: [
-      '420journal.app is a product of Vogtcom LLC, a Pennsylvania limited liability company.',
-      <>Address: 33 Cottage St Apt 2 Rear, Carbondale, PA 18407<br />Contact: casevoice.ai@gmail.com</>,
+      '420journal.app is a product of Vogtcom LLC, a Pennsylvania limited liability company based in Carbondale, Pennsylvania.',
+      'Contact: casevoice.ai@gmail.com',
       '420journal.app is a private cannabis session journal. You log what you used, how you used it, and how it made you feel, in Body, Mind, and Mood terms. Your journal lives on your device.',
     ],
   },
@@ -94,7 +94,7 @@ const sections = [
   {
     heading: 'CONTACT US',
     paragraphs: [
-      <>Vogtcom LLC<br />33 Cottage St Apt 2 Rear<br />Carbondale, PA 18407<br />casevoice.ai@gmail.com</>,
+      <>Vogtcom LLC<br />Carbondale, Pennsylvania<br />casevoice.ai@gmail.com</>,
     ],
   },
 ]
