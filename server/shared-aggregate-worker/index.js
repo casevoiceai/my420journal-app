@@ -3,9 +3,12 @@ const REGION_MINIMUM = 25
 const STAGING_WINDOW_MS = 72 * 60 * 60 * 1000
 const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000
 const MAX_SUBMISSIONS_PER_24_HOURS = 20
-const DEFAULT_CONTRIBUTOR_CREATION_LIMIT = 50
+const DEFAULT_CONTRIBUTOR_CREATION_LIMIT = 5
 const DEFAULT_CONTRIBUTOR_CREATION_WINDOW_HOURS = 6
+const DEFAULT_CONTRIBUTOR_CREATION_DAILY_LIMIT = 15
+const DEFAULT_CONTRIBUTOR_CREATION_DAILY_WINDOW_HOURS = 24
 const DEFAULT_ELIGIBILITY_CONFIRMATION_HOURS = 24
+const DEFAULT_ELIGIBILITY_NEW_ACTIVITY_CONTRIBUTOR_MINIMUM = 2
 const QUARANTINE_RETENTION_DAYS = 30
 
 const CORS_HEADERS = {
@@ -45,11 +48,32 @@ function contributorCreationWindowMs(env) {
   ) * 60 * 60 * 1000
 }
 
+function contributorCreationDailyLimit(env) {
+  return positiveInteger(
+    env?.CONTRIBUTOR_CREATION_DAILY_LIMIT,
+    DEFAULT_CONTRIBUTOR_CREATION_DAILY_LIMIT
+  )
+}
+
+function contributorCreationDailyWindowMs(env) {
+  return positiveInteger(
+    env?.CONTRIBUTOR_CREATION_DAILY_WINDOW_HOURS,
+    DEFAULT_CONTRIBUTOR_CREATION_DAILY_WINDOW_HOURS
+  ) * 60 * 60 * 1000
+}
+
 function eligibilityConfirmationMs(env) {
   return positiveInteger(
     env?.ELIGIBILITY_CONFIRMATION_HOURS,
     DEFAULT_ELIGIBILITY_CONFIRMATION_HOURS
   ) * 60 * 60 * 1000
+}
+
+function eligibilityNewActivityContributorMinimum(env) {
+  return positiveInteger(
+    env?.ELIGIBILITY_NEW_ACTIVITY_CONTRIBUTOR_MINIMUM,
+    DEFAULT_ELIGIBILITY_NEW_ACTIVITY_CONTRIBUTOR_MINIMUM
+  )
 }
 
 function normalizeProductKey(value = '') {
@@ -167,16 +191,77 @@ function sourceAddress(request) {
   return 'unknown-source'
 }
 
-function normalizeSourceRange(address) {
-  if (address.includes(':')) {
-    const segments = address.split(':').filter(Boolean)
-    return `${segments.slice(0, 4).join(':')}::/64`
+function parseIpv4Octets(value) {
+  const pieces = value.split('.')
+  if (pieces.length !== 4) throw new Error('Invalid IPv4 address')
+  return pieces.map((piece) => {
+    if (!/^\d{1,3}$/.test(piece)) throw new Error('Invalid IPv4 address')
+    const octet = Number(piece)
+    if (octet < 0 || octet > 255) throw new Error('Invalid IPv4 address')
+    return octet
+  })
+}
+
+function expandIpv6(address) {
+  const withoutZone = address.split('%')[0].toLowerCase()
+  if (!withoutZone || withoutZone.includes(':::')) throw new Error('Invalid IPv6 address')
+
+  let working = withoutZone
+  const lastColon = working.lastIndexOf(':')
+  const tail = working.slice(lastColon + 1)
+  if (tail.includes('.')) {
+    const octets = parseIpv4Octets(tail)
+    const ipv4Tail = [
+      ((octets[0] << 8) | octets[1]).toString(16),
+      ((octets[2] << 8) | octets[3]).toString(16),
+    ]
+    working = `${working.slice(0, lastColon)}:${ipv4Tail.join(':')}`
   }
-  return address
+
+  const doubleColonParts = working.split('::')
+  if (doubleColonParts.length > 2) throw new Error('Invalid IPv6 address')
+
+  const parseSide = (side) => {
+    if (!side) return []
+    return side.split(':').map((segment) => {
+      if (!/^[0-9a-f]{1,4}$/.test(segment)) throw new Error('Invalid IPv6 address')
+      return Number.parseInt(segment, 16)
+    })
+  }
+
+  const left = parseSide(doubleColonParts[0])
+  const right = parseSide(doubleColonParts[1] || '')
+  let groups
+
+  if (doubleColonParts.length === 2) {
+    const missing = 8 - left.length - right.length
+    if (missing < 1) throw new Error('Invalid IPv6 address')
+    groups = [...left, ...Array(missing).fill(0), ...right]
+  } else {
+    if (left.length !== 8) throw new Error('Invalid IPv6 address')
+    groups = left
+  }
+
+  if (groups.length !== 8) throw new Error('Invalid IPv6 address')
+  return groups.map((group) => group.toString(16).padStart(4, '0'))
+}
+
+function normalizeSourceRange(address) {
+  if (!address.includes(':')) return address
+  const groups = expandIpv6(address)
+  return `${groups.slice(0, 4).join(':')}::/64`
+}
+
+function rateLimitConfigurationError() {
+  const error = new Error('CONTRIBUTOR_RATE_LIMIT_SALT is required and must be non-empty')
+  error.code = 'CONTRIBUTOR_RATE_LIMIT_SALT_MISSING'
+  return error
 }
 
 async function sourceRateKey(request, env) {
-  const salt = cleanString(env?.CONTRIBUTOR_RATE_LIMIT_SALT) || 'shared-contributor-rate-v1'
+  const salt = cleanString(env?.CONTRIBUTOR_RATE_LIMIT_SALT)
+  if (!salt) throw rateLimitConfigurationError()
+
   const source = normalizeSourceRange(sourceAddress(request))
   const input = new TextEncoder().encode(`${salt}|${source}`)
   const digest = await crypto.subtle.digest('SHA-256', input)
@@ -230,40 +315,72 @@ function dedupeSpecs(specs) {
   return [...unique.values()]
 }
 
-async function currentDistinctContributorCount(env, spec) {
+async function distinctContributorCount(env, spec, submittedAfter = null) {
+  const timeClause = submittedAfter ? ' AND submitted_at > ?' : ''
+  let statement
+  let bindings
+
   if (spec.scope === 'product') {
-    const row = await env.DB.prepare(`
+    statement = `
       SELECT COUNT(DISTINCT contributor_id) AS contributor_count
       FROM shared_contribution_staging
-      WHERE product_key = ?
-    `).bind(spec.product_key).first()
-    return Number(row?.contributor_count || 0)
-  }
-
-  if (spec.scope === 'product_region') {
-    const row = await env.DB.prepare(`
+      WHERE product_key = ?${timeClause}
+    `
+    bindings = submittedAfter ? [spec.product_key, submittedAfter] : [spec.product_key]
+  } else if (spec.scope === 'product_region') {
+    statement = `
       SELECT COUNT(DISTINCT contributor_id) AS contributor_count
       FROM shared_contribution_staging
-      WHERE product_key = ? AND region_bucket = ?
-    `).bind(spec.product_key, spec.region_bucket).first()
-    return Number(row?.contributor_count || 0)
-  }
-
-  if (spec.scope === 'combination_product') {
-    const row = await env.DB.prepare(`
+      WHERE product_key = ? AND region_bucket = ?${timeClause}
+    `
+    bindings = submittedAfter
+      ? [spec.product_key, spec.region_bucket, submittedAfter]
+      : [spec.product_key, spec.region_bucket]
+  } else if (spec.scope === 'combination_product') {
+    statement = `
       SELECT COUNT(DISTINCT contributor_id) AS contributor_count
       FROM shared_contribution_staging
-      WHERE product_key = ? AND combination_key = ?
-    `).bind(spec.product_key, spec.combination_key).first()
-    return Number(row?.contributor_count || 0)
+      WHERE product_key = ? AND combination_key = ?${timeClause}
+    `
+    bindings = submittedAfter
+      ? [spec.product_key, spec.combination_key, submittedAfter]
+      : [spec.product_key, spec.combination_key]
+  } else {
+    statement = `
+      SELECT COUNT(DISTINCT contributor_id) AS contributor_count
+      FROM shared_contribution_staging
+      WHERE product_key = ? AND region_bucket = ? AND combination_key = ?${timeClause}
+    `
+    bindings = submittedAfter
+      ? [spec.product_key, spec.region_bucket, spec.combination_key, submittedAfter]
+      : [spec.product_key, spec.region_bucket, spec.combination_key]
   }
 
-  const row = await env.DB.prepare(`
-    SELECT COUNT(DISTINCT contributor_id) AS contributor_count
-    FROM shared_contribution_staging
-    WHERE product_key = ? AND region_bucket = ? AND combination_key = ?
-  `).bind(spec.product_key, spec.region_bucket, spec.combination_key).first()
+  const row = await env.DB.prepare(statement).bind(...bindings).first()
   return Number(row?.contributor_count || 0)
+}
+
+async function currentDistinctContributorCount(env, spec) {
+  return distinctContributorCount(env, spec)
+}
+
+async function newDistinctContributorCount(env, spec, pendingSince) {
+  return distinctContributorCount(env, spec, pendingSince)
+}
+
+async function clearPendingEligibility(env, spec) {
+  await env.DB.prepare(`
+    DELETE FROM shared_pool_eligibility_pending
+    WHERE eligibility_scope = ?
+      AND product_key = ?
+      AND region_bucket = ?
+      AND combination_key = ?
+  `).bind(
+    spec.scope,
+    spec.product_key,
+    spec.region_bucket,
+    spec.combination_key
+  ).run()
 }
 
 async function evaluateEligibilitySpec(env, spec, now = new Date()) {
@@ -299,20 +416,7 @@ async function evaluateEligibilitySpec(env, spec, now = new Date()) {
   ).first()
 
   if (contributorCount < spec.minimum) {
-    if (pending) {
-      await env.DB.prepare(`
-        DELETE FROM shared_pool_eligibility_pending
-        WHERE eligibility_scope = ?
-          AND product_key = ?
-          AND region_bucket = ?
-          AND combination_key = ?
-      `).bind(
-        spec.scope,
-        spec.product_key,
-        spec.region_bucket,
-        spec.combination_key
-      ).run()
-    }
+    if (pending) await clearPendingEligibility(env, spec)
     return { eligible: false, pending: false }
   }
 
@@ -341,19 +445,12 @@ async function evaluateEligibilitySpec(env, spec, now = new Date()) {
   }
 
   const secondCheckCount = await currentDistinctContributorCount(env, spec)
-  if (secondCheckCount < spec.minimum) {
-    await env.DB.prepare(`
-      DELETE FROM shared_pool_eligibility_pending
-      WHERE eligibility_scope = ?
-        AND product_key = ?
-        AND region_bucket = ?
-        AND combination_key = ?
-    `).bind(
-      spec.scope,
-      spec.product_key,
-      spec.region_bucket,
-      spec.combination_key
-    ).run()
+  const newActivityContributorCount = await newDistinctContributorCount(env, spec, pending.pending_since)
+  if (
+    secondCheckCount < spec.minimum
+    || newActivityContributorCount < eligibilityNewActivityContributorMinimum(env)
+  ) {
+    await clearPendingEligibility(env, spec)
     return { eligible: false, pending: false }
   }
 
@@ -522,10 +619,13 @@ async function upsertContributor(request, env, body) {
     return json({ ok: true, anonymous_contributor_id: id, new_contributor: false })
   }
 
-  const limit = contributorCreationLimit(env)
-  const windowMs = contributorCreationWindowMs(env)
-  const cutoffIso = new Date(now.getTime() - windowMs).toISOString()
-  const expiresIso = new Date(now.getTime() + windowMs).toISOString()
+  const shortLimit = contributorCreationLimit(env)
+  const shortWindowMs = contributorCreationWindowMs(env)
+  const dailyLimit = contributorCreationDailyLimit(env)
+  const dailyWindowMs = contributorCreationDailyWindowMs(env)
+  const shortCutoffIso = new Date(now.getTime() - shortWindowMs).toISOString()
+  const dailyCutoffIso = new Date(now.getTime() - dailyWindowMs).toISOString()
+  const expiresIso = new Date(now.getTime() + Math.max(shortWindowMs, dailyWindowMs)).toISOString()
   const sourceKey = await sourceRateKey(request, env)
   const eventId = crypto.randomUUID()
 
@@ -540,14 +640,22 @@ async function upsertContributor(request, env, body) {
         FROM shared_contributor_creation_events
         WHERE source_key = ? AND created_at >= ?
       ) < ?
+      AND (
+        SELECT COUNT(*)
+        FROM shared_contributor_creation_events
+        WHERE source_key = ? AND created_at >= ?
+      ) < ?
     `).bind(
       eventId,
       sourceKey,
       nowIso,
       expiresIso,
       sourceKey,
-      cutoffIso,
-      limit
+      shortCutoffIso,
+      shortLimit,
+      sourceKey,
+      dailyCutoffIso,
+      dailyLimit
     ),
     env.DB.prepare(`
       INSERT INTO shared_contributors (
@@ -569,16 +677,33 @@ async function upsertContributor(request, env, body) {
   ])
 
   if (changes(results[0]) === 0 || changes(results[1]) === 0) {
-    const oldest = await env.DB.prepare(`
-      SELECT MIN(created_at) AS oldest_created_at
+    const stats = await env.DB.prepare(`
+      SELECT
+        SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) AS short_count,
+        MIN(CASE WHEN created_at >= ? THEN created_at END) AS short_oldest,
+        SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) AS daily_count,
+        MIN(CASE WHEN created_at >= ? THEN created_at END) AS daily_oldest
       FROM shared_contributor_creation_events
-      WHERE source_key = ? AND created_at >= ?
-    `).bind(sourceKey, cutoffIso).first()
-    const oldestTime = Date.parse(oldest?.oldest_created_at || nowIso)
-    const retryAfterSeconds = Math.max(
-      60,
-      Math.ceil((oldestTime + windowMs - now.getTime()) / 1000)
-    )
+      WHERE source_key = ?
+    `).bind(
+      shortCutoffIso,
+      shortCutoffIso,
+      dailyCutoffIso,
+      dailyCutoffIso,
+      sourceKey
+    ).first()
+
+    const delays = [60]
+    if (Number(stats?.short_count || 0) >= shortLimit) {
+      const oldest = Date.parse(stats?.short_oldest || nowIso)
+      delays.push(Math.ceil((oldest + shortWindowMs - now.getTime()) / 1000))
+    }
+    if (Number(stats?.daily_count || 0) >= dailyLimit) {
+      const oldest = Date.parse(stats?.daily_oldest || nowIso)
+      delays.push(Math.ceil((oldest + dailyWindowMs - now.getTime()) / 1000))
+    }
+    const retryAfterSeconds = Math.max(...delays)
+
     return json({
       ok: false,
       retry_later: true,
@@ -974,34 +1099,53 @@ function isAdminAuthorized(request, env) {
   return Boolean(token) && request.headers.get('Authorization') === `Bearer ${token}`
 }
 
+function internalErrorResponse(error) {
+  console.error('Shared Journey Worker request failed', {
+    code: error?.code || 'INTERNAL_ERROR',
+    message: error?.message || String(error),
+  })
+  if (error?.code === 'CONTRIBUTOR_RATE_LIMIT_SALT_MISSING') {
+    return json({
+      ok: false,
+      error: 'Shared Journey rate-limit configuration is missing.',
+      code: error.code,
+    }, 500)
+  }
+  return json({ ok: false, error: 'Internal server error.' }, 500)
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS })
     if (!env.DB) return json({ ok: false, error: 'D1 binding DB is not configured' }, 500)
 
-    const url = new URL(request.url)
-    if (request.method === 'POST' && url.pathname === '/contributors/opt-in') {
-      return upsertContributor(request, env, await readJson(request))
+    try {
+      const url = new URL(request.url)
+      if (request.method === 'POST' && url.pathname === '/contributors/opt-in') {
+        return await upsertContributor(request, env, await readJson(request))
+      }
+      if (request.method === 'POST' && url.pathname === '/contributors/opt-out') {
+        return await requestOptOut(env, await readJson(request))
+      }
+      if (request.method === 'POST' && url.pathname === '/contributions') {
+        return await createContribution(env, await readJson(request))
+      }
+      if (request.method === 'POST' && url.pathname === '/contributions/retract') {
+        return await retractContribution(env, await readJson(request))
+      }
+      if (request.method === 'GET' && url.pathname === '/aggregates') return await getAggregate(env, url)
+      if (request.method === 'POST' && url.pathname === '/admin/fold-staging') {
+        if (!isAdminAuthorized(request, env)) return json({ ok: false, error: 'Unauthorized' }, 401)
+        return json(await foldEligibleStaging(env))
+      }
+      if (request.method === 'POST' && url.pathname === '/admin/purge-quarantine') {
+        if (!isAdminAuthorized(request, env)) return json({ ok: false, error: 'Unauthorized' }, 401)
+        return json(await purgeExpiredQuarantine(env))
+      }
+      return json({ ok: false, error: 'Not found' }, 404)
+    } catch (error) {
+      return internalErrorResponse(error)
     }
-    if (request.method === 'POST' && url.pathname === '/contributors/opt-out') {
-      return requestOptOut(env, await readJson(request))
-    }
-    if (request.method === 'POST' && url.pathname === '/contributions') {
-      return createContribution(env, await readJson(request))
-    }
-    if (request.method === 'POST' && url.pathname === '/contributions/retract') {
-      return retractContribution(env, await readJson(request))
-    }
-    if (request.method === 'GET' && url.pathname === '/aggregates') return getAggregate(env, url)
-    if (request.method === 'POST' && url.pathname === '/admin/fold-staging') {
-      if (!isAdminAuthorized(request, env)) return json({ ok: false, error: 'Unauthorized' }, 401)
-      return json(await foldEligibleStaging(env))
-    }
-    if (request.method === 'POST' && url.pathname === '/admin/purge-quarantine') {
-      if (!isAdminAuthorized(request, env)) return json({ ok: false, error: 'Unauthorized' }, 401)
-      return json(await purgeExpiredQuarantine(env))
-    }
-    return json({ ok: false, error: 'Not found' }, 404)
   },
 
   async scheduled(event, env, ctx) {
@@ -1020,11 +1164,14 @@ export {
   buildPoolKey,
   combinedEffectTags,
   eligibilityConfirmationMs,
+  eligibilityNewActivityContributorMinimum,
   evaluateAllEligibility,
   evaluateEligibilitySpec,
+  expandIpv6,
   foldEligibleStaging,
   getAggregate,
   normalizeContribution,
+  normalizeSourceRange,
   purgeExpiredContributorCreationEvents,
   purgeExpiredQuarantine,
   requestOptOut,
