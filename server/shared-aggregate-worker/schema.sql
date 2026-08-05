@@ -34,6 +34,8 @@ CREATE INDEX IF NOT EXISTS idx_shared_staging_submitted_at
   ON shared_contribution_staging (submitted_at);
 CREATE INDEX IF NOT EXISTS idx_shared_staging_contributor_submitted
   ON shared_contribution_staging (contributor_id, submitted_at);
+CREATE INDEX IF NOT EXISTS idx_shared_staging_product_region_combination
+  ON shared_contribution_staging (product_key, region_bucket, combination_key);
 
 CREATE TABLE IF NOT EXISTS shared_contributor_suppressions (
   contributor_id TEXT PRIMARY KEY,
@@ -68,18 +70,38 @@ CREATE INDEX IF NOT EXISTS idx_shared_aggregates_scope_product
 CREATE INDEX IF NOT EXISTS idx_shared_aggregates_scope_product_region
   ON shared_product_aggregates (aggregate_scope, product_key, region_bucket);
 
-CREATE TABLE IF NOT EXISTS shared_aggregate_memberships (
-  aggregate_key TEXT NOT NULL,
-  contributor_token TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (aggregate_key, contributor_token)
+-- Permanent eligibility flags contain only pool and combination keys. They do
+-- not contain contributor IDs, hashes, tokens, or any contributor-derived value.
+CREATE TABLE IF NOT EXISTS shared_pool_eligibility (
+  eligibility_scope TEXT NOT NULL CHECK (
+    eligibility_scope IN (
+      'product',
+      'product_region',
+      'combination_product',
+      'combination_region'
+    )
+  ),
+  product_key TEXT NOT NULL,
+  region_bucket TEXT NOT NULL DEFAULT '',
+  combination_key TEXT NOT NULL DEFAULT '',
+  eligible_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (
+    eligibility_scope,
+    product_key,
+    region_bucket,
+    combination_key
+  )
 );
-CREATE INDEX IF NOT EXISTS idx_shared_memberships_aggregate
-  ON shared_aggregate_memberships (aggregate_key);
+CREATE INDEX IF NOT EXISTS idx_shared_eligibility_lookup
+  ON shared_pool_eligibility (
+    eligibility_scope,
+    product_key,
+    region_bucket,
+    combination_key
+  );
 
 CREATE TABLE IF NOT EXISTS shared_layer2_migration_quarantine (
   source_contribution_id TEXT PRIMARY KEY,
-  contributor_id TEXT,
   quarantine_reason TEXT NOT NULL,
   product_key TEXT,
   product_name_normalized TEXT,
@@ -87,8 +109,11 @@ CREATE TABLE IF NOT EXISTS shared_layer2_migration_quarantine (
   mind_tags_json TEXT,
   mood_tags_json TEXT,
   submitted_at TEXT,
-  quarantined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  quarantined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_shared_quarantine_expires_at
+  ON shared_layer2_migration_quarantine (expires_at);
 
 CREATE TABLE IF NOT EXISTS shared_layer2_migration_audit (
   migration_key TEXT PRIMARY KEY,
@@ -108,13 +133,16 @@ CREATE TABLE IF NOT EXISTS shared_layer2_migration_audit (
   product_total INTEGER NOT NULL DEFAULT 0,
   expected_product_region_total INTEGER NOT NULL DEFAULT 0,
   product_region_total INTEGER NOT NULL DEFAULT 0,
-  expected_combination_memberships INTEGER NOT NULL DEFAULT 0,
-  actual_combination_memberships INTEGER NOT NULL DEFAULT 0,
-  expected_product_memberships INTEGER NOT NULL DEFAULT 0,
-  actual_product_memberships INTEGER NOT NULL DEFAULT 0,
-  expected_product_region_memberships INTEGER NOT NULL DEFAULT 0,
-  actual_product_region_memberships INTEGER NOT NULL DEFAULT 0,
-  distinct_count_mismatches INTEGER NOT NULL DEFAULT 0,
+  expected_product_eligibility INTEGER NOT NULL DEFAULT 0,
+  actual_product_eligibility INTEGER NOT NULL DEFAULT 0,
+  expected_product_region_eligibility INTEGER NOT NULL DEFAULT 0,
+  actual_product_region_eligibility INTEGER NOT NULL DEFAULT 0,
+  expected_combination_product_eligibility INTEGER NOT NULL DEFAULT 0,
+  actual_combination_product_eligibility INTEGER NOT NULL DEFAULT 0,
+  expected_combination_region_eligibility INTEGER NOT NULL DEFAULT 0,
+  actual_combination_region_eligibility INTEGER NOT NULL DEFAULT 0,
+  approximate_count_mismatches INTEGER NOT NULL DEFAULT 0,
+  quarantine_expiry_mismatches INTEGER NOT NULL DEFAULT 0,
   aggregate_row_count INTEGER NOT NULL DEFAULT 0,
   old_table_dropped INTEGER NOT NULL DEFAULT 1,
   completed_at TEXT
@@ -123,6 +151,6 @@ CREATE TABLE IF NOT EXISTS shared_layer2_migration_audit (
 INSERT INTO shared_layer2_migration_audit (
   migration_key, old_table_dropped, completed_at
 ) VALUES (
-  'layer2_aggregate_redesign_v2', 1, CURRENT_TIMESTAMP
+  'layer2_aggregate_redesign_v3', 1, CURRENT_TIMESTAMP
 )
 ON CONFLICT(migration_key) DO NOTHING;
