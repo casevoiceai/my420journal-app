@@ -2,6 +2,8 @@ import { submitContribution } from './sharedAggregateApi'
 import { mapEntryToSharedContribution } from './sharedContributionMapper'
 import { getSharedPrivacyState, markSharedSyncComplete } from './sharedPrivacy'
 
+export const SHARED_JOURNEY_SUBMISSIONS_PAUSED = true
+
 const QUEUE_KEY = 'my420journal_shared_contribution_queue_v1'
 const MAX_QUEUE_AGE_MS = 7 * 24 * 60 * 60 * 1000
 const MAX_ATTEMPTS = 5
@@ -66,6 +68,10 @@ export function clearSharedContributionQueue() {
 }
 
 export function enqueueSharedContribution(payload) {
+  if (SHARED_JOURNEY_SUBMISSIONS_PAUSED) {
+    return { ok: true, status: 'shared_journey_paused', skipped: true, queued: false }
+  }
+
   if (!payload || typeof payload !== 'object') {
     return { ok: false, status: 'missing_payload', queued: false }
   }
@@ -94,8 +100,19 @@ function canRetry(sharedState = getSharedPrivacyState()) {
 }
 
 export async function retryQueuedSharedContributions(options = {}) {
-  const sharedState = getSharedPrivacyState(options.sharedState || {})
   const queue = getQueuedSharedContributions()
+
+  if (SHARED_JOURNEY_SUBMISSIONS_PAUSED) {
+    return {
+      ok: true,
+      status: 'shared_journey_paused',
+      attempted: 0,
+      submitted: 0,
+      remaining: queue.length,
+    }
+  }
+
+  const sharedState = getSharedPrivacyState(options.sharedState || {})
 
   if (queue.length === 0) {
     return { ok: true, status: 'empty_queue', attempted: 0, submitted: 0, remaining: 0 }
@@ -143,6 +160,10 @@ export async function retryQueuedSharedContributions(options = {}) {
 }
 
 export async function submitSanitizedContribution(payload, options = {}) {
+  if (SHARED_JOURNEY_SUBMISSIONS_PAUSED) {
+    return { ok: true, status: 'shared_journey_paused', skipped: true, queued: false }
+  }
+
   if (!payload || typeof payload !== 'object') {
     return { ok: false, status: 'missing_payload', queued: false }
   }
@@ -169,6 +190,10 @@ export async function submitSanitizedContribution(payload, options = {}) {
 
 export async function submitEntryContribution(entry, options = {}) {
   try {
+    if (SHARED_JOURNEY_SUBMISSIONS_PAUSED) {
+      return { ok: true, status: 'shared_journey_paused', skipped: true, queued: false }
+    }
+
     const sharedState = getSharedPrivacyState(options.sharedState || {})
 
     if (sharedState.shared_opt_in_enabled !== true) {
