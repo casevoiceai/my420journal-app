@@ -45,6 +45,17 @@ CREATE TABLE shared_contributor_suppressions (
   reason TEXT NOT NULL DEFAULT 'user_opt_out'
 );
 
+CREATE TABLE shared_contributor_creation_events (
+  event_id TEXT PRIMARY KEY,
+  source_key TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TEXT NOT NULL
+);
+CREATE INDEX idx_shared_creation_events_source_created
+  ON shared_contributor_creation_events (source_key, created_at);
+CREATE INDEX idx_shared_creation_events_expires
+  ON shared_contributor_creation_events (expires_at);
+
 CREATE TABLE shared_product_aggregates (
   combination_key TEXT PRIMARY KEY,
   aggregate_scope TEXT NOT NULL CHECK (
@@ -73,8 +84,39 @@ CREATE INDEX idx_shared_aggregates_scope_product
 CREATE INDEX idx_shared_aggregates_scope_product_region
   ON shared_product_aggregates (aggregate_scope, product_key, region_bucket);
 
--- These are simple permanent yes/no eligibility flags. No contributor ID,
--- contributor hash, token, or contributor-derived value is stored here.
+-- Threshold crossing starts a confirmation period. This table stores only pool
+-- metadata and a pending timestamp; no contributor ID or count is retained.
+CREATE TABLE shared_pool_eligibility_pending (
+  eligibility_scope TEXT NOT NULL CHECK (
+    eligibility_scope IN (
+      'product',
+      'product_region',
+      'combination_product',
+      'combination_region'
+    )
+  ),
+  product_key TEXT NOT NULL,
+  region_bucket TEXT NOT NULL DEFAULT '',
+  combination_key TEXT NOT NULL DEFAULT '',
+  pending_since TEXT NOT NULL,
+  PRIMARY KEY (
+    eligibility_scope,
+    product_key,
+    region_bucket,
+    combination_key
+  )
+);
+
+CREATE INDEX idx_shared_eligibility_pending_lookup
+  ON shared_pool_eligibility_pending (
+    eligibility_scope,
+    product_key,
+    region_bucket,
+    combination_key
+  );
+
+-- Permanent eligibility flags are created later by the Worker only after a
+-- fresh threshold check at least 24 hours after pending_since.
 CREATE TABLE shared_pool_eligibility (
   eligibility_scope TEXT NOT NULL CHECK (
     eligibility_scope IN (
@@ -138,14 +180,15 @@ CREATE TABLE shared_layer2_migration_audit (
   product_total INTEGER NOT NULL DEFAULT 0,
   expected_product_region_total INTEGER NOT NULL DEFAULT 0,
   product_region_total INTEGER NOT NULL DEFAULT 0,
-  expected_product_eligibility INTEGER NOT NULL DEFAULT 0,
-  actual_product_eligibility INTEGER NOT NULL DEFAULT 0,
-  expected_product_region_eligibility INTEGER NOT NULL DEFAULT 0,
-  actual_product_region_eligibility INTEGER NOT NULL DEFAULT 0,
-  expected_combination_product_eligibility INTEGER NOT NULL DEFAULT 0,
-  actual_combination_product_eligibility INTEGER NOT NULL DEFAULT 0,
-  expected_combination_region_eligibility INTEGER NOT NULL DEFAULT 0,
-  actual_combination_region_eligibility INTEGER NOT NULL DEFAULT 0,
+  expected_product_pending INTEGER NOT NULL DEFAULT 0,
+  actual_product_pending INTEGER NOT NULL DEFAULT 0,
+  expected_product_region_pending INTEGER NOT NULL DEFAULT 0,
+  actual_product_region_pending INTEGER NOT NULL DEFAULT 0,
+  expected_combination_product_pending INTEGER NOT NULL DEFAULT 0,
+  actual_combination_product_pending INTEGER NOT NULL DEFAULT 0,
+  expected_combination_region_pending INTEGER NOT NULL DEFAULT 0,
+  actual_combination_region_pending INTEGER NOT NULL DEFAULT 0,
+  unexpected_eligibility_rows INTEGER NOT NULL DEFAULT 0,
   approximate_count_mismatches INTEGER NOT NULL DEFAULT 0,
   quarantine_expiry_mismatches INTEGER NOT NULL DEFAULT 0,
   aggregate_row_count INTEGER NOT NULL DEFAULT 0,
@@ -154,7 +197,7 @@ CREATE TABLE shared_layer2_migration_audit (
 );
 
 INSERT INTO shared_layer2_migration_audit (migration_key, source_row_count)
-SELECT 'layer2_aggregate_redesign_v3', COUNT(*)
+SELECT 'layer2_aggregate_redesign_v4', COUNT(*)
 FROM shared_product_contributions;
 
 -- Preserve the block on contributor IDs that had already opted out.
@@ -290,7 +333,7 @@ SET opted_out_rows_deleted = (
   FROM shared_layer2_legacy_normalized
   WHERE contributor_exists = 1 AND is_active = 0
 )
-WHERE migration_key = 'layer2_aggregate_redesign_v3';
+WHERE migration_key = 'layer2_aggregate_redesign_v4';
 
 -- Active invalid rows and orphaned rows are isolated for manual review. The
 -- default review window is 30 days; the Worker deletes expired rows.
@@ -340,7 +383,7 @@ SET
     SELECT COUNT(*) FROM shared_layer2_migration_quarantine
     WHERE instr(quarantine_reason, 'invalid_created_at') > 0
   )
-WHERE migration_key = 'layer2_aggregate_redesign_v3';
+WHERE migration_key = 'layer2_aggregate_redesign_v4';
 
 -- Prepare valid active rows with the same canonical combination key used by
 -- the Worker. Timestamp remains outside the key so exact duplicate records
@@ -416,7 +459,7 @@ SET
   valid_unique_rows = (
     SELECT COUNT(*) FROM shared_layer2_valid_deduped
   )
-WHERE migration_key = 'layer2_aggregate_redesign_v3';
+WHERE migration_key = 'layer2_aggregate_redesign_v4';
 
 -- Preserve the original timestamp for rows that have not completed 72 hours.
 INSERT INTO shared_contribution_staging (
@@ -457,18 +500,19 @@ SELECT
 FROM shared_layer2_valid_deduped
 WHERE datetime(submitted_at) > datetime('now', '-72 hours');
 
--- Eligibility is determined only from the contributor IDs currently in
--- staging. The only retained result is a pool-key flag.
-INSERT OR IGNORE INTO shared_pool_eligibility (
-  eligibility_scope, product_key, region_bucket, combination_key, eligible_at
+-- Migration can start a confirmation period, but it cannot create a permanent
+-- eligibility flag. A later Worker check after the configured waiting period
+-- must freshly confirm the threshold before promotion.
+INSERT OR IGNORE INTO shared_pool_eligibility_pending (
+  eligibility_scope, product_key, region_bucket, combination_key, pending_since
 )
 SELECT 'product', product_key, '', '', CURRENT_TIMESTAMP
 FROM shared_contribution_staging
 GROUP BY product_key
 HAVING COUNT(DISTINCT contributor_id) >= 10;
 
-INSERT OR IGNORE INTO shared_pool_eligibility (
-  eligibility_scope, product_key, region_bucket, combination_key, eligible_at
+INSERT OR IGNORE INTO shared_pool_eligibility_pending (
+  eligibility_scope, product_key, region_bucket, combination_key, pending_since
 )
 SELECT 'product_region', product_key, region_bucket, '', CURRENT_TIMESTAMP
 FROM shared_contribution_staging
@@ -476,16 +520,16 @@ WHERE region_bucket IS NOT NULL AND trim(region_bucket) <> ''
 GROUP BY product_key, region_bucket
 HAVING COUNT(DISTINCT contributor_id) >= 25;
 
-INSERT OR IGNORE INTO shared_pool_eligibility (
-  eligibility_scope, product_key, region_bucket, combination_key, eligible_at
+INSERT OR IGNORE INTO shared_pool_eligibility_pending (
+  eligibility_scope, product_key, region_bucket, combination_key, pending_since
 )
 SELECT 'combination_product', product_key, '', combination_key, CURRENT_TIMESTAMP
 FROM shared_contribution_staging
 GROUP BY product_key, combination_key
 HAVING COUNT(DISTINCT contributor_id) >= 10;
 
-INSERT OR IGNORE INTO shared_pool_eligibility (
-  eligibility_scope, product_key, region_bucket, combination_key, eligible_at
+INSERT OR IGNORE INTO shared_pool_eligibility_pending (
+  eligibility_scope, product_key, region_bucket, combination_key, pending_since
 )
 SELECT 'combination_region', product_key, region_bucket, combination_key, CURRENT_TIMESTAMP
 FROM shared_contribution_staging
@@ -624,7 +668,7 @@ SET
     FROM shared_product_aggregates
     WHERE aggregate_scope = 'product_region'
   ),
-  expected_product_eligibility = (
+  expected_product_pending = (
     SELECT COUNT(*) FROM (
       SELECT product_key
       FROM shared_contribution_staging
@@ -632,11 +676,11 @@ SET
       HAVING COUNT(DISTINCT contributor_id) >= 10
     )
   ),
-  actual_product_eligibility = (
-    SELECT COUNT(*) FROM shared_pool_eligibility
+  actual_product_pending = (
+    SELECT COUNT(*) FROM shared_pool_eligibility_pending
     WHERE eligibility_scope = 'product'
   ),
-  expected_product_region_eligibility = (
+  expected_product_region_pending = (
     SELECT COUNT(*) FROM (
       SELECT product_key, region_bucket
       FROM shared_contribution_staging
@@ -645,11 +689,11 @@ SET
       HAVING COUNT(DISTINCT contributor_id) >= 25
     )
   ),
-  actual_product_region_eligibility = (
-    SELECT COUNT(*) FROM shared_pool_eligibility
+  actual_product_region_pending = (
+    SELECT COUNT(*) FROM shared_pool_eligibility_pending
     WHERE eligibility_scope = 'product_region'
   ),
-  expected_combination_product_eligibility = (
+  expected_combination_product_pending = (
     SELECT COUNT(*) FROM (
       SELECT product_key, combination_key
       FROM shared_contribution_staging
@@ -657,11 +701,11 @@ SET
       HAVING COUNT(DISTINCT contributor_id) >= 10
     )
   ),
-  actual_combination_product_eligibility = (
-    SELECT COUNT(*) FROM shared_pool_eligibility
+  actual_combination_product_pending = (
+    SELECT COUNT(*) FROM shared_pool_eligibility_pending
     WHERE eligibility_scope = 'combination_product'
   ),
-  expected_combination_region_eligibility = (
+  expected_combination_region_pending = (
     SELECT COUNT(*) FROM (
       SELECT product_key, region_bucket, combination_key
       FROM shared_contribution_staging
@@ -670,9 +714,12 @@ SET
       HAVING COUNT(DISTINCT contributor_id) >= 25
     )
   ),
-  actual_combination_region_eligibility = (
-    SELECT COUNT(*) FROM shared_pool_eligibility
+  actual_combination_region_pending = (
+    SELECT COUNT(*) FROM shared_pool_eligibility_pending
     WHERE eligibility_scope = 'combination_region'
+  ),
+  unexpected_eligibility_rows = (
+    SELECT COUNT(*) FROM shared_pool_eligibility
   ),
   approximate_count_mismatches = (
     SELECT COUNT(*)
@@ -709,12 +756,12 @@ SET
   aggregate_row_count = (
     SELECT COUNT(*) FROM shared_product_aggregates
   )
-WHERE migration_key = 'layer2_aggregate_redesign_v3';
+WHERE migration_key = 'layer2_aggregate_redesign_v4';
 
 -- Every legacy row must reconcile to one of four outcomes: opted out,
 -- quarantined, merged as a duplicate, or retained as one valid row. Staging,
--- aggregate scopes, eligibility flags, approximate migration-time counts, and
--- quarantine expiration must also reconcile.
+-- aggregate scopes, pending confirmation rows, approximate migration-time
+-- counts, and quarantine expiration must also reconcile.
 CREATE TABLE shared_layer2_migration_guard (
   is_valid INTEGER NOT NULL CHECK (is_valid = 1)
 );
@@ -732,17 +779,18 @@ SELECT CASE
   AND combination_total = expected_folded_rows
   AND product_total = expected_folded_rows
   AND product_region_total = expected_product_region_total
-  AND actual_product_eligibility = expected_product_eligibility
-  AND actual_product_region_eligibility = expected_product_region_eligibility
-  AND actual_combination_product_eligibility = expected_combination_product_eligibility
-  AND actual_combination_region_eligibility = expected_combination_region_eligibility
+  AND actual_product_pending = expected_product_pending
+  AND actual_product_region_pending = expected_product_region_pending
+  AND actual_combination_product_pending = expected_combination_product_pending
+  AND actual_combination_region_pending = expected_combination_region_pending
+  AND unexpected_eligibility_rows = 0
   AND approximate_count_mismatches = 0
   AND quarantine_expiry_mismatches = 0
   THEN 1
   ELSE 0
 END
 FROM shared_layer2_migration_audit
-WHERE migration_key = 'layer2_aggregate_redesign_v3';
+WHERE migration_key = 'layer2_aggregate_redesign_v4';
 
 DROP TABLE shared_layer2_migration_guard;
 
@@ -757,4 +805,4 @@ WHERE is_active = 0;
 
 UPDATE shared_layer2_migration_audit
 SET old_table_dropped = 1, completed_at = CURRENT_TIMESTAMP
-WHERE migration_key = 'layer2_aggregate_redesign_v3';
+WHERE migration_key = 'layer2_aggregate_redesign_v4';
