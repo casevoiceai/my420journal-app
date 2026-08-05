@@ -8,6 +8,7 @@ import worker, {
   buildFoldGroups,
   buildPoolKey,
   combinedEffectTags,
+  evaluateAllEligibility,
   normalizeContribution,
 } from './index.js'
 
@@ -59,25 +60,41 @@ class D1Database {
   }
 }
 
-function makeEnv() {
+function makeEnv(overrides = {}) {
   const db = new DatabaseSync(':memory:')
   const schema = readFileSync(new URL('./schema.sql', import.meta.url), 'utf8')
   db.exec(schema)
-  return { db, env: { DB: new D1Database(db), ADMIN_TOKEN: 'test-admin' } }
+  return {
+    db,
+    env: {
+      DB: new D1Database(db),
+      ADMIN_TOKEN: 'test-admin',
+      CONTRIBUTOR_RATE_LIMIT_SALT: 'test-salt',
+      ...overrides,
+    },
+  }
 }
 
 async function post(env, path, body, headers = {}) {
   return worker.fetch(new Request(`https://example.test${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
+    headers: {
+      'Content-Type': 'application/json',
+      'CF-Connecting-IP': '203.0.113.10',
+      ...headers,
+    },
     body: JSON.stringify(body),
   }), env)
 }
 
-async function optInAndSubmit(env, contributorId, contribution = {}) {
-  let response = await post(env, '/contributors/opt-in', {
+async function optIn(env, contributorId, ip = '203.0.113.10') {
+  return post(env, '/contributors/opt-in', {
     anonymous_contributor_id: contributorId,
-  })
+  }, { 'CF-Connecting-IP': ip })
+}
+
+async function optInAndSubmit(env, contributorId, contribution = {}, ip = '203.0.113.10') {
+  let response = await optIn(env, contributorId, ip)
   assert.equal(response.status, 200)
 
   response = await post(env, '/contributions', {
@@ -87,8 +104,32 @@ async function optInAndSubmit(env, contributorId, contribution = {}) {
     region_bucket: 'pa-ne',
     body_tags: ['Relaxed'],
     ...contribution,
-  })
+  }, { 'CF-Connecting-IP': ip })
   assert.equal(response.status, 200)
+}
+
+function insertStagedContributors(db, count, options = {}) {
+  const productKey = options.productKey || 'red berry'
+  const regionBucket = options.regionBucket || 'pa-ne'
+  const combinationKey = options.combinationKey || 'combo-red'
+  const submittedAt = options.submittedAt || '2026-08-05T00:00:00.000Z'
+
+  const insert = db.prepare(`
+    INSERT INTO shared_contribution_staging (
+      contributor_id, combination_key, product_key, product_name_normalized,
+      region_bucket, body_tags_json, mind_tags_json, mood_tags_json, submitted_at
+    ) VALUES (?, ?, ?, ?, ?, '[]', '[]', '[]', ?)
+  `)
+  for (let index = 1; index <= count; index += 1) {
+    insert.run(
+      `device-${index}`,
+      combinationKey,
+      productKey,
+      'Red Berry',
+      regionBucket,
+      submittedAt
+    )
+  }
 }
 
 test('normalizes existing app payloads without adding personal fields', () => {
@@ -144,62 +185,137 @@ test('effect tags are deduplicated across body, mind, and mood arrays', () => {
   }), ['Happy', 'Relaxed', 'Sleepy'])
 })
 
-test('a pool becomes eligible at ten staged contributors and stays eligible after opt-out', async () => {
+test('querying an ineligible pool never returns an exact or approximate contributor count', async () => {
   const { db, env } = makeEnv()
+  insertStagedContributors(db, 9)
 
-  for (let index = 1; index <= 9; index += 1) {
-    await optInAndSubmit(env, `device-${index}`)
+  for (const url of [
+    'https://example.test/aggregates?product_key=red%20berry',
+    'https://example.test/aggregates?product_key=red%20berry&region_bucket=pa-ne',
+  ]) {
+    const response = await worker.fetch(new Request(url), env)
+    assert.equal(response.status, 200)
+    const body = await response.json()
+
+    assert.equal(body.pool_eligible, false)
+    assert.equal(body.minimum_pool_met, false)
+    assert.deepEqual(body.effects, [])
+    for (const forbiddenField of [
+      'sample_size',
+      'total_contributions',
+      'minimum_required',
+      'distinct_contributor_count',
+      'distinct_contributor_count_is_approximate',
+    ]) {
+      assert.equal(Object.hasOwn(body, forbiddenField), false, forbiddenField)
+    }
+  }
+})
+
+test('rapid creation of many contributor IDs from one source is throttled with retry-later', async () => {
+  const { db, env } = makeEnv({
+    CONTRIBUTOR_CREATION_LIMIT: '3',
+    CONTRIBUTOR_CREATION_WINDOW_HOURS: '1',
+  })
+
+  for (let index = 1; index <= 3; index += 1) {
+    const response = await optIn(env, `device-${index}`, '198.51.100.40')
+    assert.equal(response.status, 200)
   }
 
-  let eligibilityCount = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM shared_pool_eligibility
+  const blocked = await optIn(env, 'device-4', '198.51.100.40')
+  assert.equal(blocked.status, 429)
+  assert.ok(Number(blocked.headers.get('Retry-After')) >= 60)
+  const body = await blocked.json()
+  assert.equal(body.retry_later, true)
+  assert.ok(body.retry_after_seconds >= 60)
+
+  const contributorCount = db.prepare(`
+    SELECT COUNT(*) AS count FROM shared_contributors
+  `).get().count
+  assert.equal(contributorCount, 3)
+})
+
+test('a brief threshold crossing that drops before 24 hours does not become eligible', async () => {
+  const { db, env } = makeEnv()
+  insertStagedContributors(db, 10)
+
+  const t0 = new Date('2026-08-05T00:00:00.000Z')
+  await evaluateAllEligibility(env, t0)
+
+  let pending = db.prepare(`
+    SELECT pending_since FROM shared_pool_eligibility_pending
     WHERE eligibility_scope = 'product' AND product_key = 'red berry'
-  `).get().count
-  assert.equal(eligibilityCount, 0)
+  `).get()
+  assert.equal(pending.pending_since, t0.toISOString())
 
-  await optInAndSubmit(env, 'device-10')
+  db.prepare(`
+    DELETE FROM shared_contribution_staging WHERE contributor_id = 'device-10'
+  `).run()
+  await evaluateAllEligibility(env, new Date('2026-08-05T12:00:00.000Z'))
 
-  eligibilityCount = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM shared_pool_eligibility
+  pending = db.prepare(`
+    SELECT pending_since FROM shared_pool_eligibility_pending
     WHERE eligibility_scope = 'product' AND product_key = 'red berry'
-  `).get().count
-  assert.equal(eligibilityCount, 1)
+  `).get()
+  const eligible = db.prepare(`
+    SELECT eligible_at FROM shared_pool_eligibility
+    WHERE eligibility_scope = 'product' AND product_key = 'red berry'
+  `).get()
+  assert.equal(pending, undefined)
+  assert.equal(eligible, undefined)
+})
 
-  const combinationEligibility = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM shared_pool_eligibility
-    WHERE eligibility_scope = 'combination_product'
-      AND product_key = 'red berry'
-  `).get().count
-  assert.equal(combinationEligibility, 1)
+test('a pool that stays above threshold through a fresh check after 24 hours becomes eligible', async () => {
+  const { db, env } = makeEnv()
+  insertStagedContributors(db, 10)
+
+  const t0 = new Date('2026-08-05T00:00:00.000Z')
+  await evaluateAllEligibility(env, t0)
+
+  let eligible = db.prepare(`
+    SELECT eligible_at FROM shared_pool_eligibility
+    WHERE eligibility_scope = 'product' AND product_key = 'red berry'
+  `).get()
+  assert.equal(eligible, undefined)
+
+  const confirmation = new Date('2026-08-06T00:00:01.000Z')
+  await evaluateAllEligibility(env, confirmation)
+
+  eligible = db.prepare(`
+    SELECT eligible_at FROM shared_pool_eligibility
+    WHERE eligibility_scope = 'product' AND product_key = 'red berry'
+  `).get()
+  const pending = db.prepare(`
+    SELECT pending_since FROM shared_pool_eligibility_pending
+    WHERE eligibility_scope = 'product' AND product_key = 'red berry'
+  `).get()
+  assert.equal(eligible.eligible_at, confirmation.toISOString())
+  assert.equal(pending, undefined)
+})
+
+test('a permanent eligibility flag remains after a later opt-out', async () => {
+  const { db, env } = makeEnv({ CONTRIBUTOR_CREATION_LIMIT: '20' })
+  insertStagedContributors(db, 10)
+  db.prepare(`
+    INSERT INTO shared_contributors (anonymous_contributor_id, is_active)
+    VALUES ('device-1', 1)
+  `).run()
+
+  const t0 = new Date('2026-08-05T00:00:00.000Z')
+  await evaluateAllEligibility(env, t0)
+  await evaluateAllEligibility(env, new Date('2026-08-06T00:00:01.000Z'))
 
   const response = await post(env, '/contributors/opt-out', {
     anonymous_contributor_id: 'device-1',
   })
   assert.equal(response.status, 200)
 
-  const stagedContributors = db.prepare(`
-    SELECT COUNT(DISTINCT contributor_id) AS count
-    FROM shared_contribution_staging
-    WHERE product_key = 'red berry'
-  `).get().count
-  assert.equal(stagedContributors, 9)
-
-  eligibilityCount = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM shared_pool_eligibility
+  const eligible = db.prepare(`
+    SELECT eligible_at FROM shared_pool_eligibility
     WHERE eligibility_scope = 'product' AND product_key = 'red berry'
-  `).get().count
-  assert.equal(eligibilityCount, 1)
-
-  const membershipTable = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM sqlite_master
-    WHERE type = 'table' AND name = 'shared_aggregate_memberships'
-  `).get().count
-  assert.equal(membershipTable, 0)
+  `).get()
+  assert.ok(eligible)
 })
 
 test('aggregate reads suppress unqualified combinations and never double-count one tag across categories', async () => {
