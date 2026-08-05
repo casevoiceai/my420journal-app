@@ -3,6 +3,8 @@ const REGION_MINIMUM = 25
 const STAGING_WINDOW_MS = 72 * 60 * 60 * 1000
 const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000
 const MAX_SUBMISSIONS_PER_24_HOURS = 20
+const TOKEN_MODULUS = 2147483647
+const MEMBERSHIP_INSERT_CHUNK_SIZE = 50
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -31,10 +33,12 @@ function cleanTags(value) {
     try { tags = JSON.parse(tags) } catch { tags = [] }
   }
   if (!Array.isArray(tags)) return []
-  return tags
-    .filter((tag) => typeof tag === 'string')
-    .map((tag) => tag.trim())
-    .filter(Boolean)
+  return [...new Set(
+    tags
+      .filter((tag) => typeof tag === 'string')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b))
 }
 
 function normalizeContribution(body = {}) {
@@ -86,6 +90,22 @@ function buildPoolKey(scope, productKey, regionBucket = null) {
   throw new Error(`Unsupported aggregate scope: ${scope}`)
 }
 
+function scopedContributorToken(aggregateKey, contributorId) {
+  const input = `${aggregateKey}|${contributorId}`
+  let h1 = 17
+  let h2 = 29
+  let h3 = 43
+
+  for (const character of input) {
+    const codePoint = character.codePointAt(0)
+    h1 = (h1 * 131 + codePoint) % TOKEN_MODULUS
+    h2 = (h2 * 137 + codePoint) % TOKEN_MODULUS
+    h3 = (h3 * 149 + codePoint) % TOKEN_MODULUS
+  }
+
+  return `${h1}:${h2}:${h3}`
+}
+
 function buildFoldGroups(rows = []) {
   const groups = new Map()
   const add = (key, row, scope) => {
@@ -94,10 +114,10 @@ function buildFoldGroups(rows = []) {
       aggregate_scope: scope,
       product_key: row.product_key,
       total_count: 0,
-      contributor_ids: new Set(),
+      contributor_tokens: new Set(),
     }
     group.total_count += 1
-    group.contributor_ids.add(row.contributor_id)
+    group.contributor_tokens.add(scopedContributorToken(key, row.contributor_id))
     groups.set(key, group)
   }
 
@@ -110,10 +130,54 @@ function buildFoldGroups(rows = []) {
     }
   }
 
-  return [...groups.values()].map(({ contributor_ids, ...group }) => ({
+  return [...groups.values()].map(({ contributor_tokens, ...group }) => ({
     ...group,
-    distinct_contributor_count: contributor_ids.size,
+    distinct_contributor_count: contributor_tokens.size,
   }))
+}
+
+function buildMembershipPairs(rows = []) {
+  const pairs = new Map()
+
+  const add = (aggregateKey, contributorId) => {
+    if (!aggregateKey || !contributorId) return
+    const contributorToken = scopedContributorToken(aggregateKey, contributorId)
+    pairs.set(`${aggregateKey}\u0000${contributorToken}`, {
+      aggregate_key: aggregateKey,
+      contributor_token: contributorToken,
+    })
+  }
+
+  for (const row of rows) {
+    if (!row?.contributor_id || !row?.product_key || !row?.combination_key) continue
+    add(row.combination_key, row.contributor_id)
+    add(buildPoolKey('product', row.product_key), row.contributor_id)
+    if (row.region_bucket) {
+      add(buildPoolKey('product_region', row.product_key, row.region_bucket), row.contributor_id)
+    }
+  }
+
+  return [...pairs.values()]
+}
+
+function buildMembershipInsertStatements(env, pairs = []) {
+  const statements = []
+
+  for (let index = 0; index < pairs.length; index += MEMBERSHIP_INSERT_CHUNK_SIZE) {
+    const chunk = pairs.slice(index, index + MEMBERSHIP_INSERT_CHUNK_SIZE)
+    const placeholders = chunk.map(() => '(?, ?)').join(', ')
+    const bindings = chunk.flatMap((pair) => [pair.aggregate_key, pair.contributor_token])
+
+    statements.push(
+      env.DB.prepare(`
+        INSERT OR IGNORE INTO shared_aggregate_memberships (
+          aggregate_key, contributor_token
+        ) VALUES ${placeholders}
+      `).bind(...bindings)
+    )
+  }
+
+  return statements
 }
 
 async function readJson(request) {
@@ -205,6 +269,8 @@ async function createContribution(env, body) {
   const duplicate = await env.DB.prepare(`
     SELECT submitted_at FROM shared_contribution_staging
     WHERE contributor_id = ? AND combination_key = ?
+    ORDER BY submitted_at DESC
+    LIMIT 1
   `).bind(contributorId, combinationKey).first()
   if (duplicate) {
     return json({
@@ -290,23 +356,35 @@ async function retractContribution(env, body) {
   })
 }
 
-const UPSERT_COUNTS = `
+const UPSERT_TOTALS = `
   ON CONFLICT(combination_key) DO UPDATE SET
     total_count = shared_product_aggregates.total_count + excluded.total_count,
-    distinct_contributor_count = shared_product_aggregates.distinct_contributor_count + excluded.distinct_contributor_count,
     last_updated = excluded.last_updated
 `
 
 async function foldEligibleStaging(env, now = new Date()) {
   const cutoff = new Date(now.getTime() - STAGING_WINDOW_MS).toISOString()
-  const eligible = await env.DB.prepare(`
-    SELECT COUNT(*) AS eligible_count FROM shared_contribution_staging WHERE submitted_at <= ?
-  `).bind(cutoff).first()
-  const eligibleCount = Number(eligible?.eligible_count || 0)
-  if (eligibleCount === 0) return { ok: true, cutoff, staged_rows_folded: 0 }
+  const eligibleResult = await env.DB.prepare(`
+    SELECT
+      contributor_id, combination_key, product_key, product_name_normalized,
+      brand_name, product_category, strain_type, region_bucket,
+      body_tags_json, mind_tags_json, mood_tags_json, mood_face,
+      amount_bucket, time_bucket, app_version, submitted_at
+    FROM shared_contribution_staging
+    WHERE submitted_at <= ?
+  `).bind(cutoff).all()
+
+  const eligibleRows = eligibleResult.results || []
+  if (eligibleRows.length === 0) {
+    return { ok: true, cutoff, staged_rows_folded: 0 }
+  }
 
   const nowIso = now.toISOString()
-  const results = await env.DB.batch([
+  const membershipPairs = buildMembershipPairs(eligibleRows)
+  const membershipStatements = buildMembershipInsertStatements(env, membershipPairs)
+
+  const statements = [
+    ...membershipStatements,
     env.DB.prepare(`
       INSERT INTO shared_product_aggregates (
         combination_key, aggregate_scope, product_key, product_name_normalized,
@@ -319,11 +397,11 @@ async function foldEligibleStaging(env, now = new Date()) {
         MAX(brand_name), MAX(product_category), MAX(strain_type), MAX(region_bucket),
         MAX(body_tags_json), MAX(mind_tags_json), MAX(mood_tags_json), MAX(mood_face),
         MAX(amount_bucket), MAX(time_bucket), MAX(app_version),
-        COUNT(*), COUNT(DISTINCT contributor_id), ?
+        COUNT(*), 0, ?
       FROM shared_contribution_staging
       WHERE submitted_at <= ?
       GROUP BY combination_key
-      ${UPSERT_COUNTS}
+      ${UPSERT_TOTALS}
     `).bind(nowIso, cutoff),
     env.DB.prepare(`
       INSERT INTO shared_product_aggregates (
@@ -332,11 +410,11 @@ async function foldEligibleStaging(env, now = new Date()) {
       )
       SELECT json_object('scope', 'product', 'product_key', product_key),
         'product', product_key, MAX(product_name_normalized),
-        COUNT(*), COUNT(DISTINCT contributor_id), ?
+        COUNT(*), 0, ?
       FROM shared_contribution_staging
       WHERE submitted_at <= ?
       GROUP BY product_key
-      ${UPSERT_COUNTS}
+      ${UPSERT_TOTALS}
     `).bind(nowIso, cutoff),
     env.DB.prepare(`
       INSERT INTO shared_product_aggregates (
@@ -345,20 +423,31 @@ async function foldEligibleStaging(env, now = new Date()) {
       )
       SELECT json_object('scope', 'product_region', 'product_key', product_key, 'region_bucket', region_bucket),
         'product_region', product_key, MAX(product_name_normalized), region_bucket,
-        COUNT(*), COUNT(DISTINCT contributor_id), ?
+        COUNT(*), 0, ?
       FROM shared_contribution_staging
       WHERE submitted_at <= ? AND region_bucket IS NOT NULL
       GROUP BY product_key, region_bucket
-      ${UPSERT_COUNTS}
+      ${UPSERT_TOTALS}
     `).bind(nowIso, cutoff),
+    env.DB.prepare(`
+      UPDATE shared_product_aggregates
+      SET distinct_contributor_count = (
+        SELECT COUNT(*)
+        FROM shared_aggregate_memberships membership
+        WHERE membership.aggregate_key = shared_product_aggregates.combination_key
+      )
+    `),
     env.DB.prepare(`DELETE FROM shared_contribution_staging WHERE submitted_at <= ?`).bind(cutoff),
-  ])
+  ]
+
+  const results = await env.DB.batch(statements)
+  const deleteResult = results[results.length - 1]
 
   return {
     ok: true,
     cutoff,
-    staged_rows_folded: changes(results[3]),
-    distinct_counts_are_approximate: true,
+    staged_rows_folded: changes(deleteResult),
+    distinct_counts_are_approximate: false,
   }
 }
 
@@ -391,7 +480,7 @@ async function getAggregate(env, url) {
       sample_size: contributorCount,
       total_contributions: totalContributions,
       minimum_required: minimum,
-      distinct_contributor_count_is_approximate: true,
+      distinct_contributor_count_is_approximate: false,
       effects: [],
     })
   }
@@ -400,13 +489,18 @@ async function getAggregate(env, url) {
     ? await env.DB.prepare(`
         SELECT body_tags_json, mind_tags_json, mood_tags_json, total_count
         FROM shared_product_aggregates
-        WHERE aggregate_scope = 'combination' AND product_key = ? AND region_bucket = ?
-      `).bind(productKey, regionBucket).all()
+        WHERE aggregate_scope = 'combination'
+          AND product_key = ?
+          AND region_bucket = ?
+          AND distinct_contributor_count >= ?
+      `).bind(productKey, regionBucket, minimum).all()
     : await env.DB.prepare(`
         SELECT body_tags_json, mind_tags_json, mood_tags_json, total_count
         FROM shared_product_aggregates
-        WHERE aggregate_scope = 'combination' AND product_key = ?
-      `).bind(productKey).all()
+        WHERE aggregate_scope = 'combination'
+          AND product_key = ?
+          AND distinct_contributor_count >= ?
+      `).bind(productKey, minimum).all()
 
   const counts = new Map()
   for (const row of rows.results || []) {
@@ -421,7 +515,13 @@ async function getAggregate(env, url) {
   const effects = [...counts.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, 10)
-    .map(([label, count]) => ({ label, count, percent: (count / contributorCount) * 100 }))
+    .map(([label, count]) => ({
+      label,
+      count,
+      percent: totalContributions > 0
+        ? Math.min(100, (count / totalContributions) * 100)
+        : 0,
+    }))
 
   return json({
     ok: true,
@@ -431,7 +531,7 @@ async function getAggregate(env, url) {
     sample_size: contributorCount,
     total_contributions: totalContributions,
     minimum_required: minimum,
-    distinct_contributor_count_is_approximate: true,
+    distinct_contributor_count_is_approximate: false,
     last_updated: pool?.last_updated || null,
     effects,
   })
@@ -468,7 +568,9 @@ export default {
 export {
   buildCombinationKey,
   buildFoldGroups,
+  buildMembershipPairs,
   buildPoolKey,
   foldEligibleStaging,
   normalizeContribution,
+  scopedContributorToken,
 }
