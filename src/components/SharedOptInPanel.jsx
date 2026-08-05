@@ -3,6 +3,7 @@ import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
 import { requestOptOutDeletion, syncOptInStatus } from '../lib/sharedAggregateApi'
 import {
+  SHARED_JOURNEY_SUBMISSIONS_PAUSED,
   clearSharedContributionQueue,
   retryQueuedSharedContributions,
 } from '../lib/sharedContributionQueue'
@@ -63,6 +64,11 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
 
     try {
       if (!enabled) {
+        if (SHARED_JOURNEY_SUBMISSIONS_PAUSED) {
+          setStatus('Shared Journey is temporarily paused for a data update.')
+          return
+        }
+
         const next = enableSharedOptIn(state)
         setState(next)
         await saveProfileFields(next)
@@ -98,19 +104,24 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
               Shared Journey View
             </p>
             <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-              Off by default. If you turn it on, new entries saved going forward can contribute anonymous product signals to aggregate counts only. Entries from before opt-in are not backfilled.
+              {SHARED_JOURNEY_SUBMISSIONS_PAUSED
+                ? 'Shared Journey is temporarily paused for a data update. New shared submissions are not being accepted.'
+                : 'Off by default. If you turn it on, new entries saved going forward can contribute anonymous product signals to aggregate counts only. Entries from before opt-in are not backfilled.'}
             </p>
           </div>
           <button
             onClick={handleToggle}
-            disabled={saving}
-            aria-label="Toggle Shared Journey View"
+            disabled={saving || (SHARED_JOURNEY_SUBMISSIONS_PAUSED && !enabled)}
+            aria-label={SHARED_JOURNEY_SUBMISSIONS_PAUSED && !enabled
+              ? 'Shared Journey temporarily paused'
+              : 'Toggle Shared Journey View'}
             style={{
               width: '48px', height: '28px', borderRadius: '14px', border: 'none',
               backgroundColor: enabled ? S.gold : S.border,
-              cursor: saving ? 'not-allowed' : 'pointer',
+              cursor: saving || (SHARED_JOURNEY_SUBMISSIONS_PAUSED && !enabled) ? 'not-allowed' : 'pointer',
               position: 'relative', transition: 'background-color 0.2s ease',
               flexShrink: 0, padding: 0, marginTop: '2px',
+              opacity: SHARED_JOURNEY_SUBMISSIONS_PAUSED && !enabled ? 0.65 : 1,
             }}
           >
             <div style={{
