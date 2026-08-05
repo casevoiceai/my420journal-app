@@ -25,6 +25,7 @@ export default function AggregateSignalCard({ aggregate }) {
 
   const suppressed = aggregate.suppressed || aggregate.minimum_pool_met === false
   const effects = Array.isArray(aggregate.effects) ? aggregate.effects : []
+  const approximate = aggregate.distinct_contributor_count_is_approximate === true
 
   return (
     <div style={{
@@ -61,9 +62,11 @@ export default function AggregateSignalCard({ aggregate }) {
         </p>
       ) : (
         <>
-          <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: '0 0 14px 0' }}>
-            Based on {aggregate.sample_size} opted-in contributors.
-          </p>
+          {Number(aggregate.sample_size) > 0 && (
+            <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: '0 0 14px 0' }}>
+              Based on {approximate ? 'approximately ' : ''}{aggregate.sample_size} opted-in contributors.
+            </p>
+          )}
           {effects.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {effects.map((effect) => (
