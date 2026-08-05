@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS shared_contribution_staging (
   time_bucket TEXT,
   app_version TEXT,
   submitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (contributor_id, combination_key)
+  PRIMARY KEY (contributor_id, combination_key, submitted_at)
 );
 CREATE INDEX IF NOT EXISTS idx_shared_staging_submitted_at
   ON shared_contribution_staging (submitted_at);
@@ -68,18 +68,61 @@ CREATE INDEX IF NOT EXISTS idx_shared_aggregates_scope_product
 CREATE INDEX IF NOT EXISTS idx_shared_aggregates_scope_product_region
   ON shared_product_aggregates (aggregate_scope, product_key, region_bucket);
 
+CREATE TABLE IF NOT EXISTS shared_aggregate_memberships (
+  aggregate_key TEXT NOT NULL,
+  contributor_token TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (aggregate_key, contributor_token)
+);
+CREATE INDEX IF NOT EXISTS idx_shared_memberships_aggregate
+  ON shared_aggregate_memberships (aggregate_key);
+
+CREATE TABLE IF NOT EXISTS shared_layer2_migration_quarantine (
+  source_contribution_id TEXT PRIMARY KEY,
+  contributor_id TEXT,
+  quarantine_reason TEXT NOT NULL,
+  product_key TEXT,
+  product_name_normalized TEXT,
+  body_tags_json TEXT,
+  mind_tags_json TEXT,
+  mood_tags_json TEXT,
+  submitted_at TEXT,
+  quarantined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS shared_layer2_migration_audit (
   migration_key TEXT PRIMARY KEY,
+  source_row_count INTEGER NOT NULL DEFAULT 0,
   opted_out_rows_deleted INTEGER NOT NULL DEFAULT 0,
-  old_row_count INTEGER NOT NULL DEFAULT 0,
-  aggregate_total INTEGER NOT NULL DEFAULT 0,
+  duplicate_rows_merged INTEGER NOT NULL DEFAULT 0,
+  quarantined_rows INTEGER NOT NULL DEFAULT 0,
+  quarantine_orphaned_rows INTEGER NOT NULL DEFAULT 0,
+  quarantine_empty_product_key_rows INTEGER NOT NULL DEFAULT 0,
+  quarantine_malformed_effect_rows INTEGER NOT NULL DEFAULT 0,
+  quarantine_invalid_timestamp_rows INTEGER NOT NULL DEFAULT 0,
+  valid_unique_rows INTEGER NOT NULL DEFAULT 0,
+  expected_staging_rows INTEGER NOT NULL DEFAULT 0,
+  actual_staging_rows INTEGER NOT NULL DEFAULT 0,
+  expected_folded_rows INTEGER NOT NULL DEFAULT 0,
+  combination_total INTEGER NOT NULL DEFAULT 0,
+  product_total INTEGER NOT NULL DEFAULT 0,
+  expected_product_region_total INTEGER NOT NULL DEFAULT 0,
+  product_region_total INTEGER NOT NULL DEFAULT 0,
+  expected_combination_memberships INTEGER NOT NULL DEFAULT 0,
+  actual_combination_memberships INTEGER NOT NULL DEFAULT 0,
+  expected_product_memberships INTEGER NOT NULL DEFAULT 0,
+  actual_product_memberships INTEGER NOT NULL DEFAULT 0,
+  expected_product_region_memberships INTEGER NOT NULL DEFAULT 0,
+  actual_product_region_memberships INTEGER NOT NULL DEFAULT 0,
+  distinct_count_mismatches INTEGER NOT NULL DEFAULT 0,
   aggregate_row_count INTEGER NOT NULL DEFAULT 0,
   old_table_dropped INTEGER NOT NULL DEFAULT 1,
   completed_at TEXT
 );
+
 INSERT INTO shared_layer2_migration_audit (
   migration_key, old_table_dropped, completed_at
 ) VALUES (
-  'layer2_aggregate_redesign_v1', 1, CURRENT_TIMESTAMP
+  'layer2_aggregate_redesign_v2', 1, CURRENT_TIMESTAMP
 )
 ON CONFLICT(migration_key) DO NOTHING;
