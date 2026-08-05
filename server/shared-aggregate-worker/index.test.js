@@ -10,6 +10,8 @@ import worker, {
   combinedEffectTags,
   evaluateAllEligibility,
   normalizeContribution,
+  normalizeSourceRange,
+  sourceRateKey,
 } from './index.js'
 
 class D1Statement {
@@ -93,26 +95,12 @@ async function optIn(env, contributorId, ip = '203.0.113.10') {
   }, { 'CF-Connecting-IP': ip })
 }
 
-async function optInAndSubmit(env, contributorId, contribution = {}, ip = '203.0.113.10') {
-  let response = await optIn(env, contributorId, ip)
-  assert.equal(response.status, 200)
-
-  response = await post(env, '/contributions', {
-    anonymous_contributor_id: contributorId,
-    product_key: 'red berry',
-    product_name_normalized: 'Red Berry',
-    region_bucket: 'pa-ne',
-    body_tags: ['Relaxed'],
-    ...contribution,
-  }, { 'CF-Connecting-IP': ip })
-  assert.equal(response.status, 200)
-}
-
 function insertStagedContributors(db, count, options = {}) {
   const productKey = options.productKey || 'red berry'
   const regionBucket = options.regionBucket || 'pa-ne'
   const combinationKey = options.combinationKey || 'combo-red'
   const submittedAt = options.submittedAt || '2026-08-05T00:00:00.000Z'
+  const startIndex = options.startIndex || 1
 
   const insert = db.prepare(`
     INSERT INTO shared_contribution_staging (
@@ -120,7 +108,8 @@ function insertStagedContributors(db, count, options = {}) {
       region_bucket, body_tags_json, mind_tags_json, mood_tags_json, submitted_at
     ) VALUES (?, ?, ?, ?, ?, '[]', '[]', '[]', ?)
   `)
-  for (let index = 1; index <= count; index += 1) {
+  for (let offset = 0; offset < count; offset += 1) {
+    const index = startIndex + offset
     insert.run(
       `device-${index}`,
       combinationKey,
@@ -212,10 +201,44 @@ test('querying an ineligible pool never returns an exact or approximate contribu
   }
 })
 
+test('equivalent IPv6 forms and IPv4-mapped forms produce the same source key', async () => {
+  const env = { CONTRIBUTOR_RATE_LIMIT_SALT: 'test-salt' }
+  const keyFor = (address) => sourceRateKey(new Request('https://example.test', {
+    headers: { 'CF-Connecting-IP': address },
+  }), env)
+
+  assert.equal(
+    normalizeSourceRange('2001:0db8:0000:0000:0000:0000:0000:0001'),
+    '2001:0db8:0000:0000::/64'
+  )
+  assert.equal(
+    await keyFor('2001:0db8:0000:0000:0000:0000:0000:0001'),
+    await keyFor('2001:db8::abcd')
+  )
+  assert.equal(
+    await keyFor('::ffff:192.0.2.128'),
+    await keyFor('0:0:0:0:0:ffff:c000:0280')
+  )
+})
+
+test('missing or empty rate-limit salt fails clearly instead of using a fallback', async () => {
+  for (const salt of [undefined, '', '   ']) {
+    const { db, env } = makeEnv({ CONTRIBUTOR_RATE_LIMIT_SALT: salt })
+    const response = await optIn(env, `device-${String(salt)}`)
+    assert.equal(response.status, 500)
+    const body = await response.json()
+    assert.equal(body.code, 'CONTRIBUTOR_RATE_LIMIT_SALT_MISSING')
+    assert.match(body.error, /configuration/i)
+    assert.equal(db.prepare('SELECT COUNT(*) AS count FROM shared_contributors').get().count, 0)
+    assert.equal(db.prepare('SELECT COUNT(*) AS count FROM shared_contributor_creation_events').get().count, 0)
+  }
+})
+
 test('rapid creation of many contributor IDs from one source is throttled with retry-later', async () => {
   const { db, env } = makeEnv({
     CONTRIBUTOR_CREATION_LIMIT: '3',
     CONTRIBUTOR_CREATION_WINDOW_HOURS: '1',
+    CONTRIBUTOR_CREATION_DAILY_LIMIT: '20',
   })
 
   for (let index = 1; index <= 3; index += 1) {
@@ -229,11 +252,31 @@ test('rapid creation of many contributor IDs from one source is throttled with r
   const body = await blocked.json()
   assert.equal(body.retry_later, true)
   assert.ok(body.retry_after_seconds >= 60)
+  assert.equal(db.prepare('SELECT COUNT(*) AS count FROM shared_contributors').get().count, 3)
+})
 
-  const contributorCount = db.prepare(`
-    SELECT COUNT(*) AS count FROM shared_contributors
-  `).get().count
-  assert.equal(contributorCount, 3)
+test('the longer rolling window cap blocks repeated short-window bursts', async () => {
+  const { db, env } = makeEnv({
+    CONTRIBUTOR_CREATION_LIMIT: '5',
+    CONTRIBUTOR_CREATION_WINDOW_HOURS: '6',
+    CONTRIBUTOR_CREATION_DAILY_LIMIT: '6',
+    CONTRIBUTOR_CREATION_DAILY_WINDOW_HOURS: '24',
+  })
+
+  for (let index = 1; index <= 5; index += 1) {
+    assert.equal((await optIn(env, `device-${index}`, '198.51.100.41')).status, 200)
+  }
+  const sevenHoursAgo = new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString()
+  db.prepare(`
+    UPDATE shared_contributor_creation_events
+    SET created_at = ?
+  `).run(sevenHoursAgo)
+
+  assert.equal((await optIn(env, 'device-6', '198.51.100.41')).status, 200)
+  const blocked = await optIn(env, 'device-7', '198.51.100.41')
+  assert.equal(blocked.status, 429)
+  assert.equal((await blocked.json()).retry_later, true)
+  assert.equal(db.prepare('SELECT COUNT(*) AS count FROM shared_contributors').get().count, 6)
 })
 
 test('a brief threshold crossing that drops before 24 hours does not become eligible', async () => {
@@ -249,9 +292,7 @@ test('a brief threshold crossing that drops before 24 hours does not become elig
   `).get()
   assert.equal(pending.pending_since, t0.toISOString())
 
-  db.prepare(`
-    DELETE FROM shared_contribution_staging WHERE contributor_id = 'device-10'
-  `).run()
+  db.prepare(`DELETE FROM shared_contribution_staging WHERE contributor_id = 'device-10'`).run()
   await evaluateAllEligibility(env, new Date('2026-08-05T12:00:00.000Z'))
 
   pending = db.prepare(`
@@ -266,23 +307,41 @@ test('a brief threshold crossing that drops before 24 hours does not become elig
   assert.equal(eligible, undefined)
 })
 
-test('a pool that stays above threshold through a fresh check after 24 hours becomes eligible', async () => {
+test('unchanged original rows sitting for 24 hours do not become eligible', async () => {
   const { db, env } = makeEnv()
   insertStagedContributors(db, 10)
 
   const t0 = new Date('2026-08-05T00:00:00.000Z')
   await evaluateAllEligibility(env, t0)
+  await evaluateAllEligibility(env, new Date('2026-08-06T00:00:01.000Z'))
 
-  let eligible = db.prepare(`
+  const eligible = db.prepare(`
     SELECT eligible_at FROM shared_pool_eligibility
     WHERE eligibility_scope = 'product' AND product_key = 'red berry'
   `).get()
+  const pending = db.prepare(`
+    SELECT pending_since FROM shared_pool_eligibility_pending
+    WHERE eligibility_scope = 'product' AND product_key = 'red berry'
+  `).get()
   assert.equal(eligible, undefined)
+  assert.equal(pending, undefined)
+})
+
+test('a pool with genuinely new staged contributors during the waiting period becomes eligible', async () => {
+  const { db, env } = makeEnv({ ELIGIBILITY_NEW_ACTIVITY_CONTRIBUTOR_MINIMUM: '2' })
+  const t0 = new Date('2026-08-05T00:00:00.000Z')
+  insertStagedContributors(db, 10, { submittedAt: t0.toISOString() })
+  await evaluateAllEligibility(env, t0)
+
+  insertStagedContributors(db, 2, {
+    startIndex: 11,
+    submittedAt: '2026-08-05T12:00:00.000Z',
+  })
 
   const confirmation = new Date('2026-08-06T00:00:01.000Z')
   await evaluateAllEligibility(env, confirmation)
 
-  eligible = db.prepare(`
+  const eligible = db.prepare(`
     SELECT eligible_at FROM shared_pool_eligibility
     WHERE eligibility_scope = 'product' AND product_key = 'red berry'
   `).get()
@@ -295,15 +354,16 @@ test('a pool that stays above threshold through a fresh check after 24 hours bec
 })
 
 test('a permanent eligibility flag remains after a later opt-out', async () => {
-  const { db, env } = makeEnv({ CONTRIBUTOR_CREATION_LIMIT: '20' })
-  insertStagedContributors(db, 10)
-  db.prepare(`
-    INSERT INTO shared_contributors (anonymous_contributor_id, is_active)
-    VALUES ('device-1', 1)
-  `).run()
-
+  const { db, env } = makeEnv({ ELIGIBILITY_NEW_ACTIVITY_CONTRIBUTOR_MINIMUM: '2' })
   const t0 = new Date('2026-08-05T00:00:00.000Z')
+  insertStagedContributors(db, 10, { submittedAt: t0.toISOString() })
+  db.prepare(`INSERT INTO shared_contributors (anonymous_contributor_id, is_active) VALUES ('device-1', 1)`).run()
+
   await evaluateAllEligibility(env, t0)
+  insertStagedContributors(db, 2, {
+    startIndex: 11,
+    submittedAt: '2026-08-05T12:00:00.000Z',
+  })
   await evaluateAllEligibility(env, new Date('2026-08-06T00:00:01.000Z'))
 
   const response = await post(env, '/contributors/opt-out', {
