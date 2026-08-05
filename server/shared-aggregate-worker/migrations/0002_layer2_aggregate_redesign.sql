@@ -1,9 +1,13 @@
 -- Apply before deploying the redesigned Worker.
 -- This migration validates and classifies every legacy row before the old
 -- individual-contribution table is removed. Any failed safety check rolls
--- the migration back.
+-- the migration back when run through the documented D1 migration command.
 
 PRAGMA defer_foreign_keys = on;
+
+-- This table existed only in the rejected development design. It is removed
+-- if present and is not recreated anywhere in this migration.
+DROP TABLE IF EXISTS shared_aggregate_memberships;
 
 ALTER TABLE shared_product_aggregates
   RENAME TO shared_product_aggregates_legacy_summary;
@@ -32,6 +36,8 @@ CREATE INDEX idx_shared_staging_submitted_at
   ON shared_contribution_staging (submitted_at);
 CREATE INDEX idx_shared_staging_contributor_submitted
   ON shared_contribution_staging (contributor_id, submitted_at);
+CREATE INDEX idx_shared_staging_product_region_combination
+  ON shared_contribution_staging (product_key, region_bucket, combination_key);
 
 CREATE TABLE shared_contributor_suppressions (
   contributor_id TEXT PRIMARY KEY,
@@ -67,21 +73,39 @@ CREATE INDEX idx_shared_aggregates_scope_product
 CREATE INDEX idx_shared_aggregates_scope_product_region
   ON shared_product_aggregates (aggregate_scope, product_key, region_bucket);
 
--- Each token is deterministic only inside one aggregate key. No raw contributor
--- ID or cross-pool contributor token is retained in this table.
-CREATE TABLE shared_aggregate_memberships (
-  aggregate_key TEXT NOT NULL,
-  contributor_token TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (aggregate_key, contributor_token)
+-- These are simple permanent yes/no eligibility flags. No contributor ID,
+-- contributor hash, token, or contributor-derived value is stored here.
+CREATE TABLE shared_pool_eligibility (
+  eligibility_scope TEXT NOT NULL CHECK (
+    eligibility_scope IN (
+      'product',
+      'product_region',
+      'combination_product',
+      'combination_region'
+    )
+  ),
+  product_key TEXT NOT NULL,
+  region_bucket TEXT NOT NULL DEFAULT '',
+  combination_key TEXT NOT NULL DEFAULT '',
+  eligible_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (
+    eligibility_scope,
+    product_key,
+    region_bucket,
+    combination_key
+  )
 );
 
-CREATE INDEX idx_shared_memberships_aggregate
-  ON shared_aggregate_memberships (aggregate_key);
+CREATE INDEX idx_shared_eligibility_lookup
+  ON shared_pool_eligibility (
+    eligibility_scope,
+    product_key,
+    region_bucket,
+    combination_key
+  );
 
 CREATE TABLE shared_layer2_migration_quarantine (
   source_contribution_id TEXT PRIMARY KEY,
-  contributor_id TEXT,
   quarantine_reason TEXT NOT NULL,
   product_key TEXT,
   product_name_normalized TEXT,
@@ -89,8 +113,12 @@ CREATE TABLE shared_layer2_migration_quarantine (
   mind_tags_json TEXT,
   mood_tags_json TEXT,
   submitted_at TEXT,
-  quarantined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  quarantined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TEXT NOT NULL
 );
+
+CREATE INDEX idx_shared_quarantine_expires_at
+  ON shared_layer2_migration_quarantine (expires_at);
 
 CREATE TABLE shared_layer2_migration_audit (
   migration_key TEXT PRIMARY KEY,
@@ -110,20 +138,23 @@ CREATE TABLE shared_layer2_migration_audit (
   product_total INTEGER NOT NULL DEFAULT 0,
   expected_product_region_total INTEGER NOT NULL DEFAULT 0,
   product_region_total INTEGER NOT NULL DEFAULT 0,
-  expected_combination_memberships INTEGER NOT NULL DEFAULT 0,
-  actual_combination_memberships INTEGER NOT NULL DEFAULT 0,
-  expected_product_memberships INTEGER NOT NULL DEFAULT 0,
-  actual_product_memberships INTEGER NOT NULL DEFAULT 0,
-  expected_product_region_memberships INTEGER NOT NULL DEFAULT 0,
-  actual_product_region_memberships INTEGER NOT NULL DEFAULT 0,
-  distinct_count_mismatches INTEGER NOT NULL DEFAULT 0,
+  expected_product_eligibility INTEGER NOT NULL DEFAULT 0,
+  actual_product_eligibility INTEGER NOT NULL DEFAULT 0,
+  expected_product_region_eligibility INTEGER NOT NULL DEFAULT 0,
+  actual_product_region_eligibility INTEGER NOT NULL DEFAULT 0,
+  expected_combination_product_eligibility INTEGER NOT NULL DEFAULT 0,
+  actual_combination_product_eligibility INTEGER NOT NULL DEFAULT 0,
+  expected_combination_region_eligibility INTEGER NOT NULL DEFAULT 0,
+  actual_combination_region_eligibility INTEGER NOT NULL DEFAULT 0,
+  approximate_count_mismatches INTEGER NOT NULL DEFAULT 0,
+  quarantine_expiry_mismatches INTEGER NOT NULL DEFAULT 0,
   aggregate_row_count INTEGER NOT NULL DEFAULT 0,
   old_table_dropped INTEGER NOT NULL DEFAULT 0,
   completed_at TEXT
 );
 
 INSERT INTO shared_layer2_migration_audit (migration_key, source_row_count)
-SELECT 'layer2_aggregate_redesign_v2', COUNT(*)
+SELECT 'layer2_aggregate_redesign_v3', COUNT(*)
 FROM shared_product_contributions;
 
 -- Preserve the block on contributor IDs that had already opted out.
@@ -137,8 +168,9 @@ SELECT
 FROM shared_contributors
 WHERE is_active = 0;
 
--- Build a temporary normalized view of the legacy rows. Valid tag arrays are
--- deduplicated, stripped of blank values, sorted, and stored in canonical JSON.
+-- Build a temporary normalized view of the legacy rows. A tag field is valid
+-- only when it is a JSON array made entirely of strings. Arrays containing
+-- numbers, objects, booleans, or null are quarantined instead of cleaned.
 CREATE TABLE shared_layer2_legacy_normalized AS
 SELECT
   c.contribution_id AS source_contribution_id,
@@ -152,39 +184,51 @@ SELECT
   NULLIF(trim(COALESCE(c.strain_type, '')), '') AS strain_type,
   NULLIF(trim(COALESCE(c.region_bucket, '')), '') AS region_bucket,
   CASE
-    WHEN json_valid(c.body_tags_json) = 1 AND json_type(c.body_tags_json) = 'array'
+    WHEN json_valid(c.body_tags_json) = 1
+      AND json_type(c.body_tags_json) = 'array'
+      AND NOT EXISTS (
+        SELECT 1 FROM json_each(c.body_tags_json) WHERE type <> 'text'
+      )
     THEN COALESCE((
       SELECT json_group_array(tag)
       FROM (
         SELECT DISTINCT trim(value) AS tag
         FROM json_each(c.body_tags_json)
-        WHERE type = 'text' AND trim(value) <> ''
+        WHERE trim(value) <> ''
         ORDER BY tag
       )
     ), '[]')
     ELSE c.body_tags_json
   END AS body_tags_json,
   CASE
-    WHEN json_valid(c.mind_tags_json) = 1 AND json_type(c.mind_tags_json) = 'array'
+    WHEN json_valid(c.mind_tags_json) = 1
+      AND json_type(c.mind_tags_json) = 'array'
+      AND NOT EXISTS (
+        SELECT 1 FROM json_each(c.mind_tags_json) WHERE type <> 'text'
+      )
     THEN COALESCE((
       SELECT json_group_array(tag)
       FROM (
         SELECT DISTINCT trim(value) AS tag
         FROM json_each(c.mind_tags_json)
-        WHERE type = 'text' AND trim(value) <> ''
+        WHERE trim(value) <> ''
         ORDER BY tag
       )
     ), '[]')
     ELSE c.mind_tags_json
   END AS mind_tags_json,
   CASE
-    WHEN json_valid(c.mood_tags_json) = 1 AND json_type(c.mood_tags_json) = 'array'
+    WHEN json_valid(c.mood_tags_json) = 1
+      AND json_type(c.mood_tags_json) = 'array'
+      AND NOT EXISTS (
+        SELECT 1 FROM json_each(c.mood_tags_json) WHERE type <> 'text'
+      )
     THEN COALESCE((
       SELECT json_group_array(tag)
       FROM (
         SELECT DISTINCT trim(value) AS tag
         FROM json_each(c.mood_tags_json)
-        WHERE type = 'text' AND trim(value) <> ''
+        WHERE trim(value) <> ''
         ORDER BY tag
       )
     ), '[]')
@@ -205,25 +249,28 @@ SELECT
       ELSE ''
     END ||
     CASE
-      WHEN (
-        CASE
-          WHEN json_valid(c.body_tags_json) = 1
-            THEN CASE WHEN json_type(c.body_tags_json) = 'array' THEN 0 ELSE 1 END
-          ELSE 1
-        END
-        +
-        CASE
-          WHEN json_valid(c.mind_tags_json) = 1
-            THEN CASE WHEN json_type(c.mind_tags_json) = 'array' THEN 0 ELSE 1 END
-          ELSE 1
-        END
-        +
-        CASE
-          WHEN json_valid(c.mood_tags_json) = 1
-            THEN CASE WHEN json_type(c.mood_tags_json) = 'array' THEN 0 ELSE 1 END
-          ELSE 1
-        END
-      ) > 0 THEN 'malformed_effect_tags|'
+      WHEN NOT (
+        json_valid(c.body_tags_json) = 1
+        AND json_type(c.body_tags_json) = 'array'
+        AND NOT EXISTS (
+          SELECT 1 FROM json_each(c.body_tags_json) WHERE type <> 'text'
+        )
+      )
+      OR NOT (
+        json_valid(c.mind_tags_json) = 1
+        AND json_type(c.mind_tags_json) = 'array'
+        AND NOT EXISTS (
+          SELECT 1 FROM json_each(c.mind_tags_json) WHERE type <> 'text'
+        )
+      )
+      OR NOT (
+        json_valid(c.mood_tags_json) = 1
+        AND json_type(c.mood_tags_json) = 'array'
+        AND NOT EXISTS (
+          SELECT 1 FROM json_each(c.mood_tags_json) WHERE type <> 'text'
+        )
+      )
+      THEN 'malformed_effect_tags|'
       ELSE ''
     END ||
     CASE
@@ -243,30 +290,31 @@ SET opted_out_rows_deleted = (
   FROM shared_layer2_legacy_normalized
   WHERE contributor_exists = 1 AND is_active = 0
 )
-WHERE migration_key = 'layer2_aggregate_redesign_v2';
+WHERE migration_key = 'layer2_aggregate_redesign_v3';
 
--- Active invalid rows and orphaned rows are isolated for manual review.
+-- Active invalid rows and orphaned rows are isolated for manual review. The
+-- default review window is 30 days; the Worker deletes expired rows.
 INSERT INTO shared_layer2_migration_quarantine (
   source_contribution_id,
-  contributor_id,
   quarantine_reason,
   product_key,
   product_name_normalized,
   body_tags_json,
   mind_tags_json,
   mood_tags_json,
-  submitted_at
+  submitted_at,
+  expires_at
 )
 SELECT
   source_contribution_id,
-  contributor_id,
   quarantine_reason,
   product_key,
   product_name_normalized,
   body_tags_json,
   mind_tags_json,
   mood_tags_json,
-  submitted_at
+  submitted_at,
+  datetime('now', '+30 days')
 FROM shared_layer2_legacy_normalized
 WHERE (contributor_exists = 0 OR is_active = 1)
   AND quarantine_reason <> '';
@@ -292,11 +340,11 @@ SET
     SELECT COUNT(*) FROM shared_layer2_migration_quarantine
     WHERE instr(quarantine_reason, 'invalid_created_at') > 0
   )
-WHERE migration_key = 'layer2_aggregate_redesign_v2';
+WHERE migration_key = 'layer2_aggregate_redesign_v3';
 
 -- Prepare valid active rows with the same canonical combination key used by
 -- the Worker. Timestamp remains outside the key so exact duplicate records
--- can be merged while genuinely separate entries at different times remain.
+-- can be merged while separate entries at different times remain.
 CREATE TABLE shared_layer2_valid_prepared AS
 SELECT
   contributor_id,
@@ -368,7 +416,7 @@ SET
   valid_unique_rows = (
     SELECT COUNT(*) FROM shared_layer2_valid_deduped
   )
-WHERE migration_key = 'layer2_aggregate_redesign_v2';
+WHERE migration_key = 'layer2_aggregate_redesign_v3';
 
 -- Preserve the original timestamp for rows that have not completed 72 hours.
 INSERT INTO shared_contribution_staging (
@@ -409,7 +457,45 @@ SELECT
 FROM shared_layer2_valid_deduped
 WHERE datetime(submitted_at) > datetime('now', '-72 hours');
 
--- Rows at least 72 hours old are folded directly into permanent totals.
+-- Eligibility is determined only from the contributor IDs currently in
+-- staging. The only retained result is a pool-key flag.
+INSERT OR IGNORE INTO shared_pool_eligibility (
+  eligibility_scope, product_key, region_bucket, combination_key, eligible_at
+)
+SELECT 'product', product_key, '', '', CURRENT_TIMESTAMP
+FROM shared_contribution_staging
+GROUP BY product_key
+HAVING COUNT(DISTINCT contributor_id) >= 10;
+
+INSERT OR IGNORE INTO shared_pool_eligibility (
+  eligibility_scope, product_key, region_bucket, combination_key, eligible_at
+)
+SELECT 'product_region', product_key, region_bucket, '', CURRENT_TIMESTAMP
+FROM shared_contribution_staging
+WHERE region_bucket IS NOT NULL AND trim(region_bucket) <> ''
+GROUP BY product_key, region_bucket
+HAVING COUNT(DISTINCT contributor_id) >= 25;
+
+INSERT OR IGNORE INTO shared_pool_eligibility (
+  eligibility_scope, product_key, region_bucket, combination_key, eligible_at
+)
+SELECT 'combination_product', product_key, '', combination_key, CURRENT_TIMESTAMP
+FROM shared_contribution_staging
+GROUP BY product_key, combination_key
+HAVING COUNT(DISTINCT contributor_id) >= 10;
+
+INSERT OR IGNORE INTO shared_pool_eligibility (
+  eligibility_scope, product_key, region_bucket, combination_key, eligible_at
+)
+SELECT 'combination_region', product_key, region_bucket, combination_key, CURRENT_TIMESTAMP
+FROM shared_contribution_staging
+WHERE region_bucket IS NOT NULL AND trim(region_bucket) <> ''
+GROUP BY product_key, region_bucket, combination_key
+HAVING COUNT(DISTINCT contributor_id) >= 25;
+
+-- Rows at least 72 hours old are folded directly into permanent totals. The
+-- contributor count is exact for this one migration batch but is explicitly an
+-- approximate running figure once later fold batches are added.
 INSERT INTO shared_product_aggregates (
   combination_key,
   aggregate_scope,
@@ -447,7 +533,7 @@ SELECT
   MAX(time_bucket),
   MAX(app_version),
   COUNT(*),
-  0,
+  COUNT(DISTINCT contributor_id),
   CURRENT_TIMESTAMP
 FROM shared_layer2_valid_deduped
 WHERE datetime(submitted_at) <= datetime('now', '-72 hours')
@@ -468,7 +554,7 @@ SELECT
   product_key,
   MAX(product_name_normalized),
   COUNT(*),
-  0,
+  COUNT(DISTINCT contributor_id),
   CURRENT_TIMESTAMP
 FROM shared_layer2_valid_deduped
 WHERE datetime(submitted_at) <= datetime('now', '-72 hours')
@@ -495,103 +581,12 @@ SELECT
   MAX(product_name_normalized),
   region_bucket,
   COUNT(*),
-  0,
+  COUNT(DISTINCT contributor_id),
   CURRENT_TIMESTAMP
 FROM shared_layer2_valid_deduped
 WHERE datetime(submitted_at) <= datetime('now', '-72 hours')
   AND region_bucket IS NOT NULL
 GROUP BY product_key, region_bucket;
-
--- Build the exact lifetime membership set for the already-folded rows. The
--- scoped token algorithm is the same three-part deterministic transform used
--- by the Worker. The aggregate key is part of the input, so tokens cannot be
--- compared across different products, regions, or combinations.
-CREATE TABLE shared_layer2_membership_sources (
-  aggregate_key TEXT NOT NULL,
-  contributor_id TEXT NOT NULL,
-  aggregate_scope TEXT NOT NULL,
-  PRIMARY KEY (aggregate_key, contributor_id)
-);
-
-INSERT OR IGNORE INTO shared_layer2_membership_sources (
-  aggregate_key, contributor_id, aggregate_scope
-)
-SELECT combination_key, contributor_id, 'combination'
-FROM shared_layer2_valid_deduped
-WHERE datetime(submitted_at) <= datetime('now', '-72 hours');
-
-INSERT OR IGNORE INTO shared_layer2_membership_sources (
-  aggregate_key, contributor_id, aggregate_scope
-)
-SELECT
-  json_object('scope', 'product', 'product_key', product_key),
-  contributor_id,
-  'product'
-FROM shared_layer2_valid_deduped
-WHERE datetime(submitted_at) <= datetime('now', '-72 hours');
-
-INSERT OR IGNORE INTO shared_layer2_membership_sources (
-  aggregate_key, contributor_id, aggregate_scope
-)
-SELECT
-  json_object(
-    'scope', 'product_region',
-    'product_key', product_key,
-    'region_bucket', region_bucket
-  ),
-  contributor_id,
-  'product_region'
-FROM shared_layer2_valid_deduped
-WHERE datetime(submitted_at) <= datetime('now', '-72 hours')
-  AND region_bucket IS NOT NULL;
-
-WITH RECURSIVE membership_hash (
-  aggregate_key,
-  contributor_id,
-  input_text,
-  position,
-  h1,
-  h2,
-  h3
-) AS (
-  SELECT
-    aggregate_key,
-    contributor_id,
-    aggregate_key || '|' || contributor_id,
-    1,
-    17,
-    29,
-    43
-  FROM shared_layer2_membership_sources
-
-  UNION ALL
-
-  SELECT
-    aggregate_key,
-    contributor_id,
-    input_text,
-    position + 1,
-    ((h1 * 131) + unicode(substr(input_text, position, 1))) % 2147483647,
-    ((h2 * 137) + unicode(substr(input_text, position, 1))) % 2147483647,
-    ((h3 * 149) + unicode(substr(input_text, position, 1))) % 2147483647
-  FROM membership_hash
-  WHERE position <= length(input_text)
-)
-INSERT OR IGNORE INTO shared_aggregate_memberships (
-  aggregate_key, contributor_token
-)
-SELECT
-  aggregate_key,
-  CAST(h1 AS TEXT) || ':' || CAST(h2 AS TEXT) || ':' || CAST(h3 AS TEXT)
-FROM membership_hash
-WHERE position > length(input_text);
-
-UPDATE shared_product_aggregates
-SET distinct_contributor_count = (
-  SELECT COUNT(*)
-  FROM shared_aggregate_memberships membership
-  WHERE membership.aggregate_key = shared_product_aggregates.combination_key
-);
 
 UPDATE shared_layer2_migration_audit
 SET
@@ -629,59 +624,97 @@ SET
     FROM shared_product_aggregates
     WHERE aggregate_scope = 'product_region'
   ),
-  expected_combination_memberships = (
-    SELECT COUNT(*)
-    FROM shared_layer2_membership_sources
-    WHERE aggregate_scope = 'combination'
+  expected_product_eligibility = (
+    SELECT COUNT(*) FROM (
+      SELECT product_key
+      FROM shared_contribution_staging
+      GROUP BY product_key
+      HAVING COUNT(DISTINCT contributor_id) >= 10
+    )
   ),
-  actual_combination_memberships = (
-    SELECT COUNT(*)
-    FROM shared_aggregate_memberships membership
-    INNER JOIN shared_product_aggregates aggregate_row
-      ON aggregate_row.combination_key = membership.aggregate_key
-    WHERE aggregate_row.aggregate_scope = 'combination'
+  actual_product_eligibility = (
+    SELECT COUNT(*) FROM shared_pool_eligibility
+    WHERE eligibility_scope = 'product'
   ),
-  expected_product_memberships = (
-    SELECT COUNT(*)
-    FROM shared_layer2_membership_sources
-    WHERE aggregate_scope = 'product'
+  expected_product_region_eligibility = (
+    SELECT COUNT(*) FROM (
+      SELECT product_key, region_bucket
+      FROM shared_contribution_staging
+      WHERE region_bucket IS NOT NULL AND trim(region_bucket) <> ''
+      GROUP BY product_key, region_bucket
+      HAVING COUNT(DISTINCT contributor_id) >= 25
+    )
   ),
-  actual_product_memberships = (
-    SELECT COUNT(*)
-    FROM shared_aggregate_memberships membership
-    INNER JOIN shared_product_aggregates aggregate_row
-      ON aggregate_row.combination_key = membership.aggregate_key
-    WHERE aggregate_row.aggregate_scope = 'product'
+  actual_product_region_eligibility = (
+    SELECT COUNT(*) FROM shared_pool_eligibility
+    WHERE eligibility_scope = 'product_region'
   ),
-  expected_product_region_memberships = (
-    SELECT COUNT(*)
-    FROM shared_layer2_membership_sources
-    WHERE aggregate_scope = 'product_region'
+  expected_combination_product_eligibility = (
+    SELECT COUNT(*) FROM (
+      SELECT product_key, combination_key
+      FROM shared_contribution_staging
+      GROUP BY product_key, combination_key
+      HAVING COUNT(DISTINCT contributor_id) >= 10
+    )
   ),
-  actual_product_region_memberships = (
-    SELECT COUNT(*)
-    FROM shared_aggregate_memberships membership
-    INNER JOIN shared_product_aggregates aggregate_row
-      ON aggregate_row.combination_key = membership.aggregate_key
-    WHERE aggregate_row.aggregate_scope = 'product_region'
+  actual_combination_product_eligibility = (
+    SELECT COUNT(*) FROM shared_pool_eligibility
+    WHERE eligibility_scope = 'combination_product'
   ),
-  distinct_count_mismatches = (
+  expected_combination_region_eligibility = (
+    SELECT COUNT(*) FROM (
+      SELECT product_key, region_bucket, combination_key
+      FROM shared_contribution_staging
+      WHERE region_bucket IS NOT NULL AND trim(region_bucket) <> ''
+      GROUP BY product_key, region_bucket, combination_key
+      HAVING COUNT(DISTINCT contributor_id) >= 25
+    )
+  ),
+  actual_combination_region_eligibility = (
+    SELECT COUNT(*) FROM shared_pool_eligibility
+    WHERE eligibility_scope = 'combination_region'
+  ),
+  approximate_count_mismatches = (
     SELECT COUNT(*)
     FROM shared_product_aggregates aggregate_row
-    WHERE aggregate_row.distinct_contributor_count <> (
-      SELECT COUNT(*)
-      FROM shared_aggregate_memberships membership
-      WHERE membership.aggregate_key = aggregate_row.combination_key
-    )
+    WHERE aggregate_row.distinct_contributor_count <> CASE
+      WHEN aggregate_row.aggregate_scope = 'combination' THEN (
+        SELECT COUNT(DISTINCT contributor_id)
+        FROM shared_layer2_valid_deduped source_row
+        WHERE datetime(source_row.submitted_at) <= datetime('now', '-72 hours')
+          AND source_row.combination_key = aggregate_row.combination_key
+      )
+      WHEN aggregate_row.aggregate_scope = 'product' THEN (
+        SELECT COUNT(DISTINCT contributor_id)
+        FROM shared_layer2_valid_deduped source_row
+        WHERE datetime(source_row.submitted_at) <= datetime('now', '-72 hours')
+          AND source_row.product_key = aggregate_row.product_key
+      )
+      WHEN aggregate_row.aggregate_scope = 'product_region' THEN (
+        SELECT COUNT(DISTINCT contributor_id)
+        FROM shared_layer2_valid_deduped source_row
+        WHERE datetime(source_row.submitted_at) <= datetime('now', '-72 hours')
+          AND source_row.product_key = aggregate_row.product_key
+          AND source_row.region_bucket = aggregate_row.region_bucket
+      )
+      ELSE -1
+    END
+  ),
+  quarantine_expiry_mismatches = (
+    SELECT COUNT(*)
+    FROM shared_layer2_migration_quarantine
+    WHERE datetime(expires_at) IS NULL
+      OR datetime(expires_at) <= datetime(quarantined_at)
   ),
   aggregate_row_count = (
     SELECT COUNT(*) FROM shared_product_aggregates
   )
-WHERE migration_key = 'layer2_aggregate_redesign_v2';
+WHERE migration_key = 'layer2_aggregate_redesign_v3';
 
--- Every legacy row must reconcile to one of four outcomes:
--- opted out, quarantined, merged as a duplicate, or retained as one valid row.
--- Each aggregate scope and each membership count must also reconcile.
+-- Every legacy row must reconcile to one of four outcomes: opted out,
+-- quarantined, merged as a duplicate, or retained as one valid row. Staging,
+-- aggregate scopes, eligibility flags, approximate migration-time counts, and
+-- quarantine expiration must also reconcile.
 CREATE TABLE shared_layer2_migration_guard (
   is_valid INTEGER NOT NULL CHECK (is_valid = 1)
 );
@@ -699,21 +732,22 @@ SELECT CASE
   AND combination_total = expected_folded_rows
   AND product_total = expected_folded_rows
   AND product_region_total = expected_product_region_total
-  AND actual_combination_memberships = expected_combination_memberships
-  AND actual_product_memberships = expected_product_memberships
-  AND actual_product_region_memberships = expected_product_region_memberships
-  AND distinct_count_mismatches = 0
+  AND actual_product_eligibility = expected_product_eligibility
+  AND actual_product_region_eligibility = expected_product_region_eligibility
+  AND actual_combination_product_eligibility = expected_combination_product_eligibility
+  AND actual_combination_region_eligibility = expected_combination_region_eligibility
+  AND approximate_count_mismatches = 0
+  AND quarantine_expiry_mismatches = 0
   THEN 1
   ELSE 0
 END
 FROM shared_layer2_migration_audit
-WHERE migration_key = 'layer2_aggregate_redesign_v2';
+WHERE migration_key = 'layer2_aggregate_redesign_v3';
 
 DROP TABLE shared_layer2_migration_guard;
 
 DROP TABLE shared_product_contributions;
 DROP TABLE shared_product_aggregates_legacy_summary;
-DROP TABLE shared_layer2_membership_sources;
 DROP TABLE shared_layer2_valid_deduped;
 DROP TABLE shared_layer2_valid_prepared;
 DROP TABLE shared_layer2_legacy_normalized;
@@ -723,4 +757,4 @@ WHERE is_active = 0;
 
 UPDATE shared_layer2_migration_audit
 SET old_table_dropped = 1, completed_at = CURRENT_TIMESTAMP
-WHERE migration_key = 'layer2_aggregate_redesign_v2';
+WHERE migration_key = 'layer2_aggregate_redesign_v3';
