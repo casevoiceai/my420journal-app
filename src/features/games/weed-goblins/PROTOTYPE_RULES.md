@@ -13,6 +13,7 @@ S.T.O.N.E.R. narrates a D20 fantasy adventure in the Goblin Highlands. The Gobli
 - A Mana-assisted check is never an automatic success. It can fail normally, and it can produce a natural-1 complication if both advantage dice are 1.
 - Strike and Outlast remain ordinary rollable actions that do not require Mana. The engine may also accept optional Mana assistance for an ordinary check, but the unassisted action remains available.
 - A failed dangerous check adds one Trouble. Three Trouble ends the run in the escape/defeat ending.
+- A natural-1 complication costs two Trouble by design, making it more costly than an ordinary failed check. Its special cap prevents that complication from ending the run by itself.
 - The three Session 1 endings are recovery, bargain, and escape.
 - The engine is deterministic for a supplied seed and has no React, network, AI, storage, or journal-database access.
 
@@ -24,9 +25,12 @@ A natural-1 complication:
 
 - never kills or seriously harms the player character;
 - never ends the run by itself, even when Trouble was already high;
-- creates an absurd, mildly costly setback such as lost time, a worse tactical position, an extra Trouble point, or a change to an item's condition;
+- adds two Trouble by design, rather than the one Trouble added by an ordinary failed check;
+- creates an absurd, mildly costly setback such as lost time, a worse tactical position, or a change to an item's condition;
 - uses a concrete narration line distinct from the scene's ordinary failure text;
 - records `outcome: complication` on the check event so later narration can recognize it.
+
+The deterministic engine implements the two-Trouble cost as `min(2, current Trouble + 2)`. This preserves the locked two-Trouble penalty while ensuring that the complication cannot cross the three-Trouble defeat threshold by itself.
 
 Locked tone examples, not an exhaustive future content list:
 
@@ -35,15 +39,6 @@ Locked tone examples, not an exhaustive future content list:
 - "A goblin stamps your sleeve TEMPORARY ASSISTANT. The stamp is permanent for the rest of the afternoon."
 - "The field reliquary acquires a dent shaped exactly like a goblin's opinion. Its contents remain secure."
 - "You reach the correct tactical position one minute after it stops being the correct tactical position."
-
-### Known issue: natural-1 Trouble amount
-
-The documented pattern above describes a natural-1 complication as potentially adding an extra Trouble point, consistent with the Session 1 rule that a failed dangerous check adds one Trouble. The current deterministic engine instead adds two Trouble for a selected natural 1, while capping the resulting total at two so that the complication cannot end the run by itself.
-
-The two-Trouble behavior was not separately approved as a locked exception and is therefore a known discrepancy between the current implementation and this contract. It remains unchanged in this documentation-only update. A future mechanics session must explicitly choose one of these outcomes before the rule is considered settled:
-
-- change the engine so a natural-1 complication adds one Trouble; or
-- formally approve and document the two-Trouble complication penalty.
 
 ## Character backgrounds
 
@@ -71,4 +66,14 @@ Session 1 only calculates and reports the applicable `narrationTier`. It does no
 
 ## Local-data boundary
 
-The engine accepts an optional sanitized snapshot containing product names, dispensary names, effect tags, and prior Weed Goblins summaries. It also accepts an optional `priorCompletedRunCount` supplied by the app. It never reads local storage or journal records itself. Logged product names may seed the stolen item's fictional name. Empty snapshots use fixed fictional fallback content.
+The pure engine never reads local storage or journal records itself. A separate local-data adapter may read the active user's local `entries` table and produce only this sanitized snapshot:
+
+- up to five product display names;
+- up to three product categories;
+- up to five top effect tags;
+- up to five top recorded terpene labels;
+- up to three dispensary names;
+- the eligible cannabis-entry count;
+- up to ten sanitized previous Weed Goblins run summaries.
+
+The adapter must never include raw notes, voice transcripts, health information, exact amounts, exact dates or timestamps, addresses or coordinates, price, or Layer 2 data. Note and sleep rows are not eligible product entries. A user with zero eligible entries receives a valid empty snapshot so the engine continues to use fixed fictional fallback content.
