@@ -3,8 +3,10 @@ import assert from 'node:assert/strict'
 
 import {
   ENDINGS,
+  NARRATION_TIERS,
   STONER_INTRODUCTION,
   advanceWeedGoblinsRun,
+  calculateNarrationTier,
   createWeedGoblinsRun,
   getAvailableActions,
   playWeedGoblinsActions,
@@ -62,6 +64,7 @@ test('plays one fixed-seed recovery run from start to finish', () => {
   assert.equal(end.runSummary.backgroundId, 'hauler')
   assert.equal(end.runSummary.routeId, 'ridge')
   assert.equal(end.runSummary.midpointChoice, 'skip')
+  assert.equal(end.runSummary.narrationTier, NARRATION_TIERS.normal)
   assert.match(end.runSummary.outcomeSummary, /recovered the Blue Dream Field Reliquary/)
   assert.equal(getAvailableActions(end).length, 0)
 })
@@ -106,9 +109,18 @@ test('three Trouble ends the run in the escape defeat ending', () => {
 
 test('the fixed adventure exposes all three endings through deterministic runs', () => {
   const outcomes = [
-    playWeedGoblinsActions(createWeedGoblinsRun({ seed: 'recovery-1' }), RECOVERY_ACTIONS).ending,
-    playWeedGoblinsActions(createWeedGoblinsRun({ seed: 'bargain-1' }), BARGAIN_ACTIONS).ending,
-    playWeedGoblinsActions(createWeedGoblinsRun({ seed: 'defeat-15' }), DEFEAT_ACTIONS).ending,
+    playWeedGoblinsActions(
+      createWeedGoblinsRun({ seed: 'recovery-1' }),
+      RECOVERY_ACTIONS,
+    ).ending,
+    playWeedGoblinsActions(
+      createWeedGoblinsRun({ seed: 'bargain-1' }),
+      BARGAIN_ACTIONS,
+    ).ending,
+    playWeedGoblinsActions(
+      createWeedGoblinsRun({ seed: 'defeat-15' }),
+      DEFEAT_ACTIONS,
+    ).ending,
   ]
 
   assert.deepEqual(new Set(outcomes), new Set(Object.values(ENDINGS)))
@@ -140,3 +152,28 @@ test('STONER references the latest prior run without reading storage', () => {
   assert.match(run.narration[0], /Last time you made a bargain with the Goblin King/)
   assert.equal(run.narration[1], STONER_INTRODUCTION)
 })
+
+const TIER_CASES = [
+  [0, NARRATION_TIERS.normal],
+  [4, NARRATION_TIERS.normal],
+  [5, NARRATION_TIERS.experiencedCallback],
+  [9, NARRATION_TIERS.experiencedCallback],
+  [10, NARRATION_TIERS.fourthWall],
+]
+
+for (const [priorCompletedRunCount, expectedTier] of TIER_CASES) {
+  test(`reports ${expectedTier} narration tier at ${priorCompletedRunCount} prior runs`, () => {
+    assert.equal(calculateNarrationTier(priorCompletedRunCount), expectedTier)
+
+    const end = playWeedGoblinsActions(
+      createWeedGoblinsRun({
+        seed: `tier-${priorCompletedRunCount}`,
+        priorCompletedRunCount,
+      }),
+      MANA_ACTIONS,
+    )
+
+    assert.equal(end.runSummary.priorCompletedRunCount, priorCompletedRunCount)
+    assert.equal(end.runSummary.narrationTier, expectedTier)
+  })
+}
