@@ -7,6 +7,8 @@ import {
   getAvailableActions,
 } from './weedGoblinsEngine.js'
 
+const NARRATOR_NAME = 'S.T.O.N.E.R.'
+
 export const MOCK_JOURNAL_SNAPSHOT = Object.freeze({
   productNames: Object.freeze([
     'Blue Dream',
@@ -67,7 +69,7 @@ function parseArguments(argv) {
 
 function printNarration(lines) {
   for (const line of lines) {
-    output.write(`STONER: ${line}\n`)
+    output.write(`${NARRATOR_NAME}: ${line}\n`)
   }
 }
 
