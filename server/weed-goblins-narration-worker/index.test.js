@@ -102,3 +102,12 @@ test('system prompt contains the locked hard constraints', () => {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
 })
+
+test('system prompt contains explicit character guidance', () => {
+  assert.equal(
+    WEED_GOBLINS_SYSTEM_PROMPT.includes(
+      'Keep the line to one sentence, ideally under 200 characters, and never exceed 260.',
+    ),
+    true,
+  )
+})
