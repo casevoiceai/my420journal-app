@@ -69,6 +69,17 @@ const LIVE_ESCAPE_LINES = Object.freeze([
   "I leave the Highlands empty-handed while the Amber Field Satchel remains locked in the Goblin King's grip, and I call that a survival.",
 ])
 
+const OUT_OF_REACH_ESCAPE_LINES = Object.freeze([
+  Object.freeze({
+    line: "I slip back through the Highlands with the Purple Punch Moon Jar still out of reach, the Goblin King's laughter fading only because I've finally learned when to stop digging.",
+    item: 'Purple Punch Moon Jar',
+  }),
+  Object.freeze({
+    line: "I slip back through the Highlands with the Goblin King's laughter echoing behind me, the Gelato Research Case still out of reach but my skin intact, and that feels like enough.",
+    item: 'Gelato Research Case',
+  }),
+])
+
 test('accepts natural escape endings that use empty hands and retained-item language', () => {
   for (const line of LIVE_ESCAPE_LINES) {
     const result = validateGeneratedNarration(line, {
@@ -98,6 +109,50 @@ test('recovery and bargain still reject the broadened escape-shaped language', (
       )
     }
   }
+})
+
+test('accepts exact live escape endings that leave the item out of reach', () => {
+  for (const { line, item } of OUT_OF_REACH_ESCAPE_LINES) {
+    const result = validateGeneratedNarration(line, {
+      moment: 'run-ending',
+      outcome: 'escape',
+      allowedFictionalNames: [item],
+      expectedStolenItem: item,
+    })
+    assert.equal(result.valid, true, result.reasons.join('; '))
+  }
+})
+
+test('recovery and bargain reject exact out-of-reach escape language', () => {
+  for (const outcome of ['recovery', 'bargain']) {
+    for (const { line, item } of OUT_OF_REACH_ESCAPE_LINES) {
+      const result = validateGeneratedNarration(line, {
+        moment: 'run-ending',
+        outcome,
+        allowedFictionalNames: [item],
+        expectedStolenItem: item,
+      })
+      assert.equal(result.valid, false, `${outcome}: ${line}`)
+      assert.equal(
+        result.reasons.includes('implies a different engine outcome'),
+        true,
+        `${outcome}: ${result.reasons.join('; ')}`,
+      )
+    }
+  }
+})
+
+test('out-of-reach language alone does not turn an ordinary failure into an escape ending', () => {
+  const result = validateGeneratedNarration(
+    'I note that the Amber Field Satchel remains just out of reach for the next exchange.',
+    {
+      moment: 'ordinary-failure',
+      outcome: 'failure',
+      allowedFictionalNames: ['the Amber Field Satchel'],
+      expectedStolenItem: 'the Amber Field Satchel',
+    },
+  )
+  assert.equal(result.valid, true, result.reasons.join('; '))
 })
 
 test('retained-item language alone does not turn an ordinary failure into an escape ending', () => {

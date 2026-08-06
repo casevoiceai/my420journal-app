@@ -43,6 +43,7 @@ const DEPARTURE_SIGNAL = /\b(?:leave(?:s|d|ing)?|depart(?:s|ed|ing)?|return(?:s|
 const SURVIVAL_SIGNAL = /\b(?:call|consider|count|record) (?:that|this) (?:a )?survival\b|\bsurvival\b/i
 const ESCAPE_OBJECT_SIGNAL = /\b(?:the )?(?:stolen )?(?:item|goods?|field reliquary|reliquary|satchel|moon jar|research case)\b/i
 const RETAINED_STATE_SIGNAL = /\b(?:stay(?:s|ed|ing)?|remain(?:s|ed|ing)?|is still|still (?:sits?|rests?|lies?|waits?))\b/i
+const OUT_OF_REACH_SIGNAL = /\b(?:(?:still|just|well|far)\s+)?(?:out of|beyond)(?:\s+(?:my|your|our|their|the player's))?\s+reach\b/i
 const ANTAGONIST_POSSESSION_SIGNAL = /\b(?:locked|held|kept|secured)?\s*(?:in|within|under|with)\s+(?:(?:the )?Goblin King's|the antagonist's|his|her|their|the Goblin King|the antagonist)\s+(?:keeping|possession|grip|hands?|control|custody|vault|chest)\b|\b(?:the )?Goblin King (?:keeps?|holds?|retains?|has)\b/i
 const LEAVING_WITHOUT_ITEM_SIGNAL = /\b(?:leave(?:s|d|ing)?|depart(?:s|ed|ing)?|return(?:s|ed|ing)?|slip(?:s|ped|ping)? back|head(?:s|ed|ing)? back|walk(?:s|ed|ing)? away)\b[^.!?]{0,100}\bwithout\b[^.!?]{0,80}\b(?:the )?(?:stolen )?(?:item|goods?|field reliquary|reliquary|satchel|moon jar|research case)\b/i
 const ENDING_SIGNALS = Object.freeze({
@@ -97,10 +98,12 @@ function detectsNaturalEscape(text, expectedStolenItem = '') {
   const retainedByAntagonist = mentionsItem
     && RETAINED_STATE_SIGNAL.test(text)
     && ANTAGONIST_POSSESSION_SIGNAL.test(text)
+  const itemOutOfReach = mentionsItem && OUT_OF_REACH_SIGNAL.test(text)
 
   return LEAVING_WITHOUT_ITEM_SIGNAL.test(text)
     || (emptyHanded && (departure || survival))
     || (retainedByAntagonist && (departure || emptyHanded || survival))
+    || (itemOutOfReach && (departure || emptyHanded || survival))
 }
 
 function detectOutcomeSignals(text, expectedStolenItem = '') {
