@@ -76,19 +76,24 @@ function printNarration(lines) {
 function printNewEvents(events) {
   for (const event of events) {
     if (event.type === 'check') {
-      const rerollLabel = event.rerolled ? ' after a Mana reroll' : ''
+      const rollLabel = event.advantage
+        ? `advantage [${event.rolls.join(', ')}], take ${event.roll}`
+        : `d20 ${event.roll}`
       output.write(
-        `DICE: d20 ${event.roll} + ${event.stat} = ${event.total} vs DC ${event.dc}${rerollLabel} -> ${event.success ? 'SUCCESS' : 'FAILURE'}\n`,
+        `DICE: ${rollLabel} + ${event.stat} = ${event.total} vs DC ${event.dc} -> ${event.outcome.toUpperCase()}\n`,
       )
+      if (event.naturalOne) {
+        output.write('COMPLICATION: selected natural 1; the run continues.\n')
+      }
     } else if (event.type === 'mana') {
-      output.write(`MANA: spent ${event.amount}\n`)
+      output.write(`MANA: spent ${event.amount} for advantage\n`)
     }
   }
 }
 
 function printState(state) {
   output.write(
-    `STATUS: Strength ${state.stats.strength} | Defense ${state.stats.defense} | Mana ${state.stats.manaPool}/${state.stats.maxMana} | Trouble ${state.trouble}/3\n`,
+    `STATUS: Strength ${state.stats.strength} | Defense ${state.stats.defense} | Mana ${state.stats.manaPool}/${state.stats.maxMana} | Trouble ${state.trouble}/3 | Complications ${state.complicationCount}\n`,
   )
 }
 
@@ -149,6 +154,7 @@ export async function runInteractiveWeedGoblins({
     output.write(`Narration tier recorded: ${state.runSummary.narrationTier}\n`)
     output.write(`Mana remaining: ${state.runSummary.manaRemaining}\n`)
     output.write(`Trouble: ${state.runSummary.trouble}/3\n`)
+    output.write(`Complications: ${state.runSummary.complicationCount}\n`)
     return state
   } finally {
     readline.close()
