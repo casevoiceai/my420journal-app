@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   ENDINGS,
+  NATURAL_ONE_COMPLICATIONS,
   NARRATION_TIERS,
   STONER_INTRODUCTION,
   advanceWeedGoblinsRun,
@@ -21,9 +22,9 @@ const RECOVERY_ACTIONS = [
 ]
 
 const BARGAIN_ACTIONS = [
-  'background:keeper',
-  'route:fen',
-  'goblin:guard',
+  'background:hauler',
+  'route:ridge',
+  'goblin:strike',
   'midpoint:help',
   'boss:bargain',
 ]
@@ -37,14 +38,16 @@ const MANA_ACTIONS = [
 ]
 
 const DEFEAT_ACTIONS = [
-  'background:hauler',
+  'background:adept',
   'route:fen',
-  'goblin:guard',
+  'goblin:channel',
   'midpoint:take-charm',
   'boss:outlast',
-  'boss:outlast',
-  'boss:outlast',
 ]
+
+function latestCheck(state) {
+  return [...state.history].reverse().find((event) => event.type === 'check')
+}
 
 test('plays one fixed-seed recovery run from start to finish', () => {
   const start = createWeedGoblinsRun({
@@ -69,9 +72,9 @@ test('plays one fixed-seed recovery run from start to finish', () => {
   assert.equal(getAvailableActions(end).length, 0)
 })
 
-test('reaches the bargain ending through the midpoint ally choice', () => {
+test('reaches the bargain ending after a natural-1 complication', () => {
   const end = playWeedGoblinsActions(
-    createWeedGoblinsRun({ seed: 'bargain-1' }),
+    createWeedGoblinsRun({ seed: 'scan-28' }),
     BARGAIN_ACTIONS,
   )
 
@@ -79,25 +82,70 @@ test('reaches the bargain ending through the midpoint ally choice', () => {
   assert.equal(end.ending, ENDINGS.bargain)
   assert.equal(end.flags.goblinAlly, true)
   assert.equal(end.runSummary.midpointChoice, 'help')
+  assert.equal(end.runSummary.complicationCount, 1)
 })
 
-test('spends the full Mana Pool and reaches the recovery ending', () => {
-  const start = createWeedGoblinsRun({ seed: 'mana-1' })
+test('spends the full Mana Pool through rolled checks and reaches recovery', () => {
+  const start = createWeedGoblinsRun({ seed: 'scan-10' })
   const afterBackground = advanceWeedGoblinsRun(start, 'background:adept')
   assert.equal(afterBackground.stats.manaPool, 4)
 
   const end = playWeedGoblinsActions(afterBackground, MANA_ACTIONS.slice(1))
   const manaEvents = end.history.filter((event) => event.type === 'mana')
+  const assistedChecks = end.history.filter(
+    (event) => event.type === 'check' && event.manaAssisted,
+  )
 
   assert.equal(end.ending, ENDINGS.recovery)
   assert.equal(end.stats.manaPool, 0)
   assert.deepEqual(manaEvents.map((event) => event.amount), [1, 1, 2])
-  assert.equal(end.runSummary.reason, 'mana solution')
+  assert.deepEqual(assistedChecks.map((event) => event.rolls.length), [2, 2, 2])
+  assert.equal(end.runSummary.reason, 'mana-assisted victory')
 })
 
-test('three Trouble ends the run in the escape defeat ending', () => {
+test('a Mana-assisted roll can still fail', () => {
+  let state = createWeedGoblinsRun({ seed: 'scan-11' })
+  state = advanceWeedGoblinsRun(state, 'background:adept')
+  state = advanceWeedGoblinsRun(state, 'route:fen')
+  state = advanceWeedGoblinsRun(state, 'goblin:channel')
+
+  const check = latestCheck(state)
+  assert.equal(check.manaAssisted, true)
+  assert.equal(check.advantage, true)
+  assert.deepEqual(check.rolls, [9, 6])
+  assert.equal(check.roll, 9)
+  assert.equal(check.total, 11)
+  assert.equal(check.dc, 12)
+  assert.equal(check.outcome, 'failure')
+  assert.equal(check.success, false)
+  assert.equal(state.stats.manaPool, 3)
+  assert.equal(state.trouble, 1)
+  assert.equal(state.status, 'active')
+})
+
+test('a selected natural 1 always uses the non-fatal complication path', () => {
+  let state = createWeedGoblinsRun({ seed: 'scan-28' })
+  state = advanceWeedGoblinsRun(state, 'background:hauler')
+  state = { ...state, trouble: 2 }
+  state = advanceWeedGoblinsRun(state, 'route:ridge')
+
+  const check = latestCheck(state)
+  assert.equal(check.roll, 1)
+  assert.equal(check.naturalOne, true)
+  assert.equal(check.outcome, 'complication')
+  assert.equal(check.success, false)
+  assert.ok(NATURAL_ONE_COMPLICATIONS.includes(check.complicationText))
+  assert.equal(state.narration.at(-1), check.complicationText)
+  assert.notEqual(state.narration.at(-1), state.adventure.routes.ridge.failureText)
+  assert.equal(state.complicationCount, 1)
+  assert.equal(state.trouble, 2)
+  assert.equal(state.status, 'active')
+  assert.equal(state.sceneId, 'goblin-encounter')
+})
+
+test('ordinary accumulated Trouble can still end the run in defeat', () => {
   const end = playWeedGoblinsActions(
-    createWeedGoblinsRun({ seed: 'defeat-15' }),
+    createWeedGoblinsRun({ seed: 'scan-10' }),
     DEFEAT_ACTIONS,
   )
 
@@ -105,6 +153,7 @@ test('three Trouble ends the run in the escape defeat ending', () => {
   assert.equal(end.ending, ENDINGS.escape)
   assert.equal(end.trouble, 3)
   assert.match(end.runSummary.outcomeSummary, /escaped without recovering/)
+  assert.equal(end.runSummary.reason, 'boss:outlast failed')
 })
 
 test('the fixed adventure exposes all three endings through deterministic runs', () => {
@@ -114,11 +163,11 @@ test('the fixed adventure exposes all three endings through deterministic runs',
       RECOVERY_ACTIONS,
     ).ending,
     playWeedGoblinsActions(
-      createWeedGoblinsRun({ seed: 'bargain-1' }),
+      createWeedGoblinsRun({ seed: 'scan-28' }),
       BARGAIN_ACTIONS,
     ).ending,
     playWeedGoblinsActions(
-      createWeedGoblinsRun({ seed: 'defeat-15' }),
+      createWeedGoblinsRun({ seed: 'scan-10' }),
       DEFEAT_ACTIONS,
     ).ending,
   ]
@@ -143,7 +192,7 @@ test('same seed and choices produce the same run summary', () => {
   )
 })
 
-test('STONER references the latest prior run without reading storage', () => {
+test('S.T.O.N.E.R. references the latest prior run without reading storage', () => {
   const run = createWeedGoblinsRun({
     seed: 'returning-player',
     previousRuns: [{ outcomeSummary: 'made a bargain with the Goblin King' }],
@@ -167,10 +216,10 @@ for (const [priorCompletedRunCount, expectedTier] of TIER_CASES) {
 
     const end = playWeedGoblinsActions(
       createWeedGoblinsRun({
-        seed: `tier-${priorCompletedRunCount}`,
+        seed: 'recovery-1',
         priorCompletedRunCount,
       }),
-      MANA_ACTIONS,
+      RECOVERY_ACTIONS,
     )
 
     assert.equal(end.runSummary.priorCompletedRunCount, priorCompletedRunCount)
