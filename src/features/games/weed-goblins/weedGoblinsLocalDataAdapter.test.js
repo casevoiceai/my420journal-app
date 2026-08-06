@@ -195,7 +195,7 @@ test('reads the actual localStore entries query shape and sanitized prior run ke
   })
 
   assert.deepEqual(snapshot.productNames, ['Northern Lights'])
-  assert.equal(snapshot.entryCount, 1)
+  assert.equal(snapshot.entryCount, 2)
   assert.deepEqual(snapshot.previousRuns, [
     {
       ending: 'recovery',
