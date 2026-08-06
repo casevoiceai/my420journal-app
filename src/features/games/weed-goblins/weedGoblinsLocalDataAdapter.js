@@ -129,8 +129,8 @@ export function buildWeedGoblinsPersonalizationSnapshot({
     return snapshot
   }
 
+  snapshot.entryCount = entries.length
   const cannabisEntries = entries.filter(isCannabisJournalEntry)
-  snapshot.entryCount = cannabisEntries.length
 
   const productNames = new Map()
   const productCategories = new Map()
