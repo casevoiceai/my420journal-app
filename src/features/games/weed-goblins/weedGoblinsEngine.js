@@ -17,6 +17,12 @@ export const ENDINGS = Object.freeze({
   escape: 'escape',
 })
 
+export const NARRATION_TIERS = Object.freeze({
+  normal: 'normal',
+  experiencedCallback: 'experienced-callback-eligible',
+  fourthWall: 'fourth-wall-eligible',
+})
+
 export const BACKGROUNDS = Object.freeze({
   hauler: Object.freeze({
     id: 'hauler',
@@ -130,6 +136,19 @@ function normalizeText(value) {
   return String(value ?? '').trim().replace(/\s+/g, ' ')
 }
 
+function normalizePriorCompletedRunCount(value) {
+  const count = Number(value)
+  if (!Number.isFinite(count) || count <= 0) return 0
+  return Math.floor(count)
+}
+
+export function calculateNarrationTier(priorCompletedRunCount = 0) {
+  const count = normalizePriorCompletedRunCount(priorCompletedRunCount)
+  if (count >= 10) return NARRATION_TIERS.fourthWall
+  if (count >= 5) return NARRATION_TIERS.experiencedCallback
+  return NARRATION_TIERS.normal
+}
+
 function getProductNames(snapshot = {}) {
   const values = Array.isArray(snapshot.productNames) ? snapshot.productNames : []
   return values
@@ -154,7 +173,9 @@ function chooseStolenItem(snapshot, adventure, rngState) {
 function buildReturningNarration(previousRuns = []) {
   if (!Array.isArray(previousRuns) || previousRuns.length === 0) return null
   const latest = previousRuns[previousRuns.length - 1]
-  const outcome = normalizeText(latest?.outcomeSummary ?? latest?.ending ?? 'left with unfinished business')
+  const outcome = normalizeText(
+    latest?.outcomeSummary ?? latest?.ending ?? 'left with unfinished business',
+  )
   return STONER_RETURNING_LINE.replace('[outcome]', outcome)
 }
 
@@ -193,7 +214,10 @@ function applyTrouble(state, amount, reason) {
   return updated
 }
 
-function resolveCheck(state, { actionId, stat, dc, successText, failureText, useManaReroll = false }) {
+function resolveCheck(
+  state,
+  { actionId, stat, dc, successText, failureText, useManaReroll = false },
+) {
   if (!['strength', 'defense'].includes(stat)) {
     throw new Error(`Unsupported check stat: ${stat}`)
   }
@@ -260,7 +284,7 @@ function spendMana(state, amount, actionId) {
   )
 }
 
-function endingNarration(ending, state, reason) {
+function endingNarration(ending, state) {
   if (ending === ENDINGS.recovery) {
     return `You recover ${state.stolenItem}. The Goblin King has several objections. None are operational.`
   }
@@ -291,6 +315,8 @@ function completeRun(state, ending, reason = null) {
           : `escaped without recovering ${state.stolenItem}`,
     trouble: state.trouble,
     manaRemaining: state.stats.manaPool,
+    priorCompletedRunCount: state.priorCompletedRunCount,
+    narrationTier: state.narrationTier,
     reason,
   }
 
@@ -302,7 +328,7 @@ function completeRun(state, ending, reason = null) {
       runSummary: summary,
     }),
     { type: 'ending', sceneId: SCENES.ending, ending, reason },
-    endingNarration(ending, state, reason),
+    endingNarration(ending, state),
   )
 }
 
@@ -310,11 +336,17 @@ export function createWeedGoblinsRun({
   seed = 'weed-goblins-session-1',
   journalSnapshot = {},
   previousRuns = [],
+  priorCompletedRunCount = 0,
   adventure = FIXED_TEST_ADVENTURE,
 } = {}) {
   if (!adventure?.fallbackStolenItems || !adventure?.goblinNames || !adventure?.routes) {
     throw new Error('Adventure definition is incomplete.')
   }
+
+  const normalizedPriorCompletedRunCount = normalizePriorCompletedRunCount(
+    priorCompletedRunCount,
+  )
+  const narrationTier = calculateNarrationTier(normalizedPriorCompletedRunCount)
 
   let rngState = hashSeed(seed)
   const stolen = chooseStolenItem(journalSnapshot, adventure, rngState)
@@ -338,6 +370,8 @@ export function createWeedGoblinsRun({
     background: null,
     stats: { strength: 0, defense: 0, manaPool: 0, maxMana: 0 },
     trouble: 0,
+    priorCompletedRunCount: normalizedPriorCompletedRunCount,
+    narrationTier,
     stolenItem: stolen.value,
     goblinName: goblin.value,
     flags: {
@@ -497,7 +531,9 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       return cloneState(
         appendEvent(
           spendMana(
-            cloneState(state, { flags: { midpointChoice: 'read-runes', bossDcModifier: -2 } }),
+            cloneState(state, {
+              flags: { midpointChoice: 'read-runes', bossDcModifier: -2 },
+            }),
             1,
             actionId,
           ),
@@ -555,7 +591,10 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
     }
 
     const stat = actionId === 'boss:overpower' ? 'strength' : 'defense'
-    const dc = Math.max(DIFFICULTY.easy, DIFFICULTY.goblinKing + state.flags.bossDcModifier)
+    const dc = Math.max(
+      DIFFICULTY.easy,
+      DIFFICULTY.goblinKing + state.flags.bossDcModifier,
+    )
     const result = resolveCheck(state, {
       actionId,
       stat,
