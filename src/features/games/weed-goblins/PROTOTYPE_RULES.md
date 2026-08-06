@@ -73,7 +73,7 @@ The pure engine never reads local storage or journal records itself. A separate 
 - up to five top effect tags;
 - up to five top recorded terpene labels;
 - up to three dispensary names;
-- the eligible cannabis-entry count;
+- the total local entry count;
 - up to ten sanitized previous Weed Goblins run summaries.
 
-The adapter must never include raw notes, voice transcripts, health information, exact amounts, exact dates or timestamps, addresses or coordinates, price, or Layer 2 data. Note and sleep rows are not eligible product entries. A user with zero eligible entries receives a valid empty snapshot so the engine continues to use fixed fictional fallback content.
+The adapter must never include raw notes, voice transcripts, health information, exact amounts, exact dates or timestamps, addresses or coordinates, price, or Layer 2 data. Note and sleep rows are included only in the total count and are not eligible product entries. A user with zero eligible entries receives a valid empty snapshot so the engine continues to use fixed fictional fallback content.
