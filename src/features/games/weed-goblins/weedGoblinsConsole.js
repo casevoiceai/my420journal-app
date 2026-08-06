@@ -229,7 +229,7 @@ function printSnapshot(sourceLabel, snapshot) {
     output.write(`Effect tags: ${snapshot.effectTags.join(', ') || '(none)'}\n`)
     output.write(`Terpenes: ${snapshot.terpeneLabels.join(', ') || '(none)'}\n`)
     output.write(`Dispensaries: ${snapshot.dispensaryNames.join(', ') || '(none)'}\n`)
-    output.write(`Eligible local entry count: ${snapshot.entryCount}\n`)
+    output.write(`Total local entry count: ${snapshot.entryCount}\n`)
   }
 }
 
