@@ -23,6 +23,14 @@ export const NARRATION_TIERS = Object.freeze({
   fourthWall: 'fourth-wall-eligible',
 })
 
+export const NATURAL_ONE_COMPLICATIONS = Object.freeze([
+  'The stone gate moves exactly far enough to block the route you were using. This is measurable progress.',
+  'Your boot remains in the fen. This is not serious, but it does change the schedule.',
+  'A goblin stamps your sleeve TEMPORARY ASSISTANT. The stamp is permanent for the rest of the afternoon.',
+  "The field reliquary acquires a dent shaped exactly like a goblin's opinion. Its contents remain secure.",
+  'You reach the correct tactical position one minute after it stops being the correct tactical position.',
+])
+
 export const BACKGROUNDS = Object.freeze({
   hauler: Object.freeze({
     id: 'hauler',
@@ -214,62 +222,6 @@ function applyTrouble(state, amount, reason) {
   return updated
 }
 
-function resolveCheck(
-  state,
-  { actionId, stat, dc, successText, failureText, useManaReroll = false },
-) {
-  if (!['strength', 'defense'].includes(stat)) {
-    throw new Error(`Unsupported check stat: ${stat}`)
-  }
-
-  let working = state
-  const first = rollD20(working)
-  working = cloneState(working, { rngState: first.rngState })
-  let finalRoll = first.roll
-  let rerolled = false
-
-  const firstTotal = first.roll + working.stats[stat]
-  if (firstTotal < dc && useManaReroll) {
-    if (working.stats.manaPool < 1) {
-      throw new Error('Not enough Mana to reroll.')
-    }
-    working = cloneState(working, {
-      stats: { manaPool: working.stats.manaPool - 1 },
-    })
-    const second = rollD20(working)
-    working = cloneState(working, { rngState: second.rngState })
-    finalRoll = second.roll
-    rerolled = true
-  }
-
-  const total = finalRoll + working.stats[stat]
-  const success = finalRoll === 20 || total >= dc
-  const event = {
-    type: 'check',
-    sceneId: working.sceneId,
-    actionId,
-    stat,
-    dc,
-    roll: finalRoll,
-    total,
-    success,
-    rerolled,
-  }
-
-  working = appendEvent(working, event, success ? successText : failureText)
-
-  if (success && finalRoll === 20 && working.trouble > 0) {
-    working = cloneState(working, { trouble: working.trouble - 1 })
-  }
-
-  if (!success) {
-    const troubleAmount = finalRoll === 1 ? 2 : 1
-    working = applyTrouble(working, troubleAmount, `${actionId} failed`)
-  }
-
-  return { state: working, success, event }
-}
-
 function spendMana(state, amount, actionId) {
   if (!Number.isInteger(amount) || amount < 1) {
     throw new Error('Mana cost must be a positive integer.')
@@ -282,6 +234,103 @@ function spendMana(state, amount, actionId) {
     { type: 'mana', sceneId: state.sceneId, actionId, amount },
     `You spend ${amount} Mana. I am recording this because Mana accounting matters.`,
   )
+}
+
+function selectComplication(state, actionId) {
+  if (actionId === 'route:ridge') return NATURAL_ONE_COMPLICATIONS[0]
+  if (actionId === 'route:fen') return NATURAL_ONE_COMPLICATIONS[1]
+  if (String(actionId).startsWith('goblin:')) return NATURAL_ONE_COMPLICATIONS[2]
+  if (String(actionId).startsWith('midpoint:')) return NATURAL_ONE_COMPLICATIONS[3]
+  if (String(actionId).startsWith('boss:')) return NATURAL_ONE_COMPLICATIONS[4]
+  return NATURAL_ONE_COMPLICATIONS[state.complicationCount % NATURAL_ONE_COMPLICATIONS.length]
+}
+
+function applyNaturalOneComplication(state, event, complicationText) {
+  const trouble = Math.min(2, state.trouble + 2)
+  return appendEvent(
+    cloneState(state, {
+      trouble,
+      complicationCount: state.complicationCount + 1,
+    }),
+    {
+      ...event,
+      success: false,
+      naturalOne: true,
+      outcome: 'complication',
+      complicationText,
+    },
+    complicationText,
+  )
+}
+
+function resolveCheck(
+  state,
+  {
+    actionId,
+    stat,
+    dc,
+    successText,
+    failureText,
+    manaCost = 0,
+  },
+) {
+  if (!['strength', 'defense'].includes(stat)) {
+    throw new Error(`Unsupported check stat: ${stat}`)
+  }
+
+  let working = state
+  if (manaCost > 0) {
+    working = spendMana(working, manaCost, actionId)
+  }
+
+  const first = rollD20(working)
+  working = cloneState(working, { rngState: first.rngState })
+  const rolls = [first.roll]
+
+  if (manaCost > 0) {
+    const second = rollD20(working)
+    working = cloneState(working, { rngState: second.rngState })
+    rolls.push(second.roll)
+  }
+
+  const finalRoll = Math.max(...rolls)
+  const total = finalRoll + working.stats[stat]
+  const success = finalRoll === 20 || total >= dc
+  const naturalOne = finalRoll === 1
+  const event = {
+    type: 'check',
+    sceneId: working.sceneId,
+    actionId,
+    stat,
+    dc,
+    rolls,
+    roll: finalRoll,
+    total,
+    success,
+    naturalOne,
+    advantage: manaCost > 0,
+    manaAssisted: manaCost > 0,
+    manaCost,
+    outcome: naturalOne ? 'complication' : success ? 'success' : 'failure',
+  }
+
+  if (naturalOne) {
+    const complicationText = selectComplication(working, actionId)
+    working = applyNaturalOneComplication(working, event, complicationText)
+    return { state: working, success: false, event: working.history.at(-1) }
+  }
+
+  working = appendEvent(working, event, success ? successText : failureText)
+
+  if (success && finalRoll === 20 && working.trouble > 0) {
+    working = cloneState(working, { trouble: working.trouble - 1 })
+  }
+
+  if (!success) {
+    working = applyTrouble(working, 1, `${actionId} failed`)
+  }
+
+  return { state: working, success, event }
 }
 
 function endingNarration(ending, state) {
@@ -315,6 +364,7 @@ function completeRun(state, ending, reason = null) {
           : `escaped without recovering ${state.stolenItem}`,
     trouble: state.trouble,
     manaRemaining: state.stats.manaPool,
+    complicationCount: state.complicationCount,
     priorCompletedRunCount: state.priorCompletedRunCount,
     narrationTier: state.narrationTier,
     reason,
@@ -370,6 +420,7 @@ export function createWeedGoblinsRun({
     background: null,
     stats: { strength: 0, defense: 0, manaPool: 0, maxMana: 0 },
     trouble: 0,
+    complicationCount: 0,
     priorCompletedRunCount: normalizedPriorCompletedRunCount,
     narrationTier,
     stolenItem: stolen.value,
@@ -385,6 +436,10 @@ export function createWeedGoblinsRun({
     history: [],
     narration,
   }
+}
+
+function optionalManaCost(options) {
+  return options.useManaAdvantage === true || options.useManaReroll === true ? 1 : 0
 }
 
 export function getAvailableActions(state) {
@@ -410,7 +465,7 @@ export function getAvailableActions(state) {
       { id: 'goblin:guard', label: `Outlast ${state.goblinName}` },
     ]
     if (state.stats.manaPool >= 1) {
-      actions.push({ id: 'goblin:channel', label: 'Spend 1 Mana to confuse the encounter' })
+      actions.push({ id: 'goblin:channel', label: 'Spend 1 Mana for advantage while confusing the encounter' })
     }
     return actions
   }
@@ -422,7 +477,7 @@ export function getAvailableActions(state) {
       { id: 'midpoint:skip', label: 'Keep moving' },
     ]
     if (state.stats.manaPool >= 1) {
-      actions.push({ id: 'midpoint:read-runes', label: 'Spend 1 Mana to read the gate runes' })
+      actions.push({ id: 'midpoint:read-runes', label: 'Spend 1 Mana for advantage while reading the gate runes' })
     }
     return actions
   }
@@ -433,7 +488,7 @@ export function getAvailableActions(state) {
       { id: 'boss:outlast', label: 'Outlast the Goblin King' },
     ]
     if (state.stats.manaPool >= 2) {
-      actions.push({ id: 'boss:spell', label: 'Spend 2 Mana on a decisive theory' })
+      actions.push({ id: 'boss:spell', label: 'Spend 2 Mana for advantage on a decisive theory' })
     }
     if (state.flags.goblinAlly) {
       actions.push({ id: 'boss:bargain', label: 'Invoke the goblin clerk as a witness' })
@@ -481,7 +536,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
         dc: route.dc,
         successText: route.successText,
         failureText: route.failureText,
-        useManaReroll: options.useManaReroll === true,
+        manaCost: optionalManaCost(options),
       },
     )
     if (result.state.status === 'completed') return result.state
@@ -490,14 +545,16 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
 
   if (state.sceneId === SCENES.goblin) {
     if (actionId === 'goblin:channel') {
-      return cloneState(
-        appendEvent(
-          spendMana(state, 1, actionId),
-          { type: 'choice', sceneId: SCENES.goblin, actionId, success: true },
-          `${state.goblinName} becomes occupied with a theory that has no immediate conclusion. The path is clear.`,
-        ),
-        { sceneId: SCENES.midpoint },
-      )
+      const result = resolveCheck(state, {
+        actionId,
+        stat: 'defense',
+        dc: DIFFICULTY.standard,
+        manaCost: 1,
+        successText: `${state.goblinName} becomes occupied with a theory that has no immediate conclusion. The path is clear.`,
+        failureText: `${state.goblinName} rejects the theory on procedural grounds and keeps the useful side of the path.`,
+      })
+      if (result.state.status === 'completed') return result.state
+      return cloneState(result.state, { sceneId: SCENES.midpoint })
     }
 
     const stat = actionId === 'goblin:strike' ? 'strength' : 'defense'
@@ -507,7 +564,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       dc: DIFFICULTY.standard,
       successText: `${state.goblinName} yields the path with theatrical reluctance.`,
       failureText: `${state.goblinName} lands a surprisingly organized counterargument.`,
-      useManaReroll: options.useManaReroll === true,
+      manaCost: optionalManaCost(options),
     })
     if (result.state.status === 'completed') return result.state
     return cloneState(result.state, { sceneId: SCENES.midpoint })
@@ -528,20 +585,22 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
     }
 
     if (actionId === 'midpoint:read-runes') {
-      return cloneState(
-        appendEvent(
-          spendMana(
-            cloneState(state, {
-              flags: { midpointChoice: 'read-runes', bossDcModifier: -2 },
-            }),
-            1,
-            actionId,
-          ),
-          { type: 'choice', sceneId: SCENES.midpoint, actionId },
-          'The runes explain the throne mechanism in unnecessary detail. I approve of the detail.',
-        ),
-        { sceneId: SCENES.boss },
+      const result = resolveCheck(
+        cloneState(state, { flags: { midpointChoice: 'read-runes' } }),
+        {
+          actionId,
+          stat: 'defense',
+          dc: DIFFICULTY.standard,
+          manaCost: 1,
+          successText: 'The runes explain the throne mechanism in unnecessary detail. I approve of the detail.',
+          failureText: 'The runes include a footnote you interpret as optional. The throne mechanism does not.',
+        },
       )
+      if (result.state.status === 'completed') return result.state
+      return cloneState(result.state, {
+        sceneId: SCENES.boss,
+        flags: { bossDcModifier: result.success ? -2 : 1 },
+      })
     }
 
     if (actionId === 'midpoint:take-charm') {
@@ -553,7 +612,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
           dc: DIFFICULTY.easy,
           successText: 'You take the charm without activating the small but judgmental bell.',
           failureText: 'The bell announces your decision to the entire administrative wing.',
-          useManaReroll: options.useManaReroll === true,
+          manaCost: optionalManaCost(options),
         },
       )
       if (result.state.status === 'completed') return result.state
@@ -578,30 +637,33 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       return completeRun(state, ENDINGS.bargain, 'goblin clerk testimony')
     }
 
-    if (actionId === 'boss:spell') {
-      return completeRun(
-        appendEvent(
-          spendMana(state, 2, actionId),
-          { type: 'choice', sceneId: SCENES.boss, actionId, success: true },
-          'Your decisive theory contains three premises and one diagram. The Goblin King concedes before the diagram is explained.',
-        ),
-        ENDINGS.recovery,
-        'mana solution',
-      )
-    }
-
-    const stat = actionId === 'boss:overpower' ? 'strength' : 'defense'
     const dc = Math.max(
       DIFFICULTY.easy,
       DIFFICULTY.goblinKing + state.flags.bossDcModifier,
     )
+
+    if (actionId === 'boss:spell') {
+      const result = resolveCheck(state, {
+        actionId,
+        stat: 'defense',
+        dc,
+        manaCost: 2,
+        successText: 'Your decisive theory contains three premises and one diagram. The Goblin King concedes before the diagram is explained.',
+        failureText: 'The Goblin King identifies a missing label on the diagram and remains in control of the room.',
+      })
+      if (result.state.status === 'completed') return result.state
+      if (result.success) return completeRun(result.state, ENDINGS.recovery, 'mana-assisted victory')
+      return result.state
+    }
+
+    const stat = actionId === 'boss:overpower' ? 'strength' : 'defense'
     const result = resolveCheck(state, {
       actionId,
       stat,
       dc,
       successText: 'The Goblin King is defeated within the accepted fictional meaning of defeated.',
       failureText: 'The Goblin King remains king for at least one more action.',
-      useManaReroll: options.useManaReroll === true,
+      manaCost: optionalManaCost(options),
     })
     if (result.state.status === 'completed') return result.state
     if (result.success) return completeRun(result.state, ENDINGS.recovery, `${stat} victory`)
