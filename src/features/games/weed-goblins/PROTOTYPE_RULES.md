@@ -36,6 +36,15 @@ Locked tone examples, not an exhaustive future content list:
 - "The field reliquary acquires a dent shaped exactly like a goblin's opinion. Its contents remain secure."
 - "You reach the correct tactical position one minute after it stops being the correct tactical position."
 
+### Known issue: natural-1 Trouble amount
+
+The documented pattern above describes a natural-1 complication as potentially adding an extra Trouble point, consistent with the Session 1 rule that a failed dangerous check adds one Trouble. The current deterministic engine instead adds two Trouble for a selected natural 1, while capping the resulting total at two so that the complication cannot end the run by itself.
+
+The two-Trouble behavior was not separately approved as a locked exception and is therefore a known discrepancy between the current implementation and this contract. It remains unchanged in this documentation-only update. A future mechanics session must explicitly choose one of these outcomes before the rule is considered settled:
+
+- change the engine so a natural-1 complication adds one Trouble; or
+- formally approve and document the two-Trouble complication penalty.
+
 ## Character backgrounds
 
 - Highlands Hauler: Strength 3, Defense 1, Mana Pool 2.
