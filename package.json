@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build && node -e \"require('fs').copyFileSync('dist/index.html', 'dist/404.html')\"",
     "preview": "vite preview",
-    "test": "node --test src/features/games/weed-goblins/weedGoblinsEngine.test.js"
+    "test": "node --test src/features/games/weed-goblins/weedGoblinsEngine.test.js",
+    "play:weed-goblins": "node src/features/games/weed-goblins/weedGoblinsConsole.js"
   },
   "keywords": [],
   "author": "",
