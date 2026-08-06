@@ -4,7 +4,14 @@ import {
   advanceWeedGoblinsRun,
   createWeedGoblinsRun,
 } from './weedGoblinsEngine.js'
-import { generateNaturalOneComplication } from './weedGoblinsAiComplication.js'
+import {
+  generateNarrationFromHook,
+  generateNaturalOneComplication,
+} from './weedGoblinsAiComplication.js'
+import {
+  createInitialNarrationHook,
+  getNarrationHooksForTransition,
+} from './weedGoblinsNarrationHooks.js'
 import {
   loadConsoleLocalAdapterSnapshot,
   runInteractiveWeedGoblins,
@@ -12,6 +19,12 @@ import {
 
 const DEFAULT_NARRATION_ENDPOINT =
   'https://my420journal.app/api/weed-goblins-narration'
+const STORY_BEAT_MOMENTS = new Set([
+  'action-success',
+  'scene-intro',
+  'midpoint-outcome',
+  'run-ending',
+])
 
 function parseArguments(argv) {
   const options = {
@@ -20,6 +33,7 @@ function parseArguments(argv) {
     priorRunsSpecified: false,
     useLocalAdapter: false,
     useAiNaturalOne: false,
+    useAiStoryBeats: false,
     narrationEndpoint: DEFAULT_NARRATION_ENDPOINT,
   }
 
@@ -36,6 +50,8 @@ function parseArguments(argv) {
       options.useLocalAdapter = true
     } else if (argument === '--ai-natural-one') {
       options.useAiNaturalOne = true
+    } else if (argument === '--ai-story-beats') {
+      options.useAiStoryBeats = true
     } else if (argument === '--narration-endpoint' && argv[index + 1]) {
       options.narrationEndpoint = argv[index + 1]
       index += 1
@@ -54,6 +70,28 @@ async function snapshotForOptions(options) {
     }
   }
   return loadConsoleLocalAdapterSnapshot()
+}
+
+function blockedNames(journalSnapshot) {
+  return [
+    ...(journalSnapshot.productNames || []),
+    ...(journalSnapshot.dispensaryNames || []),
+  ]
+}
+
+function printComparisonResult(result) {
+  output.write(
+    `${result.source === 'ai' ? 'LIVE AI CANDIDATE' : 'AI FALLBACK'}: ${result.text}\n`,
+  )
+  output.write(
+    `AI VALIDATION: ${result.attempts} attempt(s), ${result.validationFailures.length} rejected draft(s)\n`,
+  )
+  for (const failure of result.validationFailures) {
+    output.write(
+      `AI REJECTED ATTEMPT ${failure.attempt}: ${failure.reasons.join('; ')}\n`,
+    )
+  }
+  if (result.model) output.write(`Model: ${result.model}\n`)
 }
 
 export async function compareNaturalOneNarration({
@@ -75,10 +113,7 @@ export async function compareNaturalOneNarration({
     event,
     state,
     staticFallbacks: [event.complicationText],
-    blockedRealNames: [
-      ...(journalSnapshot.productNames || []),
-      ...(journalSnapshot.dispensaryNames || []),
-    ],
+    blockedRealNames: blockedNames(journalSnapshot),
     endpoint,
     fetchImpl,
   })
@@ -86,19 +121,52 @@ export async function compareNaturalOneNarration({
   output.write('WEED GOBLINS NATURAL-1 NARRATION COMPARISON\n')
   output.write(`Same-origin endpoint: ${endpoint}\n`)
   output.write(`STATIC BASELINE: ${event.complicationText}\n`)
-  output.write(
-    `${result.source === 'ai' ? 'LIVE AI CANDIDATE' : 'AI FALLBACK'}: ${result.text}\n`,
-  )
-  output.write(
-    `AI VALIDATION: ${result.attempts} attempt(s), ${result.validationFailures.length} rejected draft(s)\n`,
-  )
-  for (const failure of result.validationFailures) {
-    output.write(
-      `AI REJECTED ATTEMPT ${failure.attempt}: ${failure.reasons.join('; ')}\n`,
-    )
-  }
-  if (result.model) output.write(`Model: ${result.model}\n`)
+  printComparisonResult(result)
   return result
+}
+
+export async function compareStoryBeatNarration({
+  endpoint = DEFAULT_NARRATION_ENDPOINT,
+  journalSnapshot = { productNames: [], dispensaryNames: [] },
+  fetchImpl = fetch,
+} = {}) {
+  const actions = [
+    'background:hauler',
+    'route:ridge',
+    'goblin:strike',
+    'midpoint:skip',
+    'boss:overpower',
+  ]
+  let state = createWeedGoblinsRun({ seed: 'recovery-1', journalSnapshot })
+  const hooks = [createInitialNarrationHook(state)]
+
+  for (const actionId of actions) {
+    const before = state
+    state = advanceWeedGoblinsRun(state, actionId)
+    hooks.push(...getNarrationHooksForTransition(before, state))
+  }
+
+  const storyBeatHooks = hooks.filter((hook) => STORY_BEAT_MOMENTS.has(hook.moment))
+  const results = []
+
+  output.write('WEED GOBLINS STORY-BEAT NARRATION COMPARISON\n')
+  output.write(`Same-origin endpoint: ${endpoint}\n`)
+
+  for (const [index, hook] of storyBeatHooks.entries()) {
+    output.write(`\n[${index + 1}] ${hook.moment} -> ${hook.outcome}\n`)
+    output.write(`STATIC BASELINE: ${hook.fallbackText}\n`)
+    const result = await generateNarrationFromHook({
+      hook,
+      state,
+      blockedRealNames: blockedNames(journalSnapshot),
+      endpoint,
+      fetchImpl,
+    })
+    printComparisonResult(result)
+    results.push({ hook, result })
+  }
+
+  return results
 }
 
 async function main() {
@@ -107,6 +175,14 @@ async function main() {
 
   if (options.useAiNaturalOne) {
     await compareNaturalOneNarration({
+      endpoint: options.narrationEndpoint,
+      journalSnapshot: snapshot,
+    })
+    return
+  }
+
+  if (options.useAiStoryBeats) {
+    await compareStoryBeatNarration({
       endpoint: options.narrationEndpoint,
       journalSnapshot: snapshot,
     })

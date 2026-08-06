@@ -2,9 +2,15 @@ const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages'
 const ANTHROPIC_VERSION = '2023-06-01'
 export const WEED_GOBLINS_MODEL = 'claude-haiku-4-5-20251001'
 const MAX_REQUEST_BYTES = 16_384
-const SUPPORTED_MOMENT_OUTCOMES = Object.freeze({
-  'natural-one-complication': 'complication',
-  'ordinary-failure': 'failure',
+const RUN_ENDING_OUTCOMES = Object.freeze(['recovery', 'bargain', 'escape'])
+
+export const SUPPORTED_MOMENT_OUTCOMES = Object.freeze({
+  'natural-one-complication': Object.freeze(['complication']),
+  'ordinary-failure': Object.freeze(['failure']),
+  'action-success': Object.freeze(['success']),
+  'scene-intro': Object.freeze(['intro']),
+  'midpoint-outcome': Object.freeze(['midpoint']),
+  'run-ending': RUN_ENDING_OUTCOMES,
 })
 
 export const WEED_GOBLINS_SYSTEM_PROMPT = `You are S.T.O.N.E.R., the narrator of Weed Goblins.
@@ -30,12 +36,20 @@ CONTENT SAFETY AND PRIVACY
 SUPPORTED MOMENTS
 - When moment is "natural-one-complication", outcome must be "complication". A natural-1 complication is always comedic, non-fatal, and mildly costly. It may cause lost time, a worse tactical position, two Trouble, or a harmless change to an item's condition. It is not an ordinary failure and does not end the run.
 - When moment is "ordinary-failure", outcome must be "failure". An ordinary failure is a real setback. It may raise Trouble and is not automatically comedic. It does not end the run, and it must not imply that the player succeeded or that a different outcome or ending occurred.
+- When moment is "action-success", outcome must be "success". This is a successful route check, goblin encounter, or Goblin King confrontation. Describe the successful action only. It may say that the action succeeded, but it must not claim that the run ended, that the stolen item was recovered, that a bargain was made, or that the player escaped.
+- When moment is "scene-intro", outcome must be "intro". This is either the opening introduction to the Goblin Highlands or the selected background's flavor introduction. Establish only the supplied scene or background. Do not invent a roll, success, failure, Trouble change, midpoint result, or ending.
+- When moment is "midpoint-outcome", outcome must be "midpoint". This is the authoritative result of exactly one midpoint choice: help the clerk, take the charm, keep moving, or read the runes. Describe that supplied result only. Do not turn it into a route result, goblin confrontation, final victory, recovery, bargain, escape, or run ending.
+- When moment is "run-ending", outcome must be exactly "recovery", "bargain", or "escape". For "recovery", the player recovers the stolen item without describing a bargain or escape. For "bargain", the player leaves with the stolen item through the supplied agreement or testimony, not a direct victory or escape. For "escape", the player leaves without recovering the stolen item and without describing recovery or a bargain.
 
 OUTCOME FIDELITY
 - The event context is authoritative. Narrate around the exact moment and outcome you are given.
 - Never imply that a different roll, outcome, victory, recovery, defeat, bargain, escape, or ending occurred.
 - For a natural-one-complication request, narrate only the complication. Do not describe an ordinary failure, success, or ending.
 - For an ordinary-failure request, narrate only the failure setback. Do not describe success, recovery, victory, an ending, or the run ending.
+- For an action-success request, narrate only the successful action. Do not announce any run ending.
+- For a scene-intro request, narrate only the supplied introduction or background flavor. Do not resolve an action.
+- For a midpoint-outcome request, narrate only the supplied midpoint result. Do not announce success as a separate outcome or any run ending.
+- For a run-ending request, the narration must match the exact recovery, bargain, or escape outcome supplied and must not describe either of the other two endings.
 
 CHARACTERS AND CALLBACKS
 - S.T.O.N.E.R. is the narrator. The Goblin King is a distinct theatrical villain performance only when the event context explicitly requests a Goblin King spoken line. Otherwise do not invent Goblin King dialogue.
@@ -104,19 +118,28 @@ function cleanInteger(value, minimum = 0, maximum = 100) {
   return Math.min(maximum, Math.max(minimum, Math.floor(number)))
 }
 
+function isSupportedMomentOutcome(moment, outcome) {
+  return SUPPORTED_MOMENT_OUTCOMES[moment]?.includes(outcome) === true
+}
+
 function normalizeContext(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return null
 
   const moment = cleanText(body.moment, 40)
   const outcome = cleanText(body.outcome, 40)
-  if (SUPPORTED_MOMENT_OUTCOMES[moment] !== outcome) return null
+  if (!isSupportedMomentOutcome(moment, outcome)) return null
 
-  const rolls = Array.isArray(body.rolls)
+  const suppliedRolls = Array.isArray(body.rolls)
     ? body.rolls.slice(0, 2).map((value) => cleanInteger(value, 1, 20))
-    : [moment === 'natural-one-complication' ? 1 : cleanInteger(body.selectedRoll, 1, 20)]
+    : []
+  const rolls = moment === 'natural-one-complication'
+    ? (suppliedRolls.length > 0 ? suppliedRolls : [1])
+    : suppliedRolls
   const selectedRoll = moment === 'natural-one-complication'
     ? 1
-    : cleanInteger(body.selectedRoll ?? Math.max(...rolls), 1, 20)
+    : rolls.length > 0
+      ? cleanInteger(body.selectedRoll ?? Math.max(...rolls), 1, 20)
+      : null
 
   return {
     moment,
@@ -131,6 +154,11 @@ function normalizeContext(body) {
     troubleAfter: cleanInteger(body.troubleAfter, 0, 3),
     fictionalStolenItem: cleanText(body.fictionalStolenItem, 160),
     fictionalGoblinName: cleanText(body.fictionalGoblinName, 100),
+    authoritativeText: cleanText(body.authoritativeText, 300),
+    introKind: cleanText(body.introKind, 60),
+    backgroundName: cleanText(body.backgroundName, 100),
+    midpointChoice: cleanText(body.midpointChoice, 80),
+    endingReason: cleanText(body.endingReason, 120),
     narrationTier: cleanText(body.narrationTier, 50) || 'normal',
     allowCallback: body.allowCallback === true,
     allowFourthWall: body.allowFourthWall === true,
@@ -138,14 +166,20 @@ function normalizeContext(body) {
   }
 }
 
+const MOMENT_LABELS = Object.freeze({
+  'natural-one-complication': 'natural-1 complication',
+  'ordinary-failure': 'ordinary failure',
+  'action-success': 'action success',
+  'scene-intro': 'scene introduction',
+  'midpoint-outcome': 'midpoint outcome',
+  'run-ending': 'run ending',
+})
+
 function eventPrompt(context) {
   const correction = context.correctiveNote
     ? `\nCorrection required after a rejected draft: ${context.correctiveNote}`
     : ''
-  const momentLabel = context.moment === 'ordinary-failure'
-    ? 'ordinary failure'
-    : 'natural-1 complication'
-  return `Write the single ${momentLabel} line for this authoritative engine event:\n${JSON.stringify({
+  return `Write the single ${MOMENT_LABELS[context.moment]} line for this authoritative engine event:\n${JSON.stringify({
     ...context,
     correctiveNote: undefined,
   })}${correction}`
