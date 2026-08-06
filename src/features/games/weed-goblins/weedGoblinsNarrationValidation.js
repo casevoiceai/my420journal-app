@@ -1,4 +1,8 @@
 const BANNED_WORDS = Object.freeze(['awesome', 'amazing', 'weed'])
+const SUPPORTED_MOMENT_OUTCOMES = Object.freeze({
+  'natural-one-complication': 'complication',
+  'ordinary-failure': 'failure',
+})
 
 export const DEFAULT_REAL_WORLD_NAMES = Object.freeze([
   'AYR',
@@ -55,9 +59,11 @@ function containsName(text, name) {
   return text.toLocaleLowerCase('en-US').includes(name.toLocaleLowerCase('en-US'))
 }
 
-export function validateGeneratedComplication(
+export function validateGeneratedNarration(
   value,
   {
+    moment = 'natural-one-complication',
+    outcome = SUPPORTED_MOMENT_OUTCOMES[moment],
     blockedRealNames = [],
     allowedFictionalNames = [],
   } = {},
@@ -65,6 +71,9 @@ export function validateGeneratedComplication(
   const text = typeof value === 'string' ? value.trim() : ''
   const reasons = []
 
+  if (SUPPORTED_MOMENT_OUTCOMES[moment] !== outcome) {
+    reasons.push('uses an unsupported narration moment/outcome pairing')
+  }
   if (!text) reasons.push('empty response')
   if (text.length > 260) reasons.push('response is too long')
   if (text.includes('!')) reasons.push('contains an exclamation point')
@@ -92,7 +101,7 @@ export function validateGeneratedComplication(
     reasons.push('contains fatal or serious-harm language')
   }
 
-  if (/\b(you win|you won|victory|recover(?:ed)? the|defeat(?:ed)? the Goblin King|the run ends)\b/i.test(text)) {
+  if (/\b(you succeed(?:ed)?|your attempt succeeds?|the attempt succeeds?|success|successful(?:ly)?|you win|you won|victory|recover(?:s|ed)? the|defeat(?:s|ed)? the Goblin King|the run (?:ends?|ended|is over)|this ends the run|you escape(?:d)? the Highlands|you (?:make|made) a bargain)\b/i.test(text)) {
     reasons.push('implies a different engine outcome')
   }
 
@@ -109,6 +118,22 @@ export function validateGeneratedComplication(
     text,
     reasons,
   }
+}
+
+export function validateGeneratedComplication(value, options = {}) {
+  return validateGeneratedNarration(value, {
+    ...options,
+    moment: 'natural-one-complication',
+    outcome: 'complication',
+  })
+}
+
+export function validateGeneratedFailure(value, options = {}) {
+  return validateGeneratedNarration(value, {
+    ...options,
+    moment: 'ordinary-failure',
+    outcome: 'failure',
+  })
 }
 
 export function correctiveNoteForValidation(reasons = []) {

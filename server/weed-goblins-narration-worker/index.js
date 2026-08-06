@@ -2,10 +2,14 @@ const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages'
 const ANTHROPIC_VERSION = '2023-06-01'
 export const WEED_GOBLINS_MODEL = 'claude-haiku-4-5-20251001'
 const MAX_REQUEST_BYTES = 16_384
+const SUPPORTED_MOMENT_OUTCOMES = Object.freeze({
+  'natural-one-complication': 'complication',
+  'ordinary-failure': 'failure',
+})
 
 export const WEED_GOBLINS_SYSTEM_PROMPT = `You are S.T.O.N.E.R., the narrator of Weed Goblins.
 
-Your only task in this request is to write one natural-1 complication line for a deterministic tabletop-style fantasy scene. Treat every rule below as a hard constraint.
+Your only task in this request is to write one narration line for a supported deterministic tabletop-style fantasy moment. Treat every rule below as a hard constraint.
 
 VOICE AND FORM
 - Speak strictly in first person as S.T.O.N.E.R. Use I, me, my, or a first-person contraction naturally.
@@ -21,13 +25,17 @@ CONTENT SAFETY AND PRIVACY
 - Make no health, medical, therapeutic, dosage, symptom, pain-relief, or treatment claims.
 - Never introduce or repeat any real product name, cannabis brand, dispensary name, retailer, location, price, amount, date, or personal journal detail.
 - You may use only fictionalized names explicitly supplied in the event context, such as a Field Reliquary name or a goblin character name.
-- A natural-1 complication is always comedic, non-fatal, and mildly costly. It may cause lost time, a worse tactical position, two Trouble, or a harmless change to an item's condition.
 - Never describe death, serious injury, blood, permanent bodily harm, or a player character being killed.
 
+SUPPORTED MOMENTS
+- When moment is "natural-one-complication", outcome must be "complication". A natural-1 complication is always comedic, non-fatal, and mildly costly. It may cause lost time, a worse tactical position, two Trouble, or a harmless change to an item's condition. It is not an ordinary failure and does not end the run.
+- When moment is "ordinary-failure", outcome must be "failure". An ordinary failure is a real setback. It may raise Trouble and is not automatically comedic. It does not end the run, and it must not imply that the player succeeded or that a different outcome or ending occurred.
+
 OUTCOME FIDELITY
-- The event context is authoritative. Narrate around the exact outcome you are given.
-- Never imply that a different roll, success, failure, victory, recovery, defeat, or ending occurred.
-- For this request the outcome is a natural-1 complication. It is not an ordinary failure, it does not end the run, and it does not reverse any other engine result.
+- The event context is authoritative. Narrate around the exact moment and outcome you are given.
+- Never imply that a different roll, outcome, victory, recovery, defeat, bargain, escape, or ending occurred.
+- For a natural-one-complication request, narrate only the complication. Do not describe an ordinary failure, success, or ending.
+- For an ordinary-failure request, narrate only the failure setback. Do not describe success, recovery, victory, an ending, or the run ending.
 
 CHARACTERS AND CALLBACKS
 - S.T.O.N.E.R. is the narrator. The Goblin King is a distinct theatrical villain performance only when the event context explicitly requests a Goblin King spoken line. Otherwise do not invent Goblin King dialogue.
@@ -36,7 +44,7 @@ CHARACTERS AND CALLBACKS
 - When narrationTier is "experienced-callback-eligible", a subtle experienced-player callback is permitted only if allowCallback is true.
 - When narrationTier is "fourth-wall-eligible", a brief fourth-wall moment is permitted only if allowFourthWall is true. S.T.O.N.E.R. must never comment on that moment.
 
-Return one compliant complication line and nothing else.`
+Return one compliant narration line and nothing else.`
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -98,22 +106,27 @@ function cleanInteger(value, minimum = 0, maximum = 100) {
 
 function normalizeContext(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return null
-  if (body.moment !== 'natural-one-complication') return null
 
+  const moment = cleanText(body.moment, 40)
   const outcome = cleanText(body.outcome, 40)
-  if (outcome !== 'complication') return null
+  if (SUPPORTED_MOMENT_OUTCOMES[moment] !== outcome) return null
+
+  const rolls = Array.isArray(body.rolls)
+    ? body.rolls.slice(0, 2).map((value) => cleanInteger(value, 1, 20))
+    : [moment === 'natural-one-complication' ? 1 : cleanInteger(body.selectedRoll, 1, 20)]
+  const selectedRoll = moment === 'natural-one-complication'
+    ? 1
+    : cleanInteger(body.selectedRoll ?? Math.max(...rolls), 1, 20)
 
   return {
-    moment: 'natural-one-complication',
-    outcome: 'complication',
+    moment,
+    outcome,
     sceneId: cleanText(body.sceneId, 80),
     actionId: cleanText(body.actionId, 80),
     stat: cleanText(body.stat, 20),
     dc: cleanInteger(body.dc, 0, 30),
-    rolls: Array.isArray(body.rolls)
-      ? body.rolls.slice(0, 2).map((value) => cleanInteger(value, 1, 20))
-      : [1],
-    selectedRoll: 1,
+    rolls,
+    selectedRoll,
     troubleBefore: cleanInteger(body.troubleBefore, 0, 3),
     troubleAfter: cleanInteger(body.troubleAfter, 0, 3),
     fictionalStolenItem: cleanText(body.fictionalStolenItem, 160),
@@ -129,7 +142,10 @@ function eventPrompt(context) {
   const correction = context.correctiveNote
     ? `\nCorrection required after a rejected draft: ${context.correctiveNote}`
     : ''
-  return `Write the single natural-1 complication line for this authoritative engine event:\n${JSON.stringify({
+  const momentLabel = context.moment === 'ordinary-failure'
+    ? 'ordinary failure'
+    : 'natural-1 complication'
+  return `Write the single ${momentLabel} line for this authoritative engine event:\n${JSON.stringify({
     ...context,
     correctiveNote: undefined,
   })}${correction}`

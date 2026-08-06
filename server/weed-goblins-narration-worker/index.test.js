@@ -26,6 +26,7 @@ function request({ method = 'POST', secret = SECRET, body = {} } = {}) {
       stat: 'strength',
       dc: 12,
       rolls: [1],
+      selectedRoll: 1,
       troubleBefore: 0,
       troubleAfter: 2,
       fictionalStolenItem: 'the Amber Field Satchel',
@@ -39,6 +40,12 @@ function request({ method = 'POST', secret = SECRET, body = {} } = {}) {
 const env = {
   WEED_GOBLINS_PROXY_SECRET: SECRET,
   WEED_GOBLINS_ANTHROPIC_API_KEY: 'test-api-key',
+}
+
+function anthropicResponse(text) {
+  return new Response(JSON.stringify({
+    content: [{ type: 'text', text }],
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
 }
 
 test('rejects missing or wrong authorization before any forwarding', async () => {
@@ -64,16 +71,16 @@ test('rejects missing or wrong authorization before any forwarding', async () =>
   assert.equal(fetchCalls, 0)
 })
 
-test('forwards only an authorized valid request to Anthropic', async () => {
+test('forwards only an authorized valid natural-one request to Anthropic', async () => {
   let forwarded
   const response = await handleNarrationWorkerRequest(
     request(),
     env,
     async (url, init) => {
       forwarded = { url, init, body: JSON.parse(init.body) }
-      return new Response(JSON.stringify({
-        content: [{ type: 'text', text: 'I note that the gate has reassigned your route to the longer route.' }],
-      }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      return anthropicResponse(
+        'I note that the gate has reassigned your route to the longer route.',
+      )
     },
   )
 
@@ -85,6 +92,64 @@ test('forwards only an authorized valid request to Anthropic', async () => {
   assert.equal(forwarded.body.messages[0].role, 'user')
   assert.equal(forwarded.body.messages[0].content.includes('"outcome":"complication"'), true)
   assert.equal(JSON.stringify(forwarded).includes(SECRET), false)
+})
+
+test('accepts ordinary-failure with outcome failure and forwards the paired context', async () => {
+  let forwarded
+  const response = await handleNarrationWorkerRequest(
+    request({
+      body: {
+        moment: 'ordinary-failure',
+        outcome: 'failure',
+        rolls: [7],
+        selectedRoll: 7,
+        troubleBefore: 0,
+        troubleAfter: 1,
+      },
+    }),
+    env,
+    async (_url, init) => {
+      forwarded = JSON.parse(init.body)
+      return anthropicResponse(
+        'I record that the gate holds, and your direct route now costs time and one measure of Trouble.',
+      )
+    },
+  )
+
+  assert.equal(response.status, 200)
+  assert.match(forwarded.messages[0].content, /single ordinary failure line/)
+  assert.equal(forwarded.messages[0].content.includes('"moment":"ordinary-failure"'), true)
+  assert.equal(forwarded.messages[0].content.includes('"outcome":"failure"'), true)
+  assert.equal(forwarded.messages[0].content.includes('"selectedRoll":7'), true)
+})
+
+test('enforces supported moment and outcome pairings before Anthropic forwarding', async () => {
+  let fetchCalls = 0
+  const fetchImpl = async () => {
+    fetchCalls += 1
+    return anthropicResponse('I should not be reached.')
+  }
+
+  const crossedNatural = await handleNarrationWorkerRequest(
+    request({ body: { outcome: 'failure' } }),
+    env,
+    fetchImpl,
+  )
+  const crossedFailure = await handleNarrationWorkerRequest(
+    request({ body: { moment: 'ordinary-failure', outcome: 'complication' } }),
+    env,
+    fetchImpl,
+  )
+  const unsupported = await handleNarrationWorkerRequest(
+    request({ body: { moment: 'ordinary-success', outcome: 'success' } }),
+    env,
+    fetchImpl,
+  )
+
+  assert.equal(crossedNatural.status, 400)
+  assert.equal(crossedFailure.status, 400)
+  assert.equal(unsupported.status, 400)
+  assert.equal(fetchCalls, 0)
 })
 
 test('system prompt contains the locked hard constraints', () => {
@@ -110,4 +175,17 @@ test('system prompt contains explicit character guidance', () => {
     ),
     true,
   )
+})
+
+test('system prompt contains the ordinary-failure moment rules', () => {
+  for (const required of [
+    'When moment is "ordinary-failure", outcome must be "failure"',
+    'An ordinary failure is a real setback',
+    'is not automatically comedic',
+    'It does not end the run',
+    'must not imply that the player succeeded',
+    'For an ordinary-failure request, narrate only the failure setback',
+  ]) {
+    assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
+  }
 })
