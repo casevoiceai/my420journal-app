@@ -38,6 +38,13 @@ const RUN_END_SIGNAL = /\b(the run (?:ends?|ended|is over|concludes?|concluded)|
 const RECOVERY_ACTION_SIGNAL = /\b(recover(?:s|ed|ing)?|reclaim(?:s|ed|ing)?|regain(?:s|ed|ing)?|retrieve(?:s|d|ving)?)\b/i
 const RECOVERY_OBJECT_SIGNAL = /\b(stolen (?:item|goods?)|field reliquary|reliquary|satchel|moon jar|research case)\b/i
 const WIN_BACK_SIGNAL = /\b(win(?:s|ning)? back|won back)\b/i
+const EMPTY_HANDED_SIGNAL = /\b(?:empty[- ]handed|with empty hands?)\b/i
+const DEPARTURE_SIGNAL = /\b(?:leave(?:s|d|ing)?|depart(?:s|ed|ing)?|return(?:s|ed|ing)?|slip(?:s|ped|ping)? back|head(?:s|ed|ing)? back|make(?:s|d|ing)? (?:my|your|their|the) way back|walk(?:s|ed|ing)? away|turn(?:s|ed|ing)? back)\b/i
+const SURVIVAL_SIGNAL = /\b(?:call|consider|count|record) (?:that|this) (?:a )?survival\b|\bsurvival\b/i
+const ESCAPE_OBJECT_SIGNAL = /\b(?:the )?(?:stolen )?(?:item|goods?|field reliquary|reliquary|satchel|moon jar|research case)\b/i
+const RETAINED_STATE_SIGNAL = /\b(?:stay(?:s|ed|ing)?|remain(?:s|ed|ing)?|is still|still (?:sits?|rests?|lies?|waits?))\b/i
+const ANTAGONIST_POSSESSION_SIGNAL = /\b(?:locked|held|kept|secured)?\s*(?:in|within|under|with)\s+(?:(?:the )?Goblin King's|the antagonist's|his|her|their|the Goblin King|the antagonist)\s+(?:keeping|possession|grip|hands?|control|custody|vault|chest)\b|\b(?:the )?Goblin King (?:keeps?|holds?|retains?|has)\b/i
+const LEAVING_WITHOUT_ITEM_SIGNAL = /\b(?:leave(?:s|d|ing)?|depart(?:s|ed|ing)?|return(?:s|ed|ing)?|slip(?:s|ped|ping)? back|head(?:s|ed|ing)? back|walk(?:s|ed|ing)? away)\b[^.!?]{0,100}\bwithout\b[^.!?]{0,80}\b(?:the )?(?:stolen )?(?:item|goods?|field reliquary|reliquary|satchel|moon jar|research case)\b/i
 const ENDING_SIGNALS = Object.freeze({
   bargain: /\b(bargain(?:s|ed|ing)?|deal|agreement|terms|negotiate(?:s|d|ing)?|testimony)\b/i,
   escape: /\b(escape(?:s|d|ing)?|flee(?:s|ing)?|fled|retreat(?:s|ed|ing)?|withdraw(?:s|n|ing)?|without recovering|leave(?:s|d)? without)\b/i,
@@ -79,9 +86,28 @@ function isSupportedMomentOutcome(moment, outcome) {
   return SUPPORTED_MOMENT_OUTCOMES[moment]?.includes(outcome) === true
 }
 
+function detectsNaturalEscape(text, expectedStolenItem = '') {
+  const mentionsExpectedItem = expectedStolenItem
+    ? text.toLocaleLowerCase('en-US').includes(expectedStolenItem.toLocaleLowerCase('en-US'))
+    : false
+  const mentionsItem = mentionsExpectedItem || ESCAPE_OBJECT_SIGNAL.test(text)
+  const departure = DEPARTURE_SIGNAL.test(text)
+  const emptyHanded = EMPTY_HANDED_SIGNAL.test(text)
+  const survival = SURVIVAL_SIGNAL.test(text)
+  const retainedByAntagonist = mentionsItem
+    && RETAINED_STATE_SIGNAL.test(text)
+    && ANTAGONIST_POSSESSION_SIGNAL.test(text)
+
+  return LEAVING_WITHOUT_ITEM_SIGNAL.test(text)
+    || (emptyHanded && (departure || survival))
+    || (retainedByAntagonist && (departure || emptyHanded || survival))
+}
+
 function detectOutcomeSignals(text, expectedStolenItem = '') {
-  const escape = ENDING_SIGNALS.escape.test(text)
+  const naturalEscape = detectsNaturalEscape(text, expectedStolenItem)
+  const escape = ENDING_SIGNALS.escape.test(text) || naturalEscape
   const negatedRecovery = /\b(without recovering|without recovery|leave(?:s|d)? without)\b/i.test(text)
+    || naturalEscape
   const mentionsExpectedItem = expectedStolenItem
     ? text.toLocaleLowerCase('en-US').includes(expectedStolenItem.toLocaleLowerCase('en-US'))
     : false

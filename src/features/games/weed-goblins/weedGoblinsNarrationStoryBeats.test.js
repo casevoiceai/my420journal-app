@@ -64,6 +64,55 @@ test('validates each exact run ending and rejects a line naming the wrong ending
   }
 })
 
+const LIVE_ESCAPE_LINES = Object.freeze([
+  "I slip back through the Highlands with empty hands, the Goblin King's laughter echoing behind me as the Amber Field Satchel stays locked in his keeping.",
+  "I leave the Highlands empty-handed while the Amber Field Satchel remains locked in the Goblin King's grip, and I call that a survival.",
+])
+
+test('accepts natural escape endings that use empty hands and retained-item language', () => {
+  for (const line of LIVE_ESCAPE_LINES) {
+    const result = validateGeneratedNarration(line, {
+      moment: 'run-ending',
+      outcome: 'escape',
+      allowedFictionalNames: ['the Amber Field Satchel'],
+      expectedStolenItem: 'the Amber Field Satchel',
+    })
+    assert.equal(result.valid, true, result.reasons.join('; '))
+  }
+})
+
+test('recovery and bargain still reject the broadened escape-shaped language', () => {
+  for (const outcome of ['recovery', 'bargain']) {
+    for (const line of LIVE_ESCAPE_LINES) {
+      const result = validateGeneratedNarration(line, {
+        moment: 'run-ending',
+        outcome,
+        allowedFictionalNames: ['the Amber Field Satchel'],
+        expectedStolenItem: 'the Amber Field Satchel',
+      })
+      assert.equal(result.valid, false, `${outcome}: ${line}`)
+      assert.equal(
+        result.reasons.includes('implies a different engine outcome'),
+        true,
+        `${outcome}: ${result.reasons.join('; ')}`,
+      )
+    }
+  }
+})
+
+test('retained-item language alone does not turn an ordinary failure into an escape ending', () => {
+  const result = validateGeneratedNarration(
+    "I note that the Amber Field Satchel remains locked in the Goblin King's grip for the next exchange.",
+    {
+      moment: 'ordinary-failure',
+      outcome: 'failure',
+      allowedFictionalNames: ['the Amber Field Satchel'],
+      expectedStolenItem: 'the Amber Field Satchel',
+    },
+  )
+  assert.equal(result.valid, true, result.reasons.join('; '))
+})
+
 test('keeps success and specific endings forbidden outside their matching moments', () => {
   for (const [moment, outcome] of [
     ['natural-one-complication', 'complication'],
