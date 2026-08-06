@@ -76,4 +76,4 @@ The pure engine never reads local storage or journal records itself. A separate 
 - the total local entry count;
 - up to ten sanitized previous Weed Goblins run summaries.
 
-The adapter must never include raw notes, voice transcripts, health information, exact amounts, exact dates or timestamps, addresses or coordinates, price, or Layer 2 data. Note and sleep rows are included only in the total count and are not eligible product entries. A user with zero eligible entries receives a valid empty snapshot so the engine continues to use fixed fictional fallback content.
+The adapter must never include raw notes, voice transcripts, health information, exact amounts, exact dates or timestamps, addresses or coordinates, price, or Layer 2 data. Note and sleep rows are included only in the total count and are not eligible product entries. A user with zero local entries receives a valid empty snapshot. A user with only note or sleep rows receives empty personalization lists with the total count preserved, so the engine still uses fixed fictional fallback content.
