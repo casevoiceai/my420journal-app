@@ -11,6 +11,7 @@ const MOMENT_CONFIG = Object.freeze({
   'action-success': Object.freeze({ outcomes: Object.freeze(['success']), troubleCost: 0 }),
   'scene-intro': Object.freeze({ outcomes: Object.freeze(['intro']), troubleCost: 0 }),
   'midpoint-outcome': Object.freeze({ outcomes: Object.freeze(['midpoint']), troubleCost: 0 }),
+  'goblin-king-taunt': Object.freeze({ outcomes: Object.freeze(['taunt']), troubleCost: 0 }),
   'run-ending': Object.freeze({ outcomes: Object.freeze(['recovery', 'bargain', 'escape']), troubleCost: 0 }),
 })
 
@@ -51,6 +52,7 @@ function fallbackForNarration(hook, event, staticFallbacks) {
       || event?.successText
       || event?.introText
       || event?.midpointText
+      || event?.tauntText
       || event?.endingText
       || event?.narrationText,
     300,
@@ -96,6 +98,13 @@ function assertSupportedNarration(moment, outcome, event, hook) {
   if (moment === 'midpoint-outcome') {
     if (event?.outcome !== 'midpoint') {
       throw new Error('AI midpoint generation requires a midpoint event.')
+    }
+    return
+  }
+
+  if (moment === 'goblin-king-taunt') {
+    if (event?.type !== 'taunt' || event?.outcome !== 'taunt') {
+      throw new Error('AI Goblin King taunt generation requires the pre-action taunt event.')
     }
     return
   }
@@ -261,6 +270,10 @@ export function generateSceneIntroNarration(options = {}) {
 
 export function generateMidpointOutcomeNarration(options = {}) {
   return generateValidatedNarration({ ...options, moment: 'midpoint-outcome' })
+}
+
+export function generateGoblinKingTauntNarration(options = {}) {
+  return generateValidatedNarration({ ...options, moment: 'goblin-king-taunt' })
 }
 
 export function generateRunEndingNarration(options = {}) {
