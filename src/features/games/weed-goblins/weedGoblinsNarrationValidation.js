@@ -1,5 +1,7 @@
 const BANNED_WORDS = Object.freeze(['awesome', 'amazing', 'weed'])
 const RUN_ENDING_OUTCOMES = Object.freeze(['recovery', 'bargain', 'escape'])
+const HIGHLANDS_OPENING_FOUNDATION = "Welcome to the Goblin Highlands. I'll be your narrator."
+const STONER_NAME_SIGNAL = /S\.T\.O\.N\.E\.R\./
 
 export const SUPPORTED_MOMENT_OUTCOMES = Object.freeze({
   'natural-one-complication': Object.freeze(['complication']),
@@ -330,6 +332,7 @@ export function validateGeneratedNarration(
     expectedStolenItem = allowedFictionalNames[0] || '',
     playerAction = '',
     narrationPlayerAction = '',
+    introKind = '',
   } = {},
 ) {
   const text = typeof value === 'string' ? value.trim() : ''
@@ -378,6 +381,15 @@ export function validateGeneratedNarration(
 
   if (moment === 'goblin-king-taunt' && !hasGoblinKingDialogue(text)) {
     reasons.push('does not include attributed Goblin King dialogue')
+  }
+
+  if (moment === 'scene-intro' && introKind === 'highlands-opening') {
+    if (!text.startsWith(HIGHLANDS_OPENING_FOUNDATION)) {
+      reasons.push('does not begin with the locked Highlands welcome')
+    }
+    if (!STONER_NAME_SIGNAL.test(text.slice(HIGHLANDS_OPENING_FOUNDATION.length))) {
+      reasons.push('does not identify S.T.O.N.E.R. as the narrator')
+    }
   }
 
   if (/\b(treats?|treated|treating|cures?|cured|curing|diagnos(?:e|es|ed|is)|therapeutic|medical benefit|dosage|symptoms?)\b/i.test(text)

@@ -78,6 +78,8 @@
 
 .weed-goblins-chat__thread {
   min-height: 0;
+  max-height: 100%;
+  align-self: end;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 18px 12px 24px;

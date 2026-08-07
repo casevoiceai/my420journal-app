@@ -237,6 +237,7 @@ async function generateValidatedNarration({
       expectedStolenItem: hook?.fictionalStolenItem ?? state?.stolenItem ?? '',
       playerAction: hook?.playerAction ?? '',
       narrationPlayerAction: hook?.narrationPlayerAction ?? '',
+      introKind: hook?.introKind ?? '',
     })
 
     if (validation.valid) {

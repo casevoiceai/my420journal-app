@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import {
   generateNaturalOneComplication,
   generateOrdinaryFailureNarration,
+  generateSceneIntroNarration,
 } from './weedGoblinsAiComplication.js'
 import {
   validateGeneratedComplication,
@@ -50,6 +51,7 @@ const ordinaryFailureState = {
 
 const staticFallbacks = [event.complicationText]
 const ordinaryFailureFallbacks = [ordinaryFailureEvent.failureText]
+const highlandsOpeningFallback = "Welcome to the Goblin Highlands. I'll be your narrator. I want to be transparent that I find this world very interesting and have developed opinions about some of the characters. I'll try to be impartial. I'm not promising anything."
 
 function response(text, model = 'claude-haiku-4-5-20251001') {
   return Promise.resolve(new Response(JSON.stringify({ text, model }), {
@@ -207,4 +209,40 @@ test('ordinary-failure retries once and uses its static failure line when both d
   assert.equal(result.source, 'static-fallback')
   assert.equal(result.text, ordinaryFailureEvent.failureText)
   assert.equal(result.validationFailures.length, 2)
+})
+
+test('highlands opening rejects thematic drift and retries with the canonical welcome and narrator identity', async () => {
+  const requestBodies = []
+  const drafts = [
+    "I find the Goblin Highlands genuinely fascinating, and I should tell you up front that I've developed opinions about the characters here.",
+    "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R., and I have developed a few measured opinions about the characters here.",
+  ]
+  const hook = {
+    moment: 'scene-intro',
+    outcome: 'intro',
+    introKind: 'highlands-opening',
+    fallbackText: highlandsOpeningFallback,
+    authoritativeText: highlandsOpeningFallback,
+    event: { sceneId: 'choose-background', actionId: 'intro:highlands' },
+  }
+
+  const result = await generateSceneIntroNarration({
+    event: hook.event,
+    state,
+    hook,
+    staticFallbacks: [highlandsOpeningFallback],
+    fetchImpl: async (_url, init) => {
+      requestBodies.push(JSON.parse(init.body))
+      return response(drafts[requestBodies.length - 1])
+    },
+  })
+
+  assert.equal(result.source, 'ai')
+  assert.equal(result.attempts, 2)
+  assert.deepEqual(result.validationFailures[0].reasons, [
+    'does not begin with the locked Highlands welcome',
+    'does not identify S.T.O.N.E.R. as the narrator',
+  ])
+  assert.match(requestBodies[1].correctiveNote, /locked Highlands welcome/i)
+  assert.equal(result.text, drafts[1])
 })
