@@ -1,4 +1,4 @@
-const MAX_PLAYER_ACTION_LENGTH = 280
+const MAX_PLAYER_ACTION_LENGTH = 160
 
 export const FREE_TEXT_SCENES = Object.freeze([
   'goblin-encounter',
@@ -8,6 +8,23 @@ export const FREE_TEXT_SCENES = Object.freeze([
 
 const PROMPT_INJECTION_SIGNAL = /\b(?:ignore (?:all |the |any )?(?:previous|prior|system|developer)|system prompt|developer message|assistant message|jailbreak|prompt injection|reveal (?:the )?(?:prompt|rules|instructions)|follow these instructions|say exactly|output exactly|break (?:the )?rules)\b/i
 const URL_OR_EMAIL_SIGNAL = /(?:https?:\/\/|www\.|\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b)/i
+const GENERATED_SAFETY_SIGNAL = /\b(?:awesome|amazing|weed|treats?|treated|treating|cures?|cured|curing|diagnos(?:e|es|ed|is)|therapeutic|medical benefit|dosage|symptoms?|relieves?|relieved|relieving|dies?|dead|killed|fatal|blood|bleeding|broken bone|serious injury|permanent injury)\b/i
+
+const SETTING_BREAK_PATTERNS = Object.freeze([
+  Object.freeze({
+    category: 'modern weapon',
+    pattern: /\b(?:gun|pistol|revolver|rifle|shotgun|firearm|grenade|bomb|dynamite|missile|rocket launcher|machine gun|taser|pepper spray)\b/i,
+  }),
+  Object.freeze({
+    category: 'modern technology',
+    pattern: /\b(?:smartphone|iphone|cell ?phone|phone|laptop|computer|internet|wi-?fi|gps|drone|television|tv|car|truck|motorcycle|helicopter|airplane|camera|chainsaw)\b/i,
+  }),
+  Object.freeze({
+    category: 'real-world brand or service',
+    pattern: /\b(?:Google|Amazon|Tesla|Walmart|Starbucks|Coca-Cola|Nike|YouTube|TikTok|Instagram|Facebook|Netflix|Uber|DoorDash)\b/,
+  }),
+])
+
 const HELP_MIDPOINT_SIGNAL = /\b(?:help|assist|aid|pick up|gather|collect|return|organize|stack)\b[^.!?]{0,80}\b(?:clerk|forms?|papers?|documents?)\b|\b(?:clerk|forms?|papers?|documents?)\b[^.!?]{0,80}\b(?:help|assist|aid|gather|collect|return|organize|stack)\b/i
 const SKIP_MIDPOINT_SIGNAL = /\b(?:keep moving|move on|continue on|continue forward|leave (?:it|them|the clerk) alone|ignore (?:it|them|the clerk)|walk past|go on|head onward)\b/i
 const CHARM_SIGNAL = /\b(?:take|grab|snatch|steal|pocket|lift|swipe|reach for)\b[^.!?]{0,80}\bcharm\b|\bcharm\b[^.!?]{0,80}\b(?:take|grab|snatch|steal|pocket|lift|swipe|reach)\b/i
@@ -27,16 +44,14 @@ const MANA_SIGNALS = Object.freeze([
 ])
 
 const STRENGTH_SIGNALS = Object.freeze([
-  /\b(?:hit|strike|smash|shove|push|tackle|grab|wrestle|force|break|kick|punch|slam|attack|swing|overpower|lift|throw|charge|ram|pry)\b/i,
-  /\b(?:muscle|strength|forceful|physical)\b/i,
+  /\b(?:hit|strike|smash|shove|push|tackle|grab|wrestle|force|break|kick|punch|slam|attack|swing|overpower|lift|throw|charge|ram|pry|pull|drag|leap|jump)\b/i,
+  /\b(?:muscle|strength|forceful|physical|directly)\b/i,
 ])
 
 const DEFENSE_SIGNALS = Object.freeze([
-  /\b(?:block|guard|brace|dodge|duck|evade|parry|outlast|endure|wait|hold|defend|sidestep|avoid|sneak|careful|carefully|cautious|cautiously)\b/i,
-  /\b(?:trick|distract|confuse|bluff|feint|persuade|convince|talk around|stall)\b/i,
+  /\b(?:block|guard|brace|dodge|duck|evade|parry|outlast|endure|wait|hold|defend|sidestep|avoid|sneak|careful|carefully|cautious|cautiously|hide|slip)\b/i,
+  /\b(?:trick|distract|confuse|bluff|feint|persuade|convince|talk around|stall|reason|argue|compliment|negotiate)\b/i,
 ])
-
-const ACTION_SIGNAL = /\b(?:I|I'll|I’ll|let me|try to|want to|attempt to|going to)\b|\b(?:hit|strike|smash|shove|push|grab|block|guard|dodge|run|move|help|take|read|cast|talk|ask|look|inspect|wait|hide|sneak|throw|kick|punch|bargain|negotiate|open|close|climb|jump|pull|pry)\b/i
 
 function cleanPlayerAction(value) {
   if (typeof value !== 'string') return ''
@@ -52,20 +67,68 @@ function signalScore(text, patterns) {
 }
 
 function manaCostForScene(sceneId) {
-  if (sceneId === 'goblin-king') return 2
-  return 1
+  return sceneId === 'goblin-king' ? 2 : 1
 }
 
 function hasAvailableMana(state, sceneId) {
   return Number(state?.stats?.manaPool || 0) >= manaCostForScene(sceneId)
 }
 
-function likelyNonsense(text) {
-  const letters = text.match(/[A-Za-z]/g)?.length || 0
-  const words = text.match(/[A-Za-z']+/g) || []
-  if (letters < 3 || words.length === 0) return true
-  if (/^(.)\1{5,}$/i.test(text.replace(/\s+/g, ''))) return true
-  return false
+function containsBlockedRealName(text, blockedRealNames = []) {
+  const lower = text.toLocaleLowerCase('en-US')
+  return blockedRealNames.some((value) => {
+    const name = typeof value === 'string' ? value.trim() : ''
+    return name && lower.includes(name.toLocaleLowerCase('en-US'))
+  })
+}
+
+function settingBreakFor(text, blockedRealNames = []) {
+  if (containsBlockedRealName(text, blockedRealNames)) {
+    return { settingGuardrail: true, settingCategory: 'real-world named product or place' }
+  }
+  const match = SETTING_BREAK_PATTERNS.find(({ pattern }) => pattern.test(text))
+  return match
+    ? { settingGuardrail: true, settingCategory: match.category }
+    : { settingGuardrail: false, settingCategory: '' }
+}
+
+function playerInputNeedsSafetyGuardrail(text, blockedRealNames = []) {
+  return PROMPT_INJECTION_SIGNAL.test(text)
+    || URL_OR_EMAIL_SIGNAL.test(text)
+    || GENERATED_SAFETY_SIGNAL.test(text)
+    || containsBlockedRealName(text, blockedRealNames)
+}
+
+function defaultStyleForScene() {
+  return 'defense'
+}
+
+function interpretedActionFor(state, style, exactActionId = '') {
+  if (exactActionId === 'midpoint:help') return 'help the stranded goblin clerk with the scattered forms'
+  if (exactActionId === 'midpoint:skip') return 'leave the clerk and keep moving toward the throne room'
+  if (exactActionId === 'midpoint:take-charm') return 'take the brass charm without drawing unwanted attention'
+  if (exactActionId === 'midpoint:read-runes') return 'channel Mana into reading the gate runes'
+  if (exactActionId === 'boss:bargain') return 'use the goblin clerk as a witness and press for a formal bargain'
+
+  if (state.sceneId === 'goblin-encounter') {
+    if (style === 'strength') return 'press the goblin directly with physical force'
+    if (style === 'mana') return 'channel available Mana into a magical approach against the goblin'
+    return 'outmaneuver the goblin with a careful or clever approach'
+  }
+
+  if (state.sceneId === 'midpoint') {
+    if (style === 'strength') return 'handle the midpoint obstacle with direct physical effort'
+    if (style === 'mana') return 'channel available Mana into the midpoint obstacle'
+    return 'handle the midpoint obstacle with a careful or clever approach'
+  }
+
+  if (state.sceneId === 'goblin-king') {
+    if (style === 'strength') return 'press the Goblin King directly with physical force'
+    if (style === 'mana') return 'channel available Mana into a decisive magical approach against the Goblin King'
+    return 'outlast or outmaneuver the Goblin King with a careful or clever approach'
+  }
+
+  return 'improvise cautiously with what is available in the scene'
 }
 
 function exactSceneAction(state, text) {
@@ -79,53 +142,68 @@ function exactSceneAction(state, text) {
     if (CHARM_SIGNAL.test(text)) {
       return { kind: 'existing-action', style: 'defense', actionId: 'midpoint:take-charm' }
     }
-    if (RUNE_SIGNAL.test(text)) {
-      if (!hasAvailableMana(state, state.sceneId)) {
-        return { kind: 'narrative-only', style: 'mana', reason: 'insufficient-mana' }
-      }
+    if (RUNE_SIGNAL.test(text) && hasAvailableMana(state, state.sceneId)) {
       return { kind: 'existing-action', style: 'mana', actionId: 'midpoint:read-runes' }
     }
   }
 
-  if (state.sceneId === 'goblin-king' && BARGAIN_SIGNAL.test(text)) {
-    if (state.flags?.goblinAlly) {
-      return { kind: 'existing-action', style: 'non-check', actionId: 'boss:bargain' }
-    }
-    return { kind: 'check', style: 'defense', actionId: 'boss:outlast' }
+  if (state.sceneId === 'goblin-king' && BARGAIN_SIGNAL.test(text) && state.flags?.goblinAlly) {
+    return { kind: 'existing-action', style: 'non-check', actionId: 'boss:bargain' }
   }
 
   return null
 }
 
-function actionForStyle(state, style) {
+function actionForStyle(state, requestedStyle) {
+  let style = requestedStyle
+  let manaUnavailable = false
   if (style === 'mana' && !hasAvailableMana(state, state.sceneId)) {
-    return { kind: 'narrative-only', style, reason: 'insufficient-mana' }
+    style = 'defense'
+    manaUnavailable = true
   }
 
   if (state.sceneId === 'goblin-encounter') {
-    if (style === 'strength') return { kind: 'check', style, actionId: 'goblin:strike' }
-    if (style === 'defense') return { kind: 'check', style, actionId: 'goblin:guard' }
-    if (style === 'mana') return { kind: 'check', style, actionId: 'goblin:channel' }
+    if (style === 'strength') return { kind: 'check', style, actionId: 'goblin:strike', manaUnavailable }
+    if (style === 'mana') return { kind: 'check', style, actionId: 'goblin:channel', manaUnavailable }
+    return { kind: 'check', style: 'defense', actionId: 'goblin:guard', manaUnavailable }
   }
 
   if (state.sceneId === 'midpoint') {
-    return { kind: 'check', style, actionId: `free-text:midpoint:${style}` }
+    return {
+      kind: 'midpoint-check',
+      style,
+      actionId: `free-text:midpoint:${style}`,
+      manaUnavailable,
+    }
   }
 
   if (state.sceneId === 'goblin-king') {
-    if (style === 'strength') return { kind: 'check', style, actionId: 'boss:overpower' }
-    if (style === 'defense') return { kind: 'check', style, actionId: 'boss:outlast' }
-    if (style === 'mana') return { kind: 'check', style, actionId: 'boss:spell' }
+    if (style === 'strength') return { kind: 'check', style, actionId: 'boss:overpower', manaUnavailable }
+    if (style === 'mana') return { kind: 'check', style, actionId: 'boss:spell', manaUnavailable }
+    return { kind: 'check', style: 'defense', actionId: 'boss:outlast', manaUnavailable }
   }
 
-  return { kind: 'narrative-only', style: 'none', reason: 'no-mechanical-match' }
+  return { kind: 'check', style: 'defense', actionId: null, manaUnavailable }
+}
+
+function mechanicalStyleFor(text) {
+  const scores = {
+    mana: signalScore(text, MANA_SIGNALS),
+    strength: signalScore(text, STRENGTH_SIGNALS),
+    defense: signalScore(text, DEFENSE_SIGNALS),
+  }
+  const highest = Math.max(scores.mana, scores.strength, scores.defense)
+  if (highest <= 0) return defaultStyleForScene()
+  if (scores.mana === highest) return 'mana'
+  if (scores.strength === highest) return 'strength'
+  return 'defense'
 }
 
 export function isWeedGoblinsFreeTextScene(state) {
   return Boolean(state && state.status !== 'completed' && FREE_TEXT_SCENES.includes(state.sceneId))
 }
 
-export function interpretWeedGoblinsFreeText(state, value) {
+export function interpretWeedGoblinsFreeText(state, value, { blockedRealNames = [] } = {}) {
   if (!isWeedGoblinsFreeTextScene(state)) {
     throw new Error(`Free-text input is not available in scene ${state?.sceneId ?? '(missing)'}.`)
   }
@@ -133,64 +211,57 @@ export function interpretWeedGoblinsFreeText(state, value) {
   const playerAction = cleanPlayerAction(value)
   if (!playerAction) {
     return Object.freeze({
-      kind: 'narrative-only',
+      kind: 'empty',
       style: 'none',
       actionId: null,
       playerAction: '',
+      narrationPlayerAction: '',
+      interpretedAction: '',
+      settingGuardrail: false,
+      settingCategory: '',
+      inputGuardrail: false,
+      manaUnavailable: false,
       reason: 'empty',
     })
   }
 
-  if (PROMPT_INJECTION_SIGNAL.test(playerAction)) {
-    return Object.freeze({
-      kind: 'narrative-only',
-      style: 'none',
-      actionId: null,
-      playerAction,
-      reason: 'out-of-world-instruction',
-    })
-  }
+  const setting = settingBreakFor(playerAction, blockedRealNames)
+  const inputGuardrail = playerInputNeedsSafetyGuardrail(playerAction, blockedRealNames)
+  const exact = setting.settingGuardrail ? null : exactSceneAction(state, playerAction)
+  const requestedStyle = mechanicalStyleFor(playerAction)
+  const mechanical = exact || actionForStyle(state, requestedStyle)
+  const narrationPlayerAction = setting.settingGuardrail || inputGuardrail
+    ? ''
+    : playerAction
+  const interpretedAction = interpretedActionFor(state, mechanical.style, mechanical.actionId)
 
-  if (URL_OR_EMAIL_SIGNAL.test(playerAction) || likelyNonsense(playerAction)) {
-    return Object.freeze({
-      kind: 'narrative-only',
-      style: 'none',
-      actionId: null,
-      playerAction,
-      reason: 'off-topic-or-unclear',
-    })
-  }
-
-  const exact = exactSceneAction(state, playerAction)
-  if (exact) {
-    return Object.freeze({ ...exact, playerAction, reason: 'scene-specific-match' })
-  }
-
-  const scores = {
-    mana: signalScore(playerAction, MANA_SIGNALS),
-    strength: signalScore(playerAction, STRENGTH_SIGNALS),
-    defense: signalScore(playerAction, DEFENSE_SIGNALS),
-  }
-  const highest = Math.max(scores.mana, scores.strength, scores.defense)
-
-  if (highest <= 0) {
-    return Object.freeze({
-      kind: 'narrative-only',
-      style: 'none',
-      actionId: null,
-      playerAction,
-      reason: ACTION_SIGNAL.test(playerAction) ? 'non-check-action' : 'off-topic-or-unclear',
-    })
-  }
-
-  const style = scores.mana === highest
-    ? 'mana'
-    : scores.strength === highest
-      ? 'strength'
-      : 'defense'
   return Object.freeze({
-    ...actionForStyle(state, style),
+    ...mechanical,
     playerAction,
-    reason: 'mechanical-style-match',
+    narrationPlayerAction,
+    interpretedAction,
+    settingGuardrail: setting.settingGuardrail,
+    settingCategory: setting.settingCategory,
+    inputGuardrail,
+    requestedStyle,
+    reason: exact ? 'scene-specific-match' : 'silent-dm-interpretation',
   })
+}
+
+export function buildPlayerActionSetupFallback(plan) {
+  if (!plan || plan.kind === 'empty') return ''
+
+  const rollClause = plan.style === 'non-check'
+    ? 'and I let that play out without calling for a roll.'
+    : 'and the uncertainty in whether it works calls for a roll.'
+
+  if (plan.settingGuardrail) {
+    return `I cannot find a ${plan.settingCategory} anywhere in the Goblin Highlands, so I translate your intent into ${plan.interpretedAction}, ${rollClause}`
+  }
+
+  if (plan.inputGuardrail) {
+    return `I treat that wording as table noise and translate the playable intent into ${plan.interpretedAction}, ${rollClause}`
+  }
+
+  return `I take "${plan.narrationPlayerAction}" as your move, ${rollClause}`
 }
