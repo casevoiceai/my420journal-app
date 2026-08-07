@@ -8,7 +8,7 @@ import {
 } from './weedGoblinsEngine.js'
 import {
   readWeedGoblinsPersonalizationSnapshot,
-  weedGoblinsRunStorageKey,
+  saveWeedGoblinsRunSummary,
 } from './weedGoblinsLocalDataAdapter.js'
 
 const NARRATOR_NAME = 'S.T.O.N.E.R.'
@@ -80,15 +80,6 @@ export const REALISTIC_MOCK_LOCAL_ENTRIES = Object.freeze([
     entry_type: 'sleep_end',
     product_name: 'Sleep End',
     notes: 'Private dream details.',
-  }),
-])
-
-const REALISTIC_MOCK_PREVIOUS_RUNS = Object.freeze([
-  Object.freeze({
-    ending: 'bargain',
-    outcomeSummary: 'made a bargain and recovered the Amber Field Satchel',
-    created_at: '2026-07-31T20:00:00-04:00',
-    notes: 'This field must be removed by the adapter.',
   }),
 ])
 
@@ -172,23 +163,31 @@ function createMockLocalStore(entries) {
   }
 }
 
-function createMockRunStorage() {
-  const values = {
-    [weedGoblinsRunStorageKey(MOCK_LOCAL_USER_ID)]: JSON.stringify(
-      REALISTIC_MOCK_PREVIOUS_RUNS,
-    ),
+function resolveConsoleStorage(explicitStorage) {
+  const storage = explicitStorage
+    ?? (typeof localStorage === 'undefined' ? null : localStorage)
+  if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function') {
+    throw new Error(
+      'Persistent console localStorage is unavailable. Run through npm run play:weed-goblins.',
+    )
   }
-  return {
-    getItem(key) {
-      return Object.hasOwn(values, key) ? values[key] : null
-    },
-  }
+  return storage
 }
 
-export async function loadConsoleLocalAdapterSnapshot() {
+export async function loadConsoleLocalAdapterSnapshot({ storage = null } = {}) {
   return readWeedGoblinsPersonalizationSnapshot({
     store: createMockLocalStore(REALISTIC_MOCK_LOCAL_ENTRIES),
-    storage: createMockRunStorage(),
+    storage: resolveConsoleStorage(storage),
+    userId: MOCK_LOCAL_USER_ID,
+  })
+}
+
+export async function saveConsoleLocalAdapterRunSummary(runSummary, { storage = null } = {}) {
+  return saveWeedGoblinsRunSummary({
+    runSummary,
+    store: createMockLocalStore(REALISTIC_MOCK_LOCAL_ENTRIES),
+    storage: resolveConsoleStorage(storage),
+    userId: MOCK_LOCAL_USER_ID,
   })
 }
 
@@ -256,6 +255,7 @@ export async function runInteractiveWeedGoblins({
   previousRuns = [],
   sourceLabel = 'fixed mock snapshot',
   readline = createLineReader(),
+  onRunComplete = null,
 } = {}) {
   let state = createWeedGoblinsRun({
     seed,
@@ -289,6 +289,10 @@ export async function runInteractiveWeedGoblins({
       printNarration(state.narration.slice(priorNarrationLength))
     }
 
+    if (typeof onRunComplete === 'function') {
+      await onRunComplete(state)
+    }
+
     output.write('\n=== ENDING ===\n')
     output.write(`Ending: ${state.ending}\n`)
     output.write(`Outcome: ${state.runSummary.outcomeSummary}\n`)
@@ -315,6 +319,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         journalSnapshot: snapshot,
         previousRuns: snapshot.previousRuns,
         sourceLabel: 'local adapter over realistic mocked browser entries',
+        onRunComplete: (state) => saveConsoleLocalAdapterRunSummary(state.runSummary),
       }))
       .catch((error) => {
         console.error(`Weed Goblins runner failed: ${error.message}`)
