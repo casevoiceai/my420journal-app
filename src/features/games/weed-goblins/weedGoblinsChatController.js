@@ -115,9 +115,9 @@ function contextualFallback(hook, plan) {
   return cleanText(`I resolve ${action} through the scene: ${hook.fallbackText}`, 300)
 }
 
-function hookWithPlayerContext(hook, plan, { contextualizeFallback = true } = {}) {
+function hookWithPlayerContext(hook, plan) {
   if (!plan || hook.moment === 'goblin-king-taunt') return hook
-  const fallbackText = contextualizeFallback ? contextualFallback(hook, plan) : hook.fallbackText
+  const fallbackText = contextualFallback(hook, plan)
   return Object.freeze({
     ...hook,
     ...playerContextForPlan(plan),
@@ -279,7 +279,7 @@ export async function resolveWeedGoblinsPreparedTurn({
   const before = preparedTurn.before
   const after = advancePreparedPlan(before, preparedTurn.plan)
   const checkEvent = resolvedCheckEvent(before, after)
-  const outcomeMessages = await resolveWeedGoblinsTransitionMessages({
+  const generatedOutcomeMessages = await resolveWeedGoblinsTransitionMessages({
     before,
     after,
     blockedRealNames,
@@ -287,8 +287,10 @@ export async function resolveWeedGoblinsPreparedTurn({
     playerActionPlan: preparedTurn.plan,
     suppressDice: true,
     suppressManaAccounting: true,
-    collapseSuccessfulEnding: true,
   })
+  const outcomeMessages = after.status === 'completed'
+    ? generatedOutcomeMessages.slice(-1)
+    : generatedOutcomeMessages
 
   return {
     before,
@@ -306,15 +308,10 @@ export async function resolveWeedGoblinsTransitionMessages({
   playerActionPlan = null,
   suppressDice = false,
   suppressManaAccounting = false,
-  collapseSuccessfulEnding = false,
 } = {}) {
   if (!before || !after) throw new Error('Both Weed Goblins transition states are required.')
 
-  let hooks = getNarrationHooksForTransition(before, after)
-  if (collapseSuccessfulEnding && hooks.some((hook) => hook.moment === 'run-ending')) {
-    hooks = hooks.filter((hook) => hook.moment !== 'action-success')
-  }
-
+  const hooks = getNarrationHooksForTransition(before, after)
   const narrationLines = after.narration.slice(before.narration.length)
   const messages = []
   let hookIndex = 0
