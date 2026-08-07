@@ -66,6 +66,10 @@ Callback eligibility is based on completed Weed Goblins runs by the same player:
 
 Session 1 only calculates and reports the applicable `narrationTier`. It does not generate callback or fourth-wall narration text.
 
+### Free-text wording-preservation live-test decision
+
+Real live testing found one narrow recurring gap in the `player-action-response` wording-preservation check: the model can produce a natural equivalent such as "offering a hello" instead of repeating the literal word "say" from the player's action. In the same testing round, two broader bugs, hidden-mechanic leakage and overly strict wording matching generally, were fixed and confirmed live. This remaining synonym-level case is intentionally left as is for this build phase because every tested turn, including this case, still ended in either a valid narration line or the safe static fallback, never an unsafe result.
+
 ## Escape-ending detector decision
 
 The keyword-based escape-ending detector was tested across three independent live rounds. Every round showed zero unsafe outputs to a user: the system always produced either a valid line or the safe static fallback. Additional phrase-specific patching did not reliably reduce fallback use, and one round regressed. Daniel therefore decided to stop patching individual phrasings and accept the current detector as final for this build phase. If perfect coverage is needed later, the preferred alternative is a second lightweight model call that classifies whether a generated line matches the intended outcome, rather than continuing to expand the keyword pattern list.
