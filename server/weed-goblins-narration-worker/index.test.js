@@ -140,6 +140,11 @@ test('enforces supported moment and outcome pairings before Anthropic forwarding
     env,
     fetchImpl,
   )
+  const crossedTaunt = await handleNarrationWorkerRequest(
+    request({ body: { moment: 'goblin-king-taunt', outcome: 'success' } }),
+    env,
+    fetchImpl,
+  )
   const unsupported = await handleNarrationWorkerRequest(
     request({ body: { moment: 'ordinary-success', outcome: 'success' } }),
     env,
@@ -148,13 +153,14 @@ test('enforces supported moment and outcome pairings before Anthropic forwarding
 
   assert.equal(crossedNatural.status, 400)
   assert.equal(crossedFailure.status, 400)
+  assert.equal(crossedTaunt.status, 400)
   assert.equal(unsupported.status, 400)
   assert.equal(fetchCalls, 0)
 })
 
 test('system prompt contains the locked hard constraints', () => {
   for (const required of [
-    'strictly in first person',
+    'Speak as S.T.O.N.E.R. in first person',
     'Do not use exclamation points',
     'Never use the words "awesome" or "amazing"',
     'Never use the word "weed"',
@@ -185,6 +191,18 @@ test('system prompt contains the ordinary-failure moment rules', () => {
     'It does not end the run',
     'must not imply that the player succeeded',
     'For an ordinary-failure request, narrate only the failure setback',
+  ]) {
+    assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
+  }
+})
+
+test('system prompt contains the Goblin King taunt performance rules', () => {
+  for (const required of [
+    'When moment is "goblin-king-taunt", outcome must be "taunt"',
+    'S.T.O.N.E.R. performs the Goblin King like a tabletop narrator performing a villain',
+    'theatrical, overly pleased with himself',
+    'Do not state or imply that any check has happened',
+    'not a separate narrator, guide, or AI identity',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
