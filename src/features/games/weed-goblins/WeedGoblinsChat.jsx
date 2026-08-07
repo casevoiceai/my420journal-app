@@ -17,6 +17,7 @@ import {
   resolveWeedGoblinsTransitionWithStaticFallback,
   selectWeedGoblinsChatChoice,
 } from './weedGoblinsChatController.js'
+import { WEED_GOBLINS_PROGRESS_LABEL } from './weedGoblinsProgression.js'
 import './WeedGoblinsChat.css'
 
 const CHAT_CONTACT_DISPLAY_NAME = 'Alex'
@@ -336,6 +337,22 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
       </header>
 
       <section className="weed-goblins-chat__thread" aria-live="polite">
+        {!loading && !fatalError && (
+          <div
+            aria-label={WEED_GOBLINS_PROGRESS_LABEL}
+            style={{
+              margin: '0 auto 16px',
+              color: '#879089',
+              fontSize: '11px',
+              lineHeight: 1.2,
+              textAlign: 'center',
+              letterSpacing: '0.02em',
+            }}
+          >
+            {WEED_GOBLINS_PROGRESS_LABEL}
+          </div>
+        )}
+
         {loading && (
           <div className="weed-goblins-chat__message-row is-incoming">
             <div className="weed-goblins-chat__bubble is-incoming">…</div>
