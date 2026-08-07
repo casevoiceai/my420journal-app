@@ -10,7 +10,9 @@ import {
   createWeedGoblinsChatSession,
   getWeedGoblinsQuickReplies,
   isWeedGoblinsFreeTextScene,
+  narrateWeedGoblinsResolvedTurn,
   prepareWeedGoblinsFreeTextTurn,
+  resolveWeedGoblinsPreparedMechanics,
   resolveWeedGoblinsPreparedTurn,
   resolveWeedGoblinsTransitionWithStaticFallback,
   selectWeedGoblinsChatChoice,
@@ -288,12 +290,25 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     setBusy(true)
 
     try {
-      const resolution = await resolveWeedGoblinsPreparedTurn({
-        preparedTurn: pendingTurn,
+      const prepared = pendingTurn
+      const mechanics = resolveWeedGoblinsPreparedMechanics({ preparedTurn: prepared })
+      const withRoll = mechanics.rollResultMessage
+        ? [...messages, mechanics.rollResultMessage]
+        : [...messages]
+
+      setPendingTurn(null)
+      setState(mechanics.after)
+      setMessages(withRoll)
+
+      const outcomeMessages = await narrateWeedGoblinsResolvedTurn({
+        preparedTurn: prepared,
+        mechanics,
         blockedRealNames,
       })
-      setPendingTurn(null)
-      await applyResolvedPreparedTurn(resolution, messages)
+
+      setMessages([...withRoll, ...outcomeMessages])
+      setChoices(getWeedGoblinsQuickReplies(mechanics.after))
+      await saveCompletedRun(mechanics.after)
     } finally {
       setBusy(false)
     }
