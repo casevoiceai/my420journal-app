@@ -267,35 +267,60 @@ function resolvedCheckEvent(before, after) {
     .find((event) => event.type === 'check') || null
 }
 
-export async function resolveWeedGoblinsPreparedTurn({
-  preparedTurn,
-  blockedRealNames = [],
-  generateNarration = generateNarrationFromHook,
-} = {}) {
+export function resolveWeedGoblinsPreparedMechanics({ preparedTurn } = {}) {
   if (!preparedTurn?.before || !preparedTurn?.plan) {
     throw new Error('A prepared Weed Goblins free-text turn is required.')
   }
-
   const before = preparedTurn.before
   const after = advancePreparedPlan(before, preparedTurn.plan)
   const checkEvent = resolvedCheckEvent(before, after)
-  const generatedOutcomeMessages = await resolveWeedGoblinsTransitionMessages({
+  return Object.freeze({
     before,
     after,
+    checkEvent,
+    rollResultMessage: checkEvent ? createRollResultMessage(checkEvent.roll) : null,
+  })
+}
+
+export async function narrateWeedGoblinsResolvedTurn({
+  preparedTurn,
+  mechanics,
+  blockedRealNames = [],
+  generateNarration = generateNarrationFromHook,
+} = {}) {
+  if (!preparedTurn?.plan || !mechanics?.before || !mechanics?.after) {
+    throw new Error('Prepared turn and resolved mechanics are required.')
+  }
+
+  const generatedOutcomeMessages = await resolveWeedGoblinsTransitionMessages({
+    before: mechanics.before,
+    after: mechanics.after,
     blockedRealNames,
     generateNarration,
     playerActionPlan: preparedTurn.plan,
     suppressDice: true,
     suppressManaAccounting: true,
   })
-  const outcomeMessages = after.status === 'completed'
+
+  return mechanics.after.status === 'completed'
     ? generatedOutcomeMessages.slice(-1)
     : generatedOutcomeMessages
+}
 
+export async function resolveWeedGoblinsPreparedTurn({
+  preparedTurn,
+  blockedRealNames = [],
+  generateNarration = generateNarrationFromHook,
+} = {}) {
+  const mechanics = resolveWeedGoblinsPreparedMechanics({ preparedTurn })
+  const outcomeMessages = await narrateWeedGoblinsResolvedTurn({
+    preparedTurn,
+    mechanics,
+    blockedRealNames,
+    generateNarration,
+  })
   return {
-    before,
-    after,
-    rollResultMessage: checkEvent ? createRollResultMessage(checkEvent.roll) : null,
+    ...mechanics,
     outcomeMessages,
   }
 }
