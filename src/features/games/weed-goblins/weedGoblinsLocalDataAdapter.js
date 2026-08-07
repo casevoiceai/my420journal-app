@@ -1,3 +1,5 @@
+import { attachWeedGoblinsProgressionMetadata } from './weedGoblinsProgression.js'
+
 const MAX_TEXT_LENGTH = 100
 
 export const PERSONALIZATION_LIMITS = Object.freeze({
@@ -133,6 +135,13 @@ const TERPENE_ENVIRONMENT_FLAVORS = Object.freeze({
 
 const RUN_SUMMARY_FIELDS = Object.freeze([
   'adventureId',
+  'gameId',
+  'chapterId',
+  'chapterNumber',
+  'chapterTitle',
+  'questId',
+  'questNumber',
+  'questTitle',
   'backgroundId',
   'stolenItem',
   'routeId',
@@ -431,7 +440,9 @@ export async function saveWeedGoblinsRunSummary({
     throw new Error('Writable local storage is required to save Weed Goblins history.')
   }
 
-  const safeSummary = sanitizeRunSummary(runSummary)
+  const safeSummary = sanitizeRunSummary(
+    attachWeedGoblinsProgressionMetadata(runSummary),
+  )
   if (!safeSummary) throw new Error('A completed Weed Goblins run summary is required.')
 
   const previousRuns = sanitizePreviousRuns(readRunSummaries(storage, resolvedUserId))
