@@ -170,6 +170,7 @@ async function generateValidatedNarration({
   const allowedFictionalNames = [
     hook?.fictionalStolenItem ?? state?.stolenItem,
     hook?.fictionalGoblinName ?? state?.goblinName,
+    hook?.fictionalLocationName ?? state?.fictionalLocationName,
   ].filter(Boolean)
   const failures = []
   let correctiveNote = ''
