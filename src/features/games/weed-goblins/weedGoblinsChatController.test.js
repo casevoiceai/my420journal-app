@@ -119,7 +119,31 @@ test('chat controller can drive the existing engine through one complete recover
   assert.equal(messages.some((message) => message.direction === 'outgoing'), true)
   assert.equal(messages.some((message) => message.die !== null), true)
   assert.equal(calls.includes('scene-intro:intro'), true)
+  assert.equal(calls.includes('ordinary-failure:failure'), true)
   assert.equal(calls.includes('action-success:success'), true)
   assert.equal(calls.includes('midpoint-outcome:midpoint'), true)
   assert.equal(calls.includes('run-ending:recovery'), true)
+})
+
+test('natural-one transition uses the existing complication narration hook', async () => {
+  const calls = []
+  const generateNarration = generatedNarration(calls)
+  const session = await createWeedGoblinsChatSession({
+    seed: 'scan-28',
+    generateNarration,
+  })
+  const background = session.choices.find((choice) => choice.id === 'background:hauler')
+  const backgroundTransition = selectWeedGoblinsChatChoice(session.state, background)
+  const route = getWeedGoblinsQuickReplies(backgroundTransition.after)
+    .find((choice) => choice.id === 'route:ridge')
+  const routeTransition = selectWeedGoblinsChatChoice(backgroundTransition.after, route)
+
+  const incoming = await resolveWeedGoblinsTransitionMessages({
+    before: routeTransition.before,
+    after: routeTransition.after,
+    generateNarration,
+  })
+
+  assert.equal(calls.includes('natural-one-complication:complication'), true)
+  assert.equal(incoming.some((message) => message.die === 1), true)
 })
