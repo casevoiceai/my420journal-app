@@ -126,21 +126,21 @@
   margin-top: 6px;
 }
 
-.weed-goblins-chat__die {
-  width: 22px;
-  height: 22px;
+.weed-goblins-chat__roll-badge {
+  width: 36px;
+  height: 36px;
   display: inline-grid;
   place-items: center;
-  clip-path: polygon(50% 0%, 88% 18%, 100% 58%, 76% 100%, 24% 100%, 0 58%, 12% 18%);
-  background: rgba(255, 255, 255, 0.15);
-  color: #f7f7f7;
-  font-size: 10px;
-  font-weight: 750;
+  border-radius: 50%;
+  background: #2f6f4e;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1;
 }
 
-.weed-goblins-chat__die.is-resolved {
-  background: rgba(255, 255, 255, 0.2);
+.weed-goblins-chat__roll-badge.is-resolved {
+  background: #2f6f4e;
 }
 
 .weed-goblins-chat__composer-area {
