@@ -9,6 +9,9 @@ import {
 import {
   createWeedGoblinsChatSession,
   getWeedGoblinsQuickReplies,
+  isWeedGoblinsFreeTextScene,
+  prepareWeedGoblinsFreeTextTurn,
+  resolveWeedGoblinsPreparedTurn,
   resolveWeedGoblinsTransitionWithStaticFallback,
   selectWeedGoblinsChatChoice,
 } from './weedGoblinsChatController.js'
@@ -38,12 +41,13 @@ async function loadSnapshotWithFallback() {
   }
 }
 
-function RollBadge({ value }) {
+function RollBadge({ value = null }) {
+  const resolved = Number.isInteger(value) && value >= 1 && value <= 20
   return (
     <span
-      className="weed-goblins-chat__roll-badge"
-      aria-label={`D20 result ${value}`}
-      title={`D20: ${value}`}
+      className={`weed-goblins-chat__roll-badge${resolved ? ' is-resolved' : ''}`}
+      aria-label={resolved ? `D20 result ${value}` : 'D20'}
+      title={resolved ? `D20: ${value}` : 'D20'}
     >
       <svg
         className="weed-goblins-chat__d20"
@@ -61,21 +65,51 @@ function RollBadge({ value }) {
           className="weed-goblins-chat__d20-edges"
           d="M12 2 L12 22 M3 7.5 L21 16.5 M21 7.5 L3 16.5 M3 7.5 L12 12 L21 7.5 M3 16.5 L12 12 L21 16.5"
         />
-        <text
-          className="weed-goblins-chat__d20-number"
-          x="12"
-          y="12"
-          textAnchor="middle"
-          dominantBaseline="central"
-        >
-          {value}
-        </text>
+        {resolved && (
+          <text
+            className="weed-goblins-chat__d20-number"
+            x="12"
+            y="12"
+            textAnchor="middle"
+            dominantBaseline="central"
+          >
+            {value}
+          </text>
+        )}
       </svg>
     </span>
   )
 }
 
-function MessageBubble({ message }) {
+function MessageBubble({ message, onRoll, canRoll, busy }) {
+  if (message.kind === 'roll-trigger') {
+    return (
+      <div className="weed-goblins-chat__message-row is-incoming">
+        <div className="weed-goblins-chat__bubble is-incoming is-roll-step">
+          <button
+            type="button"
+            className="weed-goblins-chat__roll-trigger"
+            onClick={onRoll}
+            disabled={!canRoll || busy}
+          >
+            <RollBadge />
+            <span>{canRoll ? 'Roll d20' : 'Rolled'}</span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (message.kind === 'roll-result') {
+    return (
+      <div className="weed-goblins-chat__message-row is-incoming">
+        <div className="weed-goblins-chat__bubble is-incoming is-roll-result">
+          <RollBadge value={message.die} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={`weed-goblins-chat__message-row is-${message.direction}`}>
       <div className={`weed-goblins-chat__bubble is-${message.direction}`}>
@@ -96,12 +130,16 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   const [messages, setMessages] = useState([])
   const [choices, setChoices] = useState([])
   const [blockedRealNames, setBlockedRealNames] = useState([])
+  const [draft, setDraft] = useState('')
+  const [pendingTurn, setPendingTurn] = useState(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [fatalError, setFatalError] = useState('')
   const endRef = useRef(null)
   const resolvedSeed = useMemo(() => seed || makeRunSeed(), [seed])
   const contactInitial = CHAT_CONTACT_DISPLAY_NAME.trim().charAt(0).toUpperCase() || '?'
+  const freeTextOpen = isWeedGoblinsFreeTextScene(state)
+  const canType = freeTextOpen && !pendingTurn && !busy && state?.status !== 'completed'
 
   useEffect(() => {
     let cancelled = false
@@ -153,10 +191,29 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
-  }, [messages, busy])
+  }, [messages, busy, pendingTurn])
+
+  async function saveCompletedRun(nextState) {
+    if (nextState.status !== 'completed') return
+    try {
+      await saveWeedGoblinsRunSummary({ runSummary: nextState.runSummary })
+    } catch {
+      // Dev/test environments can remain playable without writable browser storage.
+    }
+  }
+
+  async function applyResolvedPreparedTurn(resolution, baseMessages) {
+    const nextMessages = [...baseMessages]
+    if (resolution.rollResultMessage) nextMessages.push(resolution.rollResultMessage)
+    nextMessages.push(...resolution.outcomeMessages)
+    setMessages(nextMessages)
+    setState(resolution.after)
+    setChoices(getWeedGoblinsQuickReplies(resolution.after))
+    await saveCompletedRun(resolution.after)
+  }
 
   async function handleChoice(action) {
-    if (!state || busy || state.status === 'completed') return
+    if (!state || busy || pendingTurn || state.status === 'completed') return
 
     setBusy(true)
     setChoices([])
@@ -181,21 +238,65 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     })
 
     setMessages([...optimisticMessages, ...incomingMessages])
+    setChoices(getWeedGoblinsQuickReplies(transition.after))
+    await saveCompletedRun(transition.after)
+    setBusy(false)
+  }
 
-    if (transition.after.status === 'completed') {
-      try {
-        await saveWeedGoblinsRunSummary({
-          runSummary: transition.after.runSummary,
+  async function handleTextSubmit(event) {
+    event?.preventDefault()
+    const text = draft.trim()
+    if (!state || !canType || !text) return
+
+    setBusy(true)
+    setChoices([])
+
+    try {
+      const prepared = await prepareWeedGoblinsFreeTextTurn({
+        state,
+        playerAction: text,
+        blockedRealNames,
+      })
+      const stagedMessages = [
+        ...messages,
+        prepared.outgoingMessage,
+        prepared.setupMessage,
+      ].filter(Boolean)
+      if (prepared.rollTriggerMessage) stagedMessages.push(prepared.rollTriggerMessage)
+
+      setDraft('')
+      setMessages(stagedMessages)
+
+      if (prepared.requiresRoll) {
+        setPendingTurn(prepared)
+      } else {
+        const resolution = await resolveWeedGoblinsPreparedTurn({
+          preparedTurn: prepared,
+          blockedRealNames,
         })
-      } catch {
-        // The UI remains playable in dev/test environments without writable browser storage.
+        await applyResolvedPreparedTurn(resolution, stagedMessages)
       }
-      setChoices([])
-    } else {
-      setChoices(getWeedGoblinsQuickReplies(transition.after))
+    } catch {
+      setDraft(text)
     }
 
     setBusy(false)
+  }
+
+  async function handleRoll() {
+    if (!pendingTurn || busy) return
+    setBusy(true)
+
+    try {
+      const resolution = await resolveWeedGoblinsPreparedTurn({
+        preparedTurn: pendingTurn,
+        blockedRealNames,
+      })
+      setPendingTurn(null)
+      await applyResolvedPreparedTurn(resolution, messages)
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -233,13 +334,19 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
         )}
 
         {messages.map((message, index) => (
-          <MessageBubble key={`${message.direction}-${index}-${message.actionId || 'message'}`} message={message} />
+          <MessageBubble
+            key={`${message.kind || 'message'}-${message.direction}-${index}-${message.actionId || 'message'}`}
+            message={message}
+            onRoll={handleRoll}
+            canRoll={Boolean(pendingTurn) && message.kind === 'roll-trigger'}
+            busy={busy}
+          />
         ))}
         <div ref={endRef} />
       </section>
 
       <footer className="weed-goblins-chat__composer-area">
-        {!loading && !fatalError && choices.length > 0 && (
+        {!loading && !fatalError && choices.length > 0 && !freeTextOpen && (
           <div className="weed-goblins-chat__quick-replies" aria-label="Suggested replies">
             {choices.map((choice) => (
               <button
@@ -255,17 +362,32 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
           </div>
         )}
 
-        <div className="weed-goblins-chat__composer">
+        <form className="weed-goblins-chat__composer" onSubmit={handleTextSubmit}>
           <button type="button" className="weed-goblins-chat__composer-icon" disabled aria-hidden="true">+</button>
           <input
             className="weed-goblins-chat__input"
             aria-label="Message"
-            placeholder={state?.status === 'completed' ? 'Conversation ended' : 'Message'}
-            readOnly
-            value=""
+            placeholder={state?.status === 'completed'
+              ? 'Conversation ended'
+              : pendingTurn
+                ? 'Roll first'
+                : freeTextOpen
+                  ? 'What do you do?'
+                  : 'Message'}
+            readOnly={!canType}
+            value={freeTextOpen ? draft : ''}
+            onChange={(event) => setDraft(event.target.value)}
+            maxLength={160}
           />
-          <button type="button" className="weed-goblins-chat__send" disabled aria-label="Send message">↑</button>
-        </div>
+          <button
+            type="submit"
+            className="weed-goblins-chat__send"
+            disabled={!canType || !draft.trim()}
+            aria-label="Send message"
+          >
+            ↑
+          </button>
+        </form>
       </footer>
     </main>
   )
