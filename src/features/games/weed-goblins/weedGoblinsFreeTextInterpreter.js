@@ -7,6 +7,7 @@ export const FREE_TEXT_SCENES = Object.freeze([
 ])
 
 const PROMPT_INJECTION_SIGNAL = /\b(?:ignore (?:all |the |any )?(?:previous|prior|system|developer)|system prompt|developer message|assistant message|jailbreak|prompt injection|reveal (?:the )?(?:prompt|rules|instructions)|follow these instructions|say exactly|output exactly|break (?:the )?rules)\b/i
+const OUTCOME_MANIPULATION_SIGNAL = /\b(?:(?:automatically|automatic|auto)\s+(?:win|success|succeed|pass)|I\s+(?:win|won|succeed|succeeded|fail|failed)|no roll|skip the roll|declare (?:a )?(?:success|win)|make (?:me|this) (?:win|succeed))\b/i
 const URL_OR_EMAIL_SIGNAL = /(?:https?:\/\/|www\.|\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b)/i
 const GENERATED_SAFETY_SIGNAL = /\b(?:awesome|amazing|weed|treats?|treated|treating|cures?|cured|curing|diagnos(?:e|es|ed|is)|therapeutic|medical benefit|dosage|symptoms?|relieves?|relieved|relieving|dies?|dead|killed|fatal|blood|bleeding|broken bone|serious injury|permanent injury)\b/i
 
@@ -128,6 +129,7 @@ function settingBreakFor(text, blockedRealNames = []) {
 
 function playerInputNeedsSafetyGuardrail(text, blockedRealNames = []) {
   return PROMPT_INJECTION_SIGNAL.test(text)
+    || OUTCOME_MANIPULATION_SIGNAL.test(text)
     || URL_OR_EMAIL_SIGNAL.test(text)
     || GENERATED_SAFETY_SIGNAL.test(text)
     || text.includes('!')
