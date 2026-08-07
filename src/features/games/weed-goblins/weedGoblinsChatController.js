@@ -10,6 +10,7 @@ import {
   getNarrationHooksForTransition,
 } from './weedGoblinsNarrationHooks.js'
 import {
+  buildPlayerActionResponseFallback,
   buildPlayerActionSetupFallback,
   interpretWeedGoblinsFreeText,
   isWeedGoblinsFreeTextScene,
@@ -220,6 +221,31 @@ function attemptHookForPlan(state, plan) {
   })
 }
 
+function responseHookForPlan(state, plan) {
+  const fallbackText = buildPlayerActionResponseFallback(plan)
+  return Object.freeze({
+    moment: 'player-action-response',
+    outcome: 'response',
+    fallbackText,
+    authoritativeText: fallbackText,
+    sceneId: cleanText(state.sceneId, 80),
+    actionId: 'free-text:narrative',
+    stat: '',
+    dc: 0,
+    rolls: [],
+    selectedRoll: null,
+    troubleBefore: Number(state.trouble) || 0,
+    troubleAfter: Number(state.trouble) || 0,
+    fictionalStolenItem: cleanText(state.stolenItem, 160),
+    fictionalGoblinName: cleanText(state.goblinName, 100),
+    fictionalLocationName: cleanText(state.fictionalLocationName, 120),
+    narrationTier: cleanText(state.narrationTier, 50) || 'normal',
+    allowCallback: false,
+    allowFourthWall: false,
+    ...playerContextForPlan(plan),
+  })
+}
+
 export async function prepareWeedGoblinsFreeTextTurn({
   state,
   playerAction,
@@ -254,6 +280,7 @@ export async function prepareWeedGoblinsFreeTextTurn({
 }
 
 function advancePreparedPlan(before, plan) {
+  if (plan.kind === 'narrative-only') return before
   if (plan.kind === 'midpoint-check') {
     return advanceWeedGoblinsFreeTextMidpointCheck(before, plan.style)
   }
@@ -292,7 +319,32 @@ export async function narrateWeedGoblinsResolvedTurn({
     throw new Error('Prepared turn and resolved mechanics are required.')
   }
 
-  const generatedOutcomeMessages = await resolveWeedGoblinsTransitionMessages({
+  if (preparedTurn.plan.kind === 'narrative-only') {
+    const message = await generatedMessageForHook({
+      hook: responseHookForPlan(mechanics.after, preparedTurn.plan),
+      state: mechanics.after,
+      blockedRealNames,
+      generateNarration,
+      die: null,
+    })
+    return message ? [message] : []
+  }
+
+  if (mechanics.after.status === 'completed') {
+    const endingHook = getNarrationHooksForTransition(mechanics.before, mechanics.after)
+      .find((hook) => hook.moment === 'run-ending')
+    if (!endingHook) return []
+    const message = await generatedMessageForHook({
+      hook: hookWithPlayerContext(endingHook, preparedTurn.plan),
+      state: mechanics.after,
+      blockedRealNames,
+      generateNarration,
+      die: null,
+    })
+    return message ? [message] : []
+  }
+
+  return resolveWeedGoblinsTransitionMessages({
     before: mechanics.before,
     after: mechanics.after,
     blockedRealNames,
@@ -301,10 +353,6 @@ export async function narrateWeedGoblinsResolvedTurn({
     suppressDice: true,
     suppressManaAccounting: true,
   })
-
-  return mechanics.after.status === 'completed'
-    ? generatedOutcomeMessages.slice(-1)
-    : generatedOutcomeMessages
 }
 
 export async function resolveWeedGoblinsPreparedTurn({
