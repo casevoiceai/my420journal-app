@@ -17,6 +17,25 @@ S.T.O.N.E.R. narrates a D20 fantasy adventure in the Goblin Highlands. The Gobli
 - The three Session 1 endings are recovery, bargain, and escape.
 - The engine is deterministic for a supplied seed and has no React, network, AI, storage, or journal-database access.
 
+## Chapter and quest progression
+
+Weed Goblins is formally mapped to Chapter 1, Quest 1:
+
+- game id: `weed-goblins`;
+- Chapter 1 id: `chapter-1`;
+- Chapter 1 title: `The Goblin Highlands`;
+- Quest 1 id: `quest-1`;
+- Quest 1 title: `Weed Goblins`;
+- Quest 1 adventure id: `goblin-highlands-session-1`.
+
+Every newly saved completed-run summary is enriched with `gameId`, `chapterId`, `chapterNumber`, `chapterTitle`, `questId`, `questNumber`, and `questTitle` before it is written through the existing Weed Goblins run-history storage key. This is metadata added to the existing run-history mechanism, not a second progression store. Older Chapter 1 summaries that predate these fields remain valid and are inferred from their existing `adventureId` when progression is calculated.
+
+Chapter progression deliberately reuses the existing completed-run milestone logic already used by narration callbacks. Fewer than 5 completed runs in a chapter is the normal stage; 5 completed runs means the chapter is finished enough for the next configured chapter to become unlocked/referenceable; 10 completed runs marks the mastered/fourth-wall milestone. The progression layer calls the same `calculateNarrationTier` logic rather than maintaining separate 5/10 counters.
+
+Only Chapter 1 and Quest 1 exist in this prototype. Therefore Chapter 1 is currently the only unlocked chapter and `nextChapterReference` remains empty even after the 5- or 10-run milestone. The catalog and unlock calculation are intentionally data-driven so a later chapter can be appended without changing the run-history schema or storage mechanism.
+
+The game screen shows one quiet run-level marker, `Chapter 1: The Goblin Highlands`, at the start of the conversation thread. It is not attached to individual narration messages, is not a gameplay HUD, and does not appear outside the Weed Goblins screen.
+
 ## Natural-1 complication pattern
 
 A selected natural 1 always follows a dedicated complication path, not the standard failure path. With advantage, this means both D20s were 1. The complication is a specific comedic, non-fatal setback narrated in S.T.O.N.E.R.'s dry, earnest voice.
