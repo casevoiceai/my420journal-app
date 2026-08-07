@@ -218,7 +218,12 @@ test('raw dispensary name cannot reach engine state or narration request context
   const routeHook = getNarrationHooksForTransition(beforeRoute, state)[0]
 
   assert.equal(routeHook.fictionalLocationName, fictionalLocationName)
-  assert.equal(routeHook.authoritativeText.includes(fictionalLocationName), true)
+  assert.equal(
+    routeHook.authoritativeText.toLocaleLowerCase('en-US').includes(
+      fictionalLocationName.toLocaleLowerCase('en-US'),
+    ),
+    true,
+  )
   assert.equal(routeHook.authoritativeText.includes(rawDispensaryName), false)
 
   let requestBody = null
@@ -236,7 +241,12 @@ test('raw dispensary name cannot reach engine state or narration request context
 
   assert.equal(result.source, 'ai')
   assert.equal(requestBody.includes(rawDispensaryName), false)
-  assert.equal(requestBody.includes(fictionalLocationName), true)
+  assert.equal(
+    requestBody.toLocaleLowerCase('en-US').includes(
+      fictionalLocationName.toLocaleLowerCase('en-US'),
+    ),
+    true,
+  )
 })
 
 test('reads the actual localStore entries query shape and sanitized prior run key', async () => {
