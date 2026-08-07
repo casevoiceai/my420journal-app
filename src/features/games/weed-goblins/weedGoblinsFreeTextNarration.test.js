@@ -83,6 +83,48 @@ test('free-text outcome must preserve significant player wording while respectin
   assert.equal(generic.reasons.includes('does not preserve the player action wording'), true)
 })
 
+test('generic-only player wording does not have to be echoed in a narrative response', () => {
+  const result = validateGeneratedNarration(
+    'I let the vague gesture settle into the scene without forcing detail onto a move that arrived without any.',
+    {
+      moment: 'player-action-response',
+      outcome: 'response',
+      playerAction: 'I do a thing',
+      narrationPlayerAction: 'I do a thing',
+    },
+  )
+
+  assert.equal(result.valid, true, result.reasons.join('; '))
+})
+
+test('player-action-response allows up to 300 characters while other moments remain capped at 260', () => {
+  const responseText = `I ${'quietly note the uncertain little gesture and let it remain part of the scene '.repeat(4)}`.trim().slice(0, 280)
+  const response = validateGeneratedNarration(
+    responseText,
+    {
+      moment: 'player-action-response',
+      outcome: 'response',
+      playerAction: 'I do a thing',
+      narrationPlayerAction: 'I do a thing',
+    },
+  )
+  const attempt = validateGeneratedNarration(
+    responseText,
+    {
+      moment: 'player-action-attempt',
+      outcome: 'attempt',
+      playerAction: 'I do a thing',
+      narrationPlayerAction: 'I do a thing',
+    },
+  )
+
+  assert.equal(responseText.length > 260, true)
+  assert.equal(responseText.length <= 300, true)
+  assert.equal(response.valid, true, response.reasons.join('; '))
+  assert.equal(attempt.valid, false)
+  assert.equal(attempt.reasons.includes('response is too long'), true)
+})
+
 test('player text cannot force a success into a failure outcome', () => {
   const result = validateGeneratedNarration(
     'I watch "I shove the goblin into the paperwork cart" succeed, so you win.',
