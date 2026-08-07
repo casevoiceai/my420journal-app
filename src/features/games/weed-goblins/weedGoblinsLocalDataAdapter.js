@@ -62,6 +62,75 @@ const LOCATION_ADJECTIVE_HINTS = Object.freeze([
   Object.freeze([/\bgreen\b/i, 'Verdant']),
 ])
 
+const EFFECT_TRAIT_FLAVORS = Object.freeze({
+  body: Object.freeze([
+    'You favor solid footing, deliberate movement, and the sort of patience that makes loose stones nervous.',
+    'You carry yourself like someone who checks balance first and lets momentum arrive on schedule.',
+    'You trust steady movement and physical follow-through more than dramatic shortcuts.',
+  ]),
+  mind: Object.freeze([
+    'You approach obstacles as puzzles with suspiciously many acceptable diagrams.',
+    'You notice patterns quickly and keep a second theory ready in case the first one becomes a goblin.',
+    'You treat every locked door as a question that probably has footnotes.',
+  ]),
+  mood: Object.freeze([
+    'You meet strange situations with steady good humor and an alarming willingness to greet goblins politely.',
+    'You keep morale intact by treating absurdity as useful field information.',
+    'You assume most situations are salvageable until the paperwork proves otherwise.',
+  ]),
+  neutral: Object.freeze([
+    'You have developed a measured field style that is difficult for goblins to classify.',
+    'Your habits suggest a practical adventurer who prefers repeatable methods over dramatic guesses.',
+    'You enter the Highlands with a personal rhythm that does not require explanation.',
+  ]),
+})
+
+const TERPENE_THEME_HINTS = Object.freeze([
+  Object.freeze([/limonene/i, 'citrus']),
+  Object.freeze([/myrcene/i, 'low-fog']),
+  Object.freeze([/linalool/i, 'floral-hush']),
+  Object.freeze([/caryophyllene/i, 'pepper-spark']),
+  Object.freeze([/pinene/i, 'pine-shadow']),
+  Object.freeze([/terpinolene/i, 'herbal-wind']),
+  Object.freeze([/humulene/i, 'dry-green']),
+])
+
+const TERPENE_ENVIRONMENT_FLAVORS = Object.freeze({
+  citrus: Object.freeze([
+    'The Highlands air has a bright, citrus-sharp edge, and the rune-light looks almost too clean.',
+    'Bright, sharp air cuts through the mist while the old stones catch a pale gold gleam.',
+  ]),
+  'low-fog': Object.freeze([
+    'Low, heavy fog pools between the stones, making every lantern look farther away than it is.',
+    'A dense low mist drapes the path and turns the lower ruins into dark islands of stone.',
+  ]),
+  'floral-hush': Object.freeze([
+    'A pale floral hush hangs over the path, as if the moss has agreed to keep its voice down.',
+    'Soft violet light gathers around the old stones while the air stays strangely quiet.',
+  ]),
+  'pepper-spark': Object.freeze([
+    'Warm peppery sparks drift from the rune-stones whenever the path shifts underfoot.',
+    'The old masonry gives off a dry, pepper-bright crackle when the wind crosses it.',
+  ]),
+  'pine-shadow': Object.freeze([
+    'Resin-bright air and needle-dark shadows make the highland paths feel newly carved.',
+    'Dark evergreen shadows stripe the route while the air stays sharp and resinous.',
+  ]),
+  'herbal-wind': Object.freeze([
+    'The wind carries a bright herbal edge around old runes that hum when nobody touches them.',
+    'Herbal-scented gusts sweep the ridge and wake faint green light in the carved stones.',
+  ]),
+  'dry-green': Object.freeze([
+    'Dry green wind moves through the ruins and leaves the old stone smelling faintly of fields.',
+    'The route feels dry and green-edged, with brittle moss whispering against the masonry.',
+  ]),
+  neutral: Object.freeze([
+    'Thin silver mist follows the old stones, and faint rune-light gathers wherever the path narrows.',
+    'Moss-lanterns burn along the route with a quiet green light that the goblins insist is normal.',
+    'The Highlands carry a cool mineral haze, and the carved stones answer the wind with a low hum.',
+  ]),
+})
+
 const RUN_SUMMARY_FIELDS = Object.freeze([
   'adventureId',
   'backgroundId',
@@ -82,6 +151,21 @@ function cleanText(value) {
   return value.trim().replace(/\s+/g, ' ').slice(0, MAX_TEXT_LENGTH)
 }
 
+function normalizeRankedLabels(values) {
+  if (!Array.isArray(values)) return []
+  const seen = new Set()
+  const labels = []
+  for (const value of values) {
+    const text = cleanText(value)
+    const key = text.toLocaleLowerCase('en-US')
+    if (!text || seen.has(key)) continue
+    seen.add(key)
+    labels.push(text)
+    if (labels.length >= 5) break
+  }
+  return labels
+}
+
 function stableTextHash(value) {
   const text = cleanText(value).toLocaleLowerCase('en-US')
   let hash = 2166136261
@@ -90,6 +174,30 @@ function stableTextHash(value) {
     hash = Math.imul(hash, 16777619)
   }
   return hash >>> 0
+}
+
+export function buildEffectTraitFlavor(effectTags = [], dominantGroup = 'neutral') {
+  const labels = normalizeRankedLabels(effectTags)
+  if (labels.length === 0) return ''
+
+  const group = Object.hasOwn(EFFECT_TRAIT_FLAVORS, dominantGroup)
+    ? dominantGroup
+    : 'neutral'
+  const family = EFFECT_TRAIT_FLAVORS[group]
+  const hash = stableTextHash(`${group}:${labels.join('|')}`)
+  return family[hash % family.length]
+}
+
+export function buildTerpeneEnvironmentFlavor(terpeneLabels = []) {
+  const labels = normalizeRankedLabels(terpeneLabels)
+  if (labels.length === 0) return ''
+
+  const primary = labels[0]
+  const theme = TERPENE_THEME_HINTS.find(([pattern]) => pattern.test(primary))?.[1]
+    ?? 'neutral'
+  const family = TERPENE_ENVIRONMENT_FLAVORS[theme]
+  const hash = stableTextHash(labels.join('|'))
+  return family[hash % family.length]
 }
 
 export function fictionalizeDispensaryName(value) {
@@ -140,6 +248,18 @@ function collectArrayValues(index, values, order) {
   return nextOrder
 }
 
+function countStructuredValues(values) {
+  if (!Array.isArray(values)) return 0
+  return values.reduce((count, value) => count + (cleanText(value) ? 1 : 0), 0)
+}
+
+function dominantEffectGroup(counts) {
+  const groups = ['body', 'mind', 'mood']
+  const maximum = Math.max(...groups.map((group) => counts[group] || 0))
+  if (maximum <= 0) return 'neutral'
+  return groups.find((group) => (counts[group] || 0) === maximum) || 'neutral'
+}
+
 function collectTerpeneLabels(index, terpenes, order) {
   if (!terpenes || typeof terpenes !== 'object' || Array.isArray(terpenes)) return order
   let nextOrder = order
@@ -185,6 +305,8 @@ export function createEmptyWeedGoblinsPersonalizationSnapshot() {
     productCategories: [],
     effectTags: [],
     terpeneLabels: [],
+    effectTraitFlavor: '',
+    terpeneEnvironmentFlavor: '',
     fictionalLocationNames: [],
     entryCount: 0,
     previousRuns: [],
@@ -209,6 +331,7 @@ export function buildWeedGoblinsPersonalizationSnapshot({
   const effectTags = new Map()
   const terpeneLabels = new Map()
   const dispensaryNames = new Map()
+  const effectGroupCounts = { body: 0, mind: 0, mood: 0 }
   let productOrder = 0
   let categoryOrder = 0
   let effectOrder = 0
@@ -226,6 +349,9 @@ export function buildWeedGoblinsPersonalizationSnapshot({
     effectOrder = collectArrayValues(effectTags, entry?.body_tags, effectOrder)
     effectOrder = collectArrayValues(effectTags, entry?.mind_tags, effectOrder)
     effectOrder = collectArrayValues(effectTags, entry?.mood_tags, effectOrder)
+    effectGroupCounts.body += countStructuredValues(entry?.body_tags)
+    effectGroupCounts.mind += countStructuredValues(entry?.mind_tags)
+    effectGroupCounts.mood += countStructuredValues(entry?.mood_tags)
     terpeneOrder = collectTerpeneLabels(terpeneLabels, entry?.terpenes, terpeneOrder)
   }
 
@@ -244,6 +370,13 @@ export function buildWeedGoblinsPersonalizationSnapshot({
   snapshot.terpeneLabels = rankedValues(
     terpeneLabels,
     PERSONALIZATION_LIMITS.terpeneLabels,
+  )
+  snapshot.effectTraitFlavor = buildEffectTraitFlavor(
+    snapshot.effectTags,
+    dominantEffectGroup(effectGroupCounts),
+  )
+  snapshot.terpeneEnvironmentFlavor = buildTerpeneEnvironmentFlavor(
+    snapshot.terpeneLabels,
   )
   snapshot.fictionalLocationNames = rankedValues(
     dispensaryNames,
