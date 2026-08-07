@@ -92,6 +92,46 @@ test('resolved check bubble carries only the final selected D20 number', async (
   assert.equal(Array.isArray(diceMessage.die), false)
 })
 
+test('chat controller delivers the Goblin King taunt before boss choices with no die result', async () => {
+  const calls = []
+  const generateNarration = generatedNarration(calls)
+  const session = await createWeedGoblinsChatSession({
+    seed: 'recovery-1',
+    generateNarration,
+  })
+
+  let state = session.state
+  let messages = session.messages
+  for (const actionId of [
+    'background:hauler',
+    'route:ridge',
+    'goblin:strike',
+  ]) {
+    const advanced = await advanceWithMessages(state, messages, actionId, generateNarration)
+    state = advanced.state
+    messages = advanced.messages
+  }
+
+  const midpoint = await advanceWithMessages(
+    state,
+    messages,
+    'midpoint:skip',
+    generateNarration,
+  )
+
+  assert.equal(midpoint.state.sceneId, 'goblin-king')
+  assert.equal(calls.includes('goblin-king-taunt:taunt'), true)
+  const tauntMessage = midpoint.incoming.find(
+    (message) => message.text === 'Narrated goblin-king-taunt taunt.',
+  )
+  assert.ok(tauntMessage)
+  assert.equal(tauntMessage.die, null)
+  assert.equal(
+    getWeedGoblinsQuickReplies(midpoint.state).some((choice) => choice.id === 'boss:overpower'),
+    true,
+  )
+})
+
 test('chat controller can drive the existing engine through one complete recovery run', async () => {
   const calls = []
   const generateNarration = generatedNarration(calls)
@@ -122,6 +162,7 @@ test('chat controller can drive the existing engine through one complete recover
   assert.equal(calls.includes('ordinary-failure:failure'), true)
   assert.equal(calls.includes('action-success:success'), true)
   assert.equal(calls.includes('midpoint-outcome:midpoint'), true)
+  assert.equal(calls.includes('goblin-king-taunt:taunt'), true)
   assert.equal(calls.includes('run-ending:recovery'), true)
 })
 
