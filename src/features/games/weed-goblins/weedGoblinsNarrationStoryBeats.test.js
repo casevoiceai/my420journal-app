@@ -18,6 +18,7 @@ const VALID_LINES = Object.freeze({
   'action-success': ['success', 'I record your success as the stone gate yields the direct route.'],
   'scene-intro': ['intro', 'I welcome you to the Goblin Highlands, where the terrain has already filed an objection.'],
   'midpoint-outcome': ['midpoint', 'I note that you help the clerk gather every numbered form before moving on.'],
+  'goblin-king-taunt': ['taunt', 'I watch the Goblin King smile and say, "I had your surrender paperwork prepared before breakfast," as though this is ordinary hospitality.'],
 })
 
 for (const [moment, [outcome, line]] of Object.entries(VALID_LINES)) {
@@ -26,6 +27,45 @@ for (const [moment, [outcome, line]] of Object.entries(VALID_LINES)) {
     assert.equal(result.valid, true, result.reasons.join('; '))
   })
 }
+
+test('Goblin King taunt rejects outcome resolution before the confrontation action', () => {
+  for (const line of [
+    'I hear the Goblin King say, "You lost before you arrived," and I record the failure.',
+    'I hear the Goblin King say, "I already won," while he settles into the throne.',
+    'I hear the Goblin King say, "We can discuss terms now," as the bargain concludes.',
+  ]) {
+    const result = validateGeneratedNarration(line, {
+      moment: 'goblin-king-taunt',
+      outcome: 'taunt',
+    })
+    assert.equal(result.valid, false, line)
+    assert.equal(
+      result.reasons.includes('implies a different engine outcome'),
+      true,
+      result.reasons.join('; '),
+    )
+  }
+})
+
+test('Goblin King dialogue cannot satisfy the narrator first-person check by itself', () => {
+  const result = validateGeneratedNarration(
+    '"I had your surrender paperwork prepared before breakfast," says the Goblin King.',
+    { moment: 'goblin-king-taunt', outcome: 'taunt' },
+  )
+
+  assert.equal(result.valid, false)
+  assert.equal(result.reasons.includes('is not written in first person'), true)
+})
+
+test('Goblin King taunt requires attributed villain dialogue', () => {
+  const result = validateGeneratedNarration(
+    'I note that the throne room is prepared and the Goblin King appears extremely satisfied with himself.',
+    { moment: 'goblin-king-taunt', outcome: 'taunt' },
+  )
+
+  assert.equal(result.valid, false)
+  assert.equal(result.reasons.includes('does not include attributed Goblin King dialogue'), true)
+})
 
 test('midpoint help may recover forms without implying the recovery ending', () => {
   const result = validateGeneratedNarration(
@@ -174,11 +214,12 @@ test('keeps success and specific endings forbidden outside their matching moment
     ['ordinary-failure', 'failure'],
     ['scene-intro', 'intro'],
     ['midpoint-outcome', 'midpoint'],
+    ['goblin-king-taunt', 'taunt'],
   ]) {
-    const result = validateGeneratedNarration(
-      'I record your success as you recover the Field Reliquary and escape the Highlands.',
-      { moment, outcome },
-    )
+    const line = moment === 'goblin-king-taunt'
+      ? 'I hear the Goblin King say, "You won," as you recover the Field Reliquary and escape the Highlands.'
+      : 'I record your success as you recover the Field Reliquary and escape the Highlands.'
+    const result = validateGeneratedNarration(line, { moment, outcome })
     assert.equal(result.valid, false, moment)
     assert.equal(result.reasons.includes('implies a different engine outcome'), true, moment)
   }
@@ -198,6 +239,27 @@ test('rejects unsupported moment and outcome pairings in the validator', () => {
       moment,
     )
   }
+})
+
+test('Goblin King taunt mismatch is rejected before the narration request is sent', async () => {
+  let fetchCalls = 0
+  await assert.rejects(
+    generateNarrationFromHook({
+      hook: {
+        moment: 'goblin-king-taunt',
+        outcome: 'success',
+        fallbackText: 'I watch the Goblin King prepare to speak.',
+        sceneId: 'goblin-king',
+        actionId: 'boss:taunt',
+      },
+      fetchImpl: async () => {
+        fetchCalls += 1
+        return response('I should not be reached.')
+      },
+    }),
+    /Unsupported AI narration moment\/outcome pairing/,
+  )
+  assert.equal(fetchCalls, 0)
 })
 
 test('generic story-beat hook retries once with the existing corrective pattern', async () => {
