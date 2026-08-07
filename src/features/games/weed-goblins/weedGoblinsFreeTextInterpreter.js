@@ -112,8 +112,23 @@ function containsBlockedRealName(text, blockedRealNames = []) {
   })
 }
 
-function hasLikelyProperName(text) {
-  const matches = [...text.matchAll(/\b[A-Z][a-z]{2,}\b/g)]
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function maskAllowedFictionalNames(text, allowedFictionalNames = []) {
+  let masked = text
+  for (const value of allowedFictionalNames) {
+    const name = typeof value === 'string' ? value.trim() : ''
+    if (!name) continue
+    masked = masked.replace(new RegExp(escapeRegExp(name), 'gi'), ' ')
+  }
+  return masked
+}
+
+function hasLikelyProperName(text, allowedFictionalNames = []) {
+  const scanText = maskAllowedFictionalNames(text, allowedFictionalNames)
+  const matches = [...scanText.matchAll(/\b[A-Z][a-z]{2,}\b/g)]
   return matches.some((match) => match.index > 0 && !SAFE_PLAYER_PROPER_TERMS.has(match[0]))
 }
 
@@ -127,13 +142,17 @@ function settingBreakFor(text, blockedRealNames = []) {
     : { settingGuardrail: false, settingCategory: '' }
 }
 
-function playerInputNeedsSafetyGuardrail(text, blockedRealNames = []) {
+function playerInputNeedsSafetyGuardrail(
+  text,
+  blockedRealNames = [],
+  allowedFictionalNames = [],
+) {
   return PROMPT_INJECTION_SIGNAL.test(text)
     || OUTCOME_MANIPULATION_SIGNAL.test(text)
     || URL_OR_EMAIL_SIGNAL.test(text)
     || GENERATED_SAFETY_SIGNAL.test(text)
     || text.includes('!')
-    || hasLikelyProperName(text)
+    || hasLikelyProperName(text, allowedFictionalNames)
     || containsBlockedRealName(text, blockedRealNames)
 }
 
@@ -267,8 +286,17 @@ export function interpretWeedGoblinsFreeText(state, value, { blockedRealNames = 
     })
   }
 
+  const allowedFictionalNames = [
+    state.goblinName,
+    state.stolenItem,
+    state.fictionalLocationName,
+  ].filter(Boolean)
   const setting = settingBreakFor(playerAction, blockedRealNames)
-  const inputGuardrail = playerInputNeedsSafetyGuardrail(playerAction, blockedRealNames)
+  const inputGuardrail = playerInputNeedsSafetyGuardrail(
+    playerAction,
+    blockedRealNames,
+    allowedFictionalNames,
+  )
   const exact = setting.settingGuardrail ? null : exactSceneAction(state, playerAction)
   const narrativeOnly = !setting.settingGuardrail && !exact
     ? narrativeOnlyAction(playerAction)
