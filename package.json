@@ -8,8 +8,8 @@
     "dev": "vite",
     "build": "vite build && node -e \"require('fs').copyFileSync('dist/index.html', 'dist/404.html')\"",
     "preview": "vite preview",
-    "test": "node --test src/features/games/weed-goblins/weedGoblinsEngine.test.js src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js src/features/games/weed-goblins/weedGoblinsAiComplication.test.js src/features/games/weed-goblins/weedGoblinsNarrationHooks.test.js src/features/games/weed-goblins/weedGoblinsNarrationStoryBeats.test.js src/features/games/weed-goblins/weedGoblinsPagesFunction.test.js server/weed-goblins-narration-worker/index.test.js server/weed-goblins-narration-worker/story-beats.test.js",
-    "play:weed-goblins": "node src/features/games/weed-goblins/weedGoblinsConsole.js"
+    "test": "node --test src/features/games/weed-goblins/weedGoblinsEngine.test.js src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js src/features/games/weed-goblins/weedGoblinsRunHistory.test.js src/features/games/weed-goblins/weedGoblinsAiComplication.test.js src/features/games/weed-goblins/weedGoblinsNarrationHooks.test.js src/features/games/weed-goblins/weedGoblinsNarrationStoryBeats.test.js src/features/games/weed-goblins/weedGoblinsPagesFunction.test.js server/weed-goblins-narration-worker/index.test.js server/weed-goblins-narration-worker/story-beats.test.js",
+    "play:weed-goblins": "node --experimental-webstorage --localstorage-file=.weed-goblins-console-local-storage src/features/games/weed-goblins/weedGoblinsConsole.js"
   },
   "keywords": [],
   "author": "",
