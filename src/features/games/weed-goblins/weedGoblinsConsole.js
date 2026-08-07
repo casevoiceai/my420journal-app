@@ -65,7 +65,7 @@ async function snapshotForOptions(options) {
   if (!options.useLocalAdapter) {
     return {
       productNames: [],
-      dispensaryNames: [],
+      fictionalLocationNames: [],
       previousRuns: [],
     }
   }
@@ -73,10 +73,7 @@ async function snapshotForOptions(options) {
 }
 
 function blockedNames(journalSnapshot) {
-  return [
-    ...(journalSnapshot.productNames || []),
-    ...(journalSnapshot.dispensaryNames || []),
-  ]
+  return [...(journalSnapshot.productNames || [])]
 }
 
 function printComparisonResult(result) {
@@ -96,7 +93,7 @@ function printComparisonResult(result) {
 
 export async function compareNaturalOneNarration({
   endpoint = DEFAULT_NARRATION_ENDPOINT,
-  journalSnapshot = { productNames: [], dispensaryNames: [] },
+  journalSnapshot = { productNames: [], fictionalLocationNames: [] },
   fetchImpl = fetch,
 } = {}) {
   let state = createWeedGoblinsRun({ seed: 'scan-28', journalSnapshot })
@@ -127,7 +124,7 @@ export async function compareNaturalOneNarration({
 
 export async function compareStoryBeatNarration({
   endpoint = DEFAULT_NARRATION_ENDPOINT,
-  journalSnapshot = { productNames: [], dispensaryNames: [] },
+  journalSnapshot = { productNames: [], fictionalLocationNames: [] },
   fetchImpl = fetch,
 } = {}) {
   const actions = [
