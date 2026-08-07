@@ -1,4 +1,5 @@
 import {
+  advanceWeedGoblinsFreeTextMidpointCheck,
   advanceWeedGoblinsRun,
   createWeedGoblinsRun,
   getAvailableActions,
@@ -8,6 +9,11 @@ import {
   createInitialNarrationHook,
   getNarrationHooksForTransition,
 } from './weedGoblinsNarrationHooks.js'
+import {
+  buildPlayerActionSetupFallback,
+  interpretWeedGoblinsFreeText,
+  isWeedGoblinsFreeTextScene,
+} from './weedGoblinsFreeTextInterpreter.js'
 
 function cleanText(value, maxLength = 500) {
   return typeof value === 'string'
@@ -23,11 +29,13 @@ function resolvedDieValue(value) {
 export function createIncomingChatMessage(text, {
   die = null,
   source = 'static',
+  kind = 'message',
 } = {}) {
   const clean = cleanText(text)
-  if (!clean) return null
+  if (!clean && kind !== 'roll-result') return null
   return Object.freeze({
     direction: 'incoming',
+    kind,
     text: clean,
     die: resolvedDieValue(die),
     source,
@@ -38,6 +46,7 @@ export function createOutgoingChoiceMessage(action) {
   if (!action?.id || !action?.label) throw new Error('A valid Weed Goblins choice is required.')
   return Object.freeze({
     direction: 'outgoing',
+    kind: 'message',
     text: cleanText(action.label),
     actionId: cleanText(action.id, 100),
     die: null,
@@ -45,8 +54,76 @@ export function createOutgoingChoiceMessage(action) {
   })
 }
 
+export function createOutgoingTextMessage(value) {
+  const text = cleanText(value, 160)
+  if (!text) throw new Error('A player action is required.')
+  return Object.freeze({
+    direction: 'outgoing',
+    kind: 'message',
+    text,
+    actionId: 'free-text',
+    die: null,
+    source: 'player-text',
+  })
+}
+
+export function createRollTriggerMessage() {
+  return Object.freeze({
+    direction: 'incoming',
+    kind: 'roll-trigger',
+    text: 'Roll d20',
+    die: null,
+    source: 'roll-trigger',
+  })
+}
+
+export function createRollResultMessage(value) {
+  const die = resolvedDieValue(value)
+  if (die === null) throw new Error('A resolved D20 value is required.')
+  return Object.freeze({
+    direction: 'incoming',
+    kind: 'roll-result',
+    text: '',
+    die,
+    source: 'engine-roll',
+  })
+}
+
 export function getWeedGoblinsQuickReplies(state) {
-  return getAvailableActions(state)
+  return isWeedGoblinsFreeTextScene(state) ? [] : getAvailableActions(state)
+}
+
+export { isWeedGoblinsFreeTextScene }
+
+function playerContextForPlan(plan) {
+  return {
+    playerAction: cleanText(plan?.playerAction, 160),
+    narrationPlayerAction: cleanText(plan?.narrationPlayerAction, 160),
+    interpretedAction: cleanText(plan?.interpretedAction, 200),
+    settingGuardrail: plan?.settingGuardrail === true,
+    settingCategory: cleanText(plan?.settingCategory, 80),
+    inputGuardrail: plan?.inputGuardrail === true,
+  }
+}
+
+function contextualFallback(hook, plan) {
+  if (!plan) return hook.fallbackText
+  const action = plan.narrationPlayerAction
+    ? `"${plan.narrationPlayerAction}"`
+    : plan.interpretedAction
+  if (!action) return hook.fallbackText
+  return cleanText(`I resolve ${action} through the scene: ${hook.fallbackText}`, 300)
+}
+
+function hookWithPlayerContext(hook, plan, { contextualizeFallback = true } = {}) {
+  if (!plan || hook.moment === 'goblin-king-taunt') return hook
+  const fallbackText = contextualizeFallback ? contextualFallback(hook, plan) : hook.fallbackText
+  return Object.freeze({
+    ...hook,
+    ...playerContextForPlan(plan),
+    fallbackText,
+    authoritativeText: fallbackText,
+  })
 }
 
 async function generatedMessageForHook({
@@ -54,6 +131,7 @@ async function generatedMessageForHook({
   state,
   blockedRealNames,
   generateNarration,
+  die = hook.selectedRoll,
 }) {
   const result = await generateNarration({
     hook,
@@ -61,7 +139,7 @@ async function generatedMessageForHook({
     blockedRealNames,
   })
   return createIncomingChatMessage(result.text, {
-    die: hook.selectedRoll,
+    die,
     source: result.source,
   })
 }
@@ -104,7 +182,7 @@ export async function createWeedGoblinsChatSession({
 
 export function selectWeedGoblinsChatChoice(state, action) {
   if (!state) throw new Error('A Weed Goblins run state is required.')
-  const available = getWeedGoblinsQuickReplies(state)
+  const available = getAvailableActions(state)
   const selected = available.find((candidate) => candidate.id === action?.id)
   if (!selected) throw new Error(`Choice ${action?.id ?? '(missing)'} is not available.`)
 
@@ -117,27 +195,142 @@ export function selectWeedGoblinsChatChoice(state, action) {
   }
 }
 
+function attemptHookForPlan(state, plan) {
+  const fallbackText = buildPlayerActionSetupFallback(plan)
+  return Object.freeze({
+    moment: 'player-action-attempt',
+    outcome: 'attempt',
+    fallbackText,
+    authoritativeText: fallbackText,
+    sceneId: cleanText(state.sceneId, 80),
+    actionId: cleanText(plan.actionId || 'free-text:narrative', 80),
+    stat: '',
+    dc: 0,
+    rolls: [],
+    selectedRoll: null,
+    troubleBefore: Number(state.trouble) || 0,
+    troubleAfter: Number(state.trouble) || 0,
+    fictionalStolenItem: cleanText(state.stolenItem, 160),
+    fictionalGoblinName: cleanText(state.goblinName, 100),
+    fictionalLocationName: cleanText(state.fictionalLocationName, 120),
+    narrationTier: cleanText(state.narrationTier, 50) || 'normal',
+    allowCallback: false,
+    allowFourthWall: false,
+    ...playerContextForPlan(plan),
+  })
+}
+
+export async function prepareWeedGoblinsFreeTextTurn({
+  state,
+  playerAction,
+  blockedRealNames = [],
+  generateNarration = generateNarrationFromHook,
+} = {}) {
+  if (!isWeedGoblinsFreeTextScene(state)) {
+    throw new Error(`Free-text input is not available in scene ${state?.sceneId ?? '(missing)'}.`)
+  }
+
+  const plan = interpretWeedGoblinsFreeText(state, playerAction, { blockedRealNames })
+  if (plan.kind === 'empty') throw new Error('A player action is required.')
+
+  const hook = attemptHookForPlan(state, plan)
+  const setupMessage = await generatedMessageForHook({
+    hook,
+    state,
+    blockedRealNames,
+    generateNarration,
+    die: null,
+  })
+  const requiresRoll = plan.style !== 'non-check'
+
+  return Object.freeze({
+    before: state,
+    plan,
+    requiresRoll,
+    outgoingMessage: createOutgoingTextMessage(plan.playerAction),
+    setupMessage,
+    rollTriggerMessage: requiresRoll ? createRollTriggerMessage() : null,
+  })
+}
+
+function advancePreparedPlan(before, plan) {
+  if (plan.kind === 'midpoint-check') {
+    return advanceWeedGoblinsFreeTextMidpointCheck(before, plan.style)
+  }
+  if (!plan.actionId) throw new Error('The interpreted player action has no engine path.')
+  return advanceWeedGoblinsRun(before, plan.actionId)
+}
+
+function resolvedCheckEvent(before, after) {
+  return after.history
+    .slice(before.history.length)
+    .find((event) => event.type === 'check') || null
+}
+
+export async function resolveWeedGoblinsPreparedTurn({
+  preparedTurn,
+  blockedRealNames = [],
+  generateNarration = generateNarrationFromHook,
+} = {}) {
+  if (!preparedTurn?.before || !preparedTurn?.plan) {
+    throw new Error('A prepared Weed Goblins free-text turn is required.')
+  }
+
+  const before = preparedTurn.before
+  const after = advancePreparedPlan(before, preparedTurn.plan)
+  const checkEvent = resolvedCheckEvent(before, after)
+  const outcomeMessages = await resolveWeedGoblinsTransitionMessages({
+    before,
+    after,
+    blockedRealNames,
+    generateNarration,
+    playerActionPlan: preparedTurn.plan,
+    suppressDice: true,
+    suppressManaAccounting: true,
+    collapseSuccessfulEnding: true,
+  })
+
+  return {
+    before,
+    after,
+    rollResultMessage: checkEvent ? createRollResultMessage(checkEvent.roll) : null,
+    outcomeMessages,
+  }
+}
+
 export async function resolveWeedGoblinsTransitionMessages({
   before,
   after,
   blockedRealNames = [],
   generateNarration = generateNarrationFromHook,
+  playerActionPlan = null,
+  suppressDice = false,
+  suppressManaAccounting = false,
+  collapseSuccessfulEnding = false,
 } = {}) {
   if (!before || !after) throw new Error('Both Weed Goblins transition states are required.')
 
-  const hooks = getNarrationHooksForTransition(before, after)
+  let hooks = getNarrationHooksForTransition(before, after)
+  if (collapseSuccessfulEnding && hooks.some((hook) => hook.moment === 'run-ending')) {
+    hooks = hooks.filter((hook) => hook.moment !== 'action-success')
+  }
+
   const narrationLines = after.narration.slice(before.narration.length)
   const messages = []
   let hookIndex = 0
 
   for (const line of narrationLines) {
-    const hook = hooks[hookIndex]
-    if (hook && cleanText(line, 300) === hook.fallbackText) {
+    if (suppressManaAccounting && /^You spend \d+ Mana\./.test(line)) continue
+
+    const rawHook = hooks[hookIndex]
+    if (rawHook && cleanText(line, 300) === rawHook.fallbackText) {
+      const hook = hookWithPlayerContext(rawHook, playerActionPlan)
       const generated = await generatedMessageForHook({
         hook,
         state: after,
         blockedRealNames,
         generateNarration,
+        die: suppressDice ? null : hook.selectedRoll,
       })
       if (generated) messages.push(generated)
       hookIndex += 1
