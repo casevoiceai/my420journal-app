@@ -58,6 +58,16 @@ const ENDING_SIGNALS = Object.freeze({
 const GOBLIN_KING_SPEECH_VERB = '(?:say(?:s|ing)?|declare(?:s|d|ing)?|drawl(?:s|ed|ing)?|remark(?:s|ed|ing)?|announce(?:s|d|ing)?|observe(?:s|d|ing)?|boast(?:s|ed|ing)?|tell(?:s|ing)\\s+(?:me|you))'
 const QUOTED_DIALOGUE_SIGNAL = /(?:"[^"]+"|“[^”]+”)/
 const PRE_ROLL_RESULT_SIGNAL = /\b(?:roll(?:ed)?|d20|die|dice)\b[^.!?]{0,24}\b(?:[1-9]|1\d|20)\b/i
+const HIDDEN_MAPPING_SIGNAL = /\b(?:strength|defense|mana)\s+(?:check|test|path|stat|bucket)\b|\bDC\s*\d+\b|\b(?:map|mapped|mapping|classify|classified|classification)\b[^.!?]{0,40}\b(?:strength|defense|mana)\b/i
+const PLAYER_ACTION_CONTEXT_MOMENTS = new Set([
+  'player-action-attempt',
+  'player-action-response',
+  'natural-one-complication',
+  'ordinary-failure',
+  'action-success',
+  'midpoint-outcome',
+  'run-ending',
+])
 const PLAYER_ACTION_SAFE_PROPER_TERMS = Object.freeze([
   'Goblin King',
   'Goblin Highlands',
@@ -139,6 +149,12 @@ function likelyPlayerActionProperNames(playerAction, allowedFictionalNames) {
   )
   const matches = masked.match(/\b[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,}){0,2}\b/g) || []
   return uniqueText(matches).filter((name) => !/^(The|This|That|Your|My|You|Please)$/i.test(name))
+}
+
+function normalizedActionText(value) {
+  return typeof value === 'string'
+    ? value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US')
+    : ''
 }
 
 function detectsNaturalEscape(text, expectedStolenItem = '') {
@@ -246,6 +262,7 @@ export function validateGeneratedNarration(
     allowedFictionalNames = [],
     expectedStolenItem = allowedFictionalNames[0] || '',
     playerAction = '',
+    narrationPlayerAction = '',
   } = {},
 ) {
   const text = typeof value === 'string' ? value.trim() : ''
@@ -263,6 +280,17 @@ export function validateGeneratedNarration(
   }
   if (moment === 'player-action-attempt' && PRE_ROLL_RESULT_SIGNAL.test(text)) {
     reasons.push('reveals a roll result before resolution')
+  }
+  if (PLAYER_ACTION_CONTEXT_MOMENTS.has(moment) && HIDDEN_MAPPING_SIGNAL.test(text)) {
+    reasons.push('reveals hidden mechanical mapping')
+  }
+
+  const requiredAction = normalizedActionText(narrationPlayerAction)
+  if (requiredAction && PLAYER_ACTION_CONTEXT_MOMENTS.has(moment)) {
+    const normalizedText = normalizedActionText(text)
+    if (!normalizedText.includes(requiredAction)) {
+      reasons.push('does not preserve the player action wording')
+    }
   }
 
   for (const word of BANNED_WORDS) {
