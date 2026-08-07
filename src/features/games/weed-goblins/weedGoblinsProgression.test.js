@@ -164,9 +164,20 @@ test('generic progression core unlocks the next catalog entry sequentially witho
     previousRuns: Array.from({ length: 5 }, () => ({ adventureId: 'fixture-a' })),
     classifyCompletedRunCount: classifyLikeNarrationCallbacks,
   })
+  const laterWindow = calculateGameProgression({
+    catalog,
+    previousRuns: Array.from({ length: 10 }, () => ({
+      gameId: 'progression-test',
+      chapterId: 'stage-b',
+      adventureId: 'fixture-b',
+    })),
+    classifyCompletedRunCount: classifyLikeNarrationCallbacks,
+  })
 
   assert.deepEqual(before.unlockedChapters.map((chapter) => chapter.id), ['stage-a'])
   assert.equal(before.nextChapterReference, null)
   assert.deepEqual(after.unlockedChapters.map((chapter) => chapter.id), ['stage-a', 'stage-b'])
   assert.equal(after.nextChapterReference.id, 'stage-b')
+  assert.deepEqual(laterWindow.unlockedChapters.map((chapter) => chapter.id), ['stage-a', 'stage-b'])
+  assert.equal(laterWindow.currentChapter.id, 'stage-b')
 })
