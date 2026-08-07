@@ -47,6 +47,7 @@ const PAIRS = [
   ['action-success', 'success'],
   ['scene-intro', 'intro'],
   ['midpoint-outcome', 'midpoint'],
+  ['goblin-king-taunt', 'taunt'],
   ['run-ending', 'recovery'],
   ['run-ending', 'bargain'],
   ['run-ending', 'escape'],
@@ -76,6 +77,8 @@ test('rejects mismatched new pairs before Anthropic', async () => {
     ['action-success', 'failure'],
     ['scene-intro', 'success'],
     ['midpoint-outcome', 'intro'],
+    ['goblin-king-taunt', 'success'],
+    ['goblin-king-taunt', 'intro'],
     ['run-ending', 'success'],
     ['run-ending', 'midpoint'],
   ]
@@ -99,6 +102,7 @@ test('exports the exact story-beat outcome sets', () => {
   assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['action-success'], ['success'])
   assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['scene-intro'], ['intro'])
   assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['midpoint-outcome'], ['midpoint'])
+  assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['goblin-king-taunt'], ['taunt'])
   assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['run-ending'], [
     'recovery',
     'bargain',
@@ -111,6 +115,9 @@ test('system prompt contains every new supported-moment rule', () => {
     'When moment is "action-success", outcome must be "success"',
     'When moment is "scene-intro", outcome must be "intro"',
     'When moment is "midpoint-outcome", outcome must be "midpoint"',
+    'When moment is "goblin-king-taunt", outcome must be "taunt"',
+    'Include one short quoted or clearly attributed Goblin King line',
+    'For a goblin-king-taunt request, narrate only the pre-action confrontation beat',
     'When moment is "run-ending", outcome must be exactly "recovery", "bargain", or "escape"',
     'the narration must match the exact recovery, bargain, or escape outcome supplied',
   ]) {
