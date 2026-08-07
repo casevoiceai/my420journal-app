@@ -82,12 +82,23 @@ export function attachProgressionMetadata(catalog, runSummary) {
   return metadata ? { ...runSummary, ...metadata } : { ...runSummary }
 }
 
-function runBelongsToChapter(catalog, run, chapter) {
-  if (!run || typeof run !== 'object') return false
-  if (cleanText(run.gameId) && cleanText(run.gameId) !== catalog.gameId) return false
-  if (cleanText(run.chapterId)) return cleanText(run.chapterId) === chapter.id
+function chapterForRun(catalog, run) {
+  if (!run || typeof run !== 'object') return null
+  if (cleanText(run.gameId) && cleanText(run.gameId) !== catalog.gameId) return null
+
+  const chapterId = cleanText(run.chapterId)
+  if (chapterId) {
+    return catalog.chapters.find((chapter) => chapter.id === chapterId) || null
+  }
+
   const inferredQuest = findQuestByAdventureId(catalog, run.adventureId)
-  return inferredQuest?.chapterId === chapter.id
+  return inferredQuest
+    ? catalog.chapters.find((chapter) => chapter.id === inferredQuest.chapterId) || null
+    : null
+}
+
+function runBelongsToChapter(catalog, run, chapter) {
+  return chapterForRun(catalog, run)?.id === chapter.id
 }
 
 export function calculateGameProgression({
@@ -100,6 +111,11 @@ export function calculateGameProgression({
   }
 
   const runs = Array.isArray(previousRuns) ? previousRuns : []
+  const highestRecordedChapterNumber = runs.reduce((highest, run) => {
+    const chapter = chapterForRun(catalog, run)
+    return chapter ? Math.max(highest, chapter.number) : highest
+  }, 0)
+
   const chapters = catalog.chapters.map((chapter) => {
     const completedRunCount = runs.filter((run) => runBelongsToChapter(catalog, run, chapter)).length
     const milestone = classifyCompletedRunCount(completedRunCount) || {}
@@ -117,7 +133,9 @@ export function calculateGameProgression({
   for (let index = 0; index < chapters.length; index += 1) {
     const chapter = chapters[index]
     const previousChapter = index > 0 ? chapters[index - 1] : null
+    const alreadyReached = chapter.number <= highestRecordedChapterNumber
     const unlocked = index === 0
+      || alreadyReached
       || (previousChapter?.unlocked === true && previousChapter.finishedEnough === true)
     const resolved = Object.freeze({ ...chapter, unlocked })
     chapters[index] = resolved
