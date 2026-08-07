@@ -118,6 +118,14 @@ const PLAYER_ACTION_IGNORED_WORDS = new Set([
   'you',
   'your',
 ])
+const PLAYER_ACTION_GENERIC_CONTENT_WORDS = new Set([
+  'anything',
+  'something',
+  'stuff',
+  'thing',
+  'things',
+  'whatever',
+])
 
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -210,6 +218,7 @@ function significantPlayerActionWords(value) {
 
 function preservesSignificantPlayerActionWords(text, playerAction) {
   const requiredWords = significantPlayerActionWords(playerAction)
+    .filter((word) => !PLAYER_ACTION_GENERIC_CONTENT_WORDS.has(word))
   if (requiredWords.length === 0) return true
   const narrationWords = new Set(normalizedActionWords(text))
   return requiredWords.every((word) => narrationWords.has(word))
@@ -325,12 +334,13 @@ export function validateGeneratedNarration(
 ) {
   const text = typeof value === 'string' ? value.trim() : ''
   const reasons = []
+  const maxLength = moment === 'player-action-response' ? 300 : 260
 
   if (!isSupportedMomentOutcome(moment, outcome)) {
     reasons.push('uses an unsupported narration moment/outcome pairing')
   }
   if (!text) reasons.push('empty response')
-  if (text.length > 260) reasons.push('response is too long')
+  if (text.length > maxLength) reasons.push('response is too long')
   if (text.includes('!')) reasons.push('contains an exclamation point')
 
   if (['player-action-attempt', 'player-action-response'].includes(moment) && !String(playerAction).trim()) {
