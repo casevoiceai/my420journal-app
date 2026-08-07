@@ -76,7 +76,7 @@ The pure engine never reads local storage or journal records itself. A separate 
 - up to three product categories;
 - up to five top effect tags;
 - up to five top recorded terpene labels;
-- up to three dispensary names;
+- up to three deterministic fictional location names derived locally from dispensary names; raw dispensary names are never included in the snapshot;
 - the total local entry count;
 - up to ten sanitized previous Weed Goblins run summaries.
 
