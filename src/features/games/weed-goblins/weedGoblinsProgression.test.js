@@ -135,6 +135,38 @@ test('reuses the existing 5 and 10 completed-run narration milestones for chapte
   assert.equal(ten.nextChapterReference, null)
 })
 
+test('newly unlocked unplayed chapter is next reference while current stays on last played chapter', () => {
+  const catalog = createGameProgressionCatalog({
+    gameId: 'progression-test',
+    chapters: [
+      {
+        id: 'chapter-1',
+        number: 1,
+        title: 'Chapter One',
+        quests: [{ id: 'quest-1', number: 1, title: 'Quest One', adventureId: 'chapter-one-quest' }],
+      },
+      {
+        id: 'chapter-2',
+        number: 2,
+        title: 'Chapter Two',
+        quests: [{ id: 'quest-2', number: 1, title: 'Quest Two', adventureId: 'chapter-two-quest' }],
+      },
+    ],
+  })
+  const progression = calculateGameProgression({
+    catalog,
+    previousRuns: Array.from({ length: 5 }, () => ({ adventureId: 'chapter-one-quest' })),
+    classifyCompletedRunCount: classifyLikeNarrationCallbacks,
+  })
+
+  assert.deepEqual(progression.unlockedChapters.map((chapter) => chapter.id), ['chapter-1', 'chapter-2'])
+  assert.equal(progression.chapters[0].finishedEnough, true)
+  assert.equal(progression.chapters[1].completedRunCount, 0)
+  assert.equal(progression.currentChapter.id, 'chapter-1')
+  assert.equal(progression.nextChapterReference.id, 'chapter-2')
+  assert.notEqual(progression.currentChapter.id, progression.nextChapterReference.id)
+})
+
 test('generic progression core unlocks the next catalog entry sequentially without another storage model', () => {
   const catalog = createGameProgressionCatalog({
     gameId: 'progression-test',
@@ -177,7 +209,9 @@ test('generic progression core unlocks the next catalog entry sequentially witho
   assert.deepEqual(before.unlockedChapters.map((chapter) => chapter.id), ['stage-a'])
   assert.equal(before.nextChapterReference, null)
   assert.deepEqual(after.unlockedChapters.map((chapter) => chapter.id), ['stage-a', 'stage-b'])
+  assert.equal(after.currentChapter.id, 'stage-a')
   assert.equal(after.nextChapterReference.id, 'stage-b')
   assert.deepEqual(laterWindow.unlockedChapters.map((chapter) => chapter.id), ['stage-a', 'stage-b'])
   assert.equal(laterWindow.currentChapter.id, 'stage-b')
+  assert.equal(laterWindow.nextChapterReference, null)
 })
