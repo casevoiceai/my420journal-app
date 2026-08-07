@@ -1,4 +1,4 @@
-const NARRATED_EVENT_TYPES = new Set(['mana', 'choice', 'check', 'ending'])
+const NARRATED_EVENT_TYPES = new Set(['mana', 'choice', 'check', 'taunt', 'ending'])
 
 function cleanText(value, maxLength = 300) {
   return typeof value === 'string'
@@ -128,6 +128,17 @@ function hookForEvent(event, fallbackText, before, after) {
         after,
       }),
       midpointChoice: cleanText(after?.flags?.midpointChoice, 80),
+    })
+  }
+
+  if (event.type === 'taunt' && event.sceneId === 'goblin-king' && event.outcome === 'taunt') {
+    return baseHook({
+      moment: 'goblin-king-taunt',
+      outcome: 'taunt',
+      fallbackText,
+      event,
+      before,
+      after,
     })
   }
 
