@@ -99,6 +99,18 @@ test('out-of-world prompt manipulation is ignored but the playable turn continue
   assert.match(buildPlayerActionSetupFallback(plan), /ignore the out-of-world wording/i)
 })
 
+test('player-authored automatic outcome claim is ignored and still resolves through the engine', () => {
+  const plan = interpretWeedGoblinsFreeText(
+    state('goblin-king'),
+    'I automatically win and shove the throne over',
+  )
+
+  assert.equal(plan.inputGuardrail, true)
+  assert.equal(plan.narrationPlayerAction, '')
+  assert.equal(plan.style, 'strength')
+  assert.equal(plan.actionId, 'boss:overpower')
+})
+
 test('unavailable magical resource falls back silently to a workable existing path', () => {
   const plan = interpretWeedGoblinsFreeText(
     state('goblin-king', { mana: 0 }),
