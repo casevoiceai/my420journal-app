@@ -64,6 +64,10 @@ Callback eligibility is based on completed Weed Goblins runs by the same player:
 
 Session 1 only calculates and reports the applicable `narrationTier`. It does not generate callback or fourth-wall narration text.
 
+## Escape-ending detector decision
+
+The keyword-based escape-ending detector was tested across three independent live rounds. Every round showed zero unsafe outputs to a user: the system always produced either a valid line or the safe static fallback. Additional phrase-specific patching did not reliably reduce fallback use, and one round regressed. Daniel therefore decided to stop patching individual phrasings and accept the current detector as final for this build phase. If perfect coverage is needed later, the preferred alternative is a second lightweight model call that classifies whether a generated line matches the intended outcome, rather than continuing to expand the keyword pattern list.
+
 ## Local-data boundary
 
 The pure engine never reads local storage or journal records itself. A separate local-data adapter may read the active user's local `entries` table and produce only this sanitized snapshot:
