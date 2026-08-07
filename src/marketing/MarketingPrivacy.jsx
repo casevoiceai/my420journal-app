@@ -30,9 +30,11 @@ const sections = [
         heading: 'Shared Journey View (opt-in only)',
         paragraphs: [
           'This feature is off by default. If you turn it on, entries you save going forward can contribute an anonymized signal to a shared community pool. Entries from before you opted in are not included.',
-          "Your contribution is stored with a random identifier only, never your name, email, or device information. When someone views a community signal, they see only a combined result, such as a percentage of contributors who reported a certain effect for a certain product. No one, including Vogtcom staff, can view a single contributor's specific entry through this feature.",
+          'A contribution is first held in an individual staging record associated with a random contributor identifier, not your name or email address. After roughly 3 days, the contribution is folded into anonymous aggregate counts and the original individual staging record is removed from the active database. Once it has been aggregated, the contribution is no longer linked to your random contributor identifier and cannot be viewed or separated as an individual record.',
+          "Cloudflare's infrastructure may retain standard backups containing deleted staging data for a limited period after the staging record is removed from the active database. Any such backups are subject to Cloudflare's normal backup-retention and deletion processes and are not used to provide Shared Journey results.",
+          "The public Shared Journey feature only ever displays combined results and never an individual entry. Staff with direct database access could technically view an individual staged contribution during the brief window before it is folded into anonymous aggregates; after folding, no technical means exists to link an aggregate count back to a specific contributor.",
           'A minimum number of contributors is required before any signal is shown for a given product or area. This exists to make it harder for a small group of contributions to be traced back to any one person.',
-          'If you opt out, your future contributions stop immediately, and your existing anonymized contributions are removed from the shared pool within 24 hours.',
+          'If you opt out, future contributions stop immediately and any contributions still held in individual staging are removed. Contributions already folded into anonymous aggregate counts cannot be separated or removed because the system no longer retains an identifier linking those counts to you.',
         ],
       },
       {
@@ -63,7 +65,7 @@ const sections = [
     heading: 'YOUR RIGHTS',
     paragraphs: [
       'Your journal data belongs to you. We do not claim any rights to it. To delete your journal data, use the delete or clear function within the app.',
-      'If you have turned on Shared Journey View, you can turn it off at any time in Settings. Doing so stops all future contributions immediately and removes your existing contributions from the shared pool within 24 hours. Your individual device data is never affected by this setting.',
+      'If you have turned on Shared Journey View, you can turn it off at any time in Settings. Doing so stops future contributions and removes contributions that are still held in individual staging. Contributions already folded into anonymous aggregate counts cannot be separated or removed because they are no longer linked to your random contributor identifier. Your journal data stored on your device is not affected by this setting.',
       'California residents have rights under the California Consumer Privacy Act regarding personal information. Because we do not store your individual journal data on any Vogtcom server unless you opt in, most CCPA rights apply specifically to the Shared Journey View feature, where you have the right to opt out at any time as described above.',
     ],
   },
@@ -138,7 +140,7 @@ export default function MarketingPrivacy() {
             }}>
               MY420JOURNAL PRIVACY POLICY
             </h1>
-            <PolicyParagraph>Last updated: August 1, 2026</PolicyParagraph>
+            <PolicyParagraph>Last updated: August 7, 2026</PolicyParagraph>
 
             {sections.map((section) => (
               <section key={section.heading} style={{ marginTop: '34px' }}>
