@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   ENDINGS,
+  GOBLIN_KING_TAUNT_FALLBACK,
   NATURAL_ONE_COMPLICATIONS,
   NARRATION_TIERS,
   STONER_INTRODUCTION,
@@ -70,6 +71,39 @@ test('plays one fixed-seed recovery run from start to finish', () => {
   assert.equal(end.runSummary.narrationTier, NARRATION_TIERS.normal)
   assert.match(end.runSummary.outcomeSummary, /recovered the Blue Dream Field Reliquary/)
   assert.equal(getAvailableActions(end).length, 0)
+})
+
+test('emits exactly one Goblin King taunt before boss actions are chosen', () => {
+  let state = createWeedGoblinsRun({ seed: 'recovery-1' })
+  for (const actionId of [
+    'background:hauler',
+    'route:ridge',
+    'goblin:strike',
+  ]) {
+    state = advanceWeedGoblinsRun(state, actionId)
+  }
+
+  assert.equal(state.sceneId, 'midpoint')
+  const historyBefore = state.history.length
+  state = advanceWeedGoblinsRun(state, 'midpoint:skip')
+
+  assert.equal(state.sceneId, 'goblin-king')
+  const newEvents = state.history.slice(historyBefore)
+  assert.deepEqual(newEvents.map((event) => event.type), ['choice', 'taunt'])
+  const taunts = state.history.filter((event) => event.type === 'taunt')
+  assert.equal(taunts.length, 1)
+  assert.equal(taunts[0].sceneId, 'goblin-king')
+  assert.equal(taunts[0].actionId, 'boss:taunt')
+  assert.equal(taunts[0].outcome, 'taunt')
+  assert.equal(state.narration.at(-1), GOBLIN_KING_TAUNT_FALLBACK)
+  assert.equal(taunts[0].tauntText, GOBLIN_KING_TAUNT_FALLBACK)
+
+  const bossActions = getAvailableActions(state).map((action) => action.id)
+  assert.equal(bossActions.includes('boss:overpower'), true)
+  assert.equal(bossActions.includes('boss:outlast'), true)
+
+  state = advanceWeedGoblinsRun(state, 'boss:overpower')
+  assert.equal(state.history.filter((event) => event.type === 'taunt').length, 1)
 })
 
 test('reaches the bargain ending after a natural-1 complication', () => {
