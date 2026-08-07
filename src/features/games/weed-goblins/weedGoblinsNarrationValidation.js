@@ -7,6 +7,7 @@ export const SUPPORTED_MOMENT_OUTCOMES = Object.freeze({
   'action-success': Object.freeze(['success']),
   'scene-intro': Object.freeze(['intro']),
   'midpoint-outcome': Object.freeze(['midpoint']),
+  'goblin-king-taunt': Object.freeze(['taunt']),
   'run-ending': RUN_ENDING_OUTCOMES,
 })
 
@@ -33,7 +34,9 @@ export const DEFAULT_REAL_WORLD_NAMES = Object.freeze([
   'Verano',
 ])
 
-const SUCCESS_SIGNAL = /\b(succeed(?:s|ed|ing)?|success|successful(?:ly)?|you win|you won|victory|prevail(?:s|ed|ing)?|defeat(?:s|ed)? the Goblin King)\b/i
+const FIRST_PERSON_SIGNAL = /\b(I|I'm|I’m|I’ve|I've|I’ll|I'll|me|my)\b/i
+const SUCCESS_SIGNAL = /\b(succeed(?:s|ed|ing)?|success|successful(?:ly)?|(?:I|you|we)\s+(?:already\s+)?(?:win|won)|victory|prevail(?:s|ed|ing)?|defeat(?:s|ed)? the Goblin King)\b/i
+const FAILURE_SIGNAL = /\b(?:you fail(?:ed)?|your (?:attempt|check|action) fail(?:s|ed)?|failure|you (?:lose|lost)|you are defeated)\b/i
 const RUN_END_SIGNAL = /\b(the run (?:ends?|ended|is over|concludes?|concluded)|this ends the run|the adventure (?:ends?|ended|is over|concludes?|concluded))\b/i
 const RECOVERY_ACTION_SIGNAL = /\b(recover(?:s|ed|ing)?|reclaim(?:s|ed|ing)?|regain(?:s|ed|ing)?|retrieve(?:s|d|ving)?)\b/i
 const RECOVERY_OBJECT_SIGNAL = /\b(stolen (?:item|goods?)|field reliquary|reliquary|satchel|moon jar|research case)\b/i
@@ -50,6 +53,8 @@ const ENDING_SIGNALS = Object.freeze({
   bargain: /\b(bargain(?:s|ed|ing)?|deal|agreement|terms|negotiate(?:s|d|ing)?|testimony)\b/i,
   escape: /\b(escape(?:s|d|ing)?|flee(?:s|ing)?|fled|retreat(?:s|ed|ing)?|withdraw(?:s|n|ing)?|without recovering|leave(?:s|d)? without)\b/i,
 })
+const GOBLIN_KING_SPEECH_VERB = '(?:say(?:s|ing)?|declare(?:s|d|ing)?|drawl(?:s|ed|ing)?|remark(?:s|ed|ing)?|announce(?:s|d|ing)?|observe(?:s|d|ing)?|boast(?:s|ed|ing)?|tell(?:s|ing)\\s+(?:me|you))'
+const QUOTED_DIALOGUE_SIGNAL = /(?:"[^"]+"|“[^”]+”)/
 
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -87,6 +92,34 @@ function isSupportedMomentOutcome(moment, outcome) {
   return SUPPORTED_MOMENT_OUTCOMES[moment]?.includes(outcome) === true
 }
 
+function stripQuotedDialogue(text) {
+  return String(text)
+    .replace(/"[^"]*"/g, ' ')
+    .replace(/“[^”]*”/g, ' ')
+}
+
+function narratorFrameForFirstPerson(text, moment) {
+  if (moment !== 'goblin-king-taunt') return text
+
+  const withoutQuotes = stripQuotedDialogue(text)
+  const attributedColon = new RegExp(
+    `^(.*?\\b(?:Goblin King|the King|he)\\b[^:]{0,80}\\b${GOBLIN_KING_SPEECH_VERB}\\b)\\s*:\\s*.*$`,
+    'i',
+  ).exec(withoutQuotes)
+
+  return attributedColon?.[1] ?? withoutQuotes
+}
+
+function hasGoblinKingDialogue(text) {
+  const hasQuote = QUOTED_DIALOGUE_SIGNAL.test(text)
+  const namesKing = /\bGoblin King\b/i.test(text)
+  const attributedSpeech = new RegExp(
+    `(?:\\bGoblin King\\b[^.!?]{0,100}\\b${GOBLIN_KING_SPEECH_VERB}\\b|\\b${GOBLIN_KING_SPEECH_VERB}\\b[^.!?]{0,100}\\bGoblin King\\b|\\b(?:he|the King)\\b[^.!?]{0,60}\\b${GOBLIN_KING_SPEECH_VERB}\\b)`,
+    'i',
+  ).test(text)
+  return (hasQuote && (namesKing || attributedSpeech)) || attributedSpeech
+}
+
 function detectsNaturalEscape(text, expectedStolenItem = '') {
   const mentionsExpectedItem = expectedStolenItem
     ? text.toLocaleLowerCase('en-US').includes(expectedStolenItem.toLocaleLowerCase('en-US'))
@@ -121,6 +154,7 @@ function detectOutcomeSignals(text, expectedStolenItem = '') {
   )
   return {
     success: SUCCESS_SIGNAL.test(text),
+    failure: FAILURE_SIGNAL.test(text),
     runEnd: RUN_END_SIGNAL.test(text),
     recovery,
     bargain: ENDING_SIGNALS.bargain.test(text),
@@ -133,6 +167,13 @@ function addOutcomeFidelityReasons(reasons, text, moment, outcome, expectedStole
 
   const signals = detectOutcomeSignals(text, expectedStolenItem)
   const anyEnding = signals.recovery || signals.bargain || signals.escape
+
+  if (moment === 'scene-intro' || moment === 'goblin-king-taunt') {
+    if (signals.success || signals.failure || signals.runEnd || anyEnding) {
+      reasons.push('implies a different engine outcome')
+    }
+    return
+  }
 
   if (moment === 'action-success') {
     if (signals.runEnd || anyEnding) {
@@ -200,8 +241,13 @@ export function validateGeneratedNarration(
     reasons.push('writes STONER without periods')
   }
 
-  if (!/\b(I|I'm|I’m|I’ve|I've|I’ll|I'll|me|my)\b/i.test(text)) {
+  const narratorFrame = narratorFrameForFirstPerson(text, moment)
+  if (!FIRST_PERSON_SIGNAL.test(narratorFrame)) {
     reasons.push('is not written in first person')
+  }
+
+  if (moment === 'goblin-king-taunt' && !hasGoblinKingDialogue(text)) {
+    reasons.push('does not include attributed Goblin King dialogue')
   }
 
   if (/\b(treats?|treated|treating|cures?|cured|curing|diagnos(?:e|es|ed|is)|therapeutic|medical benefit|dosage|symptoms?)\b/i.test(text)
