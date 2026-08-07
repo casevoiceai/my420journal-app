@@ -74,10 +74,14 @@ The pure engine never reads local storage or journal records itself. A separate 
 
 - up to five product display names;
 - up to three product categories;
-- up to five top effect tags;
+- up to five top structured effect tags;
 - up to five top recorded terpene labels;
+- one deterministic character-trait flavor sentence derived only from structured body/mind/mood tags;
+- one deterministic environment-theme sentence derived only from terpene labels;
 - up to three deterministic fictional location names derived locally from dispensary names; raw dispensary names are never included in the snapshot;
 - the total local entry count;
 - up to ten sanitized previous Weed Goblins run summaries.
 
-The adapter must never include raw notes, voice transcripts, health information, exact amounts, exact dates or timestamps, addresses or coordinates, price, or Layer 2 data. Note and sleep rows are included only in the total count and are not eligible product entries. A user with zero local entries receives a valid empty snapshot. A user with only note or sleep rows receives empty personalization lists with the total count preserved, so the engine still uses fixed fictional fallback content.
+Effect-tag personalization may use only the structured `body_tags`, `mind_tags`, and `mood_tags` arrays. Terpene personalization may use only terpene label keys. The derived flavor sentences must not copy raw tag or terpene labels into narration context. They affect flavor only and never change Strength, Defense, Mana Pool, DCs, Trouble, rolls, or any other game mechanic.
+
+The adapter must never use raw notes, voice transcripts, health information, exact amounts, exact dates or timestamps, addresses or coordinates, price, Layer 2 data, or any other freeform field to derive either personalization flavor. Note and sleep rows are included only in the total count and are not eligible product entries. A user with zero local entries receives a valid empty snapshot. A user with only note or sleep rows receives empty personalization lists and empty derived flavor strings with the total count preserved, so the engine still uses fixed fictional fallback content.
