@@ -38,15 +38,39 @@ async function loadSnapshotWithFallback() {
   }
 }
 
-function RollBadge({ value = null }) {
-  const resolved = Number.isInteger(value) && value >= 1 && value <= 20
+function RollBadge({ value }) {
   return (
     <span
-      className={`weed-goblins-chat__roll-badge${resolved ? ' is-resolved' : ''}`}
-      aria-label={resolved ? `D20 result ${value}` : 'Check result pending'}
-      title={resolved ? `D20: ${value}` : 'Check result'}
+      className="weed-goblins-chat__roll-badge"
+      aria-label={`D20 result ${value}`}
+      title={`D20: ${value}`}
     >
-      {resolved ? value : ''}
+      <svg
+        className="weed-goblins-chat__d20"
+        viewBox="0 0 24 24"
+        width="36"
+        height="36"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          className="weed-goblins-chat__d20-face"
+          d="M12 2 L21 7.5 L21 16.5 L12 22 L3 16.5 L3 7.5 Z"
+        />
+        <path
+          className="weed-goblins-chat__d20-edges"
+          d="M12 2 L12 22 M3 7.5 L21 16.5 M21 7.5 L3 16.5 M3 7.5 L12 12 L21 7.5 M3 16.5 L12 12 L21 16.5"
+        />
+        <text
+          className="weed-goblins-chat__d20-number"
+          x="12"
+          y="12"
+          textAnchor="middle"
+          dominantBaseline="central"
+        >
+          {value}
+        </text>
+      </svg>
     </span>
   )
 }
