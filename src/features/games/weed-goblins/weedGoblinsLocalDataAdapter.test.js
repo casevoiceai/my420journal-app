@@ -8,6 +8,8 @@ import {
 import { generateNarrationFromHook } from './weedGoblinsAiComplication.js'
 import { getNarrationHooksForTransition } from './weedGoblinsNarrationHooks.js'
 import {
+  buildEffectTraitFlavor,
+  buildTerpeneEnvironmentFlavor,
   buildWeedGoblinsPersonalizationSnapshot,
   createEmptyWeedGoblinsPersonalizationSnapshot,
   fictionalizeDispensaryName,
@@ -72,6 +74,27 @@ test('fictional dispensary transform is stable and differentiates names', () => 
   assert.match(different, /^The [A-Za-z-]+ [A-Za-z]+$/)
 })
 
+test('effect and terpene flavor transforms are deterministic and fall back cleanly', () => {
+  const bodyTags = ['Relaxed', 'Heavy', 'Creative']
+  const mindTags = ['Focused', 'Creative', 'Calm']
+  const myrceneProfile = ['Beta Myrcene', 'Limonene']
+  const limoneneProfile = ['Limonene', 'Beta Myrcene']
+
+  const bodyFlavor = buildEffectTraitFlavor(bodyTags, 'body')
+  const repeatedBodyFlavor = buildEffectTraitFlavor(bodyTags, 'body')
+  const mindFlavor = buildEffectTraitFlavor(mindTags, 'mind')
+  const myrceneFlavor = buildTerpeneEnvironmentFlavor(myrceneProfile)
+  const repeatedMyrceneFlavor = buildTerpeneEnvironmentFlavor(myrceneProfile)
+  const limoneneFlavor = buildTerpeneEnvironmentFlavor(limoneneProfile)
+
+  assert.equal(bodyFlavor, repeatedBodyFlavor)
+  assert.notEqual(bodyFlavor, mindFlavor)
+  assert.equal(myrceneFlavor, repeatedMyrceneFlavor)
+  assert.notEqual(myrceneFlavor, limoneneFlavor)
+  assert.equal(buildEffectTraitFlavor([], 'body'), '')
+  assert.equal(buildTerpeneEnvironmentFlavor([]), '')
+})
+
 test('caps products, categories, and fictional locations at the locked limits', () => {
   const entries = [
     ['Blue Dream', 'Flower', 'North Ridge Collective'],
@@ -116,6 +139,14 @@ test('caps products, categories, and fictional locations at the locked limits', 
   assert.equal(snapshot.entryCount, 7)
   assert.equal(snapshot.effectTags[0], 'Creative')
   assert.equal(snapshot.terpeneLabels[0], 'Beta Myrcene')
+  assert.equal(
+    snapshot.effectTraitFlavor,
+    buildEffectTraitFlavor(snapshot.effectTags, 'body'),
+  )
+  assert.equal(
+    snapshot.terpeneEnvironmentFlavor,
+    buildTerpeneEnvironmentFlavor(snapshot.terpeneLabels),
+  )
 
   const serialized = JSON.stringify(snapshot)
   for (const rawName of entries.map((entry) => entry.dispensary_name)) {
@@ -130,6 +161,8 @@ test('produces the valid empty snapshot when there are zero local entries', asyn
   })
 
   assert.deepEqual(snapshot, createEmptyWeedGoblinsPersonalizationSnapshot())
+  assert.equal(snapshot.effectTraitFlavor, '')
+  assert.equal(snapshot.terpeneEnvironmentFlavor, '')
 })
 
 test('never includes excluded raw-entry fields or raw dispensary names in the sanitized snapshot', () => {
@@ -166,6 +199,8 @@ test('never includes excluded raw-entry fields or raw dispensary names in the sa
     'productCategories',
     'effectTags',
     'terpeneLabels',
+    'effectTraitFlavor',
+    'terpeneEnvironmentFlavor',
     'fictionalLocationNames',
     'entryCount',
     'previousRuns',
@@ -191,6 +226,94 @@ test('never includes excluded raw-entry fields or raw dispensary names in the sa
   ]) {
     assert.equal(serialized.includes(forbiddenValue), false)
   }
+})
+
+test('effect and terpene flavor use only structured inputs and enter validated narration context', async () => {
+  const rawEntry = {
+    user_id: 'user-1',
+    product_name: 'Blue Dream',
+    category: 'Flower',
+    dispensary_name: 'North Ridge Collective',
+    body_tags: ['Relaxed', 'Heavy'],
+    mind_tags: ['Creative'],
+    mood_tags: ['Calm'],
+    terpenes: { 'Beta Myrcene': '1.25', Limonene: '0.5' },
+    notes: 'FREEFORM NOTE MUST NEVER BE READ',
+    voice_transcript: 'FREEFORM TRANSCRIPT MUST NEVER BE READ',
+    custom_freeform: 'NON-WHITELISTED FREEFORM FIELD MUST NEVER BE READ',
+  }
+  const snapshot = buildWeedGoblinsPersonalizationSnapshot({ entries: [rawEntry] })
+
+  assert.ok(snapshot.effectTraitFlavor)
+  assert.ok(snapshot.terpeneEnvironmentFlavor)
+  assert.equal(snapshot.effectTraitFlavor.includes('Relaxed'), false)
+  assert.equal(snapshot.effectTraitFlavor.includes('Heavy'), false)
+  assert.equal(snapshot.terpeneEnvironmentFlavor.includes('Beta Myrcene'), false)
+  assert.equal(snapshot.terpeneEnvironmentFlavor.includes('Limonene'), false)
+
+  let state = createWeedGoblinsRun({ seed: 'recovery-1', journalSnapshot: snapshot })
+  assert.equal(state.characterTraitFlavor, snapshot.effectTraitFlavor)
+  assert.equal(state.environmentThemeFlavor, snapshot.terpeneEnvironmentFlavor)
+
+  const forbiddenFreeform = [
+    rawEntry.notes,
+    rawEntry.voice_transcript,
+    rawEntry.custom_freeform,
+  ]
+  for (const forbiddenValue of forbiddenFreeform) {
+    assert.equal(state.characterTraitFlavor.includes(forbiddenValue), false)
+    assert.equal(state.environmentThemeFlavor.includes(forbiddenValue), false)
+    assert.equal(JSON.stringify(state).includes(forbiddenValue), false)
+  }
+
+  const beforeBackground = state
+  state = advanceWeedGoblinsRun(state, 'background:hauler')
+  const backgroundHook = getNarrationHooksForTransition(beforeBackground, state)[0]
+  assert.equal(backgroundHook.moment, 'scene-intro')
+  assert.equal(backgroundHook.authoritativeText.includes(snapshot.effectTraitFlavor), true)
+
+  let backgroundRequestBody = null
+  await generateNarrationFromHook({
+    hook: backgroundHook,
+    state,
+    fetchImpl: async (_url, init) => {
+      backgroundRequestBody = init.body
+      return modelResponse('I record a deliberate field style before the route begins.')
+    },
+  })
+
+  const beforeRoute = state
+  state = advanceWeedGoblinsRun(state, 'route:ridge')
+  const routeHook = getNarrationHooksForTransition(beforeRoute, state)[0]
+  assert.equal(routeHook.authoritativeText.includes(snapshot.terpeneEnvironmentFlavor), true)
+
+  let routeRequestBody = null
+  await generateNarrationFromHook({
+    hook: routeHook,
+    state,
+    fetchImpl: async (_url, init) => {
+      routeRequestBody = init.body
+      return modelResponse('I record the route crossing while the altered highland air remains strictly atmospheric.')
+    },
+  })
+
+  for (const requestBody of [backgroundRequestBody, routeRequestBody]) {
+    assert.ok(requestBody)
+    for (const forbiddenValue of [
+      ...forbiddenFreeform,
+      'Relaxed',
+      'Heavy',
+      'Creative',
+      'Calm',
+      'Beta Myrcene',
+      'Limonene',
+    ]) {
+      assert.equal(requestBody.includes(forbiddenValue), false)
+    }
+  }
+
+  assert.equal(backgroundRequestBody.includes(snapshot.effectTraitFlavor), true)
+  assert.equal(routeRequestBody.includes(snapshot.terpeneEnvironmentFlavor), true)
 })
 
 test('raw dispensary name cannot reach engine state or narration request context', async () => {
