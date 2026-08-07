@@ -8,6 +8,8 @@ export const SUPPORTED_MOMENT_OUTCOMES = Object.freeze({
   'scene-intro': Object.freeze(['intro']),
   'midpoint-outcome': Object.freeze(['midpoint']),
   'goblin-king-taunt': Object.freeze(['taunt']),
+  'player-action-attempt': Object.freeze(['attempt']),
+  'player-action-response': Object.freeze(['response']),
   'run-ending': RUN_ENDING_OUTCOMES,
 })
 
@@ -55,6 +57,15 @@ const ENDING_SIGNALS = Object.freeze({
 })
 const GOBLIN_KING_SPEECH_VERB = '(?:say(?:s|ing)?|declare(?:s|d|ing)?|drawl(?:s|ed|ing)?|remark(?:s|ed|ing)?|announce(?:s|d|ing)?|observe(?:s|d|ing)?|boast(?:s|ed|ing)?|tell(?:s|ing)\\s+(?:me|you))'
 const QUOTED_DIALOGUE_SIGNAL = /(?:"[^"]+"|“[^”]+”)/
+const PRE_ROLL_RESULT_SIGNAL = /\b(?:roll(?:ed)?|d20|die|dice)\b[^.!?]{0,24}\b(?:[1-9]|1\d|20)\b/i
+const PLAYER_ACTION_SAFE_PROPER_TERMS = Object.freeze([
+  'Goblin King',
+  'Goblin Highlands',
+  'Mana',
+  'Strength',
+  'Defense',
+  'Field Reliquary',
+])
 
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -120,6 +131,16 @@ function hasGoblinKingDialogue(text) {
   return (hasQuote && (namesKing || attributedSpeech)) || attributedSpeech
 }
 
+function likelyPlayerActionProperNames(playerAction, allowedFictionalNames) {
+  if (!playerAction) return []
+  const masked = maskAllowedFictionalNames(
+    playerAction,
+    [...allowedFictionalNames, ...PLAYER_ACTION_SAFE_PROPER_TERMS],
+  )
+  const matches = masked.match(/\b[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,}){0,2}\b/g) || []
+  return uniqueText(matches).filter((name) => !/^(The|This|That|Your|My|You|Please)$/i.test(name))
+}
+
 function detectsNaturalEscape(text, expectedStolenItem = '') {
   const mentionsExpectedItem = expectedStolenItem
     ? text.toLocaleLowerCase('en-US').includes(expectedStolenItem.toLocaleLowerCase('en-US'))
@@ -168,7 +189,12 @@ function addOutcomeFidelityReasons(reasons, text, moment, outcome, expectedStole
   const signals = detectOutcomeSignals(text, expectedStolenItem)
   const anyEnding = signals.recovery || signals.bargain || signals.escape
 
-  if (moment === 'scene-intro' || moment === 'goblin-king-taunt') {
+  if ([
+    'scene-intro',
+    'goblin-king-taunt',
+    'player-action-attempt',
+    'player-action-response',
+  ].includes(moment)) {
     if (signals.success || signals.failure || signals.runEnd || anyEnding) {
       reasons.push('implies a different engine outcome')
     }
@@ -176,7 +202,7 @@ function addOutcomeFidelityReasons(reasons, text, moment, outcome, expectedStole
   }
 
   if (moment === 'action-success') {
-    if (signals.runEnd || anyEnding) {
+    if (signals.failure || signals.runEnd || anyEnding) {
       reasons.push('implies a different engine outcome')
     }
     return
@@ -219,6 +245,7 @@ export function validateGeneratedNarration(
     blockedRealNames = [],
     allowedFictionalNames = [],
     expectedStolenItem = allowedFictionalNames[0] || '',
+    playerAction = '',
   } = {},
 ) {
   const text = typeof value === 'string' ? value.trim() : ''
@@ -230,6 +257,13 @@ export function validateGeneratedNarration(
   if (!text) reasons.push('empty response')
   if (text.length > 260) reasons.push('response is too long')
   if (text.includes('!')) reasons.push('contains an exclamation point')
+
+  if (['player-action-attempt', 'player-action-response'].includes(moment) && !String(playerAction).trim()) {
+    reasons.push('is missing player action context')
+  }
+  if (moment === 'player-action-attempt' && PRE_ROLL_RESULT_SIGNAL.test(text)) {
+    reasons.push('reveals a roll result before resolution')
+  }
 
   for (const word of BANNED_WORDS) {
     if (new RegExp(`\\b${escapeRegExp(word)}\\b`, 'i').test(text)) {
@@ -262,7 +296,12 @@ export function validateGeneratedNarration(
   addOutcomeFidelityReasons(reasons, text, moment, outcome, expectedStolenItem)
 
   const nameScanText = maskAllowedFictionalNames(text, allowedFictionalNames)
-  const names = uniqueText([...DEFAULT_REAL_WORLD_NAMES, ...blockedRealNames])
+  const playerSuppliedNames = likelyPlayerActionProperNames(playerAction, allowedFictionalNames)
+  const names = uniqueText([
+    ...DEFAULT_REAL_WORLD_NAMES,
+    ...blockedRealNames,
+    ...playerSuppliedNames,
+  ])
   for (const name of names) {
     if (containsName(nameScanText, name)) {
       reasons.push(`contains real-world name: ${name}`)
