@@ -215,6 +215,19 @@ test('system prompt contains the locked hard constraints', () => {
   }
 })
 
+test('system prompt explicitly bans the confirmed hidden-stat leak phrasing', () => {
+  for (const required of [
+    'Never say "strength check", "defense check", or "mana check"',
+    'and that kind of direct contact calls for a strength check',
+    "that'll call for a defense check",
+    'that kind of direct push will call for a strength check',
+    "the moment calls for everything you've got",
+    "whether that works is far from certain, let's see",
+  ]) {
+    assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
+  }
+})
+
 test('system prompt contains explicit character guidance', () => {
   assert.equal(
     WEED_GOBLINS_SYSTEM_PROMPT.includes(
