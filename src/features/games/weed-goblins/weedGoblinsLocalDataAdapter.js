@@ -5,12 +5,62 @@ export const PERSONALIZATION_LIMITS = Object.freeze({
   productCategories: 3,
   effectTags: 5,
   terpeneLabels: 5,
-  dispensaryNames: 3,
+  fictionalLocationNames: 3,
   previousRuns: 10,
 })
 
 export const WEED_GOBLINS_RUNS_STORAGE_PREFIX =
   'my420journal_local_v1:weed_goblins_runs'
+
+const LOCATION_NOUNS = Object.freeze([
+  'Warrens',
+  'Gatehouse',
+  'Galleries',
+  'Vaults',
+  'Causeway',
+  'Tribunal',
+  'Bastion',
+  'Cloisters',
+  'Cellars',
+  'Crossing',
+  'Arcade',
+  'Annex',
+  'Repository',
+  'Caverns',
+  'Archives',
+  'Halls',
+])
+
+const LOCATION_ADJECTIVES = Object.freeze([
+  'Mossbound',
+  'Copper',
+  'Lantern-Lit',
+  'Weathered',
+  'Moonlit',
+  'Quiet',
+  'Gilded',
+  'Hollow',
+  'Emberlit',
+  'Crooked',
+  'Hidden',
+  'Silvered',
+  'Rootbound',
+  'Brassbound',
+  'Verdant',
+  'High',
+])
+
+const LOCATION_ADJECTIVE_HINTS = Object.freeze([
+  Object.freeze([/\brestore(?:d|s|ing)?\b/i, 'Restored']),
+  Object.freeze([/\bjustice\b/i, 'Justiciar']),
+  Object.freeze([/\bcare\b/i, 'Sheltered']),
+  Object.freeze([/\bethos\b/i, 'Earnest']),
+  Object.freeze([/\bbeyond\b/i, 'Far']),
+  Object.freeze([/\bsunnyside\b/i, 'Sunlit']),
+  Object.freeze([/\borganic\b/i, 'Rootbound']),
+  Object.freeze([/\bprime\b/i, 'High']),
+  Object.freeze([/\bgreen\b/i, 'Verdant']),
+])
 
 const RUN_SUMMARY_FIELDS = Object.freeze([
   'adventureId',
@@ -30,6 +80,28 @@ const RUN_SUMMARY_FIELDS = Object.freeze([
 function cleanText(value) {
   if (typeof value !== 'string') return ''
   return value.trim().replace(/\s+/g, ' ').slice(0, MAX_TEXT_LENGTH)
+}
+
+function stableTextHash(value) {
+  const text = cleanText(value).toLocaleLowerCase('en-US')
+  let hash = 2166136261
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return hash >>> 0
+}
+
+export function fictionalizeDispensaryName(value) {
+  const normalized = cleanText(value)
+  if (!normalized) return ''
+
+  const hash = stableTextHash(normalized)
+  const hint = LOCATION_ADJECTIVE_HINTS.find(([pattern]) => pattern.test(normalized))
+  const adjective = hint?.[1]
+    ?? LOCATION_ADJECTIVES[(hash >>> 8) % LOCATION_ADJECTIVES.length]
+  const noun = LOCATION_NOUNS[hash % LOCATION_NOUNS.length]
+  return `The ${adjective} ${noun}`
 }
 
 function normalizeEntryType(value) {
@@ -113,7 +185,7 @@ export function createEmptyWeedGoblinsPersonalizationSnapshot() {
     productCategories: [],
     effectTags: [],
     terpeneLabels: [],
-    dispensaryNames: [],
+    fictionalLocationNames: [],
     entryCount: 0,
     previousRuns: [],
   }
@@ -173,10 +245,10 @@ export function buildWeedGoblinsPersonalizationSnapshot({
     terpeneLabels,
     PERSONALIZATION_LIMITS.terpeneLabels,
   )
-  snapshot.dispensaryNames = rankedValues(
+  snapshot.fictionalLocationNames = rankedValues(
     dispensaryNames,
-    PERSONALIZATION_LIMITS.dispensaryNames,
-  )
+    PERSONALIZATION_LIMITS.fictionalLocationNames,
+  ).map(fictionalizeDispensaryName)
   snapshot.previousRuns = sanitizePreviousRuns(previousRuns)
   return snapshot
 }
