@@ -736,6 +736,32 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
   throw new Error(`Unsupported scene: ${state.sceneId}`)
 }
 
+export function advanceWeedGoblinsFreeTextMidpointCheck(state, style) {
+  if (!state || typeof state !== 'object') throw new Error('A run state is required.')
+  if (state.status === 'completed') throw new Error('This run is already complete.')
+  if (state.sceneId !== SCENES.midpoint) {
+    throw new Error(`Free-text midpoint checks are not available in scene ${state.sceneId}.`)
+  }
+  if (!['strength', 'defense', 'mana'].includes(style)) {
+    throw new Error(`Unsupported free-text midpoint style: ${style}`)
+  }
+
+  const manaCost = style === 'mana' ? 1 : 0
+  const stat = style === 'strength' ? 'strength' : 'defense'
+  const actionId = `free-text:midpoint:${style}`
+  const result = resolveCheck(state, {
+    actionId,
+    stat,
+    dc: DIFFICULTY.standard,
+    manaCost,
+    successText: 'Your improvised midpoint approach works without adding a new complication.',
+    failureText: 'Your improvised midpoint approach costs time and position without resolving cleanly.',
+  })
+
+  if (result.state.status === 'completed') return result.state
+  return enterGoblinKingScene(result.state)
+}
+
 export function playWeedGoblinsActions(initialState, actions) {
   if (!Array.isArray(actions)) throw new Error('Actions must be an array.')
   return actions.reduce((state, action) => {
