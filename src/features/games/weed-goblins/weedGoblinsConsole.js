@@ -191,7 +191,9 @@ async function main() {
     seed: options.seed,
     priorCompletedRunCount: options.priorRunsSpecified
       ? options.priorCompletedRunCount
-      : snapshot.previousRuns?.length || options.priorCompletedRunCount,
+      : options.useLocalAdapter
+        ? snapshot.previousRuns.length
+        : options.priorCompletedRunCount,
     journalSnapshot: options.useLocalAdapter ? snapshot : undefined,
     previousRuns: options.useLocalAdapter ? snapshot.previousRuns : undefined,
     sourceLabel: options.useLocalAdapter
