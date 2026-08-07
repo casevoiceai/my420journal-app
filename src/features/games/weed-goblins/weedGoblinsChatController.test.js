@@ -13,10 +13,11 @@ import {
 } from './weedGoblinsChatController.js'
 
 function generatedNarration(calls = []) {
-  return async ({ hook }) => {
+  return async ({ hook, event }) => {
     calls.push({
       moment: hook.moment,
       outcome: hook.outcome,
+      event,
       playerAction: hook.playerAction || '',
       narrationPlayerAction: hook.narrationPlayerAction || '',
       settingGuardrail: hook.settingGuardrail === true,
@@ -207,9 +208,10 @@ test('completed boss free-text check shows one final authoritative outcome bubbl
 })
 
 test('fixed route checks retain their existing attached die behavior', async () => {
+  const calls = []
   const session = await createWeedGoblinsChatSession({
     seed: 'scan-28',
-    generateNarration: generatedNarration(),
+    generateNarration: generatedNarration(calls),
   })
   const background = session.choices.find((choice) => choice.id === 'background:hauler')
   const backgroundTransition = selectWeedGoblinsChatChoice(session.state, background)
@@ -220,8 +222,40 @@ test('fixed route checks retain their existing attached die behavior', async () 
   const incoming = await resolveWeedGoblinsTransitionMessages({
     before: routeTransition.before,
     after: routeTransition.after,
-    generateNarration: generatedNarration(),
+    generateNarration: generatedNarration(calls),
   })
 
   assert.equal(incoming.some((message) => message.die === 1), true)
+  const checkEvent = routeTransition.after.history
+    .slice(routeTransition.before.history.length)
+    .find((event) => event.type === 'check')
+  const complicationCall = calls.find((call) => call.moment === 'natural-one-complication')
+  assert.equal(complicationCall.event, checkEvent)
+})
+
+test('passes the original ordinary-failure event into narration generation', async () => {
+  const calls = []
+  const generateNarration = generatedNarration(calls)
+  const session = await createWeedGoblinsChatSession({
+    seed: 'recovery-1',
+    generateNarration,
+  })
+  const background = session.choices.find((choice) => choice.id === 'background:hauler')
+  const backgroundTransition = selectWeedGoblinsChatChoice(session.state, background)
+  const route = getWeedGoblinsQuickReplies(backgroundTransition.after)
+    .find((choice) => choice.id === 'route:ridge')
+  const routeTransition = selectWeedGoblinsChatChoice(backgroundTransition.after, route)
+
+  await resolveWeedGoblinsTransitionMessages({
+    before: routeTransition.before,
+    after: routeTransition.after,
+    generateNarration,
+  })
+
+  const checkEvent = routeTransition.after.history
+    .slice(routeTransition.before.history.length)
+    .find((event) => event.type === 'check')
+  const failureCall = calls.find((call) => call.moment === 'ordinary-failure')
+  assert.equal(checkEvent.outcome, 'failure')
+  assert.equal(failureCall.event, checkEvent)
 })

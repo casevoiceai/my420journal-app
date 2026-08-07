@@ -298,7 +298,7 @@ export function generateRunEndingNarration(options = {}) {
   return generateValidatedNarration({ ...options, moment: 'run-ending' })
 }
 
-export function generateNarrationFromHook({ hook, ...options } = {}) {
+export function generateNarrationFromHook({ hook, event = hook?.event, ...options } = {}) {
   if (!hook?.moment) throw new Error('A narration hook is required.')
-  return generateValidatedNarration({ ...options, hook, moment: hook.moment })
+  return generateValidatedNarration({ ...options, event, hook, moment: hook.moment })
 }

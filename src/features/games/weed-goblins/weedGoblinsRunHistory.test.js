@@ -14,6 +14,13 @@ import {
 
 const RUN_SUMMARY_FIELDS = Object.freeze([
   'adventureId',
+  'gameId',
+  'chapterId',
+  'chapterNumber',
+  'chapterTitle',
+  'questId',
+  'questNumber',
+  'questTitle',
   'backgroundId',
   'stolenItem',
   'routeId',

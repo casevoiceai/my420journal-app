@@ -47,6 +47,7 @@ test('maps background and midpoint choice narration to their dedicated moments',
   const backgroundHook = getNarrationHooksForTransition(before, afterBackground)[0]
   assert.equal(backgroundHook.moment, 'scene-intro')
   assert.equal(backgroundHook.backgroundName, 'Highlands Hauler')
+  assert.equal(backgroundHook.event, afterBackground.history[0])
 
   const afterMidpoint = state({
     flags: { midpointChoice: 'help' },
@@ -60,6 +61,7 @@ test('maps background and midpoint choice narration to their dedicated moments',
   assert.equal(midpointHook.moment, 'midpoint-outcome')
   assert.equal(midpointHook.outcome, 'midpoint')
   assert.equal(midpointHook.midpointChoice, 'help')
+  assert.equal(midpointHook.event, afterMidpoint.history[0])
 })
 
 test('maps the pre-action Goblin King taunt to its dedicated moment', () => {
@@ -87,6 +89,7 @@ test('maps the pre-action Goblin King taunt to its dedicated moment', () => {
   assert.equal(hook.fallbackText, fallbackText)
   assert.equal(hook.selectedRoll, null)
   assert.deepEqual(hook.rolls, [])
+  assert.equal(hook.event, after.history[0])
 })
 
 test('maps check and ending events without changing deterministic lines', () => {
@@ -126,6 +129,8 @@ test('maps check and ending events without changing deterministic lines', () => 
   assert.equal(hooks[0].fallbackText, after.narration.at(-2))
   assert.equal(hooks[0].fictionalLocationName, 'The Copper Tribunal')
   assert.equal(hooks[1].fallbackText, after.narration.at(-1))
+  assert.equal(hooks[0].event, after.history[0])
+  assert.equal(hooks[1].event, after.history[1])
 })
 
 test('keeps a midpoint check under midpoint-outcome while natural 1 stays a complication', () => {
@@ -144,7 +149,26 @@ test('keeps a midpoint check under midpoint-outcome while natural 1 stays a comp
     }],
     narration: [...before.narration, 'The runes include a footnote you interpret as optional.'],
   })
-  assert.equal(getNarrationHooksForTransition(before, midpoint)[0].moment, 'midpoint-outcome')
+  const midpointHook = getNarrationHooksForTransition(before, midpoint)[0]
+  assert.equal(midpointHook.moment, 'midpoint-outcome')
+  assert.equal(midpointHook.event, midpoint.history[0])
+
+  const ordinaryFailure = state({
+    history: [{
+      type: 'check',
+      sceneId: 'choose-route',
+      actionId: 'route:ridge',
+      outcome: 'failure',
+      success: false,
+      naturalOne: false,
+      rolls: [7],
+      roll: 7,
+    }],
+    narration: [...before.narration, 'The stone gate wins the first argument.'],
+  })
+  const ordinaryFailureHook = getNarrationHooksForTransition(before, ordinaryFailure)[0]
+  assert.equal(ordinaryFailureHook.moment, 'ordinary-failure')
+  assert.equal(ordinaryFailureHook.event, ordinaryFailure.history[0])
 
   const naturalOne = state({
     history: [{
@@ -160,8 +184,7 @@ test('keeps a midpoint check under midpoint-outcome while natural 1 stays a comp
     }],
     narration: [...before.narration, 'A complication.'],
   })
-  assert.equal(
-    getNarrationHooksForTransition(before, naturalOne)[0].moment,
-    'natural-one-complication',
-  )
+  const naturalOneHook = getNarrationHooksForTransition(before, naturalOne)[0]
+  assert.equal(naturalOneHook.moment, 'natural-one-complication')
+  assert.equal(naturalOneHook.event, naturalOne.history[0])
 })

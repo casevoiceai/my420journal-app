@@ -6,14 +6,23 @@ function cleanText(value, maxLength = 300) {
     : ''
 }
 
-function baseHook({ moment, outcome, fallbackText, event = {}, before, after }) {
+function baseHook({
+  moment,
+  outcome,
+  fallbackText,
+  event = {},
+  actionId = event.actionId,
+  before,
+  after,
+}) {
   return Object.freeze({
     moment,
     outcome,
+    event,
     fallbackText: cleanText(fallbackText, 300),
     authoritativeText: cleanText(fallbackText, 300),
     sceneId: cleanText(event.sceneId, 80),
-    actionId: cleanText(event.actionId, 80),
+    actionId: cleanText(actionId, 80),
     stat: cleanText(event.stat, 20),
     dc: Number(event.dc) || 0,
     rolls: Array.isArray(event.rolls) ? event.rolls.slice(0, 2) : [],
@@ -148,10 +157,8 @@ function hookForEvent(event, fallbackText, before, after) {
         moment: 'run-ending',
         outcome: event.ending,
         fallbackText,
-        event: {
-          ...event,
-          actionId: event.actionId || `ending:${event.ending}`,
-        },
+        event,
+        actionId: event.actionId || `ending:${event.ending}`,
         before,
         after,
       }),

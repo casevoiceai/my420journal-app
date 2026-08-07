@@ -349,27 +349,37 @@ test('raw dispensary name cannot reach engine state or narration request context
   )
   assert.equal(routeHook.authoritativeText.includes(rawDispensaryName), false)
 
-  let requestBody = null
+  const requestBodies = []
   const result = await generateNarrationFromHook({
     hook: routeHook,
     state,
     blockedRealNames: [rawDispensaryName],
     fetchImpl: async (_url, init) => {
-      requestBody = init.body
+      requestBodies.push(init.body)
       return modelResponse(
         `I record your success as the route bends past ${fictionalLocationName}.`,
       )
     },
   })
 
-  assert.equal(result.source, 'ai')
-  assert.equal(requestBody.includes(rawDispensaryName), false)
+  assert.equal(result.source, 'static-fallback')
+  assert.equal(result.validationFailures.length, 2)
   assert.equal(
-    requestBody.toLocaleLowerCase('en-US').includes(
-      fictionalLocationName.toLocaleLowerCase('en-US'),
-    ),
+    result.validationFailures.every(({ reasons }) => (
+      reasons.includes('implies a different engine outcome')
+    )),
     true,
   )
+  assert.equal(requestBodies.length, 2)
+  for (const requestBody of requestBodies) {
+    assert.equal(requestBody.includes(rawDispensaryName), false)
+    assert.equal(
+      requestBody.toLocaleLowerCase('en-US').includes(
+        fictionalLocationName.toLocaleLowerCase('en-US'),
+      ),
+      true,
+    )
+  }
 })
 
 test('reads the actual localStore entries query shape and sanitized prior run key', async () => {

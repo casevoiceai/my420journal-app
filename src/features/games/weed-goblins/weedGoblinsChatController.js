@@ -136,6 +136,7 @@ async function generatedMessageForHook({
 }) {
   const result = await generateNarration({
     hook,
+    event: hook.event,
     state,
     blockedRealNames,
   })
