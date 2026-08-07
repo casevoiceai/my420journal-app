@@ -59,6 +59,15 @@ test('pre-roll setup rejects the confirmed live defense-check leak', () => {
   assert.equal(result.reasons.includes('reveals hidden mechanical mapping'), true)
 })
 
+test('pre-roll setup rejects a bare stat name even without the word check', () => {
+  const result = validateGeneratedNarration(
+    'I take "I shove the goblin into the paperwork cart" as your move, and Strength is what matters here.',
+    options(),
+  )
+  assert.equal(result.valid, false)
+  assert.equal(result.reasons.includes('reveals hidden mechanical mapping'), true)
+})
+
 test('free-text outcome must preserve significant player wording while respecting engine success', () => {
   const valid = validateGeneratedNarration(
     'I watch "I shove the goblin into the paperwork cart" work as the goblin yields the path.',
