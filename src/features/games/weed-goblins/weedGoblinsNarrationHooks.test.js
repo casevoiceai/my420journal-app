@@ -62,6 +62,33 @@ test('maps background and midpoint choice narration to their dedicated moments',
   assert.equal(midpointHook.midpointChoice, 'help')
 })
 
+test('maps the pre-action Goblin King taunt to its dedicated moment', () => {
+  const before = state({
+    flags: { midpointChoice: 'skip' },
+  })
+  const fallbackText = 'I watch the Goblin King settle into his throne and prepare a remark.'
+  const after = state({
+    flags: { midpointChoice: 'skip' },
+    history: [{
+      type: 'taunt',
+      sceneId: 'goblin-king',
+      actionId: 'boss:taunt',
+      outcome: 'taunt',
+      tauntText: fallbackText,
+    }],
+    narration: [...before.narration, fallbackText],
+  })
+
+  const hook = getNarrationHooksForTransition(before, after)[0]
+  assert.equal(hook.moment, 'goblin-king-taunt')
+  assert.equal(hook.outcome, 'taunt')
+  assert.equal(hook.sceneId, 'goblin-king')
+  assert.equal(hook.actionId, 'boss:taunt')
+  assert.equal(hook.fallbackText, fallbackText)
+  assert.equal(hook.selectedRoll, null)
+  assert.deepEqual(hook.rolls, [])
+})
+
 test('maps check and ending events without changing deterministic lines', () => {
   const before = state()
   const after = state({
