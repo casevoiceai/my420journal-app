@@ -24,6 +24,7 @@ const STORY_BEAT_MOMENTS = new Set([
   'action-success',
   'scene-intro',
   'midpoint-outcome',
+  'goblin-king-taunt',
   'run-ending',
 ])
 
