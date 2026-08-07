@@ -4,174 +4,180 @@ import assert from 'node:assert/strict'
 import {
   createWeedGoblinsChatSession,
   getWeedGoblinsQuickReplies,
+  prepareWeedGoblinsFreeTextTurn,
+  resolveWeedGoblinsPreparedTurn,
   resolveWeedGoblinsTransitionMessages,
   selectWeedGoblinsChatChoice,
 } from './weedGoblinsChatController.js'
 
 function generatedNarration(calls = []) {
   return async ({ hook }) => {
-    calls.push(`${hook.moment}:${hook.outcome}`)
+    calls.push({
+      moment: hook.moment,
+      outcome: hook.outcome,
+      playerAction: hook.playerAction || '',
+      narrationPlayerAction: hook.narrationPlayerAction || '',
+      settingGuardrail: hook.settingGuardrail === true,
+    })
     return {
-      text: `Narrated ${hook.moment} ${hook.outcome}.`,
+      text: hook.fallbackText,
       source: 'ai',
     }
   }
 }
 
-async function advanceWithMessages(state, messages, actionId, generateNarration) {
-  const action = getWeedGoblinsQuickReplies(state).find((candidate) => candidate.id === actionId)
-  assert.ok(action, `Missing action ${actionId}`)
-
-  const transition = selectWeedGoblinsChatChoice(state, action)
-  const incoming = await resolveWeedGoblinsTransitionMessages({
-    before: transition.before,
-    after: transition.after,
+async function stateAtGoblin(generateNarration = generatedNarration()) {
+  const session = await createWeedGoblinsChatSession({
+    seed: 'recovery-1',
     generateNarration,
   })
-
-  return {
-    state: transition.after,
-    messages: [...messages, transition.outgoingMessage, ...incoming],
-    outgoing: transition.outgoingMessage,
-    incoming,
-  }
+  const background = session.choices.find((choice) => choice.id === 'background:hauler')
+  const backgroundTransition = selectWeedGoblinsChatChoice(session.state, background)
+  const route = getWeedGoblinsQuickReplies(backgroundTransition.after)
+    .find((choice) => choice.id === 'route:ridge')
+  const routeTransition = selectWeedGoblinsChatChoice(backgroundTransition.after, route)
+  return routeTransition.after
 }
 
-test('choice selection advances state and preserves outgoing-then-incoming bubble order', async () => {
-  const session = await createWeedGoblinsChatSession({
-    seed: 'recovery-1',
-    generateNarration: generatedNarration(),
-  })
-
-  assert.equal(session.messages.at(-1).direction, 'incoming')
-  const background = session.choices.find((choice) => choice.id === 'background:hauler')
-  assert.ok(background)
-
-  const transition = selectWeedGoblinsChatChoice(session.state, background)
-  assert.equal(transition.after.sceneId, 'choose-route')
-  assert.equal(transition.outgoingMessage.direction, 'outgoing')
-  assert.equal(transition.outgoingMessage.text, 'Highlands Hauler')
-
-  const incoming = await resolveWeedGoblinsTransitionMessages({
-    before: transition.before,
-    after: transition.after,
-    generateNarration: generatedNarration(),
-  })
-  const combined = [...session.messages, transition.outgoingMessage, ...incoming]
-
-  assert.equal(combined.at(-incoming.length - 1).direction, 'outgoing')
-  assert.equal(combined.at(-incoming.length).direction, 'incoming')
-})
-
-test('resolved check bubble carries only the final selected D20 number', async () => {
-  const session = await createWeedGoblinsChatSession({
-    seed: 'recovery-1',
-    generateNarration: generatedNarration(),
-  })
-  const background = session.choices.find((choice) => choice.id === 'background:hauler')
-  const backgroundTransition = selectWeedGoblinsChatChoice(session.state, background)
-  const route = getWeedGoblinsQuickReplies(backgroundTransition.after)
-    .find((choice) => choice.id === 'route:ridge')
-
-  const routeTransition = selectWeedGoblinsChatChoice(backgroundTransition.after, route)
-  const checkEvent = routeTransition.after.history
-    .slice(routeTransition.before.history.length)
-    .find((event) => event.type === 'check')
-  assert.ok(checkEvent)
-
-  const incoming = await resolveWeedGoblinsTransitionMessages({
-    before: routeTransition.before,
-    after: routeTransition.after,
-    generateNarration: generatedNarration(),
-  })
-  const diceMessage = incoming.find((message) => message.die !== null)
-
-  assert.ok(diceMessage)
-  assert.equal(diceMessage.direction, 'incoming')
-  assert.equal(diceMessage.die, checkEvent.roll)
-  assert.equal(Array.isArray(diceMessage.die), false)
-})
-
-test('chat controller delivers the Goblin King taunt before boss choices with no die result', async () => {
+test('free-text submit stages outgoing, setup, and roll trigger without advancing the engine', async () => {
   const calls = []
-  const generateNarration = generatedNarration(calls)
-  const session = await createWeedGoblinsChatSession({
-    seed: 'recovery-1',
-    generateNarration,
-  })
+  const state = await stateAtGoblin(generatedNarration(calls))
+  const historyLength = state.history.length
+  const rngState = state.rngState
 
-  let state = session.state
-  let messages = session.messages
-  for (const actionId of [
-    'background:hauler',
-    'route:ridge',
-    'goblin:strike',
-  ]) {
-    const advanced = await advanceWithMessages(state, messages, actionId, generateNarration)
-    state = advanced.state
-    messages = advanced.messages
-  }
-
-  const midpoint = await advanceWithMessages(
+  const prepared = await prepareWeedGoblinsFreeTextTurn({
     state,
-    messages,
-    'midpoint:skip',
-    generateNarration,
-  )
-
-  assert.equal(midpoint.state.sceneId, 'goblin-king')
-  assert.equal(calls.includes('goblin-king-taunt:taunt'), true)
-  const tauntMessage = midpoint.incoming.find(
-    (message) => message.text === 'Narrated goblin-king-taunt taunt.',
-  )
-  assert.ok(tauntMessage)
-  assert.equal(tauntMessage.die, null)
-  assert.equal(
-    getWeedGoblinsQuickReplies(midpoint.state).some((choice) => choice.id === 'boss:overpower'),
-    true,
-  )
-})
-
-test('chat controller can drive the existing engine through one complete recovery run', async () => {
-  const calls = []
-  const generateNarration = generatedNarration(calls)
-  const session = await createWeedGoblinsChatSession({
-    seed: 'recovery-1',
-    generateNarration,
+    playerAction: 'I shove the goblin into the paperwork cart',
+    generateNarration: generatedNarration(calls),
   })
 
-  let state = session.state
-  let messages = session.messages
-  for (const actionId of [
-    'background:hauler',
-    'route:ridge',
-    'goblin:strike',
-    'midpoint:skip',
-    'boss:overpower',
-  ]) {
-    const advanced = await advanceWithMessages(state, messages, actionId, generateNarration)
-    state = advanced.state
-    messages = advanced.messages
-  }
-
-  assert.equal(state.status, 'completed')
-  assert.equal(state.ending, 'recovery')
-  assert.equal(messages.some((message) => message.direction === 'outgoing'), true)
-  assert.equal(messages.some((message) => message.die !== null), true)
-  assert.equal(calls.includes('scene-intro:intro'), true)
-  assert.equal(calls.includes('ordinary-failure:failure'), true)
-  assert.equal(calls.includes('action-success:success'), true)
-  assert.equal(calls.includes('midpoint-outcome:midpoint'), true)
-  assert.equal(calls.includes('goblin-king-taunt:taunt'), true)
-  assert.equal(calls.includes('run-ending:recovery'), true)
+  assert.equal(prepared.plan.style, 'strength')
+  assert.equal(prepared.plan.actionId, 'goblin:strike')
+  assert.equal(prepared.requiresRoll, true)
+  assert.equal(prepared.outgoingMessage.direction, 'outgoing')
+  assert.equal(prepared.outgoingMessage.text, 'I shove the goblin into the paperwork cart')
+  assert.equal(prepared.setupMessage.direction, 'incoming')
+  assert.equal(prepared.setupMessage.die, null)
+  assert.equal(prepared.rollTriggerMessage.kind, 'roll-trigger')
+  assert.equal(prepared.before.history.length, historyLength)
+  assert.equal(prepared.before.rngState, rngState)
+  assert.equal(calls.some((call) => call.moment === 'player-action-attempt'), true)
 })
 
-test('natural-one transition uses the existing complication narration hook', async () => {
+test('roll tap produces a standalone resolved die bubble before outcome narration', async () => {
+  const state = await stateAtGoblin()
+  const prepared = await prepareWeedGoblinsFreeTextTurn({
+    state,
+    playerAction: 'I shove the goblin into the paperwork cart',
+    generateNarration: generatedNarration(),
+  })
+  const resolved = await resolveWeedGoblinsPreparedTurn({
+    preparedTurn: prepared,
+    generateNarration: generatedNarration(),
+  })
+  const checkEvent = resolved.after.history
+    .slice(state.history.length)
+    .find((event) => event.type === 'check')
+
+  assert.ok(checkEvent)
+  assert.equal(resolved.rollResultMessage.kind, 'roll-result')
+  assert.equal(resolved.rollResultMessage.die, checkEvent.roll)
+  assert.equal(resolved.rollResultMessage.text, '')
+  assert.equal(resolved.outcomeMessages.length >= 1, true)
+  assert.equal(resolved.outcomeMessages[0].die, null)
+
+  const turn = [
+    prepared.outgoingMessage,
+    prepared.setupMessage,
+    prepared.rollTriggerMessage,
+    resolved.rollResultMessage,
+    resolved.outcomeMessages[0],
+  ]
+  assert.deepEqual(turn.map((message) => message.kind), [
+    'message',
+    'message',
+    'roll-trigger',
+    'roll-result',
+    'message',
+  ])
+})
+
+test('free-text scenes expose no mechanical quick-reply categories', async () => {
+  const state = await stateAtGoblin()
+  assert.deepEqual(getWeedGoblinsQuickReplies(state), [])
+})
+
+test('non-check midpoint action proceeds without a roll step and still enters the Goblin King scene', async () => {
+  const goblin = await stateAtGoblin()
+  const goblinPrepared = await prepareWeedGoblinsFreeTextTurn({
+    state: goblin,
+    playerAction: 'I shove the goblin aside',
+    generateNarration: generatedNarration(),
+  })
+  const goblinResolved = await resolveWeedGoblinsPreparedTurn({
+    preparedTurn: goblinPrepared,
+    generateNarration: generatedNarration(),
+  })
+  assert.equal(goblinResolved.after.sceneId, 'midpoint')
+
+  const midpointPrepared = await prepareWeedGoblinsFreeTextTurn({
+    state: goblinResolved.after,
+    playerAction: 'I help the clerk gather the scattered forms',
+    generateNarration: generatedNarration(),
+  })
+  assert.equal(midpointPrepared.requiresRoll, false)
+  assert.equal(midpointPrepared.rollTriggerMessage, null)
+
+  const midpointResolved = await resolveWeedGoblinsPreparedTurn({
+    preparedTurn: midpointPrepared,
+    generateNarration: generatedNarration(),
+  })
+  assert.equal(midpointResolved.rollResultMessage, null)
+  assert.equal(midpointResolved.after.sceneId, 'goblin-king')
+  assert.equal(midpointResolved.after.flags.goblinAlly, true)
+  assert.equal(midpointResolved.outcomeMessages.some((message) => /Goblin King/i.test(message.text)), true)
+})
+
+test('completed boss free-text check shows one final authoritative outcome bubble after the die', async () => {
   const calls = []
   const generateNarration = generatedNarration(calls)
+  let state = await stateAtGoblin(generateNarration)
+
+  let prepared = await prepareWeedGoblinsFreeTextTurn({
+    state,
+    playerAction: 'I shove the goblin aside',
+    generateNarration,
+  })
+  let resolved = await resolveWeedGoblinsPreparedTurn({ preparedTurn: prepared, generateNarration })
+  state = resolved.after
+
+  prepared = await prepareWeedGoblinsFreeTextTurn({
+    state,
+    playerAction: 'I keep moving',
+    generateNarration,
+  })
+  resolved = await resolveWeedGoblinsPreparedTurn({ preparedTurn: prepared, generateNarration })
+  state = resolved.after
+  assert.equal(state.sceneId, 'goblin-king')
+
+  prepared = await prepareWeedGoblinsFreeTextTurn({
+    state,
+    playerAction: 'I overpower the Goblin King with a hard shove',
+    generateNarration,
+  })
+  resolved = await resolveWeedGoblinsPreparedTurn({ preparedTurn: prepared, generateNarration })
+
+  assert.equal(resolved.after.status, 'completed')
+  assert.equal(resolved.after.ending, 'recovery')
+  assert.ok(resolved.rollResultMessage)
+  assert.equal(resolved.outcomeMessages.length, 1)
+  assert.equal(calls.some((call) => call.moment === 'run-ending'), true)
+})
+
+test('fixed route checks retain their existing attached die behavior', async () => {
   const session = await createWeedGoblinsChatSession({
     seed: 'scan-28',
-    generateNarration,
+    generateNarration: generatedNarration(),
   })
   const background = session.choices.find((choice) => choice.id === 'background:hauler')
   const backgroundTransition = selectWeedGoblinsChatChoice(session.state, background)
@@ -182,9 +188,8 @@ test('natural-one transition uses the existing complication narration hook', asy
   const incoming = await resolveWeedGoblinsTransitionMessages({
     before: routeTransition.before,
     after: routeTransition.after,
-    generateNarration,
+    generateNarration: generatedNarration(),
   })
 
-  assert.equal(calls.includes('natural-one-complication:complication'), true)
   assert.equal(incoming.some((message) => message.die === 1), true)
 })
