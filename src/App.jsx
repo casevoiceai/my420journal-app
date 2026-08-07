@@ -31,6 +31,7 @@ import Guide from './screens/Guide'
 import SleepEntryDetail from './screens/SleepEntryDetail'
 import NoteEntry from './screens/NoteEntry'
 import DevBar from './components/DevBar'
+import WeedGoblinsChat from './features/games/weed-goblins/WeedGoblinsChat'
 import MarketingHome from './marketing/MarketingHome'
 import MarketingAbout from './marketing/MarketingAbout'
 import MarketingFAQ from './marketing/MarketingFAQ'
@@ -56,6 +57,7 @@ const NO_NAV_ROUTES = new Set([
   '/pin',
   '/pin-setup',
   '/forgot-password',
+  '/games/weed-goblins',
 ])
 
 function routeHidesNav(pathname) {
@@ -194,7 +196,17 @@ function BottomNav() {
 
 // ── Auth utilities ────────────────────────────────────────────────────────────
 
-const HIDDEN_EXIT_ROUTES = new Set(['/', '/about', '/faq', '/contact', '/partners', '/privacy', '/app', '/signup'])
+const HIDDEN_EXIT_ROUTES = new Set([
+  '/',
+  '/about',
+  '/faq',
+  '/contact',
+  '/partners',
+  '/privacy',
+  '/app',
+  '/signup',
+  '/games/weed-goblins',
+])
 
 function EmergencyExit() {
   const navigate  = useNavigate()
@@ -306,7 +318,7 @@ export default function App() {
         <Route path="/home"              element={<HomeGuard />} />
         <Route path="/dashboard"         element={<Navigate to="/home" replace />} />
         <Route path="/entries/new"       element={<NewEntry />} />
-        <Route path="/entries/sleep/:id"  element={<SleepEntryDetail />} />
+        <Route path="/entries/sleep/:id" element={<SleepEntryDetail />} />
         <Route path="/entries/:id"       element={<EntryDetail />} />
         <Route path="/entries/:id/edit"  element={<EditEntry />} />
         <Route path="/stash"             element={<Stash />} />
@@ -320,6 +332,7 @@ export default function App() {
         <Route path="/quick"             element={<QuickEntry />} />
         <Route path="/journal"           element={<Journal />} />
         <Route path="/guide"             element={<Guide />} />
+        <Route path="/games/weed-goblins" element={<WeedGoblinsChat />} />
         <Route path="/notes/new"         element={<NoteEntry />} />
         <Route path="/checkin"           element={<CheckIn />} />
         <Route path="/update/:entryId"   element={<PostUseUpdate />} />
