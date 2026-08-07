@@ -12,6 +12,8 @@ const MOMENT_CONFIG = Object.freeze({
   'scene-intro': Object.freeze({ outcomes: Object.freeze(['intro']), troubleCost: 0 }),
   'midpoint-outcome': Object.freeze({ outcomes: Object.freeze(['midpoint']), troubleCost: 0 }),
   'goblin-king-taunt': Object.freeze({ outcomes: Object.freeze(['taunt']), troubleCost: 0 }),
+  'player-action-attempt': Object.freeze({ outcomes: Object.freeze(['attempt']), troubleCost: 0 }),
+  'player-action-response': Object.freeze({ outcomes: Object.freeze(['response']), troubleCost: 0 }),
   'run-ending': Object.freeze({ outcomes: Object.freeze(['recovery', 'bargain', 'escape']), troubleCost: 0 }),
 })
 
@@ -155,6 +157,12 @@ function narrationRequest({ moment, outcome, event, state, hook, fallbackText, c
     backgroundName: cleanText(hook?.backgroundName, 100),
     midpointChoice: cleanText(hook?.midpointChoice, 80),
     endingReason: cleanText(hook?.endingReason, 120),
+    playerAction: cleanText(hook?.playerAction, 160),
+    narrationPlayerAction: cleanText(hook?.narrationPlayerAction, 160),
+    interpretedAction: cleanText(hook?.interpretedAction, 200),
+    settingGuardrail: hook?.settingGuardrail === true,
+    settingCategory: cleanText(hook?.settingCategory, 80),
+    inputGuardrail: hook?.inputGuardrail === true,
     narrationTier: cleanText(hook?.narrationTier ?? state?.narrationTier, 50) || 'normal',
     allowCallback: hook?.allowCallback === true,
     allowFourthWall: hook?.allowFourthWall === true,
@@ -227,6 +235,7 @@ async function generateValidatedNarration({
       blockedRealNames,
       allowedFictionalNames,
       expectedStolenItem: hook?.fictionalStolenItem ?? state?.stolenItem ?? '',
+      playerAction: hook?.playerAction ?? '',
     })
 
     if (validation.valid) {
@@ -274,6 +283,14 @@ export function generateMidpointOutcomeNarration(options = {}) {
 
 export function generateGoblinKingTauntNarration(options = {}) {
   return generateValidatedNarration({ ...options, moment: 'goblin-king-taunt' })
+}
+
+export function generatePlayerActionAttemptNarration(options = {}) {
+  return generateValidatedNarration({ ...options, moment: 'player-action-attempt' })
+}
+
+export function generatePlayerActionResponseNarration(options = {}) {
+  return generateValidatedNarration({ ...options, moment: 'player-action-response' })
 }
 
 export function generateRunEndingNarration(options = {}) {
