@@ -14,6 +14,8 @@ import {
 } from './weedGoblinsChatController.js'
 import './WeedGoblinsChat.css'
 
+const CHAT_CONTACT_DISPLAY_NAME = 'Alex'
+
 function makeRunSeed() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `weed-goblins-chat:${crypto.randomUUID()}`
@@ -36,13 +38,13 @@ async function loadSnapshotWithFallback() {
   }
 }
 
-function DiceIcon({ value }) {
+function RollBadge({ value = null }) {
   const resolved = Number.isInteger(value) && value >= 1 && value <= 20
   return (
     <span
-      className={`weed-goblins-chat__die${resolved ? ' is-resolved' : ''}`}
-      aria-label={resolved ? `D20 result ${value}` : 'D20 unresolved'}
-      title={resolved ? `D20: ${value}` : 'D20'}
+      className={`weed-goblins-chat__roll-badge${resolved ? ' is-resolved' : ''}`}
+      aria-label={resolved ? `D20 result ${value}` : 'Check result pending'}
+      title={resolved ? `D20: ${value}` : 'Check result'}
     >
       {resolved ? value : ''}
     </span>
@@ -56,7 +58,7 @@ function MessageBubble({ message }) {
         <span>{message.text}</span>
         {message.die !== null && message.die !== undefined && (
           <span className="weed-goblins-chat__bubble-meta">
-            <DiceIcon value={message.die} />
+            <RollBadge value={message.die} />
           </span>
         )}
       </div>
@@ -75,6 +77,7 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   const [fatalError, setFatalError] = useState('')
   const endRef = useRef(null)
   const resolvedSeed = useMemo(() => seed || makeRunSeed(), [seed])
+  const contactInitial = CHAT_CONTACT_DISPLAY_NAME.trim().charAt(0).toUpperCase() || '?'
 
   useEffect(() => {
     let cancelled = false
@@ -172,7 +175,7 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   }
 
   return (
-    <main className="weed-goblins-chat" aria-label="Conversation with S.T.O.N.E.R.">
+    <main className="weed-goblins-chat" aria-label={`Conversation with ${CHAT_CONTACT_DISPLAY_NAME}`}>
       <header className="weed-goblins-chat__header">
         <button
           type="button"
@@ -183,9 +186,9 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
           ‹
         </button>
         <div className="weed-goblins-chat__contact">
-          <div className="weed-goblins-chat__avatar" aria-hidden="true">S</div>
+          <div className="weed-goblins-chat__avatar" aria-hidden="true">{contactInitial}</div>
           <div>
-            <div className="weed-goblins-chat__contact-name">S.T.O.N.E.R.</div>
+            <div className="weed-goblins-chat__contact-name">{CHAT_CONTACT_DISPLAY_NAME}</div>
             <div className="weed-goblins-chat__contact-detail">messages</div>
           </div>
         </div>
