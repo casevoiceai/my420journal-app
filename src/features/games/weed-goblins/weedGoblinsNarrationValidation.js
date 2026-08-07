@@ -76,6 +76,45 @@ const PLAYER_ACTION_SAFE_PROPER_TERMS = Object.freeze([
   'Defense',
   'Field Reliquary',
 ])
+const PLAYER_ACTION_IGNORED_WORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'at',
+  'by',
+  'for',
+  'from',
+  'goblin',
+  'him',
+  'her',
+  'i',
+  'in',
+  'into',
+  'it',
+  'king',
+  'me',
+  'my',
+  'of',
+  'on',
+  'onto',
+  'or',
+  'our',
+  'she',
+  'that',
+  'the',
+  'their',
+  'them',
+  'then',
+  'they',
+  'this',
+  'to',
+  'try',
+  'using',
+  'we',
+  'with',
+  'you',
+  'your',
+])
 
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -151,10 +190,26 @@ function likelyPlayerActionProperNames(playerAction, allowedFictionalNames) {
   return uniqueText(matches).filter((name) => !/^(The|This|That|Your|My|You|Please)$/i.test(name))
 }
 
-function normalizedActionText(value) {
-  return typeof value === 'string'
-    ? value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US')
-    : ''
+function normalizedActionWords(value) {
+  if (typeof value !== 'string') return []
+  return value
+    .toLocaleLowerCase('en-US')
+    .match(/[a-z0-9]+(?:'[a-z0-9]+)?/g) || []
+}
+
+function significantPlayerActionWords(value) {
+  return [...new Set(
+    normalizedActionWords(value).filter(
+      (word) => word.length >= 3 && !PLAYER_ACTION_IGNORED_WORDS.has(word),
+    ),
+  )]
+}
+
+function preservesSignificantPlayerActionWords(text, playerAction) {
+  const requiredWords = significantPlayerActionWords(playerAction)
+  if (requiredWords.length === 0) return true
+  const narrationWords = new Set(normalizedActionWords(text))
+  return requiredWords.every((word) => narrationWords.has(word))
 }
 
 function detectsNaturalEscape(text, expectedStolenItem = '') {
@@ -285,12 +340,12 @@ export function validateGeneratedNarration(
     reasons.push('reveals hidden mechanical mapping')
   }
 
-  const requiredAction = normalizedActionText(narrationPlayerAction)
-  if (requiredAction && PLAYER_ACTION_CONTEXT_MOMENTS.has(moment)) {
-    const normalizedText = normalizedActionText(text)
-    if (!normalizedText.includes(requiredAction)) {
-      reasons.push('does not preserve the player action wording')
-    }
+  if (
+    String(narrationPlayerAction).trim()
+    && PLAYER_ACTION_CONTEXT_MOMENTS.has(moment)
+    && !preservesSignificantPlayerActionWords(text, narrationPlayerAction)
+  ) {
+    reasons.push('does not preserve the player action wording')
   }
 
   for (const word of BANNED_WORDS) {
