@@ -4,7 +4,9 @@ import assert from 'node:assert/strict'
 import {
   createWeedGoblinsChatSession,
   getWeedGoblinsQuickReplies,
+  narrateWeedGoblinsResolvedTurn,
   prepareWeedGoblinsFreeTextTurn,
+  resolveWeedGoblinsPreparedMechanics,
   resolveWeedGoblinsPreparedTurn,
   resolveWeedGoblinsTransitionMessages,
   selectWeedGoblinsChatChoice,
@@ -64,34 +66,43 @@ test('free-text submit stages outgoing, setup, and roll trigger without advancin
   assert.equal(calls.some((call) => call.moment === 'player-action-attempt'), true)
 })
 
-test('roll tap produces a standalone resolved die bubble before outcome narration', async () => {
-  const state = await stateAtGoblin()
+test('roll tap resolves mechanics before outcome narration and produces the five bubble sequence', async () => {
+  const calls = []
+  const generateNarration = generatedNarration(calls)
+  const state = await stateAtGoblin(generateNarration)
   const prepared = await prepareWeedGoblinsFreeTextTurn({
     state,
     playerAction: 'I shove the goblin into the paperwork cart',
-    generateNarration: generatedNarration(),
+    generateNarration,
   })
-  const resolved = await resolveWeedGoblinsPreparedTurn({
-    preparedTurn: prepared,
-    generateNarration: generatedNarration(),
-  })
-  const checkEvent = resolved.after.history
+  const callsBeforeRoll = calls.length
+
+  const mechanics = resolveWeedGoblinsPreparedMechanics({ preparedTurn: prepared })
+  const checkEvent = mechanics.after.history
     .slice(state.history.length)
     .find((event) => event.type === 'check')
 
   assert.ok(checkEvent)
-  assert.equal(resolved.rollResultMessage.kind, 'roll-result')
-  assert.equal(resolved.rollResultMessage.die, checkEvent.roll)
-  assert.equal(resolved.rollResultMessage.text, '')
-  assert.equal(resolved.outcomeMessages.length >= 1, true)
-  assert.equal(resolved.outcomeMessages[0].die, null)
+  assert.equal(calls.length, callsBeforeRoll)
+  assert.equal(mechanics.rollResultMessage.kind, 'roll-result')
+  assert.equal(mechanics.rollResultMessage.die, checkEvent.roll)
+  assert.equal(mechanics.rollResultMessage.text, '')
+
+  const outcomeMessages = await narrateWeedGoblinsResolvedTurn({
+    preparedTurn: prepared,
+    mechanics,
+    generateNarration,
+  })
+  assert.equal(outcomeMessages.length >= 1, true)
+  assert.equal(outcomeMessages[0].die, null)
+  assert.equal(calls.length > callsBeforeRoll, true)
 
   const turn = [
     prepared.outgoingMessage,
     prepared.setupMessage,
     prepared.rollTriggerMessage,
-    resolved.rollResultMessage,
-    resolved.outcomeMessages[0],
+    mechanics.rollResultMessage,
+    outcomeMessages[0],
   ]
   assert.deepEqual(turn.map((message) => message.kind), [
     'message',
@@ -105,6 +116,27 @@ test('roll tap produces a standalone resolved die bubble before outcome narratio
 test('free-text scenes expose no mechanical quick-reply categories', async () => {
   const state = await stateAtGoblin()
   assert.deepEqual(getWeedGoblinsQuickReplies(state), [])
+})
+
+test('simple narrative beat stays in the same scene and consumes no roll', async () => {
+  const state = await stateAtGoblin()
+  const prepared = await prepareWeedGoblinsFreeTextTurn({
+    state,
+    playerAction: 'I wave at the goblin and say hello',
+    generateNarration: generatedNarration(),
+  })
+
+  assert.equal(prepared.requiresRoll, false)
+  assert.equal(prepared.rollTriggerMessage, null)
+
+  const resolved = await resolveWeedGoblinsPreparedTurn({
+    preparedTurn: prepared,
+    generateNarration: generatedNarration(),
+  })
+  assert.equal(resolved.after, state)
+  assert.equal(resolved.rollResultMessage, null)
+  assert.equal(resolved.outcomeMessages.length, 1)
+  assert.equal(resolved.outcomeMessages[0].die, null)
 })
 
 test('non-check midpoint action proceeds without a roll step and still enters the Goblin King scene', async () => {
