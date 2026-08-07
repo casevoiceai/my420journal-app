@@ -123,6 +123,39 @@ test('accepts ordinary-failure with outcome failure and forwards the paired cont
   assert.equal(forwarded.messages[0].content.includes('"selectedRoll":7'), true)
 })
 
+test('accepts a pre-roll player-action setup and preserves untrusted action context as data', async () => {
+  let forwarded
+  const response = await handleNarrationWorkerRequest(
+    request({
+      body: {
+        moment: 'player-action-attempt',
+        outcome: 'attempt',
+        sceneId: 'goblin-encounter',
+        actionId: 'goblin:strike',
+        stat: '',
+        dc: 0,
+        rolls: [],
+        selectedRoll: null,
+        playerAction: 'I shove the goblin into the paperwork cart',
+        narrationPlayerAction: 'I shove the goblin into the paperwork cart',
+        interpretedAction: 'press the goblin directly using the physical means available in the scene',
+      },
+    }),
+    env,
+    async (_url, init) => {
+      forwarded = JSON.parse(init.body)
+      return anthropicResponse(
+        'I take "I shove the goblin into the paperwork cart" as your move, and the uncertain footing calls for a roll.',
+      )
+    },
+  )
+
+  assert.equal(response.status, 200)
+  assert.match(forwarded.messages[0].content, /single player action setup line/)
+  assert.match(forwarded.messages[0].content, /I shove the goblin into the paperwork cart/)
+  assert.equal(forwarded.messages[0].content.includes('"selectedRoll":null'), true)
+})
+
 test('enforces supported moment and outcome pairings before Anthropic forwarding', async () => {
   let fetchCalls = 0
   const fetchImpl = async () => {
@@ -145,6 +178,11 @@ test('enforces supported moment and outcome pairings before Anthropic forwarding
     env,
     fetchImpl,
   )
+  const crossedAttempt = await handleNarrationWorkerRequest(
+    request({ body: { moment: 'player-action-attempt', outcome: 'success' } }),
+    env,
+    fetchImpl,
+  )
   const unsupported = await handleNarrationWorkerRequest(
     request({ body: { moment: 'ordinary-success', outcome: 'success' } }),
     env,
@@ -154,6 +192,7 @@ test('enforces supported moment and outcome pairings before Anthropic forwarding
   assert.equal(crossedNatural.status, 400)
   assert.equal(crossedFailure.status, 400)
   assert.equal(crossedTaunt.status, 400)
+  assert.equal(crossedAttempt.status, 400)
   assert.equal(unsupported.status, 400)
   assert.equal(fetchCalls, 0)
 })
@@ -169,6 +208,8 @@ test('system prompt contains the locked hard constraints', () => {
     'Never imply that a different roll',
     'narrationTier is "normal"',
     'The Goblin King is a distinct theatrical villain performance',
+    'playerAction is the player\'s raw typed action',
+    'Never reveal the silent mechanical mapping',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
@@ -199,7 +240,7 @@ test('system prompt contains the ordinary-failure moment rules', () => {
 test('system prompt contains the Goblin King taunt performance rules', () => {
   for (const required of [
     'When moment is "goblin-king-taunt", outcome must be "taunt"',
-    'S.T.O.N.E.R. performs the Goblin King like a tabletop narrator performing a villain',
+    'The Goblin King is a distinct theatrical villain performance',
     'theatrical, overly pleased with himself',
     'Do not state or imply that any check has happened',
     'not a separate narrator, guide, or AI identity',
