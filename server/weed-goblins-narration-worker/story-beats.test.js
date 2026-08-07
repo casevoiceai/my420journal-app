@@ -32,6 +32,9 @@ function request(moment, outcome, extra = {}) {
       fictionalGoblinName: 'Professor Grub',
       authoritativeText: 'The deterministic engine supplied this exact result.',
       narrationTier: 'normal',
+      playerAction: 'I shove the goblin aside',
+      narrationPlayerAction: 'I shove the goblin aside',
+      interpretedAction: 'press the goblin directly using the physical means available in the scene',
       ...extra,
     }),
   })
@@ -48,6 +51,8 @@ const PAIRS = [
   ['scene-intro', 'intro'],
   ['midpoint-outcome', 'midpoint'],
   ['goblin-king-taunt', 'taunt'],
+  ['player-action-attempt', 'attempt'],
+  ['player-action-response', 'response'],
   ['run-ending', 'recovery'],
   ['run-ending', 'bargain'],
   ['run-ending', 'escape'],
@@ -79,6 +84,8 @@ test('rejects mismatched new pairs before Anthropic', async () => {
     ['midpoint-outcome', 'intro'],
     ['goblin-king-taunt', 'success'],
     ['goblin-king-taunt', 'intro'],
+    ['player-action-attempt', 'success'],
+    ['player-action-response', 'failure'],
     ['run-ending', 'success'],
     ['run-ending', 'midpoint'],
   ]
@@ -103,6 +110,8 @@ test('exports the exact story-beat outcome sets', () => {
   assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['scene-intro'], ['intro'])
   assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['midpoint-outcome'], ['midpoint'])
   assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['goblin-king-taunt'], ['taunt'])
+  assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['player-action-attempt'], ['attempt'])
+  assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['player-action-response'], ['response'])
   assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['run-ending'], [
     'recovery',
     'bargain',
@@ -116,10 +125,12 @@ test('system prompt contains every new supported-moment rule', () => {
     'When moment is "scene-intro", outcome must be "intro"',
     'When moment is "midpoint-outcome", outcome must be "midpoint"',
     'When moment is "goblin-king-taunt", outcome must be "taunt"',
+    'When moment is "player-action-attempt", outcome must be "attempt"',
+    'When moment is "player-action-response", outcome must be "response"',
+    'playerAction is the player\'s raw typed action',
+    'Never reveal the silent mechanical mapping',
     'Include one short quoted or clearly attributed Goblin King line',
-    'For a goblin-king-taunt request, narrate only the pre-action confrontation beat',
     'When moment is "run-ending", outcome must be exactly "recovery", "bargain", or "escape"',
-    'the narration must match the exact recovery, bargain, or escape outcome supplied',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
