@@ -20,6 +20,7 @@ export const MOCK_JOURNAL_SNAPSHOT = Object.freeze({
     'Northern Lights',
     'Lemon Cherry Gelato',
   ]),
+  fictionalLocationNames: Object.freeze(['The Lantern-Lit Annex']),
 })
 
 export const REALISTIC_MOCK_LOCAL_ENTRIES = Object.freeze([
@@ -28,7 +29,7 @@ export const REALISTIC_MOCK_LOCAL_ENTRIES = Object.freeze([
     user_id: MOCK_LOCAL_USER_ID,
     product_name: 'Northern Lights',
     category: 'Flower',
-    dispensary_name: 'Restore Scranton',
+    dispensary_name: 'North Ridge Collective',
     body_tags: ['Relaxed', 'Heavy', 'Pain Relief'],
     mind_tags: ['Foggy'],
     mood_tags: ['Calm'],
@@ -47,7 +48,7 @@ export const REALISTIC_MOCK_LOCAL_ENTRIES = Object.freeze([
     user_id: MOCK_LOCAL_USER_ID,
     product_name: 'Blue Dream',
     category: 'Vape',
-    dispensary_name: 'Justice Grown',
+    dispensary_name: 'East Gate Supply',
     body_tags: ['Relaxed'],
     mind_tags: ['Creative', 'Focused'],
     mood_tags: ['Happy'],
@@ -60,7 +61,7 @@ export const REALISTIC_MOCK_LOCAL_ENTRIES = Object.freeze([
     user_id: MOCK_LOCAL_USER_ID,
     product_name: 'Northern Lights',
     category: 'Flower',
-    dispensary_name: 'Restore Scranton',
+    dispensary_name: 'North Ridge Collective',
     body_tags: ['Relaxed', 'Sleepy'],
     mind_tags: ['Foggy'],
     mood_tags: ['Calm'],
@@ -228,7 +229,7 @@ function printSnapshot(sourceLabel, snapshot) {
     output.write(`Categories: ${snapshot.productCategories.join(', ') || '(none)'}\n`)
     output.write(`Effect tags: ${snapshot.effectTags.join(', ') || '(none)'}\n`)
     output.write(`Terpenes: ${snapshot.terpeneLabels.join(', ') || '(none)'}\n`)
-    output.write(`Dispensaries: ${snapshot.dispensaryNames.join(', ') || '(none)'}\n`)
+    output.write(`Fictional locations: ${snapshot.fictionalLocationNames.join(', ') || '(none)'}\n`)
     output.write(`Total local entry count: ${snapshot.entryCount}\n`)
   }
 }
@@ -267,6 +268,7 @@ export async function runInteractiveWeedGoblins({
   output.write(`Seed: ${state.seed}\n`)
   printSnapshot(sourceLabel, journalSnapshot)
   output.write(`Stolen item: ${state.stolenItem}\n`)
+  output.write(`Fictional location: ${state.fictionalLocationName || '(none)'}\n`)
   output.write(`Narration tier: ${state.narrationTier}\n\n`)
   printNarration(state.narration)
 
