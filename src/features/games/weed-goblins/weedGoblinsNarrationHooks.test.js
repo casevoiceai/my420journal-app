@@ -11,6 +11,7 @@ function state(changes = {}) {
     trouble: 0,
     stolenItem: 'the Amber Field Satchel',
     goblinName: 'Professor Grub',
+    fictionalLocationName: 'The Copper Tribunal',
     narrationTier: 'normal',
     background: null,
     flags: { midpointChoice: null },
@@ -25,6 +26,7 @@ test('creates a scene-intro hook for the opening Highlands narration', () => {
   assert.equal(hook.moment, 'scene-intro')
   assert.equal(hook.outcome, 'intro')
   assert.equal(hook.introKind, 'highlands-opening')
+  assert.equal(hook.fictionalLocationName, 'The Copper Tribunal')
 })
 
 test('maps background and midpoint choice narration to their dedicated moments', () => {
@@ -95,6 +97,7 @@ test('maps check and ending events without changing deterministic lines', () => 
     ['run-ending', 'recovery'],
   ])
   assert.equal(hooks[0].fallbackText, after.narration.at(-2))
+  assert.equal(hooks[0].fictionalLocationName, 'The Copper Tribunal')
   assert.equal(hooks[1].fallbackText, after.narration.at(-1))
 })
 
