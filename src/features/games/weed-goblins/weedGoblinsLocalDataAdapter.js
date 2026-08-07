@@ -409,18 +409,48 @@ async function resolveLocalStore(explicitStore) {
   return module.localStore
 }
 
+async function resolveLocalUserId(localStore, explicitUserId) {
+  let resolvedUserId = cleanText(explicitUserId)
+  if (!resolvedUserId) {
+    const authResult = await localStore.auth.getUser()
+    resolvedUserId = cleanText(authResult?.data?.user?.id)
+  }
+  return resolvedUserId
+}
+
+export async function saveWeedGoblinsRunSummary({
+  runSummary,
+  store = null,
+  storage = typeof localStorage === 'undefined' ? null : localStorage,
+  userId = null,
+} = {}) {
+  const localStore = await resolveLocalStore(store)
+  const resolvedUserId = await resolveLocalUserId(localStore, userId)
+  if (!resolvedUserId) throw new Error('A local user is required to save Weed Goblins history.')
+  if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function') {
+    throw new Error('Writable local storage is required to save Weed Goblins history.')
+  }
+
+  const safeSummary = sanitizeRunSummary(runSummary)
+  if (!safeSummary) throw new Error('A completed Weed Goblins run summary is required.')
+
+  const previousRuns = sanitizePreviousRuns(readRunSummaries(storage, resolvedUserId))
+  const history = sanitizePreviousRuns([...previousRuns, safeSummary])
+  storage.setItem(weedGoblinsRunStorageKey(resolvedUserId), JSON.stringify(history))
+
+  return {
+    summary: safeSummary,
+    history,
+  }
+}
+
 export async function readWeedGoblinsPersonalizationSnapshot({
   store = null,
   storage = typeof localStorage === 'undefined' ? null : localStorage,
   userId = null,
 } = {}) {
   const localStore = await resolveLocalStore(store)
-  let resolvedUserId = cleanText(userId)
-
-  if (!resolvedUserId) {
-    const authResult = await localStore.auth.getUser()
-    resolvedUserId = cleanText(authResult?.data?.user?.id)
-  }
+  const resolvedUserId = await resolveLocalUserId(localStore, userId)
 
   if (!resolvedUserId) return createEmptyWeedGoblinsPersonalizationSnapshot()
 
