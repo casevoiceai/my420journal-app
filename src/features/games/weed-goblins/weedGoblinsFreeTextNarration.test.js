@@ -23,6 +23,15 @@ test('pre-roll setup accepts exact player wording without revealing a result', (
   assert.equal(result.valid, true, result.reasons.join('; '))
 })
 
+test('pre-roll setup accepts a fictional name substituted for the generic goblin placeholder', () => {
+  const result = validateGeneratedNarration(
+    'I shove Skrint Approximately into the paperwork cart, and whether that works is far from certain, let\'s see.',
+    options({ allowedFictionalNames: ['Skrint Approximately'] }),
+  )
+
+  assert.equal(result.valid, true, result.reasons.join('; '))
+})
+
 test('pre-roll setup rejects a resolved number before the player rolls', () => {
   const result = validateGeneratedNarration(
     'I take "I shove the goblin into the paperwork cart" as your move, and the d20 rolls 14.',
@@ -41,7 +50,16 @@ test('pre-roll setup rejects exposure of the hidden stat mapping', () => {
   assert.equal(result.reasons.includes('reveals hidden mechanical mapping'), true)
 })
 
-test('free-text outcome must preserve safe player wording while respecting engine success', () => {
+test('pre-roll setup rejects the confirmed live defense-check leak', () => {
+  const result = validateGeneratedNarration(
+    'I take "I shove the goblin into the paperwork cart" as your move, and that\'ll call for a defense check.',
+    options(),
+  )
+  assert.equal(result.valid, false)
+  assert.equal(result.reasons.includes('reveals hidden mechanical mapping'), true)
+})
+
+test('free-text outcome must preserve significant player wording while respecting engine success', () => {
   const valid = validateGeneratedNarration(
     'I watch "I shove the goblin into the paperwork cart" work as the goblin yields the path.',
     options({ moment: 'action-success', outcome: 'success' }),
