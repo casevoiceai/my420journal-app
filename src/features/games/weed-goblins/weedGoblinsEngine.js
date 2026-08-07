@@ -166,6 +166,16 @@ function getProductNames(snapshot = {}) {
     .slice(0, 20)
 }
 
+function getFictionalLocationNames(snapshot = {}) {
+  const values = Array.isArray(snapshot.fictionalLocationNames)
+    ? snapshot.fictionalLocationNames
+    : []
+  return values
+    .map(normalizeText)
+    .filter(Boolean)
+    .slice(0, 20)
+}
+
 function fictionalizeProductName(productName) {
   return `the ${normalizeText(productName)} Field Reliquary`
 }
@@ -176,6 +186,22 @@ function chooseStolenItem(snapshot, adventure, rngState) {
     ? products.map(fictionalizeProductName)
     : adventure.fallbackStolenItems
   return drawFromList(source, rngState)
+}
+
+function chooseFictionalLocationName(snapshot, seed) {
+  const locations = getFictionalLocationNames(snapshot)
+  if (locations.length === 0) return null
+  const index = hashSeed(`${seed}:fictional-location`) % locations.length
+  return locations[index]
+}
+
+function locationForSentence(locationName) {
+  return normalizeText(locationName).replace(/^The\s+/i, 'the ')
+}
+
+function routeLocationText(locationName) {
+  const location = locationForSentence(locationName)
+  return location ? ` The route bends past ${location}.` : ''
 }
 
 function buildReturningNarration(previousRuns = []) {
@@ -403,6 +429,7 @@ export function createWeedGoblinsRun({
   rngState = stolen.rngState
   const goblin = drawFromList(adventure.goblinNames, rngState)
   rngState = goblin.rngState
+  const fictionalLocationName = chooseFictionalLocationName(journalSnapshot, seed)
 
   const returningLine = buildReturningNarration(previousRuns)
   const narration = returningLine
@@ -425,6 +452,7 @@ export function createWeedGoblinsRun({
     narrationTier,
     stolenItem: stolen.value,
     goblinName: goblin.value,
+    fictionalLocationName,
     flags: {
       routeId: null,
       midpointChoice: null,
@@ -453,9 +481,10 @@ export function getAvailableActions(state) {
   }
 
   if (state.sceneId === SCENES.route) {
+    const location = locationForSentence(state.fictionalLocationName)
     return Object.values(state.adventure.routes).map((route) => ({
       id: `route:${route.id}`,
-      label: route.name,
+      label: location ? `${route.name} past ${location}` : route.name,
     }))
   }
 
@@ -528,14 +557,15 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
   if (state.sceneId === SCENES.route) {
     const routeId = actionId.split(':')[1]
     const route = state.adventure.routes[routeId]
+    const locationText = routeLocationText(state.fictionalLocationName)
     const result = resolveCheck(
       cloneState(state, { flags: { routeId } }),
       {
         actionId,
         stat: route.stat,
         dc: route.dc,
-        successText: route.successText,
-        failureText: route.failureText,
+        successText: `${route.successText}${locationText}`,
+        failureText: `${route.failureText}${locationText}`,
         manaCost: optionalManaCost(options),
       },
     )
