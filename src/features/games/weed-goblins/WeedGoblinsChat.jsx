@@ -353,7 +353,9 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
             key={`${message.kind || 'message'}-${message.direction}-${index}-${message.actionId || 'message'}`}
             message={message}
             onRoll={handleRoll}
-            canRoll={Boolean(pendingTurn) && message.kind === 'roll-trigger'}
+            canRoll={Boolean(pendingTurn)
+              && message.kind === 'roll-trigger'
+              && index === messages.length - 1}
             busy={busy}
           />
         ))}
