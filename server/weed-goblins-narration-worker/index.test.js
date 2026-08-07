@@ -446,6 +446,22 @@ test('system prompt locks the Highlands opening to its canonical foundation', ()
     'begin exactly with "Welcome to the Goblin Highlands. I\'ll be your narrator."',
     'explicitly identify that narrator as "S.T.O.N.E.R."',
     'not thematic inspiration',
+    'what the player can see, hear, smell, or otherwise sense',
+    'black pines or broken stone ridges disappearing into mist',
+    'distant goblin bells or peat smoke on the wind',
+    'fresh tracks leading toward the stolen item and the danger ahead',
+    'Do not replace the scene with S.T.O.N.E.R. musing about his own feelings',
+  ]) {
+    assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
+  }
+})
+
+test('system prompt makes background selection a concrete start-of-road moment', () => {
+  for (const required of [
+    'When moment is "scene-intro" and introKind is "background-selection"',
+    'a concrete one-line moment at the start of the road',
+    'what the character is doing, carrying, checking, or noticing',
+    'Do not summarize training or personality traits',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }

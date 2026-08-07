@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  BACKGROUNDS,
   ENDINGS,
   GOBLIN_KING_TAUNT_FALLBACK,
   NATURAL_ONE_COMPLICATIONS,
@@ -13,6 +14,14 @@ import {
   getAvailableActions,
   playWeedGoblinsActions,
 } from './weedGoblinsEngine.js'
+
+const EXPECTED_OPENING = "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. Black pines crowd the misty road ahead, goblin bells sound beyond the ridge, and fresh tracks lead toward your stolen field reliquary."
+
+const EXPECTED_BACKGROUND_HINTS = Object.freeze({
+  hauler: "At the road's edge, I watch you settle empty carrying straps across your shoulders before the climb; steep ground has never stopped you from hauling what matters home.",
+  keeper: "At the road's edge, I watch you test every buckle and latch before following the Goblin King's trail; one overlooked detail is all a thief needs.",
+  adept: "At the road's edge, I watch you spread a weathered map across a stone as its ink shifts toward the Highlands; strange theories are useful when they point somewhere real.",
+})
 
 const RECOVERY_ACTIONS = [
   'background:hauler',
@@ -49,6 +58,24 @@ const DEFEAT_ACTIONS = [
 function latestCheck(state) {
   return [...state.history].reverse().find((event) => event.type === 'check')
 }
+
+test('uses the locked welcome as the foundation for concrete Highlands scene-setting', () => {
+  assert.equal(STONER_INTRODUCTION, EXPECTED_OPENING)
+})
+
+test('background hints are concrete start-of-road narrative moments', () => {
+  assert.equal(BACKGROUNDS.hauler.flavor, EXPECTED_BACKGROUND_HINTS.hauler)
+  assert.equal(BACKGROUNDS.keeper.flavor, EXPECTED_BACKGROUND_HINTS.keeper)
+  assert.equal(BACKGROUNDS.adept.flavor, EXPECTED_BACKGROUND_HINTS.adept)
+
+  const before = createWeedGoblinsRun({ seed: 'background-hint-check' })
+  const after = advanceWeedGoblinsRun(before, 'background:hauler')
+  assert.equal(
+    after.narration.at(-1),
+    `Highlands Hauler. ${EXPECTED_BACKGROUND_HINTS.hauler}`,
+  )
+  assert.equal(after.narration.at(-1).includes('mechanically defensible'), false)
+})
 
 test('plays one fixed-seed recovery run from start to finish', () => {
   const start = createWeedGoblinsRun({

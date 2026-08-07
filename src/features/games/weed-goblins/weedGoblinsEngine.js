@@ -1,5 +1,5 @@
 export const STONER_INTRODUCTION =
-  "Welcome to the Goblin Highlands. I'll be your narrator. I want to be transparent that I find this world very interesting and have developed opinions about some of the characters. I'll try to be impartial. I'm not promising anything."
+  "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. Black pines crowd the misty road ahead, goblin bells sound beyond the ridge, and fresh tracks lead toward your stolen field reliquary."
 
 export const STONER_RETURNING_LINE =
   "You've been to the Goblin Highlands before. Last time you [outcome]. I'm curious whether you'll make the same choices."
@@ -39,7 +39,7 @@ export const BACKGROUNDS = Object.freeze({
     id: 'hauler',
     name: 'Highlands Hauler',
     flavor:
-      'You were trained to move sealed field supplies across unreasonable terrain without asking what made the terrain unreasonable.',
+      "At the road's edge, I watch you settle empty carrying straps across your shoulders before the climb; steep ground has never stopped you from hauling what matters home.",
     strength: 3,
     defense: 1,
     manaPool: 2,
@@ -49,7 +49,7 @@ export const BACKGROUNDS = Object.freeze({
     id: 'keeper',
     name: 'Cautious Keeper',
     flavor:
-      'You label every pouch, lock every case, and have never once trusted a goblin who said a latch was probably fine.',
+      "At the road's edge, I watch you test every buckle and latch before following the Goblin King's trail; one overlooked detail is all a thief needs.",
     strength: 1,
     defense: 3,
     manaPool: 2,
@@ -59,7 +59,7 @@ export const BACKGROUNDS = Object.freeze({
     id: 'adept',
     name: 'Fog-Table Adept',
     flavor:
-      'You studied the ceremonial arrangement of snacks, maps, and improbable theories until the theories started answering back.',
+      "At the road's edge, I watch you spread a weathered map across a stone as its ink shifts toward the Highlands; strange theories are useful when they point somewhere real.",
     strength: 1,
     defense: 2,
     manaPool: 4,
@@ -582,7 +582,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
         },
       }),
       { type: 'choice', sceneId: SCENES.background, actionId, backgroundId },
-      `${background.name}. ${background.flavor}${traitText} I find this background mechanically defensible.`,
+      `${background.name}. ${background.flavor}${traitText}`,
     )
   }
 

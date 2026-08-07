@@ -2,6 +2,8 @@ const BANNED_WORDS = Object.freeze(['awesome', 'amazing', 'weed'])
 const RUN_ENDING_OUTCOMES = Object.freeze(['recovery', 'bargain', 'escape'])
 const HIGHLANDS_OPENING_FOUNDATION = "Welcome to the Goblin Highlands. I'll be your narrator."
 const STONER_NAME_SIGNAL = /S\.T\.O\.N\.E\.R\./
+const HIGHLANDS_SCENE_SIGNAL = /\b(?:ahead|air|bells?|danger|fog|footprints?|highlands|mist|path|pines?|reliquary|ridge|road|ruins?|sense|smell|smoke|stone|stolen|tracks?|trail|wind)\b/i
+const HIGHLANDS_SELF_COMMENTARY_SIGNAL = /\b(?:I(?:'ve| have)? got (?:a )?(?:strange )?feeling|I find [^.!?]{0,60}(?:fascinating|interesting)|I(?:'ve| have) developed (?:a )?(?:few )?opinions?|my (?:feelings?|opinions?)|something(?:'s| is) been growing)\b/i
 
 export const SUPPORTED_MOMENT_OUTCOMES = Object.freeze({
   'natural-one-complication': Object.freeze(['complication']),
@@ -384,11 +386,18 @@ export function validateGeneratedNarration(
   }
 
   if (moment === 'scene-intro' && introKind === 'highlands-opening') {
+    const openingRemainder = text.slice(HIGHLANDS_OPENING_FOUNDATION.length)
     if (!text.startsWith(HIGHLANDS_OPENING_FOUNDATION)) {
       reasons.push('does not begin with the locked Highlands welcome')
     }
-    if (!STONER_NAME_SIGNAL.test(text.slice(HIGHLANDS_OPENING_FOUNDATION.length))) {
+    if (!STONER_NAME_SIGNAL.test(openingRemainder)) {
       reasons.push('does not identify S.T.O.N.E.R. as the narrator')
+    }
+    if (!HIGHLANDS_SCENE_SIGNAL.test(openingRemainder)) {
+      reasons.push('does not establish a concrete Highlands scene or stolen-item stakes')
+    }
+    if (HIGHLANDS_SELF_COMMENTARY_SIGNAL.test(openingRemainder)) {
+      reasons.push('uses narrator self-commentary instead of scene-setting')
     }
   }
 
