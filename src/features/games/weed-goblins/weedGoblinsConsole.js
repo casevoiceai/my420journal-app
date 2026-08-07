@@ -15,6 +15,7 @@ import {
 import {
   loadConsoleLocalAdapterSnapshot,
   runInteractiveWeedGoblins,
+  saveConsoleLocalAdapterRunSummary,
 } from './weedGoblinsConsoleStatic.js'
 
 const DEFAULT_NARRATION_ENDPOINT =
@@ -194,8 +195,11 @@ async function main() {
     journalSnapshot: options.useLocalAdapter ? snapshot : undefined,
     previousRuns: options.useLocalAdapter ? snapshot.previousRuns : undefined,
     sourceLabel: options.useLocalAdapter
-      ? 'local adapter over realistic mocked browser entries'
+      ? 'local adapter over realistic mocked browser entries with persistent run history'
       : undefined,
+    onRunComplete: options.useLocalAdapter
+      ? (state) => saveConsoleLocalAdapterRunSummary(state.runSummary)
+      : null,
   })
 }
 
