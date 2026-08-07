@@ -2,8 +2,15 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  advanceWeedGoblinsRun,
+  createWeedGoblinsRun,
+} from './weedGoblinsEngine.js'
+import { generateNarrationFromHook } from './weedGoblinsAiComplication.js'
+import { getNarrationHooksForTransition } from './weedGoblinsNarrationHooks.js'
+import {
   buildWeedGoblinsPersonalizationSnapshot,
   createEmptyWeedGoblinsPersonalizationSnapshot,
+  fictionalizeDispensaryName,
   readWeedGoblinsPersonalizationSnapshot,
   weedGoblinsRunStorageKey,
 } from './weedGoblinsLocalDataAdapter.js'
@@ -44,15 +51,36 @@ function createMemoryStorage(values = {}) {
   }
 }
 
-test('caps products, categories, and dispensaries at the locked limits', () => {
+function modelResponse(text) {
+  return Promise.resolve(new Response(JSON.stringify({
+    text,
+    model: 'claude-haiku-4-5-20251001',
+  }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }))
+}
+
+test('fictional dispensary transform is stable and differentiates names', () => {
+  const first = fictionalizeDispensaryName('North Ridge Collective')
+  const repeated = fictionalizeDispensaryName('North Ridge Collective')
+  const different = fictionalizeDispensaryName('East Gate Supply')
+
+  assert.equal(first, repeated)
+  assert.notEqual(first, different)
+  assert.match(first, /^The [A-Za-z-]+ [A-Za-z]+$/)
+  assert.match(different, /^The [A-Za-z-]+ [A-Za-z]+$/)
+})
+
+test('caps products, categories, and fictional locations at the locked limits', () => {
   const entries = [
-    ['Blue Dream', 'Flower', 'Restore Scranton'],
-    ['Northern Lights', 'Vape', 'Justice Grown'],
-    ['Lemon Cherry Gelato', 'Extract', 'Columbia Care'],
-    ['Animal Face', 'Tinctures', 'Ethos'],
-    ['Purple Punch', 'Topicals', 'Beyond Hello'],
-    ['Wedding Cake', 'Flower', 'AYR'],
-    ['Runtz', 'Vape', 'Trulieve'],
+    ['Blue Dream', 'Flower', 'North Ridge Collective'],
+    ['Northern Lights', 'Vape', 'East Gate Supply'],
+    ['Lemon Cherry Gelato', 'Extract', 'West Hollow Exchange'],
+    ['Animal Face', 'Tinctures', 'South Arch Market'],
+    ['Purple Punch', 'Topicals', 'Copper Lane Shop'],
+    ['Wedding Cake', 'Flower', 'Moon Gate Supply'],
+    ['Runtz', 'Vape', 'Moss Road Exchange'],
   ].map(([product_name, category, dispensary_name], index) => ({
     id: `entry-${index}`,
     user_id: 'user-1',
@@ -71,7 +99,7 @@ test('caps products, categories, and dispensaries at the locked limits', () => {
 
   assert.equal(snapshot.productNames.length, 5)
   assert.equal(snapshot.productCategories.length, 3)
-  assert.equal(snapshot.dispensaryNames.length, 3)
+  assert.equal(snapshot.fictionalLocationNames.length, 3)
   assert.deepEqual(snapshot.productNames, [
     'Blue Dream',
     'Northern Lights',
@@ -80,14 +108,19 @@ test('caps products, categories, and dispensaries at the locked limits', () => {
     'Purple Punch',
   ])
   assert.deepEqual(snapshot.productCategories, ['Flower', 'Vape', 'Extract'])
-  assert.deepEqual(snapshot.dispensaryNames, [
-    'Restore Scranton',
-    'Justice Grown',
-    'Columbia Care',
+  assert.deepEqual(snapshot.fictionalLocationNames, [
+    fictionalizeDispensaryName('North Ridge Collective'),
+    fictionalizeDispensaryName('East Gate Supply'),
+    fictionalizeDispensaryName('West Hollow Exchange'),
   ])
   assert.equal(snapshot.entryCount, 7)
   assert.equal(snapshot.effectTags[0], 'Creative')
   assert.equal(snapshot.terpeneLabels[0], 'Beta Myrcene')
+
+  const serialized = JSON.stringify(snapshot)
+  for (const rawName of entries.map((entry) => entry.dispensary_name)) {
+    assert.equal(serialized.includes(rawName), false)
+  }
 })
 
 test('produces the valid empty snapshot when there are zero local entries', async () => {
@@ -99,13 +132,13 @@ test('produces the valid empty snapshot when there are zero local entries', asyn
   assert.deepEqual(snapshot, createEmptyWeedGoblinsPersonalizationSnapshot())
 })
 
-test('never includes excluded raw-entry fields in the sanitized snapshot', () => {
+test('never includes excluded raw-entry fields or raw dispensary names in the sanitized snapshot', () => {
   const rawEntry = {
     id: 'entry-sensitive',
     user_id: 'user-1',
     product_name: 'Blue Dream',
     category: 'Flower',
-    dispensary_name: 'Restore Scranton',
+    dispensary_name: 'North Ridge Collective',
     body_tags: ['Relaxed'],
     mind_tags: ['Creative'],
     mood_tags: ['Calm'],
@@ -133,12 +166,16 @@ test('never includes excluded raw-entry fields in the sanitized snapshot', () =>
     'productCategories',
     'effectTags',
     'terpeneLabels',
-    'dispensaryNames',
+    'fictionalLocationNames',
     'entryCount',
     'previousRuns',
   ])
+  assert.deepEqual(snapshot.fictionalLocationNames, [
+    fictionalizeDispensaryName(rawEntry.dispensary_name),
+  ])
 
   for (const forbiddenValue of [
+    'North Ridge Collective',
     'private pain and health note',
     'private voice transcript',
     'private health information',
@@ -156,6 +193,52 @@ test('never includes excluded raw-entry fields in the sanitized snapshot', () =>
   }
 })
 
+test('raw dispensary name cannot reach engine state or narration request context', async () => {
+  const rawDispensaryName = 'North Ridge Collective'
+  const snapshot = buildWeedGoblinsPersonalizationSnapshot({
+    entries: [{
+      user_id: 'user-1',
+      product_name: 'Blue Dream',
+      category: 'Flower',
+      dispensary_name: rawDispensaryName,
+    }],
+  })
+  const fictionalLocationName = fictionalizeDispensaryName(rawDispensaryName)
+
+  assert.equal(JSON.stringify(snapshot).includes(rawDispensaryName), false)
+  assert.deepEqual(snapshot.fictionalLocationNames, [fictionalLocationName])
+
+  let state = createWeedGoblinsRun({ seed: 'recovery-1', journalSnapshot: snapshot })
+  assert.equal(state.fictionalLocationName, fictionalLocationName)
+  assert.equal(JSON.stringify(state).includes(rawDispensaryName), false)
+
+  state = advanceWeedGoblinsRun(state, 'background:hauler')
+  const beforeRoute = state
+  state = advanceWeedGoblinsRun(state, 'route:ridge')
+  const routeHook = getNarrationHooksForTransition(beforeRoute, state)[0]
+
+  assert.equal(routeHook.fictionalLocationName, fictionalLocationName)
+  assert.equal(routeHook.authoritativeText.includes(fictionalLocationName), true)
+  assert.equal(routeHook.authoritativeText.includes(rawDispensaryName), false)
+
+  let requestBody = null
+  const result = await generateNarrationFromHook({
+    hook: routeHook,
+    state,
+    blockedRealNames: [rawDispensaryName],
+    fetchImpl: async (_url, init) => {
+      requestBody = init.body
+      return modelResponse(
+        `I record your success as the route bends past ${fictionalLocationName}.`,
+      )
+    },
+  })
+
+  assert.equal(result.source, 'ai')
+  assert.equal(requestBody.includes(rawDispensaryName), false)
+  assert.equal(requestBody.includes(fictionalLocationName), true)
+})
+
 test('reads the actual localStore entries query shape and sanitized prior run key', async () => {
   const userId = 'user-1'
   const entries = [
@@ -163,7 +246,7 @@ test('reads the actual localStore entries query shape and sanitized prior run ke
       user_id: userId,
       product_name: 'Northern Lights',
       category: 'Flower',
-      dispensary_name: 'Restore Scranton',
+      dispensary_name: 'North Ridge Collective',
       body_tags: ['Relaxed'],
       terpenes: { 'Beta Myrcene': '1.1' },
     },
@@ -195,6 +278,9 @@ test('reads the actual localStore entries query shape and sanitized prior run ke
   })
 
   assert.deepEqual(snapshot.productNames, ['Northern Lights'])
+  assert.deepEqual(snapshot.fictionalLocationNames, [
+    fictionalizeDispensaryName('North Ridge Collective'),
+  ])
   assert.equal(snapshot.entryCount, 2)
   assert.deepEqual(snapshot.previousRuns, [
     {
@@ -202,6 +288,7 @@ test('reads the actual localStore entries query shape and sanitized prior run ke
       outcomeSummary: 'recovered the Northern Lights Field Reliquary',
     },
   ])
+  assert.equal(JSON.stringify(snapshot).includes('North Ridge Collective'), false)
   assert.equal(JSON.stringify(snapshot).includes('Private note title'), false)
   assert.equal(JSON.stringify(snapshot).includes('must not survive'), false)
   assert.equal(JSON.stringify(snapshot).includes('2026-08-06'), false)
