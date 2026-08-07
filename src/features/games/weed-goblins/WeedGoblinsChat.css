@@ -1,0 +1,308 @@
+.weed-goblins-chat {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 100dvh;
+  background: #0b0d0c;
+  color: #f4f5f4;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.weed-goblins-chat__header {
+  min-height: 66px;
+  padding: max(10px, env(safe-area-inset-top)) 14px 10px;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 13, 12, 0.96);
+  backdrop-filter: blur(18px);
+}
+
+.weed-goblins-chat__back {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #b7c9bc;
+  font-size: 38px;
+  line-height: 34px;
+  cursor: pointer;
+}
+
+.weed-goblins-chat__contact {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.weed-goblins-chat__avatar {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #2f6f4e;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.weed-goblins-chat__contact-name {
+  overflow: hidden;
+  color: #f4f5f4;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weed-goblins-chat__contact-detail {
+  margin-top: 2px;
+  color: #879089;
+  font-size: 10px;
+  line-height: 1;
+  text-align: center;
+}
+
+.weed-goblins-chat__header-spacer {
+  width: 44px;
+}
+
+.weed-goblins-chat__thread {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 12px 24px;
+  scrollbar-width: thin;
+}
+
+.weed-goblins-chat__message-row {
+  display: flex;
+  width: 100%;
+  margin: 5px 0;
+}
+
+.weed-goblins-chat__message-row.is-incoming {
+  justify-content: flex-start;
+}
+
+.weed-goblins-chat__message-row.is-outgoing {
+  justify-content: flex-end;
+}
+
+.weed-goblins-chat__bubble {
+  position: relative;
+  max-width: min(78%, 520px);
+  padding: 10px 13px;
+  border-radius: 19px;
+  font-size: clamp(15px, 2.8vw, 17px);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.weed-goblins-chat__bubble.is-incoming {
+  border-bottom-left-radius: 6px;
+  background: #242724;
+  color: #f2f3f2;
+}
+
+.weed-goblins-chat__bubble.is-outgoing {
+  border-bottom-right-radius: 6px;
+  background: #2f6f4e;
+  color: #ffffff;
+}
+
+.weed-goblins-chat__bubble.is-roll-step,
+.weed-goblins-chat__bubble.is-roll-result {
+  padding: 8px 10px;
+}
+
+.weed-goblins-chat__bubble-meta {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.weed-goblins-chat__roll-badge {
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  color: #d9eadf;
+  line-height: 0;
+}
+
+.weed-goblins-chat__d20 {
+  width: 36px;
+  height: 36px;
+  display: block;
+  overflow: visible;
+}
+
+.weed-goblins-chat__d20-face {
+  fill: #2f6f4e;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+
+.weed-goblins-chat__d20-edges {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+  opacity: 0.58;
+}
+
+.weed-goblins-chat__d20-number {
+  fill: #ffffff;
+  stroke: #2f6f4e;
+  stroke-width: 1.8px;
+  paint-order: stroke fill;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 7px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.weed-goblins-chat__roll-trigger {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #d9eadf;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.weed-goblins-chat__roll-trigger:disabled {
+  cursor: default;
+  opacity: 0.62;
+}
+
+.weed-goblins-chat__composer-area {
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 13, 12, 0.98);
+}
+
+.weed-goblins-chat__quick-replies {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 9px;
+  scrollbar-width: none;
+}
+
+.weed-goblins-chat__quick-replies::-webkit-scrollbar {
+  display: none;
+}
+
+.weed-goblins-chat__quick-reply {
+  flex: 0 0 auto;
+  min-height: 36px;
+  max-width: min(76vw, 360px);
+  padding: 8px 13px;
+  border: 1px solid #4a7d60;
+  border-radius: 999px;
+  background: transparent;
+  color: #cfe0d4;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  white-space: normal;
+}
+
+.weed-goblins-chat__quick-reply:active {
+  background: rgba(47, 111, 78, 0.24);
+}
+
+.weed-goblins-chat__quick-reply:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.weed-goblins-chat__composer {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  gap: 7px;
+  align-items: center;
+}
+
+.weed-goblins-chat__composer-icon,
+.weed-goblins-chat__send {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #242724;
+  color: #7e8880;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.weed-goblins-chat__send {
+  background: #2f6f4e;
+  color: #dce7df;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.weed-goblins-chat__send:disabled {
+  opacity: 0.45;
+}
+
+.weed-goblins-chat__input {
+  width: 100%;
+  height: 38px;
+  box-sizing: border-box;
+  border: 1px solid #343936;
+  border-radius: 999px;
+  outline: none;
+  background: #171a18;
+  color: #aeb6b0;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 15px;
+}
+
+.weed-goblins-chat__input:not([readonly]):focus {
+  border-color: #4a7d60;
+}
+
+.weed-goblins-chat__input::placeholder {
+  color: #6f7872;
+}
+
+@media (min-width: 720px) {
+  .weed-goblins-chat {
+    left: 50%;
+    right: auto;
+    width: min(100%, 760px);
+    transform: translateX(-50%);
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.45);
+  }
+
+  body:has(.weed-goblins-chat) {
+    background: #060706;
+  }
+}

@@ -1,13 +1,15 @@
 {
   "name": "my420journal-local-first",
   "version": "1.0.0",
+  "type": "module",
   "description": "Local-first my420journal app. Journal, profile, guide, and entry data stay on device storage.",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node -e \"require('fs').copyFileSync('dist/index.html', 'dist/404.html')\"",
     "preview": "vite preview",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test src/features/games/weed-goblins/weedGoblinsEngine.test.js src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js src/features/games/weed-goblins/weedGoblinsRunHistory.test.js src/features/games/weed-goblins/weedGoblinsFreeTextInterpreter.test.js src/features/games/weed-goblins/weedGoblinsFreeTextNarration.test.js src/features/games/weed-goblins/weedGoblinsChatController.test.js src/features/games/weed-goblins/weedGoblinsAiComplication.test.js src/features/games/weed-goblins/weedGoblinsNarrationHooks.test.js src/features/games/weed-goblins/weedGoblinsNarrationStoryBeats.test.js src/features/games/weed-goblins/weedGoblinsPagesFunction.test.js server/weed-goblins-narration-worker/index.test.js server/weed-goblins-narration-worker/story-beats.test.js",
+    "play:weed-goblins": "node --experimental-webstorage --localstorage-file=.weed-goblins-console-local-storage src/features/games/weed-goblins/weedGoblinsConsole.js"
   },
   "keywords": [],
   "author": "",
