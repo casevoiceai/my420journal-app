@@ -48,11 +48,13 @@ Locked tone examples, not an exhaustive future content list:
 
 Each background is a cannabis-culture reference delivered with complete earnestness by S.T.O.N.E.R. It affects only fictional game mechanics and makes no health or real-world product claims.
 
-## Locked future narration decisions
+## Locked narration decisions
 
 ### Goblin King performance voice
 
-S.T.O.N.E.R. remains the narrator of Weed Goblins. When AI narration is added in a future session, S.T.O.N.E.R. performs the Goblin King as a distinct character voice the way a tabletop DM performs a villain differently from ordinary narration. The Goblin King is theatrical, a little too pleased with himself, and confident he has already won. This is a performed fictional character voice, not a separate AI guide or identity. Session 1 does not generate Goblin King dialogue.
+S.T.O.N.E.R. remains the narrator of Weed Goblins. S.T.O.N.E.R. performs the Goblin King as a distinct character voice the way a tabletop DM performs a villain differently from ordinary narration. The Goblin King is theatrical, a little too pleased with himself, and confident he has already won. This is a performed fictional character voice, not a separate AI guide or identity.
+
+The implemented `goblin-king-taunt` / `taunt` narration moment fires once when the run first enters the Goblin King confrontation, before the player chooses Overpower, Outlast, a Mana-assisted option, or a bargain. It is flavor only: it does not roll dice, change Trouble, spend Mana, alter a DC, or resolve any outcome. The validated line keeps a first-person S.T.O.N.E.R. narrator frame and includes a short quoted or clearly attributed Goblin King line.
 
 ### Callback escalation
 
