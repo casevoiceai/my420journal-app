@@ -4,6 +4,9 @@ export const STONER_INTRODUCTION =
 export const STONER_RETURNING_LINE =
   "You've been to the Goblin Highlands before. Last time you [outcome]. I'm curious whether you'll make the same choices."
 
+export const GOBLIN_KING_TAUNT_FALLBACK =
+  'I watch the Goblin King lean back on his throne and say, "You may begin whenever you are ready to disappoint yourself," with the confidence of someone who has already prepared the paperwork.'
+
 export const DIFFICULTY = Object.freeze({
   easy: 9,
   standard: 12,
@@ -239,6 +242,20 @@ function appendEvent(state, event, narrationLine) {
     history: [...state.history, event],
     narration: narrationLine ? [...state.narration, narrationLine] : [...state.narration],
   })
+}
+
+function enterGoblinKingScene(state) {
+  return appendEvent(
+    cloneState(state, { sceneId: SCENES.boss }),
+    {
+      type: 'taunt',
+      sceneId: SCENES.boss,
+      actionId: 'boss:taunt',
+      outcome: 'taunt',
+      tauntText: GOBLIN_KING_TAUNT_FALLBACK,
+    },
+    GOBLIN_KING_TAUNT_FALLBACK,
+  )
 }
 
 function rollD20(state) {
@@ -618,7 +635,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
 
   if (state.sceneId === SCENES.midpoint) {
     if (actionId === 'midpoint:help') {
-      return cloneState(
+      return enterGoblinKingScene(
         appendEvent(
           cloneState(state, {
             flags: { midpointChoice: 'help', goblinAlly: true },
@@ -626,7 +643,6 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
           { type: 'choice', sceneId: SCENES.midpoint, actionId },
           'You help the goblin clerk recover a stack of forms. The clerk is moved. Mostly because the forms were numbered.',
         ),
-        { sceneId: SCENES.boss },
       )
     }
 
@@ -643,10 +659,11 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
         },
       )
       if (result.state.status === 'completed') return result.state
-      return cloneState(result.state, {
-        sceneId: SCENES.boss,
-        flags: { bossDcModifier: result.success ? -2 : 1 },
-      })
+      return enterGoblinKingScene(
+        cloneState(result.state, {
+          flags: { bossDcModifier: result.success ? -2 : 1 },
+        }),
+      )
     }
 
     if (actionId === 'midpoint:take-charm') {
@@ -662,19 +679,19 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
         },
       )
       if (result.state.status === 'completed') return result.state
-      return cloneState(result.state, {
-        sceneId: SCENES.boss,
-        flags: { bossDcModifier: result.success ? -1 : 1 },
-      })
+      return enterGoblinKingScene(
+        cloneState(result.state, {
+          flags: { bossDcModifier: result.success ? -1 : 1 },
+        }),
+      )
     }
 
-    return cloneState(
+    return enterGoblinKingScene(
       appendEvent(
         cloneState(state, { flags: { midpointChoice: 'skip' } }),
         { type: 'choice', sceneId: SCENES.midpoint, actionId },
         'You continue without interfering. This is a valid choice. I have no additional comment. I have several comments.',
       ),
-      { sceneId: SCENES.boss },
     )
   }
 
