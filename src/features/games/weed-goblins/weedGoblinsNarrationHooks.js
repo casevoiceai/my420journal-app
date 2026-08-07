@@ -22,6 +22,10 @@ function baseHook({ moment, outcome, fallbackText, event = {}, before, after }) 
     troubleAfter: Number(after?.trouble) || 0,
     fictionalStolenItem: cleanText(after?.stolenItem ?? before?.stolenItem, 160),
     fictionalGoblinName: cleanText(after?.goblinName ?? before?.goblinName, 100),
+    fictionalLocationName: cleanText(
+      after?.fictionalLocationName ?? before?.fictionalLocationName,
+      120,
+    ),
     narrationTier: cleanText(after?.narrationTier ?? before?.narrationTier, 50) || 'normal',
     allowCallback: false,
     allowFourthWall: false,
