@@ -142,9 +142,21 @@ export function calculateGameProgression({
     if (unlocked) unlockedChapters.push(resolved)
   }
 
-  const currentChapter = unlockedChapters.at(-1) || chapters[0] || null
-  const nextChapterReference = unlockedChapters.length > 1
-    ? unlockedChapters.at(-1)
+  const playedUnlockedChapters = unlockedChapters.filter(
+    (chapter) => chapter.completedRunCount > 0,
+  )
+  const unfinishedPlayedChapter = playedUnlockedChapters.find(
+    (chapter) => chapter.finishedEnough !== true,
+  )
+  const currentChapter = unfinishedPlayedChapter
+    || playedUnlockedChapters.at(-1)
+    || unlockedChapters[0]
+    || chapters[0]
+    || null
+  const nextChapterReference = currentChapter
+    ? unlockedChapters.find(
+      (chapter) => chapter.completedRunCount === 0 && chapter.number > currentChapter.number,
+    ) || null
     : null
 
   return Object.freeze({
