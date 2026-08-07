@@ -58,7 +58,7 @@ const ENDING_SIGNALS = Object.freeze({
 const GOBLIN_KING_SPEECH_VERB = '(?:say(?:s|ing)?|declare(?:s|d|ing)?|drawl(?:s|ed|ing)?|remark(?:s|ed|ing)?|announce(?:s|d|ing)?|observe(?:s|d|ing)?|boast(?:s|ed|ing)?|tell(?:s|ing)\\s+(?:me|you))'
 const QUOTED_DIALOGUE_SIGNAL = /(?:"[^"]+"|“[^”]+”)/
 const PRE_ROLL_RESULT_SIGNAL = /\b(?:roll(?:ed)?|d20|die|dice)\b[^.!?]{0,24}\b(?:[1-9]|1\d|20)\b/i
-const HIDDEN_MAPPING_SIGNAL = /\b(?:strength|defense|mana)\s+(?:check|test|path|stat|bucket)\b|\bDC\s*\d+\b|\b(?:map|mapped|mapping|classify|classified|classification)\b[^.!?]{0,40}\b(?:strength|defense|mana)\b/i
+const HIDDEN_MAPPING_SIGNAL = /\b(?:strength|defense|mana)\b|\bDC\s*\d+\b|\b(?:map|mapped|mapping|classify|classified|classification)\b[^.!?]{0,40}\b(?:strength|defense|mana)\b/i
 const PLAYER_ACTION_CONTEXT_MOMENTS = new Set([
   'player-action-attempt',
   'player-action-response',
@@ -82,16 +82,18 @@ const PLAYER_ACTION_IGNORED_WORDS = new Set([
   'and',
   'at',
   'by',
+  'defense',
   'for',
   'from',
   'goblin',
-  'him',
   'her',
+  'him',
   'i',
   'in',
   'into',
   'it',
   'king',
+  'mana',
   'me',
   'my',
   'of',
@@ -100,6 +102,7 @@ const PLAYER_ACTION_IGNORED_WORDS = new Set([
   'or',
   'our',
   'she',
+  'strength',
   'that',
   'the',
   'their',
