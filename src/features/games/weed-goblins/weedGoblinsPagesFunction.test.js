@@ -11,7 +11,11 @@ const env = {
 function makeRequest(origin = 'https://my420journal.app') {
   return new Request('https://my420journal.app/api/weed-goblins-narration', {
     method: 'POST',
-    headers: { Origin: origin, 'Content-Type': 'application/json' },
+    headers: {
+      Origin: origin,
+      'Content-Type': 'application/json',
+      'CF-Connecting-IP': '203.0.113.42',
+    },
     body: JSON.stringify({ moment: 'natural-one-complication' }),
   })
 }
@@ -39,7 +43,10 @@ test('accepts only the two locked production origins', async () => {
   const originalFetch = globalThis.fetch
   const origins = []
   globalThis.fetch = async (_url, init) => {
-    origins.push(init.headers.Authorization)
+    origins.push({
+      authorization: init.headers.Authorization,
+      sourceAddress: init.headers['X-Weed-Goblins-Source-IP'],
+    })
     return new Response(JSON.stringify({ text: 'I record a harmless scheduling problem.' }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -52,9 +59,41 @@ test('accepts only the two locked production origins', async () => {
       assert.equal((await response.json()).text, 'I record a harmless scheduling problem.')
     }
     assert.deepEqual(origins, [
-      'Bearer private-shared-secret',
-      'Bearer private-shared-secret',
+      {
+        authorization: 'Bearer private-shared-secret',
+        sourceAddress: '203.0.113.42',
+      },
+      {
+        authorization: 'Bearer private-shared-secret',
+        sourceAddress: '203.0.113.42',
+      },
     ])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('passes a clean rate-limit response and Retry-After header through unchanged', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    error: 'Free-text narration rate limit reached. Please try again later.',
+    retry_after_seconds: 900,
+  }), {
+    status: 429,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Retry-After': '900',
+    },
+  })
+
+  try {
+    const response = await onRequest({ request: makeRequest(), env })
+    assert.equal(response.status, 429)
+    assert.equal(response.headers.get('Retry-After'), '900')
+    assert.deepEqual(await response.json(), {
+      error: 'Free-text narration rate limit reached. Please try again later.',
+      retry_after_seconds: 900,
+    })
   } finally {
     globalThis.fetch = originalFetch
   }

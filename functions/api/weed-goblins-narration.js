@@ -59,13 +59,23 @@ export async function onRequest({ request, env }) {
 
   let upstream
   try {
+    const sourceAddress = String(
+      request.headers.get('CF-Connecting-IP')
+      || request.headers.get('CF-Connecting-IPv6')
+      || '',
+    ).trim()
+    const upstreamHeaders = {
+      Authorization: `Bearer ${sharedSecret}`,
+      'Content-Type': request.headers.get('Content-Type') || 'application/json',
+      Accept: 'application/json',
+    }
+    if (sourceAddress) {
+      upstreamHeaders['X-Weed-Goblins-Source-IP'] = sourceAddress
+    }
+
     upstream = await fetch(workerUrl, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${sharedSecret}`,
-        'Content-Type': request.headers.get('Content-Type') || 'application/json',
-        Accept: 'application/json',
-      },
+      headers: upstreamHeaders,
       body,
     })
   } catch {

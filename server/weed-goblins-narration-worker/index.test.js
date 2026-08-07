@@ -2,14 +2,23 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  FREE_TEXT_RATE_LIMIT,
+  FREE_TEXT_RATE_LIMIT_WINDOW_MS,
   WEED_GOBLINS_MODEL,
   WEED_GOBLINS_SYSTEM_PROMPT,
+  WeedGoblinsFreeTextRateLimiter,
+  freeTextSourceRateKey,
   handleNarrationWorkerRequest,
 } from './index.js'
 
 const SECRET = 'test-shared-secret'
 
-function request({ method = 'POST', secret = SECRET, body = {} } = {}) {
+function request({
+  method = 'POST',
+  secret = SECRET,
+  body = {},
+  sourceAddress = '203.0.113.42',
+} = {}) {
   return new Request('https://worker.example.test', {
     method,
     headers: secret === null
@@ -17,6 +26,7 @@ function request({ method = 'POST', secret = SECRET, body = {} } = {}) {
       : {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${secret}`,
+          'X-Weed-Goblins-Source-IP': sourceAddress,
         },
     body: method === 'GET' ? undefined : JSON.stringify({
       moment: 'natural-one-complication',
@@ -37,10 +47,38 @@ function request({ method = 'POST', secret = SECRET, body = {} } = {}) {
   })
 }
 
-const env = {
-  WEED_GOBLINS_PROXY_SECRET: SECRET,
-  WEED_GOBLINS_ANTHROPIC_API_KEY: 'test-api-key',
+function createMemoryRateLimiterNamespace() {
+  const instances = new Map()
+  return {
+    getByName(name) {
+      if (!instances.has(name)) {
+        const values = new Map()
+        const storage = {
+          async get(key) {
+            return values.get(key)
+          },
+          async put(key, value) {
+            values.set(key, value)
+          },
+        }
+        instances.set(name, new WeedGoblinsFreeTextRateLimiter({ storage }))
+      }
+      return instances.get(name)
+    },
+  }
 }
+
+function createEnv(overrides = {}) {
+  return {
+    WEED_GOBLINS_PROXY_SECRET: SECRET,
+    WEED_GOBLINS_ANTHROPIC_API_KEY: 'test-api-key',
+    WEED_GOBLINS_RATE_LIMIT_SALT: 'test-rate-limit-salt',
+    FREE_TEXT_RATE_LIMITER: createMemoryRateLimiterNamespace(),
+    ...overrides,
+  }
+}
+
+const env = createEnv()
 
 function anthropicResponse(text) {
   return new Response(JSON.stringify({
@@ -154,6 +192,158 @@ test('accepts a pre-roll player-action setup and preserves untrusted action cont
   assert.match(forwarded.messages[0].content, /single player action setup line/)
   assert.match(forwarded.messages[0].content, /I shove the goblin into the paperwork cart/)
   assert.equal(forwarded.messages[0].content.includes('"selectedRoll":null'), true)
+})
+
+test('uses a salted SHA-256 source key without retaining the raw IP', async () => {
+  const source = '2001:db8:1234:5678:abcd::1'
+  const key = await freeTextSourceRateKey(
+    request({ sourceAddress: source }),
+    createEnv(),
+  )
+
+  assert.match(key, /^[0-9a-f]{64}$/)
+  assert.equal(key.includes(source), false)
+  assert.equal(key.includes('test-rate-limit-salt'), false)
+  assert.equal(
+    key,
+    await freeTextSourceRateKey(
+      request({ sourceAddress: '2001:0db8:1234:5678:ffff::99' }),
+      createEnv(),
+    ),
+  )
+})
+
+test('limits the two free-text moments to 30 combined calls per hour per source', async () => {
+  const rateLimitedEnv = createEnv()
+  const startedAt = Date.parse('2026-08-07T18:00:00.000Z')
+  let fetchCalls = 0
+  const fetchImpl = async () => {
+    fetchCalls += 1
+    return anthropicResponse('I keep the specific player action moving through the scene.')
+  }
+
+  for (let index = 0; index < FREE_TEXT_RATE_LIMIT; index += 1) {
+    const attempt = index % 2 === 0
+    const response = await handleNarrationWorkerRequest(
+      request({
+        body: {
+          moment: attempt ? 'player-action-attempt' : 'player-action-response',
+          outcome: attempt ? 'attempt' : 'response',
+          playerAction: `player action ${index + 1}`,
+        },
+      }),
+      rateLimitedEnv,
+      fetchImpl,
+      startedAt,
+    )
+    assert.equal(response.status, 200)
+  }
+
+  const limited = await handleNarrationWorkerRequest(
+    request({
+      body: {
+        moment: 'player-action-attempt',
+        outcome: 'attempt',
+        playerAction: 'one action beyond the limit',
+      },
+    }),
+    rateLimitedEnv,
+    fetchImpl,
+    startedAt,
+  )
+
+  assert.equal(limited.status, 429)
+  assert.equal(limited.headers.get('Retry-After'), '3600')
+  assert.deepEqual(await limited.json(), {
+    error: 'Free-text narration rate limit reached. Please try again later.',
+    retry_after_seconds: 3600,
+  })
+  assert.equal(fetchCalls, FREE_TEXT_RATE_LIMIT)
+
+  const otherSource = await handleNarrationWorkerRequest(
+    request({
+      sourceAddress: '203.0.113.43',
+      body: {
+        moment: 'player-action-attempt',
+        outcome: 'attempt',
+        playerAction: 'a first action from another source',
+      },
+    }),
+    rateLimitedEnv,
+    fetchImpl,
+    startedAt,
+  )
+  assert.equal(otherSource.status, 200)
+  assert.equal(fetchCalls, FREE_TEXT_RATE_LIMIT + 1)
+})
+
+test('starts a fresh free-text allowance after the one-hour window', async () => {
+  const rateLimitedEnv = createEnv()
+  const startedAt = Date.parse('2026-08-07T18:00:00.000Z')
+  const fetchImpl = async () => anthropicResponse(
+    'I keep the specific player action moving through the scene.',
+  )
+
+  for (let index = 0; index < FREE_TEXT_RATE_LIMIT; index += 1) {
+    const response = await handleNarrationWorkerRequest(
+      request({
+        body: {
+          moment: 'player-action-response',
+          outcome: 'response',
+          playerAction: `player response ${index + 1}`,
+        },
+      }),
+      rateLimitedEnv,
+      fetchImpl,
+      startedAt,
+    )
+    assert.equal(response.status, 200)
+  }
+
+  const limited = await handleNarrationWorkerRequest(
+    request({
+      body: {
+        moment: 'player-action-response',
+        outcome: 'response',
+        playerAction: 'still inside the first window',
+      },
+    }),
+    rateLimitedEnv,
+    fetchImpl,
+    startedAt + FREE_TEXT_RATE_LIMIT_WINDOW_MS - 1,
+  )
+  assert.equal(limited.status, 429)
+  assert.equal(limited.headers.get('Retry-After'), '1')
+
+  const reset = await handleNarrationWorkerRequest(
+    request({
+      body: {
+        moment: 'player-action-response',
+        outcome: 'response',
+        playerAction: 'first action after reset',
+      },
+    }),
+    rateLimitedEnv,
+    fetchImpl,
+    startedAt + FREE_TEXT_RATE_LIMIT_WINDOW_MS,
+  )
+  assert.equal(reset.status, 200)
+})
+
+test('does not apply the free-text limiter to any other narration moment', async () => {
+  const nonFreeTextEnv = {
+    WEED_GOBLINS_PROXY_SECRET: SECRET,
+    WEED_GOBLINS_ANTHROPIC_API_KEY: 'test-api-key',
+  }
+  const response = await handleNarrationWorkerRequest(
+    request(),
+    nonFreeTextEnv,
+    async () => anthropicResponse(
+      'I note that the gate has reassigned your route to the longer route.',
+    ),
+  )
+
+  assert.equal(response.status, 200)
 })
 
 test('enforces supported moment and outcome pairings before Anthropic forwarding', async () => {

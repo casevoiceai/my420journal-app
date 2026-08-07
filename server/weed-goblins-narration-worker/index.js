@@ -3,6 +3,13 @@ const ANTHROPIC_VERSION = '2023-06-01'
 export const WEED_GOBLINS_MODEL = 'claude-haiku-4-5-20251001'
 const MAX_REQUEST_BYTES = 16_384
 const RUN_ENDING_OUTCOMES = Object.freeze(['recovery', 'bargain', 'escape'])
+export const FREE_TEXT_RATE_LIMIT = 30
+export const FREE_TEXT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
+const FREE_TEXT_MOMENTS = new Set([
+  'player-action-attempt',
+  'player-action-response',
+])
+const INTERNAL_SOURCE_ADDRESS_HEADER = 'X-Weed-Goblins-Source-IP'
 
 export const SUPPORTED_MOMENT_OUTCOMES = Object.freeze({
   'natural-one-complication': Object.freeze(['complication']),
@@ -86,12 +93,13 @@ CHARACTERS AND CALLBACKS
 
 Return one compliant narration line and nothing else.`
 
-function jsonResponse(body, status = 200) {
+function jsonResponse(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store',
+      ...extraHeaders,
     },
   })
 }
@@ -136,6 +144,192 @@ function cleanText(value, maxLength = 160) {
   return typeof value === 'string'
     ? value.trim().replace(/\s+/g, ' ').slice(0, maxLength)
     : ''
+}
+
+function sourceAddress(request) {
+  const internalAddress = cleanText(request.headers.get(INTERNAL_SOURCE_ADDRESS_HEADER), 100)
+  if (internalAddress) return internalAddress.toLowerCase()
+
+  const cloudflareAddress = cleanText(request.headers.get('CF-Connecting-IP'), 100)
+  if (cloudflareAddress) return cloudflareAddress.toLowerCase()
+
+  const forwarded = cleanText(request.headers.get('X-Forwarded-For'), 300)
+  if (forwarded) return forwarded.split(',')[0].trim().toLowerCase()
+
+  return 'unknown-source'
+}
+
+function parseIpv4Octets(value) {
+  const pieces = value.split('.')
+  if (pieces.length !== 4) throw new Error('Invalid IPv4 address')
+  return pieces.map((piece) => {
+    if (!/^\d{1,3}$/.test(piece)) throw new Error('Invalid IPv4 address')
+    const octet = Number(piece)
+    if (octet < 0 || octet > 255) throw new Error('Invalid IPv4 address')
+    return octet
+  })
+}
+
+export function expandIpv6(address) {
+  const withoutZone = address.split('%')[0].toLowerCase()
+  if (!withoutZone || withoutZone.includes(':::')) throw new Error('Invalid IPv6 address')
+
+  let working = withoutZone
+  const lastColon = working.lastIndexOf(':')
+  const tail = working.slice(lastColon + 1)
+  if (tail.includes('.')) {
+    const octets = parseIpv4Octets(tail)
+    const ipv4Tail = [
+      ((octets[0] << 8) | octets[1]).toString(16),
+      ((octets[2] << 8) | octets[3]).toString(16),
+    ]
+    working = `${working.slice(0, lastColon)}:${ipv4Tail.join(':')}`
+  }
+
+  const doubleColonParts = working.split('::')
+  if (doubleColonParts.length > 2) throw new Error('Invalid IPv6 address')
+
+  const parseSide = (side) => {
+    if (!side) return []
+    return side.split(':').map((segment) => {
+      if (!/^[0-9a-f]{1,4}$/.test(segment)) throw new Error('Invalid IPv6 address')
+      return Number.parseInt(segment, 16)
+    })
+  }
+
+  const left = parseSide(doubleColonParts[0])
+  const right = parseSide(doubleColonParts[1] || '')
+  let groups
+
+  if (doubleColonParts.length === 2) {
+    const missing = 8 - left.length - right.length
+    if (missing < 1) throw new Error('Invalid IPv6 address')
+    groups = [...left, ...Array(missing).fill(0), ...right]
+  } else {
+    if (left.length !== 8) throw new Error('Invalid IPv6 address')
+    groups = left
+  }
+
+  if (groups.length !== 8) throw new Error('Invalid IPv6 address')
+  return groups.map((group) => group.toString(16).padStart(4, '0'))
+}
+
+export function normalizeSourceRange(address) {
+  if (!address.includes(':')) return address
+  const groups = expandIpv6(address)
+  return `${groups.slice(0, 4).join(':')}::/64`
+}
+
+function rateLimitConfigurationError(message) {
+  const error = new Error(message)
+  error.code = 'FREE_TEXT_RATE_LIMIT_CONFIGURATION_MISSING'
+  return error
+}
+
+export async function freeTextSourceRateKey(request, env) {
+  const salt = cleanText(env?.WEED_GOBLINS_RATE_LIMIT_SALT, 500)
+  if (!salt) {
+    throw rateLimitConfigurationError(
+      'WEED_GOBLINS_RATE_LIMIT_SALT is required and must be non-empty',
+    )
+  }
+
+  const source = normalizeSourceRange(sourceAddress(request))
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    textBytes(`${salt}|${source}`),
+  )
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+export function nextFreeTextRateLimitState(current, now = Date.now()) {
+  const timestamp = Number.isFinite(Number(now)) ? Number(now) : Date.now()
+  const windowStartedAt = Number(current?.windowStartedAt)
+  const count = Number(current?.count)
+  const activeWindow = Number.isFinite(windowStartedAt)
+    && timestamp >= windowStartedAt
+    && timestamp < windowStartedAt + FREE_TEXT_RATE_LIMIT_WINDOW_MS
+
+  if (!activeWindow) {
+    return {
+      allowed: true,
+      retryAfterSeconds: 0,
+      state: { windowStartedAt: timestamp, count: 1 },
+    }
+  }
+
+  if (Number.isFinite(count) && count >= FREE_TEXT_RATE_LIMIT) {
+    return {
+      allowed: false,
+      retryAfterSeconds: Math.max(
+        1,
+        Math.ceil(
+          (windowStartedAt + FREE_TEXT_RATE_LIMIT_WINDOW_MS - timestamp) / 1000,
+        ),
+      ),
+      state: { windowStartedAt, count },
+    }
+  }
+
+  return {
+    allowed: true,
+    retryAfterSeconds: 0,
+    state: {
+      windowStartedAt,
+      count: Math.max(0, Number.isFinite(count) ? count : 0) + 1,
+    },
+  }
+}
+
+export class WeedGoblinsFreeTextRateLimiter {
+  constructor(ctx) {
+    this.ctx = ctx
+  }
+
+  async fetch(request) {
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return jsonResponse({ error: 'Invalid rate-limit request' }, 400)
+    }
+
+    const current = await this.ctx.storage.get('free-text-window')
+    const result = nextFreeTextRateLimitState(current, body?.now)
+    if (result.allowed) {
+      await this.ctx.storage.put('free-text-window', result.state)
+    }
+    return jsonResponse({
+      allowed: result.allowed,
+      retry_after_seconds: result.retryAfterSeconds,
+    })
+  }
+}
+
+async function consumeFreeTextRateLimit(request, env, now) {
+  if (!env?.FREE_TEXT_RATE_LIMITER?.getByName) {
+    throw rateLimitConfigurationError('FREE_TEXT_RATE_LIMITER binding is required')
+  }
+
+  const sourceKey = await freeTextSourceRateKey(request, env)
+  const limiter = env.FREE_TEXT_RATE_LIMITER.getByName(sourceKey)
+  const response = await limiter.fetch(new Request('https://rate-limit.internal/consume', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ now }),
+  }))
+  if (!response.ok) throw new Error('Free-text rate limiter returned an invalid response')
+
+  const result = await response.json()
+  if (typeof result?.allowed !== 'boolean') {
+    throw new Error('Free-text rate limiter returned an invalid result')
+  }
+  return {
+    allowed: result.allowed,
+    retryAfterSeconds: Math.max(1, cleanInteger(result.retry_after_seconds, 1, 3600)),
+  }
 }
 
 function cleanInteger(value, minimum = 0, maximum = 100) {
@@ -229,7 +423,12 @@ function extractText(payload) {
     .trim()
 }
 
-export async function handleNarrationWorkerRequest(request, env, fetchImpl = fetch) {
+export async function handleNarrationWorkerRequest(
+  request,
+  env,
+  fetchImpl = fetch,
+  now = Date.now(),
+) {
   if (!(await isAuthorizedNarrationRequest(request, env?.WEED_GOBLINS_PROXY_SECRET))) {
     return jsonResponse({ error: 'Unauthorized' }, 401)
   }
@@ -268,6 +467,33 @@ export async function handleNarrationWorkerRequest(request, env, fetchImpl = fet
   const context = normalizeContext(parsed)
   if (!context) {
     return jsonResponse({ error: 'Invalid narration request' }, 400)
+  }
+
+  if (FREE_TEXT_MOMENTS.has(context.moment)) {
+    let rateLimit
+    try {
+      rateLimit = await consumeFreeTextRateLimit(request, env, now)
+    } catch (error) {
+      console.error(JSON.stringify({
+        event: 'weed_goblins_free_text_rate_limit_error',
+        code: error?.code || 'FREE_TEXT_RATE_LIMIT_ERROR',
+        message: error?.message || String(error),
+      }))
+      return jsonResponse(
+        { error: 'Free-text narration rate limit is temporarily unavailable' },
+        503,
+        { 'Retry-After': '60' },
+      )
+    }
+
+    if (!rateLimit.allowed) {
+      return jsonResponse({
+        error: 'Free-text narration rate limit reached. Please try again later.',
+        retry_after_seconds: rateLimit.retryAfterSeconds,
+      }, 429, {
+        'Retry-After': String(rateLimit.retryAfterSeconds),
+      })
+    }
   }
 
   let anthropicResponse

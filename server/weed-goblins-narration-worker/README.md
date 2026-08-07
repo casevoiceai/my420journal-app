@@ -10,6 +10,7 @@ Dedicated Anthropic proxy for Weed Goblins narration. It is separate from CASEVO
 
 - `WEED_GOBLINS_PROXY_SECRET`
 - `WEED_GOBLINS_ANTHROPIC_API_KEY`
+- `WEED_GOBLINS_RATE_LIMIT_SALT`
 
 Set secrets with Wrangler. Never place their values in source, `wrangler.jsonc`, browser code, Pages build variables, logs, or test fixtures.
 
@@ -21,5 +22,6 @@ Set secrets with Wrangler. Never place their values in source, `wrangler.jsonc`,
 4. Only the `natural-one-complication` request shape is accepted in this first pass.
 5. The Worker forwards to Anthropic only after authorization and input validation.
 6. The Anthropic API key remains a Worker secret and is never returned.
+7. The two free-text moments share a limit of 30 calls per hour per salted, hashed source address. Raw source addresses are not stored in the rate limiter.
 
 The Pages Function uses `WEED_GOBLINS_NARRATION_WORKER_URL` and the same `WEED_GOBLINS_PROXY_SECRET` as private server-side bindings. The direct Worker URL must never be included in browser source.

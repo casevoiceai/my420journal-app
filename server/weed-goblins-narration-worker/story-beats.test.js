@@ -11,6 +11,21 @@ const SECRET = 'test-shared-secret'
 const env = {
   WEED_GOBLINS_PROXY_SECRET: SECRET,
   WEED_GOBLINS_ANTHROPIC_API_KEY: 'test-api-key',
+  WEED_GOBLINS_RATE_LIMIT_SALT: 'test-rate-limit-salt',
+  FREE_TEXT_RATE_LIMITER: {
+    getByName() {
+      return {
+        async fetch() {
+          return new Response(JSON.stringify({
+            allowed: true,
+            retry_after_seconds: 0,
+          }), {
+            headers: { 'Content-Type': 'application/json' },
+          })
+        },
+      }
+    },
+  },
 }
 
 function request(moment, outcome, extra = {}) {

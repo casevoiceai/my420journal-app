@@ -4,6 +4,20 @@
   "main": "index.js",
   "compatibility_date": "2026-08-06",
   "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "FREE_TEXT_RATE_LIMITER",
+        "class_name": "WeedGoblinsFreeTextRateLimiter"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["WeedGoblinsFreeTextRateLimiter"]
+    }
+  ],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1
