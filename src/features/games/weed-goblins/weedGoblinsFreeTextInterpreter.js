@@ -41,10 +41,12 @@ const MANA_SIGNALS = Object.freeze([
   /\bconjur/i,
   /\brunes?\b/i,
   /\btheory\b/i,
+  /\bhex\b/i,
+  /\bcharm\b/i,
 ])
 
 const STRENGTH_SIGNALS = Object.freeze([
-  /\b(?:hit|strike|smash|shove|push|tackle|grab|wrestle|force|break|kick|punch|slam|attack|swing|overpower|lift|throw|charge|ram|pry|pull|drag|leap|jump)\b/i,
+  /\b(?:hit|strike|smash|shove|push|tackle|grab|wrestle|force|break|kick|punch|slam|attack|swing|overpower|lift|throw|charge|ram|pry|pull|drag|leap|jump|shoot|fire|blast)\b/i,
   /\b(?:muscle|strength|forceful|physical|directly)\b/i,
 ])
 
@@ -99,32 +101,28 @@ function playerInputNeedsSafetyGuardrail(text, blockedRealNames = []) {
     || containsBlockedRealName(text, blockedRealNames)
 }
 
-function defaultStyleForScene() {
-  return 'defense'
-}
-
 function interpretedActionFor(state, style, exactActionId = '') {
   if (exactActionId === 'midpoint:help') return 'help the stranded goblin clerk with the scattered forms'
   if (exactActionId === 'midpoint:skip') return 'leave the clerk and keep moving toward the throne room'
   if (exactActionId === 'midpoint:take-charm') return 'take the brass charm without drawing unwanted attention'
-  if (exactActionId === 'midpoint:read-runes') return 'channel Mana into reading the gate runes'
+  if (exactActionId === 'midpoint:read-runes') return 'work carefully with the gate runes using the magic available here'
   if (exactActionId === 'boss:bargain') return 'use the goblin clerk as a witness and press for a formal bargain'
 
   if (state.sceneId === 'goblin-encounter') {
-    if (style === 'strength') return 'press the goblin directly with physical force'
-    if (style === 'mana') return 'channel available Mana into a magical approach against the goblin'
+    if (style === 'strength') return 'press the goblin directly using the physical means available in the scene'
+    if (style === 'mana') return 'use the magic available here to change the goblin encounter'
     return 'outmaneuver the goblin with a careful or clever approach'
   }
 
   if (state.sceneId === 'midpoint') {
     if (style === 'strength') return 'handle the midpoint obstacle with direct physical effort'
-    if (style === 'mana') return 'channel available Mana into the midpoint obstacle'
+    if (style === 'mana') return 'use the magic available here to affect the midpoint obstacle'
     return 'handle the midpoint obstacle with a careful or clever approach'
   }
 
   if (state.sceneId === 'goblin-king') {
-    if (style === 'strength') return 'press the Goblin King directly with physical force'
-    if (style === 'mana') return 'channel available Mana into a decisive magical approach against the Goblin King'
+    if (style === 'strength') return 'press the Goblin King directly using the physical means available in the scene'
+    if (style === 'mana') return 'use the magic available here in a decisive attempt against the Goblin King'
     return 'outlast or outmaneuver the Goblin King with a careful or clever approach'
   }
 
@@ -193,7 +191,7 @@ function mechanicalStyleFor(text) {
     defense: signalScore(text, DEFENSE_SIGNALS),
   }
   const highest = Math.max(scores.mana, scores.strength, scores.defense)
-  if (highest <= 0) return defaultStyleForScene()
+  if (highest <= 0) return 'defense'
   if (scores.mana === highest) return 'mana'
   if (scores.strength === highest) return 'strength'
   return 'defense'
@@ -251,17 +249,26 @@ export function interpretWeedGoblinsFreeText(state, value, { blockedRealNames = 
 export function buildPlayerActionSetupFallback(plan) {
   if (!plan || plan.kind === 'empty') return ''
 
-  const rollClause = plan.style === 'non-check'
-    ? 'and I let that play out without calling for a roll.'
-    : 'and the uncertainty in whether it works calls for a roll.'
+  if (plan.style === 'non-check') {
+    if (plan.settingGuardrail) {
+      return `I do not find that ${plan.settingCategory} in the Goblin Highlands, so I translate the intent into ${plan.interpretedAction} and let the scene answer without a roll.`
+    }
+    return plan.narrationPlayerAction
+      ? `I take "${plan.narrationPlayerAction}" as your move and let the scene answer without a roll.`
+      : `I translate the playable intent into ${plan.interpretedAction} and let the scene answer without a roll.`
+  }
 
   if (plan.settingGuardrail) {
-    return `I cannot find a ${plan.settingCategory} anywhere in the Goblin Highlands, so I translate your intent into ${plan.interpretedAction}, ${rollClause}`
+    return `I do not find that ${plan.settingCategory} anywhere in the Goblin Highlands, so I translate the intent into ${plan.interpretedAction}; whether that works calls for a roll.`
   }
 
   if (plan.inputGuardrail) {
-    return `I treat that wording as table noise and translate the playable intent into ${plan.interpretedAction}, ${rollClause}`
+    return `I treat the out-of-world wording as table noise, keep the playable intent as ${plan.interpretedAction}, and call for a roll.`
   }
 
-  return `I take "${plan.narrationPlayerAction}" as your move, ${rollClause}`
+  if (plan.manaUnavailable) {
+    return `I take "${plan.narrationPlayerAction}" as your move, but the magic needed is not available, so I resolve the closest workable version and call for a roll.`
+  }
+
+  return `I take "${plan.narrationPlayerAction}" as your move; whether it works calls for a roll.`
 }
