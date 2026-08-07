@@ -204,6 +204,16 @@ function routeLocationText(locationName) {
   return location ? ` The route bends past ${location}.` : ''
 }
 
+function routeEnvironmentText(environmentThemeFlavor) {
+  const flavor = normalizeText(environmentThemeFlavor)
+  return flavor ? ` ${flavor}` : ''
+}
+
+function backgroundTraitText(characterTraitFlavor) {
+  const flavor = normalizeText(characterTraitFlavor)
+  return flavor ? ` ${flavor}` : ''
+}
+
 function buildReturningNarration(previousRuns = []) {
   if (!Array.isArray(previousRuns) || previousRuns.length === 0) return null
   const latest = previousRuns[previousRuns.length - 1]
@@ -430,6 +440,8 @@ export function createWeedGoblinsRun({
   const goblin = drawFromList(adventure.goblinNames, rngState)
   rngState = goblin.rngState
   const fictionalLocationName = chooseFictionalLocationName(journalSnapshot, seed)
+  const characterTraitFlavor = normalizeText(journalSnapshot?.effectTraitFlavor)
+  const environmentThemeFlavor = normalizeText(journalSnapshot?.terpeneEnvironmentFlavor)
 
   const returningLine = buildReturningNarration(previousRuns)
   const narration = returningLine
@@ -453,6 +465,8 @@ export function createWeedGoblinsRun({
     stolenItem: stolen.value,
     goblinName: goblin.value,
     fictionalLocationName,
+    characterTraitFlavor,
+    environmentThemeFlavor,
     flags: {
       routeId: null,
       midpointChoice: null,
@@ -538,6 +552,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
   if (state.sceneId === SCENES.background) {
     const backgroundId = actionId.split(':')[1]
     const background = BACKGROUNDS[backgroundId]
+    const traitText = backgroundTraitText(state.characterTraitFlavor)
     return appendEvent(
       cloneState(state, {
         background,
@@ -550,7 +565,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
         },
       }),
       { type: 'choice', sceneId: SCENES.background, actionId, backgroundId },
-      `${background.name}. ${background.flavor} I find this background mechanically defensible.`,
+      `${background.name}. ${background.flavor}${traitText} I find this background mechanically defensible.`,
     )
   }
 
@@ -558,14 +573,15 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
     const routeId = actionId.split(':')[1]
     const route = state.adventure.routes[routeId]
     const locationText = routeLocationText(state.fictionalLocationName)
+    const environmentText = routeEnvironmentText(state.environmentThemeFlavor)
     const result = resolveCheck(
       cloneState(state, { flags: { routeId } }),
       {
         actionId,
         stat: route.stat,
         dc: route.dc,
-        successText: `${route.successText}${locationText}`,
-        failureText: `${route.failureText}${locationText}`,
+        successText: `${route.successText}${locationText}${environmentText}`,
+        failureText: `${route.failureText}${locationText}${environmentText}`,
         manaCost: optionalManaCost(options),
       },
     )
