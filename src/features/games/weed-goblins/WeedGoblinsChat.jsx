@@ -49,6 +49,13 @@ function makeRunSeed() {
   return `weed-goblins-chat:${Date.now()}`
 }
 
+function staticNarration({ hook }) {
+  return Promise.resolve({
+    text: hook.fallbackText,
+    source: 'static-fallback',
+  })
+}
+
 async function loadSnapshotWithFallback() {
   try {
     return await readWeedGoblinsPersonalizationSnapshot()
@@ -201,9 +208,15 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
         journalSnapshot: snapshot,
         previousRuns: snapshot.previousRuns || [],
         priorCompletedRunCount: snapshot.previousRuns?.length || 0,
+        blockedRealNames: blockedNames,
       }
 
-      const session = await createWeedGoblinsChatSession(options)
+      let session
+      try {
+        session = await createWeedGoblinsChatSession(options)
+      } catch {
+        session = await createWeedGoblinsChatSession({ ...options, generateNarration: staticNarration })
+      }
       if (cancelled) return
       setState(session.state)
       setMessages(session.messages)
