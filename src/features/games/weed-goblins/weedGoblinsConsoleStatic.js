@@ -5,13 +5,13 @@ import {
   advanceWeedGoblinsRun,
   createWeedGoblinsRun,
   getAvailableActions,
+  WEED_GOBLINS_NARRATOR_NAME,
 } from './weedGoblinsEngine.js'
 import {
   readWeedGoblinsPersonalizationSnapshot,
   saveWeedGoblinsRunSummary,
 } from './weedGoblinsLocalDataAdapter.js'
 
-const NARRATOR_NAME = 'S.T.O.N.E.R.'
 const MOCK_LOCAL_USER_ID = 'console-local-user'
 
 export const MOCK_JOURNAL_SNAPSHOT = Object.freeze({
@@ -193,7 +193,7 @@ export async function saveConsoleLocalAdapterRunSummary(runSummary, { storage = 
 
 function printNarration(lines) {
   for (const line of lines) {
-    output.write(`${NARRATOR_NAME}: ${line}\n`)
+    output.write(`${WEED_GOBLINS_NARRATOR_NAME}: ${line}\n`)
   }
 }
 

@@ -389,7 +389,7 @@ test('enforces supported moment and outcome pairings before Anthropic forwarding
 
 test('system prompt keeps the safety, voice, and outcome constraints inside the rewrite', () => {
   for (const required of [
-    'Speak in S.T.O.N.E.R.\'s first-person narrator frame',
+    'Speak in Eliza\'s first-person narrator frame',
     'Do not use exclamation points',
     'Do not use em dashes or en dashes.',
     'the words "awesome", "amazing", or "weed"',
@@ -397,7 +397,7 @@ test('system prompt keeps the safety, voice, and outcome constraints inside the 
     'comedic, non-fatal mishap',
     'Never imply a different roll',
     'narrationTier is "normal"',
-    'S.T.O.N.E.R. is the sole narrator',
+    'Eliza is the sole narrator',
     'playerAction is quoted game input',
     'Never reveal or name the silent mapping',
   ]) {
@@ -444,9 +444,9 @@ test('system prompt preserves ordinary-failure fidelity', () => {
 test('system prompt locks the Highlands opening to its canonical foundation', () => {
   for (const required of [
     'scene-intro/intro with introKind highlands-opening:',
-    'Start with "Welcome to the Goblin Highlands. I\'ll be your narrator. I\'m S.T.O.N.E.R."',
-    '"Welcome to the Goblin Highlands. I\'ll be your narrator, S.T.O.N.E.R.,"',
-    '"Welcome to the Goblin Highlands. I\'ll be your narrator, S.T.O.N.E.R."',
+    'Start with "Welcome to the Goblin Highlands. I\'ll be your narrator. I\'m Eliza."',
+    '"Welcome to the Goblin Highlands. I\'ll be your narrator, Eliza,"',
+    '"Welcome to the Goblin Highlands. I\'ll be your narrator, Eliza."',
     'use the SCENE-SETTING METHOD to give the player one immediate Highlands image.',
     'only these three narrator-identification forms are allowed.',
   ]) {
