@@ -1,13 +1,13 @@
 export const WEED_GOBLINS_NARRATOR_NAME = 'Eliza'
 
 export const WEED_GOBLINS_INTRODUCTION =
-  `Welcome to the Goblin Highlands. I'll be your narrator. I'm ${WEED_GOBLINS_NARRATOR_NAME}. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it.`
+  "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I watch your boot stop beside one fresh goblin footprint pressed into the mud of Windcut Trail as the King's Stash Hall closes somewhere above it."
 
 export const WEED_GOBLINS_RETURNING_LINE =
   "You've been to the Goblin Highlands before. Last time you [outcome]. I'm curious whether you'll make the same choices."
 
 export const GOBLIN_KING_TAUNT_FALLBACK =
-  'I watch the Goblin King lean back on his throne and say, "You may begin whenever you are ready to disappoint yourself," with the confidence of someone who has already prepared the paperwork.'
+  "I watch the Goblin King lean back on his throne in the Stash Hall, crates stacked behind him, one crate marked with a seal he clearly didn't design himself, and say, 'You may begin whenever you are ready to disappoint yourself.'"
 
 export const DIFFICULTY = Object.freeze({
   easy: 9,
@@ -37,35 +37,35 @@ export const NATURAL_ONE_COMPLICATIONS = Object.freeze([
 ])
 
 export const BACKGROUNDS = Object.freeze({
-  hauler: Object.freeze({
-    id: 'hauler',
-    name: 'Highlands Hauler',
+  tracker: Object.freeze({
+    id: 'tracker',
+    name: 'Highland Tracker',
     flavor:
-      "At the road's edge, I watch you settle empty carrying straps across your shoulders before the climb; steep ground has never stopped you from hauling what matters home.",
+      "At the road's edge, I watch you crouch beside the fresh goblin footprint and measure its stride; the trail into the Highlands has never hidden itself from you for long.",
     strength: 3,
     defense: 1,
     manaPool: 2,
-    ability: 'Shoulder Through',
+    ability: 'Push Through',
   }),
-  keeper: Object.freeze({
-    id: 'keeper',
-    name: 'Cautious Keeper',
+  warden: Object.freeze({
+    id: 'warden',
+    name: 'Trail Warden',
     flavor:
-      "At the road's edge, I watch you test every buckle and latch before following the Goblin King's trail; one overlooked detail is all a thief needs.",
+      "At the road's edge, I watch you check every strap and buckle before Rattlebridge comes into view; a warden who is careless at the crossing does not stay a warden long.",
     strength: 1,
     defense: 3,
     manaPool: 2,
-    ability: 'Nothing Gets Past Me',
+    ability: 'Hold the Line',
   }),
-  adept: Object.freeze({
-    id: 'adept',
-    name: 'Fog-Table Adept',
+  diviner: Object.freeze({
+    id: 'diviner',
+    name: 'Fen Diviner',
     flavor:
-      "At the road's edge, I watch you spread a weathered map across a stone as its ink shifts toward the Highlands; strange theories are useful when they point somewhere real.",
+      "At the road's edge, I watch you unfold a map that has never once agreed with the terrain it describes; it points toward the Highlands anyway, and that has been enough before.",
     strength: 1,
     defense: 2,
     manaPool: 4,
-    ability: 'Several Theories at Once',
+    ability: 'Read the Wrong Map Right',
   }),
 })
 
@@ -79,27 +79,27 @@ export const FIXED_TEST_ADVENTURE = Object.freeze({
     'the Brass-Latched Research Case',
   ]),
   goblinNames: Object.freeze([
-    'Crankle Moss-Tooth',
-    'Nib Wickerboot',
-    'Professor Grub',
-    'Skrint Approximately',
+    'Bracken Toewiggle',
+    'Marrow Pinchfinger',
+    'Grix Kettlebottom',
+    'Old Sump',
   ]),
   routes: Object.freeze({
-    ridge: Object.freeze({
-      id: 'ridge',
-      name: 'The Direct Ridge',
-      stat: 'strength',
-      dc: DIFFICULTY.standard,
-      successText: 'You move the stone gate before it finishes objecting.',
-      failureText: 'The stone gate wins the first argument.',
-    }),
-    fen: Object.freeze({
-      id: 'fen',
-      name: 'The Suspicious Fen',
+    quiet: Object.freeze({
+      id: 'quiet',
+      name: 'The Quiet Crossing',
       stat: 'defense',
       dc: DIFFICULTY.standard,
-      successText: 'You cross without allowing the fen to reorganize your belongings.',
-      failureText: 'The fen keeps one boot for administrative reasons.',
+      successText: 'You cross Rattlebridge without waking a single bottle-cap alarm.',
+      failureText: 'One bottle cap sings out before you can silence it.',
+    }),
+    loud: Object.freeze({
+      id: 'loud',
+      name: 'The Direct Crossing',
+      stat: 'strength',
+      dc: DIFFICULTY.standard,
+      successText: 'You cross Rattlebridge fast enough that the alarm lines never finish deciding what they heard.',
+      failureText: "Rattlebridge's alarm lines finish deciding before you're halfway across.",
     }),
   }),
 })
@@ -292,8 +292,8 @@ function spendMana(state, amount, actionId) {
 }
 
 function selectComplication(state, actionId) {
-  if (actionId === 'route:ridge') return NATURAL_ONE_COMPLICATIONS[0]
-  if (actionId === 'route:fen') return NATURAL_ONE_COMPLICATIONS[1]
+  if (actionId === 'route:loud') return NATURAL_ONE_COMPLICATIONS[0]
+  if (actionId === 'route:quiet') return NATURAL_ONE_COMPLICATIONS[1]
   if (String(actionId).startsWith('goblin:')) return NATURAL_ONE_COMPLICATIONS[2]
   if (String(actionId).startsWith('midpoint:')) return NATURAL_ONE_COMPLICATIONS[3]
   if (String(actionId).startsWith('boss:')) return NATURAL_ONE_COMPLICATIONS[4]
@@ -390,12 +390,12 @@ function resolveCheck(
 
 function endingNarration(ending, state) {
   if (ending === ENDINGS.recovery) {
-    return `You recover ${state.stolenItem}. The Goblin King has several objections. None are operational.`
+    return `You recover ${state.stolenItem} from the King's Stash Hall. The Goblin King insists he is a king. His fear, and the black-root seal stamped on every crate around you, say otherwise.`
   }
   if (ending === ENDINGS.bargain) {
-    return `You leave with ${state.stolenItem} and a formal agreement the goblins insist is customary. It is not customary.`
+    return `You leave the Stash Hall with ${state.stolenItem} and a bargain the goblins insist is customary. A tribute crate marked with the same black-root seal is already being carried off toward some place called the Hollow Market.`
   }
-  return `You escape the Highlands without ${state.stolenItem}. This is a defeat. It is also useful information for next time.`
+  return `You escape the Highlands without ${state.stolenItem}. A black-root seal on the nearest crate is the last thing you see before the trail closes behind you, someone else's tribute, headed somewhere you don't yet have a name for.`
 }
 
 function completeRun(state, ending, reason = null) {
@@ -534,12 +534,12 @@ export function getAvailableActions(state) {
 
   if (state.sceneId === SCENES.midpoint) {
     const actions = [
-      { id: 'midpoint:help', label: 'Help the stranded goblin clerk' },
-      { id: 'midpoint:take-charm', label: 'Take the unattended brass charm' },
+      { id: 'midpoint:help', label: 'Help Nib untangle a snapped tripwire' },
+      { id: 'midpoint:take-token', label: 'Take the unattended tribute token' },
       { id: 'midpoint:skip', label: 'Keep moving' },
     ]
     if (state.stats.manaPool >= 1) {
-      actions.push({ id: 'midpoint:read-runes', label: 'Spend 1 Mana for advantage while reading the gate runes' })
+      actions.push({ id: 'midpoint:read-runes', label: 'Spend 1 Mana for advantage while reading the old trail-runes at Cloudberry Shelf' })
     }
     return actions
   }
@@ -643,7 +643,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
             flags: { midpointChoice: 'help', goblinAlly: true },
           }),
           { type: 'choice', sceneId: SCENES.midpoint, actionId },
-          'You help the goblin clerk recover a stack of forms. The clerk is moved. Mostly because the forms were numbered.',
+          'You help a nervous young scout named Nib untangle a snapped tripwire. Nib is grateful, and a little surprised anyone bothered.',
         ),
       )
     }
@@ -656,8 +656,8 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
           stat: 'defense',
           dc: DIFFICULTY.standard,
           manaCost: 1,
-          successText: 'The runes explain the throne mechanism in unnecessary detail. I approve of the detail.',
-          failureText: 'The runes include a footnote you interpret as optional. The throne mechanism does not.',
+          successText: "The old trail-runes at Cloudberry Shelf explain the Stash Hall's entrance in unnecessary detail. I approve of the detail.",
+          failureText: 'The runes include a footnote you interpret as optional. The entrance does not.',
         },
       )
       if (result.state.status === 'completed') return result.state
@@ -668,15 +668,15 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       )
     }
 
-    if (actionId === 'midpoint:take-charm') {
+    if (actionId === 'midpoint:take-token') {
       const result = resolveCheck(
-        cloneState(state, { flags: { midpointChoice: 'take-charm' } }),
+        cloneState(state, { flags: { midpointChoice: 'take-token' } }),
         {
           actionId,
           stat: 'defense',
           dc: DIFFICULTY.easy,
-          successText: 'You take the charm without activating the small but judgmental bell.',
-          failureText: 'The bell announces your decision to the entire administrative wing.',
+          successText: 'You take the unattended tribute token without waking the small but judgmental bell.',
+          failureText: 'The bell announces your decision to the entire camp.',
           manaCost: optionalManaCost(options),
         },
       )
