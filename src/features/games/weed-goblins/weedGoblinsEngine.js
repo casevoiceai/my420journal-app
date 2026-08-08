@@ -1,14 +1,14 @@
 export const WEED_GOBLINS_NARRATOR_NAME = 'Eliza'
 
 export const WEED_GOBLINS_INTRODUCTION =
-  "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I watch your boot stop beside one fresh goblin footprint pressed into the mud of Windcut Trail as the King's Stash Hall closes somewhere above it."
+  "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. Your boot stops beside a fresh goblin footprint pressed deep into the mud of Windcut Trail. Somewhere above, the King's Stash Hall closes its doors."
 
 export const WEED_GOBLINS_RETURNING_LINE =
   "You've been to the Goblin Highlands before. Last time you [outcome]. I'm curious whether you'll make the same choices."
 
 
 export const SESSION_ZERO_WELCOME = Object.freeze([
-  "Welcome, traveler. Before the road opens beneath you, sit with me a moment at the edge of it. I'm Eliza, and for as long as this story runs, I'll be watching everything that happens to you and telling it back, one true beat at a time. The Highlands ahead are not gentle country. Goblin banners hang from crooked posts along Windcut Trail, smoke rises from a keep built more from stubbornness than stone, and somewhere inside it sits a king who has something of yours he was never supposed to take.",
+  "The road gives out right here, where the Highlands start. One boot's already sunk in the mud.",
   "But first, I need to know who's walking into that story. Every traveler who comes up this road carries a name, a look, a kind, and a way of meeting trouble. Let's settle those now.",
 ])
 
@@ -142,7 +142,7 @@ export const WEAPON_FLAVOR_PHRASES = Object.freeze({
 })
 
 export const GOBLIN_KING_TAUNT_FALLBACK =
-  "I watch the Goblin King lean back on his throne in the Stash Hall, crates stacked behind him, one crate marked with a seal he clearly didn't design himself, and say, 'You may begin whenever you are ready to disappoint yourself.'"
+  "The Goblin King leans back on his throne in the Stash Hall. Crates are stacked behind him, one marked with a seal he clearly didn't design himself. 'You may begin,' he says, 'whenever you are ready to disappoint yourself.'"
 
 export const DIFFICULTY = Object.freeze({
   easy: 9,
