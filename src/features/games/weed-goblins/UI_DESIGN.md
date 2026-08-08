@@ -9,7 +9,7 @@ The screen always exposes four layers:
 1. The quest header names Weed Goblins, the current chapter, quest, and scene.
 2. The objective states what the Goblin King stole and that the player must take it back.
 3. The character bar shows Strength, Defense, Mana, and Trouble whenever a background has been selected.
-4. The adventure log records S.T.O.N.E.R.'s narration, the player's moves, rolls, and outcomes.
+4. The adventure log records Eliza's narration, the player's moves, rolls, and outcomes.
 
 Fantasy presentation uses dark woodland color, warm gold accents, serif story text, bordered panels, and a visible d20. No contact name, avatar, message status, phone-chat composer, or speech-bubble layout belongs in this game.
 

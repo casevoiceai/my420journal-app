@@ -1,7 +1,9 @@
-export const STONER_INTRODUCTION =
-  "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it."
+export const WEED_GOBLINS_NARRATOR_NAME = 'Eliza'
 
-export const STONER_RETURNING_LINE =
+export const WEED_GOBLINS_INTRODUCTION =
+  `Welcome to the Goblin Highlands. I'll be your narrator. I'm ${WEED_GOBLINS_NARRATOR_NAME}. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it.`
+
+export const WEED_GOBLINS_RETURNING_LINE =
   "You've been to the Goblin Highlands before. Last time you [outcome]. I'm curious whether you'll make the same choices."
 
 export const GOBLIN_KING_TAUNT_FALLBACK =
@@ -223,7 +225,7 @@ function buildReturningNarration(previousRuns = []) {
   const outcome = normalizeText(
     latest?.outcomeSummary ?? latest?.ending ?? 'left with unfinished business',
   )
-  return STONER_RETURNING_LINE.replace('[outcome]', outcome)
+  return WEED_GOBLINS_RETURNING_LINE.replace('[outcome]', outcome)
 }
 
 function cloneState(state, changes = {}) {
@@ -462,8 +464,8 @@ export function createWeedGoblinsRun({
 
   const returningLine = buildReturningNarration(previousRuns)
   const narration = returningLine
-    ? [returningLine, STONER_INTRODUCTION]
-    : [STONER_INTRODUCTION]
+    ? [returningLine, WEED_GOBLINS_INTRODUCTION]
+    : [WEED_GOBLINS_INTRODUCTION]
 
   return {
     version: 1,

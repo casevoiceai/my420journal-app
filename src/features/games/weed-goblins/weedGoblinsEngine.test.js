@@ -7,7 +7,8 @@ import {
   GOBLIN_KING_TAUNT_FALLBACK,
   NATURAL_ONE_COMPLICATIONS,
   NARRATION_TIERS,
-  STONER_INTRODUCTION,
+  WEED_GOBLINS_INTRODUCTION,
+  WEED_GOBLINS_NARRATOR_NAME,
   advanceWeedGoblinsRun,
   calculateNarrationTier,
   createWeedGoblinsRun,
@@ -15,7 +16,7 @@ import {
   playWeedGoblinsActions,
 } from './weedGoblinsEngine.js'
 
-const EXPECTED_OPENING = "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it."
+const EXPECTED_OPENING = "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it."
 
 const EXPECTED_BACKGROUND_HINTS = Object.freeze({
   hauler: "At the road's edge, I watch you settle empty carrying straps across your shoulders before the climb; steep ground has never stopped you from hauling what matters home.",
@@ -60,7 +61,8 @@ function latestCheck(state) {
 }
 
 test('uses the locked welcome as the foundation for concrete Highlands scene-setting', () => {
-  assert.equal(STONER_INTRODUCTION, EXPECTED_OPENING)
+  assert.equal(WEED_GOBLINS_NARRATOR_NAME, 'Eliza')
+  assert.equal(WEED_GOBLINS_INTRODUCTION, EXPECTED_OPENING)
 })
 
 test('background hints are concrete start-of-road narrative moments', () => {
@@ -84,7 +86,7 @@ test('plays one fixed-seed recovery run from start to finish', () => {
   })
 
   assert.equal(start.sceneId, 'choose-background')
-  assert.equal(start.narration[0], STONER_INTRODUCTION)
+  assert.equal(start.narration[0], WEED_GOBLINS_INTRODUCTION)
   assert.equal(start.stolenItem, 'the Blue Dream Field Reliquary')
 
   const end = playWeedGoblinsActions(start, RECOVERY_ACTIONS)
@@ -98,6 +100,23 @@ test('plays one fixed-seed recovery run from start to finish', () => {
   assert.equal(end.runSummary.narrationTier, NARRATION_TIERS.normal)
   assert.match(end.runSummary.outcomeSummary, /recovered the Blue Dream Field Reliquary/)
   assert.equal(getAvailableActions(end).length, 0)
+})
+
+test('plays a full Chapter 1 natural-20 victory with Eliza', () => {
+  const end = playWeedGoblinsActions(
+    createWeedGoblinsRun({ seed: 'eliza-natural-20-32' }),
+    RECOVERY_ACTIONS,
+  )
+  const bossCheck = end.history.find(
+    (event) => event.type === 'check' && event.actionId === 'boss:overpower',
+  )
+
+  assert.equal(end.narration[0], WEED_GOBLINS_INTRODUCTION)
+  assert.match(end.narration[0], /\bEliza\b/)
+  assert.equal(bossCheck.roll, 20)
+  assert.equal(bossCheck.outcome, 'success')
+  assert.equal(end.status, 'completed')
+  assert.equal(end.ending, ENDINGS.recovery)
 })
 
 test('emits exactly one Goblin King taunt before boss actions are chosen', () => {
@@ -144,6 +163,7 @@ test('reaches the bargain ending after a natural-1 complication', () => {
   assert.equal(end.flags.goblinAlly, true)
   assert.equal(end.runSummary.midpointChoice, 'help')
   assert.equal(end.runSummary.complicationCount, 1)
+  assert.match(end.narration[0], /\bEliza\b/)
 })
 
 test('spends the full Mana Pool through rolled checks and reaches recovery', () => {
@@ -182,6 +202,30 @@ test('a Mana-assisted roll can still fail', () => {
   assert.equal(state.stats.manaPool, 3)
   assert.equal(state.trouble, 1)
   assert.equal(state.status, 'active')
+})
+
+test('completes Chapter 1 after a Mana-assisted failure with Eliza', () => {
+  const end = playWeedGoblinsActions(
+    createWeedGoblinsRun({ seed: 'scan-11' }),
+    [
+      'background:adept',
+      'route:fen',
+      'goblin:channel',
+      'midpoint:help',
+      'boss:bargain',
+    ],
+  )
+  const failedAssistedCheck = end.history.find(
+    (event) => event.type === 'check'
+      && event.actionId === 'goblin:channel'
+      && event.manaAssisted,
+  )
+
+  assert.match(end.narration[0], /\bEliza\b/)
+  assert.equal(failedAssistedCheck.outcome, 'failure')
+  assert.deepEqual(failedAssistedCheck.rolls, [9, 6])
+  assert.equal(end.status, 'completed')
+  assert.equal(end.ending, ENDINGS.bargain)
 })
 
 test('a selected natural 1 always uses the non-fatal complication path', () => {
@@ -253,14 +297,14 @@ test('same seed and choices produce the same run summary', () => {
   )
 })
 
-test('S.T.O.N.E.R. references the latest prior run without reading storage', () => {
+test('Eliza references the latest prior run without reading storage', () => {
   const run = createWeedGoblinsRun({
     seed: 'returning-player',
     previousRuns: [{ outcomeSummary: 'made a bargain with the Goblin King' }],
   })
 
   assert.match(run.narration[0], /Last time you made a bargain with the Goblin King/)
-  assert.equal(run.narration[1], STONER_INTRODUCTION)
+  assert.equal(run.narration[1], WEED_GOBLINS_INTRODUCTION)
 })
 
 const TIER_CASES = [

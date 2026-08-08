@@ -100,7 +100,7 @@ test('choice presentation requires active first person and stays within 240 char
   assert.equal(detached.valid, false)
   assert.equal(detached.reasons.includes('is not written in first person'), true)
   assert.equal(
-    detached.reasons.includes('does not begin in S.T.O.N.E.R.\'s active first-person voice'),
+    detached.reasons.includes('does not begin in Eliza\'s active first-person voice'),
     true,
   )
   assert.equal(tooLong.reasons.includes('response is too long'), true)
@@ -109,9 +109,9 @@ test('choice presentation requires active first person and stays within 240 char
 
 test('accepts all three locked Highlands opening narrator forms', () => {
   for (const line of [
-    "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. I watch your boot stop beside one fresh footprint pressed into the mud.",
-    "Welcome to the Goblin Highlands. I'll be your narrator, S.T.O.N.E.R., and I hear one warning bell scrape across the fog.",
-    "Welcome to the Goblin Highlands. I'll be your narrator, S.T.O.N.E.R. I notice one thread from your stolen satchel caught on the gate.",
+    "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I watch your boot stop beside one fresh footprint pressed into the mud.",
+    "Welcome to the Goblin Highlands. I'll be your narrator, Eliza, and I hear one warning bell scrape across the fog.",
+    "Welcome to the Goblin Highlands. I'll be your narrator, Eliza. I notice one thread from your stolen satchel caught on the gate.",
   ]) {
     const result = validateGeneratedNarration(line, {
       moment: 'scene-intro',
@@ -150,11 +150,11 @@ test('uses a 240-character choice ceiling and a 300-character ceiling elsewhere'
 
 test('scene setting accepts one unlisted image and rejects boxed-text detail lists', () => {
   const singleImage = validateGeneratedNarration(
-    "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. I watch your sleeve catch on one hooked thorn beside the gate.",
+    "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I watch your sleeve catch on one hooked thorn beside the gate.",
     { moment: 'scene-intro', outcome: 'intro', introKind: 'highlands-opening' },
   )
   const boxedText = validateGeneratedNarration(
-    "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. Black pines crowd the misty road ahead, goblin bells sound beyond the ridge, and fresh tracks lead toward your stolen field reliquary.",
+    "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. Black pines crowd the misty road ahead, goblin bells sound beyond the ridge, and fresh tracks lead toward your stolen field reliquary.",
     { moment: 'scene-intro', outcome: 'intro', introKind: 'highlands-opening' },
   )
 
@@ -188,7 +188,7 @@ test('scene transition uses one active observation and rejects repeated scene in
   )
 })
 
-test('action success must begin in S.T.O.N.E.R.\'s active first-person voice', () => {
+test('action success must begin in Eliza\'s active first-person voice', () => {
   const detached = validateGeneratedNarration(
     'Your strike lands, and the goblin staggers away from the open path.',
     { moment: 'action-success', outcome: 'success' },
@@ -206,7 +206,7 @@ test('action success must begin in S.T.O.N.E.R.\'s active first-person voice', (
   assert.equal(detached.reasons.includes('is not written in first person'), true)
   assert.equal(delayedFirstPerson.valid, false)
   assert.equal(
-    delayedFirstPerson.reasons.includes('does not begin in S.T.O.N.E.R.\'s active first-person voice'),
+    delayedFirstPerson.reasons.includes('does not begin in Eliza\'s active first-person voice'),
     true,
   )
   assert.equal(active.valid, true, active.reasons.join('; '))

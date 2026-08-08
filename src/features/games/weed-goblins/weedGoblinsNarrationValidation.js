@@ -3,9 +3,9 @@ const BANNED_DASH_SIGNAL = /[\u2013\u2014]/
 const RUN_ENDING_OUTCOMES = Object.freeze(['recovery', 'bargain', 'escape'])
 const HIGHLANDS_OPENING_LEAD = "Welcome to the Goblin Highlands. I'll be your narrator"
 const HIGHLANDS_OPENING_FOUNDATION = `${HIGHLANDS_OPENING_LEAD}.`
-const HIGHLANDS_OPENING_FORM_SIGNAL = /^Welcome to the Goblin Highlands\. I'll be your narrator(?:\.|, S\.T\.O\.N\.E\.R\.(?:,)?)/
-const STONER_NAME_TEXT = 'S.T.O.N.E.R.'
-const STONER_NAME_SIGNAL = /S\.T\.O\.N\.E\.R\./
+const HIGHLANDS_OPENING_FORM_SIGNAL = /^Welcome to the Goblin Highlands\. I'll be your narrator(?:\.|, Eliza(?:,|\.))/
+const ELIZA_NAME_TEXT = 'Eliza'
+const ELIZA_NAME_SIGNAL = /\bEliza\b/
 const HIGHLANDS_SELF_COMMENTARY_SIGNAL = /\b(?:I(?:'ve| have)? got (?:a )?(?:strange )?feeling|I find [^.!?]{0,60}(?:fascinating|interesting)|I(?:'ve| have) developed (?:a )?(?:few )?opinions?|my (?:feelings?|opinions?)|something(?:'s| is) been growing)\b/i
 const NARRATOR_SELF_REFLECTION_SIGNAL = /\b(?:I (?:feel|felt|believe|think|wonder)|I(?:'ve| have) (?:finally )?(?:learned|grown|changed)|my (?:feelings?|opinions?|growth)|I find [^.!?]{0,60}(?:fascinating|interesting)|that feels like enough)\b/i
 const PREMISE_THEFT_SIGNAL = /\b(?:stole|stolen|took|taken|snatched|swiped|pilfered|lifted|made off with|carried off|walked off with|ran off with)\b/i
@@ -257,9 +257,9 @@ function containsContinuityAnchor(text, anchors) {
 
 function sceneSettingDetailText(text, introKind) {
   if (introKind !== 'highlands-opening') return text
-  const nameStart = text.indexOf(STONER_NAME_TEXT, HIGHLANDS_OPENING_LEAD.length)
+  const nameStart = text.indexOf(ELIZA_NAME_TEXT, HIGHLANDS_OPENING_LEAD.length)
   return nameStart >= 0
-    ? text.slice(nameStart + STONER_NAME_TEXT.length).trim()
+    ? text.slice(nameStart + ELIZA_NAME_TEXT.length).trim()
     : text.slice(HIGHLANDS_OPENING_FOUNDATION.length).trim()
 }
 
@@ -423,10 +423,6 @@ export function validateGeneratedNarration(
     }
   }
 
-  if (/\bSTONER\b/i.test(text)) {
-    reasons.push('writes STONER without periods')
-  }
-
   const narratorFrame = narratorFrameForFirstPerson(text, moment)
   if (!FIRST_PERSON_SIGNAL.test(narratorFrame)) {
     reasons.push('is not written in first person')
@@ -441,11 +437,11 @@ export function validateGeneratedNarration(
     && introKind === 'choice-presentation'
     && !ACTIVE_FIRST_PERSON_LEAD_SIGNAL.test(text)
   ) {
-    reasons.push('does not begin in S.T.O.N.E.R.\'s active first-person voice')
+    reasons.push('does not begin in Eliza\'s active first-person voice')
   }
 
   if (moment === 'action-success' && !ACTIVE_FIRST_PERSON_LEAD_SIGNAL.test(text)) {
-    reasons.push('does not begin in S.T.O.N.E.R.\'s active first-person voice')
+    reasons.push('does not begin in Eliza\'s active first-person voice')
   }
 
   if (moment === 'scene-intro' && SCENE_SETTING_INTRO_KINDS.has(introKind)) {
@@ -495,8 +491,8 @@ export function validateGeneratedNarration(
     if (!openingForm) {
       reasons.push('does not begin with the locked Highlands welcome')
     }
-    if (!STONER_NAME_SIGNAL.test(narratorIdentityText)) {
-      reasons.push('does not identify S.T.O.N.E.R. as the narrator')
+    if (!ELIZA_NAME_SIGNAL.test(narratorIdentityText)) {
+      reasons.push('does not identify Eliza as the narrator')
     }
     if (HIGHLANDS_SELF_COMMENTARY_SIGNAL.test(openingRemainder)) {
       reasons.push('uses narrator self-commentary instead of scene-setting')

@@ -51,7 +51,7 @@ const ordinaryFailureState = {
 
 const staticFallbacks = [event.complicationText]
 const ordinaryFailureFallbacks = [ordinaryFailureEvent.failureText]
-const highlandsOpeningFallback = "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it."
+const highlandsOpeningFallback = "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it."
 
 function response(text, model = 'claude-haiku-4-5-20251001') {
   return Promise.resolve(new Response(JSON.stringify({ text, model }), {
@@ -79,7 +79,7 @@ test('accepts a compliant first-attempt AI complication', async () => {
 test('retries once with a corrective note after validation catches banned patterns', async () => {
   const requestBodies = []
   const drafts = [
-    'STONER says this weed plan is amazing!',
+    'This weed plan is amazing!',
     'I record that the gate has kept your preferred route and issued you the inconvenient one.',
   ]
 
@@ -215,7 +215,7 @@ test('highlands opening rejects thematic drift and retries with the canonical we
   const requestBodies = []
   const drafts = [
     "I find the Goblin Highlands genuinely fascinating, and I should tell you up front that I've developed opinions about the characters here.",
-    "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it.",
+    "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it.",
   ]
   const hook = {
     moment: 'scene-intro',
@@ -242,7 +242,7 @@ test('highlands opening rejects thematic drift and retries with the canonical we
   assert.deepEqual(result.validationFailures[0].reasons, [
     'does not use one active first-person scene observation',
     'does not begin with the locked Highlands welcome',
-    'does not identify S.T.O.N.E.R. as the narrator',
+    'does not identify Eliza as the narrator',
     'uses narrator self-commentary instead of scene-setting',
   ])
   assert.match(requestBodies[1].correctiveNote, /locked Highlands welcome/i)
@@ -251,7 +251,7 @@ test('highlands opening rejects thematic drift and retries with the canonical we
 
 test('highlands opening rejects foundation-compliant narrator self-commentary', () => {
   const validation = validateGeneratedNarration(
-    "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. I've got a strange feeling, like something's been growing.",
+    "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I've got a strange feeling, like something's been growing.",
     { moment: 'scene-intro', outcome: 'intro', introKind: 'highlands-opening' },
   )
 
@@ -268,7 +268,7 @@ test('highlands opening rejects foundation-compliant narrator self-commentary', 
 
 test('highlands opening accepts the natural comma narrator form with concrete scene-setting', () => {
   const validation = validateGeneratedNarration(
-    "Welcome to the Goblin Highlands. I'll be your narrator, S.T.O.N.E.R., and I watch your boot stop beside one fresh goblin footprint pressed into the mud.",
+    "Welcome to the Goblin Highlands. I'll be your narrator, Eliza, and I watch your boot stop beside one fresh goblin footprint pressed into the mud.",
     { moment: 'scene-intro', outcome: 'intro', introKind: 'highlands-opening' },
   )
 
@@ -277,10 +277,10 @@ test('highlands opening accepts the natural comma narrator form with concrete sc
 
 test('natural comma narrator form is not rejected as a foundation or identity error', () => {
   const validation = validateGeneratedNarration(
-    "Welcome to the Goblin Highlands. I'll be your narrator, S.T.O.N.E.R., and I'm here to tell you what happens next.",
+    "Welcome to the Goblin Highlands. I'll be your narrator, Eliza, and I'm here to tell you what happens next.",
     { moment: 'scene-intro', outcome: 'intro', introKind: 'highlands-opening' },
   )
 
   assert.equal(validation.reasons.includes('does not begin with the locked Highlands welcome'), false)
-  assert.equal(validation.reasons.includes('does not identify S.T.O.N.E.R. as the narrator'), false)
+  assert.equal(validation.reasons.includes('does not identify Eliza as the narrator'), false)
 })

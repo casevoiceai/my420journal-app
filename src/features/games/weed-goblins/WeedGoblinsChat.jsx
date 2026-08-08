@@ -17,6 +17,7 @@ import {
   resolveWeedGoblinsTransitionWithStaticFallback,
   selectWeedGoblinsChatChoice,
 } from './weedGoblinsChatController.js'
+import { WEED_GOBLINS_NARRATOR_NAME } from './weedGoblinsEngine.js'
 import './WeedGoblinsChat.css'
 
 const SCENE_NAMES = Object.freeze({
@@ -134,9 +135,13 @@ function StoryEntry({ message, onRoll, canRoll, busy }) {
 
   return (
     <article className="weed-goblins-game__story-entry is-narrator">
-      <div className="weed-goblins-game__narrator-mark" aria-hidden="true">S</div>
+      <div className="weed-goblins-game__narrator-mark" aria-hidden="true">
+        {WEED_GOBLINS_NARRATOR_NAME.charAt(0)}
+      </div>
       <div className="weed-goblins-game__entry-copy">
-        <div className="weed-goblins-game__entry-label">S.T.O.N.E.R. narrates</div>
+        <div className="weed-goblins-game__entry-label">
+          {WEED_GOBLINS_NARRATOR_NAME} narrates
+        </div>
         <p>{message.text}</p>
       </div>
       {message.die !== null && message.die !== undefined && (
@@ -363,10 +368,10 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
         </button>
         <div className="weed-goblins-game__title-group">
           <div className="weed-goblins-game__eyebrow">Chapter 1 · Quest 1</div>
-          <h1>Weed Goblins</h1>
+          <h1>Eliza</h1>
           <p>{sceneName}</p>
         </div>
-        <div className="weed-goblins-game__crest" aria-hidden="true">WG</div>
+        <div className="weed-goblins-game__crest" aria-hidden="true">E</div>
       </header>
 
       <section className="weed-goblins-game__quest-bar" aria-label="Quest status">
@@ -405,7 +410,11 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
             busy={busy}
           />
         ))}
-        {busy && <div className="weed-goblins-game__resolving">S.T.O.N.E.R. is resolving the move...</div>}
+        {busy && (
+          <div className="weed-goblins-game__resolving">
+            {WEED_GOBLINS_NARRATOR_NAME} is resolving the move...
+          </div>
+        )}
         <div ref={endRef} />
       </section>
 

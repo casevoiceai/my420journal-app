@@ -2,7 +2,7 @@
 
 ## Canonical premise
 
-S.T.O.N.E.R. narrates a D20 fantasy adventure in the Goblin Highlands. The Goblin King stole something important. The player retrieves it through a short branching run. Characters use exactly three named stats: Strength, Defense, and Mana Pool.
+Eliza narrates a D20 fantasy adventure in the Goblin Highlands. The Goblin King stole something important. The player retrieves it through a short branching run. Characters use exactly three named stats: Strength, Defense, and Mana Pool.
 
 ## Session 1 rules
 
@@ -38,7 +38,7 @@ The game screen shows one quiet run-level marker, `Chapter 1: The Goblin Highlan
 
 ## Natural-1 complication pattern
 
-A selected natural 1 always follows a dedicated complication path, not the standard failure path. With advantage, this means both D20s were 1. The complication is a specific comedic, non-fatal setback narrated in S.T.O.N.E.R.'s dry, earnest voice.
+A selected natural 1 always follows a dedicated complication path, not the standard failure path. With advantage, this means both D20s were 1. The complication is a specific comedic, non-fatal setback narrated in Eliza's dry, earnest voice.
 
 A natural-1 complication:
 
@@ -65,15 +65,15 @@ Locked tone examples, not an exhaustive future content list:
 - Cautious Keeper: Strength 1, Defense 3, Mana Pool 2.
 - Fog-Table Adept: Strength 1, Defense 2, Mana Pool 4.
 
-Each background is a cannabis-culture reference delivered with complete earnestness by S.T.O.N.E.R. It affects only fictional game mechanics and makes no health or real-world product claims.
+Each background is a cannabis-culture reference delivered with complete earnestness by Eliza. It affects only fictional game mechanics and makes no health or real-world product claims.
 
 ## Locked narration decisions
 
 ### Goblin King performance voice
 
-S.T.O.N.E.R. remains the narrator of Weed Goblins. S.T.O.N.E.R. performs the Goblin King as a distinct character voice the way a tabletop DM performs a villain differently from ordinary narration. The Goblin King is theatrical, a little too pleased with himself, and confident he has already won. This is a performed fictional character voice, not a separate AI guide or identity.
+Eliza remains the narrator of Weed Goblins. Eliza performs the Goblin King as a distinct character voice the way a tabletop DM performs a villain differently from ordinary narration. The Goblin King is theatrical, a little too pleased with himself, and confident he has already won. This is a performed fictional character voice, not a separate AI guide or identity.
 
-The implemented `goblin-king-taunt` / `taunt` narration moment fires once when the run first enters the Goblin King confrontation, before the player chooses Overpower, Outlast, a Mana-assisted option, or a bargain. It is flavor only: it does not roll dice, change Trouble, spend Mana, alter a DC, or resolve any outcome. The validated line keeps a first-person S.T.O.N.E.R. narrator frame and includes a short quoted or clearly attributed Goblin King line.
+The implemented `goblin-king-taunt` / `taunt` narration moment fires once when the run first enters the Goblin King confrontation, before the player chooses Overpower, Outlast, a Mana-assisted option, or a bargain. It is flavor only: it does not roll dice, change Trouble, spend Mana, alter a DC, or resolve any outcome. The validated line keeps a first-person Eliza narrator frame and includes a short quoted or clearly attributed Goblin King line.
 
 ### Callback escalation
 
@@ -81,7 +81,7 @@ Callback eligibility is based on completed Weed Goblins runs by the same player:
 
 - 0 to 4 prior completed runs: normal narration.
 - 5 to 9 prior completed runs: narration may begin referencing that the player seems experienced without explaining how it knows.
-- 10 or more prior completed runs: one character may briefly break the fourth wall once in a run, then immediately act as though it did not happen. S.T.O.N.E.R. never comments on the moment.
+- 10 or more prior completed runs: one character may briefly break the fourth wall once in a run, then immediately act as though it did not happen. Eliza never comments on the moment.
 
 Session 1 only calculates and reports the applicable `narrationTier`. It does not generate callback or fourth-wall narration text.
 
