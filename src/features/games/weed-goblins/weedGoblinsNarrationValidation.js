@@ -1,11 +1,18 @@
 const BANNED_WORDS = Object.freeze(['awesome', 'amazing', 'weed'])
+const BANNED_DASH_SIGNAL = /[\u2013\u2014]/
 const RUN_ENDING_OUTCOMES = Object.freeze(['recovery', 'bargain', 'escape'])
-const HIGHLANDS_OPENING_FOUNDATION = "Welcome to the Goblin Highlands. I'll be your narrator."
+const HIGHLANDS_OPENING_LEAD = "Welcome to the Goblin Highlands. I'll be your narrator"
+const HIGHLANDS_OPENING_FOUNDATION = `${HIGHLANDS_OPENING_LEAD}.`
+const HIGHLANDS_OPENING_FORM_SIGNAL = /^Welcome to the Goblin Highlands\. I'll be your narrator(?:\.|, S\.T\.O\.N\.E\.R\.(?:,)?)/
+const STONER_NAME_TEXT = 'S.T.O.N.E.R.'
 const STONER_NAME_SIGNAL = /S\.T\.O\.N\.E\.R\./
-const HIGHLANDS_SCENE_SIGNAL = /\b(?:ahead|air|bells?|danger|fog|footprints?|highlands|mist|path|pines?|reliquary|ridge|road|ruins?|sense|smell|smoke|stone|stolen|tracks?|trail|wind)\b/i
 const HIGHLANDS_SELF_COMMENTARY_SIGNAL = /\b(?:I(?:'ve| have)? got (?:a )?(?:strange )?feeling|I find [^.!?]{0,60}(?:fascinating|interesting)|I(?:'ve| have) developed (?:a )?(?:few )?opinions?|my (?:feelings?|opinions?)|something(?:'s| is) been growing)\b/i
+const NARRATOR_SELF_REFLECTION_SIGNAL = /\b(?:I (?:feel|felt|believe|think|wonder)|I(?:'ve| have) (?:finally )?(?:learned|grown|changed)|my (?:feelings?|opinions?|growth)|I find [^.!?]{0,60}(?:fascinating|interesting)|that feels like enough)\b/i
+const PREMISE_THEFT_SIGNAL = /\b(?:stole|stolen|took|taken|snatched|swiped|pilfered|lifted|made off with|carried off|walked off with|ran off with)\b/i
+const PREMISE_OBJECTIVE_SIGNAL = /\b(?:(?:get|take|win|bring|claim)\b[^.!?]{0,80}\bback|recover|reclaim|regain|retrieve)\b/i
 
 export const SUPPORTED_MOMENT_OUTCOMES = Object.freeze({
+  'premise-statement': Object.freeze(['premise']),
   'natural-one-complication': Object.freeze(['complication']),
   'ordinary-failure': Object.freeze(['failure']),
   'action-success': Object.freeze(['success']),
@@ -49,6 +56,8 @@ const RECOVERY_OBJECT_SIGNAL = /\b(stolen (?:item|goods?)|field reliquary|reliqu
 const WIN_BACK_SIGNAL = /\b(win(?:s|ning)? back|won back)\b/i
 const EMPTY_HANDED_SIGNAL = /\b(?:empty[- ]handed|with empty hands?)\b/i
 const DEPARTURE_SIGNAL = /\b(?:leave(?:s|d|ing)?|depart(?:s|ed|ing)?|return(?:s|ed|ing)?|slip(?:s|ped|ping)? back|head(?:s|ed|ing)? back|make(?:s|d|ing)? (?:my|your|their|the) way back|walk(?:s|ed|ing)? away|turn(?:s|ed|ing)? back)\b/i
+const PLAYER_POSSESSION_SIGNAL = /\b(?:in|into|within)\s+(?:my|your|our|the player's)\s+(?:hands?|arms?|grip|possession)\b|\b(?:I|you|we)\s+(?:hold|carry|clutch|cradle|secure|possess)\b/i
+const HOMEWARD_SIGNAL = /\b(?:home|homeward|homewards)\b/i
 const SURVIVAL_SIGNAL = /\b(?:call|consider|count|record) (?:that|this) (?:a )?survival\b|\bsurvival\b/i
 const ESCAPE_OBJECT_SIGNAL = /\b(?:the )?(?:stolen )?(?:item|goods?|field reliquary|reliquary|satchel|moon jar|research case)\b/i
 const RETAINED_STATE_SIGNAL = /\b(?:stay(?:s|ed|ing)?|remain(?:s|ed|ing)?|is still|still (?:sits?|rests?|lies?|waits?))\b/i
@@ -63,6 +72,14 @@ const GOBLIN_KING_SPEECH_VERB = '(?:say(?:s|ing)?|declare(?:s|d|ing)?|drawl(?:s|
 const QUOTED_DIALOGUE_SIGNAL = /(?:"[^"]+"|“[^”]+”)/
 const PRE_ROLL_RESULT_SIGNAL = /\b(?:roll(?:ed)?|d20|die|dice)\b[^.!?]{0,24}\b(?:[1-9]|1\d|20)\b/i
 const HIDDEN_MAPPING_SIGNAL = /\b(?:strength|defense|mana)\b|\bDC\s*\d+\b|\b(?:map|mapped|mapping|classify|classified|classification)\b[^.!?]{0,40}\b(?:strength|defense|mana)\b/i
+const ACTIVE_FIRST_PERSON_LEAD_SIGNAL = /^I(?:\b|['’](?:m|ve|ll)\b)/i
+const ACTIVE_SCENE_OBSERVATION_SIGNAL = /\bI (?:see|watch|hear|smell|notice|point(?:\s+(?:out|to|at))?)\b/i
+const THREE_PART_SCENE_LIST_SIGNAL = /,[^,.;!?]{3,},\s*(?:and\s+)?[^,.;!?]{3,}/i
+const SCENE_SETTING_INTRO_KINDS = new Set([
+  'highlands-opening',
+  'choice-presentation',
+  'scene-transition',
+])
 const PLAYER_ACTION_CONTEXT_MOMENTS = new Set([
   'player-action-attempt',
   'player-action-response',
@@ -228,6 +245,32 @@ function preservesSignificantPlayerActionWords(text, playerAction) {
   return requiredWords.every((word) => narrationWords.has(word))
 }
 
+function containsContinuityAnchor(text, anchors) {
+  const haystack = text.toLocaleLowerCase('en-US')
+  return uniqueText(anchors).some((anchor) => {
+    const normalized = anchor.toLocaleLowerCase('en-US')
+    const withoutLeadingThe = normalized.replace(/^the\s+/, '')
+    return haystack.includes(normalized)
+      || (withoutLeadingThe !== normalized && haystack.includes(withoutLeadingThe))
+  })
+}
+
+function sceneSettingDetailText(text, introKind) {
+  if (introKind !== 'highlands-opening') return text
+  const nameStart = text.indexOf(STONER_NAME_TEXT, HIGHLANDS_OPENING_LEAD.length)
+  return nameStart >= 0
+    ? text.slice(nameStart + STONER_NAME_TEXT.length).trim()
+    : text.slice(HIGHLANDS_OPENING_FOUNDATION.length).trim()
+}
+
+function sceneSettingReadsLikeList(text) {
+  const observationCount = (
+    text.match(/\bI (?:see|watch|hear|smell|notice|point(?:\s+(?:out|to|at))?)\b/gi)
+    || []
+  ).length
+  return observationCount > 1 || THREE_PART_SCENE_LIST_SIGNAL.test(text)
+}
+
 function detectsNaturalEscape(text, expectedStolenItem = '') {
   const mentionsExpectedItem = expectedStolenItem
     ? text.toLocaleLowerCase('en-US').includes(expectedStolenItem.toLocaleLowerCase('en-US'))
@@ -255,10 +298,14 @@ function detectOutcomeSignals(text, expectedStolenItem = '') {
   const mentionsExpectedItem = expectedStolenItem
     ? text.toLocaleLowerCase('en-US').includes(expectedStolenItem.toLocaleLowerCase('en-US'))
     : false
+  const mentionsItem = mentionsExpectedItem || RECOVERY_OBJECT_SIGNAL.test(text)
   const recovery = !negatedRecovery && (
     WIN_BACK_SIGNAL.test(text)
     || (RECOVERY_ACTION_SIGNAL.test(text)
-      && (mentionsExpectedItem || RECOVERY_OBJECT_SIGNAL.test(text)))
+      && mentionsItem)
+    || (mentionsItem
+      && PLAYER_POSSESSION_SIGNAL.test(text)
+      && (DEPARTURE_SIGNAL.test(text) || HOMEWARD_SIGNAL.test(text)))
   )
   return {
     success: SUCCESS_SIGNAL.test(text),
@@ -335,11 +382,14 @@ export function validateGeneratedNarration(
     playerAction = '',
     narrationPlayerAction = '',
     introKind = '',
+    continuityAnchors = [],
   } = {},
 ) {
   const text = typeof value === 'string' ? value.trim() : ''
   const reasons = []
-  const maxLength = moment === 'player-action-response' ? 300 : 260
+  const maxLength = moment === 'scene-intro' && introKind === 'choice-presentation'
+    ? 240
+    : 300
 
   if (!isSupportedMomentOutcome(moment, outcome)) {
     reasons.push('uses an unsupported narration moment/outcome pairing')
@@ -347,6 +397,7 @@ export function validateGeneratedNarration(
   if (!text) reasons.push('empty response')
   if (text.length > maxLength) reasons.push('response is too long')
   if (text.includes('!')) reasons.push('contains an exclamation point')
+  if (BANNED_DASH_SIGNAL.test(text)) reasons.push('uses an em dash or en dash')
 
   if (['player-action-attempt', 'player-action-response'].includes(moment) && !String(playerAction).trim()) {
     reasons.push('is missing player action context')
@@ -385,16 +436,67 @@ export function validateGeneratedNarration(
     reasons.push('does not include attributed Goblin King dialogue')
   }
 
+  if (
+    moment === 'scene-intro'
+    && introKind === 'choice-presentation'
+    && !ACTIVE_FIRST_PERSON_LEAD_SIGNAL.test(text)
+  ) {
+    reasons.push('does not begin in S.T.O.N.E.R.\'s active first-person voice')
+  }
+
+  if (moment === 'action-success' && !ACTIVE_FIRST_PERSON_LEAD_SIGNAL.test(text)) {
+    reasons.push('does not begin in S.T.O.N.E.R.\'s active first-person voice')
+  }
+
+  if (moment === 'scene-intro' && SCENE_SETTING_INTRO_KINDS.has(introKind)) {
+    const sceneDetail = sceneSettingDetailText(text, introKind)
+    if (!ACTIVE_SCENE_OBSERVATION_SIGNAL.test(sceneDetail)) {
+      reasons.push('does not use one active first-person scene observation')
+    }
+    if (sceneSettingReadsLikeList(sceneDetail)) {
+      reasons.push('lists multiple scene details instead of landing on one image')
+    }
+  }
+
+  if (Array.isArray(continuityAnchors) && continuityAnchors.length > 0
+    && !containsContinuityAnchor(text, continuityAnchors)) {
+    reasons.push('does not include a supplied continuity anchor')
+  }
+
+  if (
+    !(moment === 'scene-intro' && introKind === 'highlands-opening')
+    && NARRATOR_SELF_REFLECTION_SIGNAL.test(text)
+  ) {
+    reasons.push('uses narrator self-reflection instead of concrete storytelling')
+  }
+
+  if (moment === 'premise-statement') {
+    const expectedItem = String(expectedStolenItem).trim()
+    if (!/\bGoblin King\b/i.test(text)) {
+      reasons.push('does not name the Goblin King')
+    }
+    if (!PREMISE_THEFT_SIGNAL.test(text)) {
+      reasons.push('does not state that the item was stolen')
+    }
+    if (!expectedItem || !text.toLocaleLowerCase('en-US').includes(expectedItem.toLocaleLowerCase('en-US'))) {
+      reasons.push('does not name the fictional stolen item')
+    }
+    if (!PREMISE_OBJECTIVE_SIGNAL.test(text)) {
+      reasons.push('does not state the get-it-back objective')
+    }
+  }
+
   if (moment === 'scene-intro' && introKind === 'highlands-opening') {
-    const openingRemainder = text.slice(HIGHLANDS_OPENING_FOUNDATION.length)
-    if (!text.startsWith(HIGHLANDS_OPENING_FOUNDATION)) {
+    const openingForm = HIGHLANDS_OPENING_FORM_SIGNAL.exec(text)
+    const openingRemainder = text.slice(
+      openingForm?.[0].length ?? HIGHLANDS_OPENING_FOUNDATION.length,
+    )
+    const narratorIdentityText = text.slice(HIGHLANDS_OPENING_LEAD.length)
+    if (!openingForm) {
       reasons.push('does not begin with the locked Highlands welcome')
     }
-    if (!STONER_NAME_SIGNAL.test(openingRemainder)) {
+    if (!STONER_NAME_SIGNAL.test(narratorIdentityText)) {
       reasons.push('does not identify S.T.O.N.E.R. as the narrator')
-    }
-    if (!HIGHLANDS_SCENE_SIGNAL.test(openingRemainder)) {
-      reasons.push('does not establish a concrete Highlands scene or stolen-item stakes')
     }
     if (HIGHLANDS_SELF_COMMENTARY_SIGNAL.test(openingRemainder)) {
       reasons.push('uses narrator self-commentary instead of scene-setting')

@@ -46,6 +46,12 @@ function request(moment, outcome, extra = {}) {
       fictionalStolenItem: 'the Amber Field Satchel',
       fictionalGoblinName: 'Professor Grub',
       authoritativeText: 'The deterministic engine supplied this exact result.',
+      openingObjective: 'The Goblin King stole the Amber Field Satchel; get it back.',
+      storySoFar: 'The player took the Direct Ridge and the stone gate held.',
+      continuityAnchors: ['The Direct Ridge'],
+      choiceContext: 'The guarded arch suggests force, stealth, or negotiation.',
+      scenePurpose: 'Raise pressure before the keep.',
+      tensionLevel: 'rising',
       narrationTier: 'normal',
       playerAction: 'I shove the goblin aside',
       narrationPlayerAction: 'I shove the goblin aside',
@@ -62,6 +68,7 @@ function anthropicResponse() {
 }
 
 const PAIRS = [
+  ['premise-statement', 'premise'],
   ['action-success', 'success'],
   ['scene-intro', 'intro'],
   ['midpoint-outcome', 'midpoint'],
@@ -88,12 +95,16 @@ for (const [moment, outcome] of PAIRS) {
     assert.equal(response.status, 200)
     assert.equal(forwarded.messages[0].content.includes(`"moment":"${moment}"`), true)
     assert.equal(forwarded.messages[0].content.includes(`"outcome":"${outcome}"`), true)
+    assert.equal(forwarded.messages[0].content.includes('"storySoFar"'), true)
+    assert.equal(forwarded.messages[0].content.includes('"choiceContext"'), true)
+    assert.equal(forwarded.messages[0].content.includes('"continuityAnchors":["The Direct Ridge"]'), true)
   })
 }
 
 test('rejects mismatched new pairs before Anthropic', async () => {
   let fetchCalls = 0
   const mismatches = [
+    ['premise-statement', 'intro'],
     ['action-success', 'failure'],
     ['scene-intro', 'success'],
     ['midpoint-outcome', 'intro'],
@@ -121,6 +132,7 @@ test('rejects mismatched new pairs before Anthropic', async () => {
 })
 
 test('exports the exact story-beat outcome sets', () => {
+  assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['premise-statement'], ['premise'])
   assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['action-success'], ['success'])
   assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['scene-intro'], ['intro'])
   assert.deepEqual(SUPPORTED_MOMENT_OUTCOMES['midpoint-outcome'], ['midpoint'])
@@ -134,18 +146,30 @@ test('exports the exact story-beat outcome sets', () => {
   ])
 })
 
-test('system prompt contains every new supported-moment rule', () => {
+test('system prompt defines one continuous one-shot contract for every moment', () => {
   for (const required of [
-    'When moment is "action-success", outcome must be "success"',
-    'When moment is "scene-intro", outcome must be "intro"',
-    'When moment is "midpoint-outcome", outcome must be "midpoint"',
-    'When moment is "goblin-king-taunt", outcome must be "taunt"',
-    'When moment is "player-action-attempt", outcome must be "attempt"',
-    'When moment is "player-action-response", outcome must be "response"',
-    'playerAction is the player\'s raw typed action',
-    'Never reveal the silent mechanical mapping',
-    'Include one short quoted or clearly attributed Goblin King line',
-    'When moment is "run-ending", outcome must be exactly "recovery", "bargain", or "escape"',
+    'one beat of a single continuous fantasy one-shot',
+    'Premise before choice.',
+    'Choices grow from visible pressure.',
+    'Show, never muse.',
+    'Preserve causality.',
+    'Improvise with "yes, and".',
+    'Escalate.',
+    'Close the loop.',
+    'CONTINUITY GATE',
+    'the final line MUST include at least one of those exact prior-story details',
+    'premise-statement/premise:',
+    'scene-intro/intro with introKind highlands-opening:',
+    'action-success/success:',
+    'ordinary-failure/failure:',
+    'natural-one-complication/complication:',
+    'midpoint-outcome/midpoint:',
+    'goblin-king-taunt/taunt:',
+    'player-action-attempt/attempt:',
+    'player-action-response/response:',
+    'run-ending/recovery:',
+    'run-ending/bargain:',
+    'run-ending/escape:',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }

@@ -97,7 +97,7 @@ test('generic-only player wording does not have to be echoed in a narrative resp
   assert.equal(result.valid, true, result.reasons.join('; '))
 })
 
-test('player-action-response allows up to 300 characters while other moments remain capped at 260', () => {
+test('all non-choice narration moments allow up to 300 characters', () => {
   const responseText = `I ${'quietly note the uncertain little gesture and let it remain part of the scene '.repeat(4)}`.trim().slice(0, 280)
   const response = validateGeneratedNarration(
     responseText,
@@ -121,8 +121,7 @@ test('player-action-response allows up to 300 characters while other moments rem
   assert.equal(responseText.length > 260, true)
   assert.equal(responseText.length <= 300, true)
   assert.equal(response.valid, true, response.reasons.join('; '))
-  assert.equal(attempt.valid, false)
-  assert.equal(attempt.reasons.includes('response is too long'), true)
+  assert.equal(attempt.valid, true, attempt.reasons.join('; '))
 })
 
 test('player text cannot force a success into a failure outcome', () => {

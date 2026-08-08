@@ -21,6 +21,13 @@ function generatedNarration(calls = []) {
       playerAction: hook.playerAction || '',
       narrationPlayerAction: hook.narrationPlayerAction || '',
       settingGuardrail: hook.settingGuardrail === true,
+      introKind: hook.introKind || '',
+      openingObjective: hook.openingObjective || '',
+      storySoFar: hook.storySoFar || '',
+      choiceContext: hook.choiceContext || '',
+      scenePurpose: hook.scenePurpose || '',
+      tensionLevel: hook.tensionLevel || '',
+      requiresRoll: hook.requiresRoll === true,
     })
     return {
       text: hook.fallbackText,
@@ -28,6 +35,50 @@ function generatedNarration(calls = []) {
     }
   }
 }
+
+test('opens with scene, premise, and visible stakes before exposing background choices', async () => {
+  const calls = []
+  const session = await createWeedGoblinsChatSession({
+    seed: 'opening-structure',
+    generateNarration: generatedNarration(calls),
+  })
+
+  assert.deepEqual(calls.slice(-3).map((call) => [call.moment, call.introKind]), [
+    ['scene-intro', 'highlands-opening'],
+    ['premise-statement', 'premise-statement'],
+    ['scene-intro', 'choice-presentation'],
+  ])
+  assert.match(session.messages.at(-2).text, /Goblin King stole .+ from you/)
+  assert.match(session.messages.at(-2).text, /get it back/)
+  assert.match(session.messages.at(-1).text, /scarred trailhead table/)
+  assert.equal(session.choices.length, 3)
+  assert.equal(calls.at(-1).tensionLevel, 'opening')
+})
+
+test('adds a scene-transition beat with visible next-choice stakes after an outcome', async () => {
+  const calls = []
+  const generateNarration = generatedNarration(calls)
+  const session = await createWeedGoblinsChatSession({
+    seed: 'transition-structure',
+    generateNarration,
+  })
+  const background = session.choices.find((choice) => choice.id === 'background:hauler')
+  const transition = selectWeedGoblinsChatChoice(session.state, background)
+  const messages = await resolveWeedGoblinsTransitionMessages({
+    before: transition.before,
+    after: transition.after,
+    generateNarration,
+  })
+
+  assert.equal(messages.length, 2)
+  assert.match(messages[0].text, /Highlands Hauler/)
+  assert.match(messages[1].text, /split marker/)
+  const sceneCall = calls.at(-1)
+  assert.equal(sceneCall.introKind, 'scene-transition')
+  assert.match(sceneCall.storySoFar, /Highlands Hauler/)
+  assert.match(sceneCall.choiceContext, /Direct Ridge/)
+  assert.equal(sceneCall.tensionLevel, 'commitment')
+})
 
 async function stateAtGoblin(generateNarration = generatedNarration()) {
   const session = await createWeedGoblinsChatSession({
@@ -65,6 +116,7 @@ test('free-text submit stages outgoing, setup, and roll trigger without advancin
   assert.equal(prepared.before.history.length, historyLength)
   assert.equal(prepared.before.rngState, rngState)
   assert.equal(calls.some((call) => call.moment === 'player-action-attempt'), true)
+  assert.equal(calls.find((call) => call.moment === 'player-action-attempt').requiresRoll, true)
 })
 
 test('roll tap resolves mechanics before outcome narration and produces the five bubble sequence', async () => {
@@ -114,9 +166,29 @@ test('roll tap resolves mechanics before outcome narration and produces the five
   ])
 })
 
-test('free-text scenes expose no mechanical quick-reply categories', async () => {
+test('free-text scenes keep every engine action available as a real game control', async () => {
   const state = await stateAtGoblin()
-  assert.deepEqual(getWeedGoblinsQuickReplies(state), [])
+  assert.deepEqual(
+    getWeedGoblinsQuickReplies(state).map((action) => action.id),
+    ['goblin:strike', 'goblin:guard', 'goblin:channel'],
+  )
+})
+
+test('a built-in action in a free-text scene resolves and advances the adventure', async () => {
+  const state = await stateAtGoblin()
+  const strike = getWeedGoblinsQuickReplies(state)
+    .find((action) => action.id === 'goblin:strike')
+  const transition = selectWeedGoblinsChatChoice(state, strike)
+  const messages = await resolveWeedGoblinsTransitionMessages({
+    before: transition.before,
+    after: transition.after,
+    generateNarration: generatedNarration(),
+  })
+
+  assert.equal(transition.outgoingMessage.text, strike.label)
+  assert.equal(transition.after.sceneId, 'midpoint')
+  assert.equal(messages.length > 0, true)
+  assert.equal(getWeedGoblinsQuickReplies(transition.after).length >= 3, true)
 })
 
 test('simple narrative beat stays in the same scene and consumes no roll', async () => {

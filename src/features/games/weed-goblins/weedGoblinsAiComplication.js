@@ -6,6 +6,7 @@ import {
 export const WEED_GOBLINS_NARRATION_ENDPOINT = '/api/weed-goblins-narration'
 
 const MOMENT_CONFIG = Object.freeze({
+  'premise-statement': Object.freeze({ outcomes: Object.freeze(['premise']), troubleCost: 0 }),
   'natural-one-complication': Object.freeze({ outcomes: Object.freeze(['complication']), troubleCost: 2 }),
   'ordinary-failure': Object.freeze({ outcomes: Object.freeze(['failure']), troubleCost: 1 }),
   'action-success': Object.freeze({ outcomes: Object.freeze(['success']), troubleCost: 0 }),
@@ -143,6 +144,7 @@ function narrationRequest({ moment, outcome, event, state, hook, fallbackText, c
     moment,
     outcome,
     sceneId: cleanText(hook?.sceneId ?? event?.sceneId, 80),
+    previousSceneId: cleanText(hook?.previousSceneId, 80),
     actionId: cleanText(hook?.actionId ?? event?.actionId, 80),
     stat: cleanText(hook?.stat ?? event?.stat, 20),
     dc: Number(hook?.dc ?? event?.dc) || 0,
@@ -153,6 +155,14 @@ function narrationRequest({ moment, outcome, event, state, hook, fallbackText, c
     fictionalStolenItem: cleanText(hook?.fictionalStolenItem ?? state?.stolenItem, 160),
     fictionalGoblinName: cleanText(hook?.fictionalGoblinName ?? state?.goblinName, 100),
     authoritativeText: cleanText(hook?.authoritativeText ?? fallbackText, 300),
+    openingObjective: cleanText(hook?.openingObjective, 300),
+    storySoFar: cleanText(hook?.storySoFar, 600),
+    continuityAnchors: Array.isArray(hook?.continuityAnchors)
+      ? hook.continuityAnchors.slice(0, 6).map((anchor) => cleanText(anchor, 100)).filter(Boolean)
+      : [],
+    choiceContext: cleanText(hook?.choiceContext, 600),
+    scenePurpose: cleanText(hook?.scenePurpose, 240),
+    tensionLevel: cleanText(hook?.tensionLevel, 40),
     introKind: cleanText(hook?.introKind, 60),
     backgroundName: cleanText(hook?.backgroundName, 100),
     midpointChoice: cleanText(hook?.midpointChoice, 80),
@@ -166,6 +176,7 @@ function narrationRequest({ moment, outcome, event, state, hook, fallbackText, c
     narrationTier: cleanText(hook?.narrationTier ?? state?.narrationTier, 50) || 'normal',
     allowCallback: hook?.allowCallback === true,
     allowFourthWall: hook?.allowFourthWall === true,
+    requiresRoll: hook?.requiresRoll === true,
     correctiveNote: cleanText(correctiveNote, 300),
   }
 }
@@ -238,6 +249,7 @@ async function generateValidatedNarration({
       playerAction: hook?.playerAction ?? '',
       narrationPlayerAction: hook?.narrationPlayerAction ?? '',
       introKind: hook?.introKind ?? '',
+      continuityAnchors: hook?.continuityAnchors ?? [],
     })
 
     if (validation.valid) {
@@ -277,6 +289,10 @@ export function generateActionSuccessNarration(options = {}) {
 
 export function generateSceneIntroNarration(options = {}) {
   return generateValidatedNarration({ ...options, moment: 'scene-intro' })
+}
+
+export function generatePremiseStatementNarration(options = {}) {
+  return generateValidatedNarration({ ...options, moment: 'premise-statement' })
 }
 
 export function generateMidpointOutcomeNarration(options = {}) {

@@ -3,6 +3,9 @@ import assert from 'node:assert/strict'
 
 import {
   createInitialNarrationHook,
+  createOpeningChoiceNarrationHook,
+  createPremiseNarrationHook,
+  createSceneTransitionNarrationHook,
   getNarrationHooksForTransition,
 } from './weedGoblinsNarrationHooks.js'
 
@@ -13,8 +16,15 @@ function state(changes = {}) {
     goblinName: 'Professor Grub',
     fictionalLocationName: 'The Copper Tribunal',
     narrationTier: 'normal',
+    sceneId: 'choose-background',
     background: null,
-    flags: { midpointChoice: null },
+    flags: { midpointChoice: null, routeId: null },
+    adventure: {
+      routes: {
+        ridge: { name: 'The Direct Ridge' },
+        fen: { name: 'The Suspicious Fen' },
+      },
+    },
     history: [],
     narration: ["Welcome to the Goblin Highlands. I'll be your narrator."],
     ...changes,
@@ -27,6 +37,71 @@ test('creates a scene-intro hook for the opening Highlands narration', () => {
   assert.equal(hook.outcome, 'intro')
   assert.equal(hook.introKind, 'highlands-opening')
   assert.equal(hook.fictionalLocationName, 'The Copper Tribunal')
+  assert.match(hook.openingObjective, /Goblin King stole the Amber Field Satchel/)
+  assert.equal(hook.tensionLevel, 'opening')
+})
+
+test('creates a mandatory premise and visible opening-choice beat before buttons', () => {
+  const run = state()
+  const premise = createPremiseNarrationHook(run)
+  const choices = createOpeningChoiceNarrationHook(run)
+
+  assert.deepEqual([premise.moment, premise.outcome], ['premise-statement', 'premise'])
+  assert.match(premise.fallbackText, /Goblin King stole the Amber Field Satchel/)
+  assert.match(premise.fallbackText, /get it back/)
+  assert.equal(choices.introKind, 'choice-presentation')
+  assert.match(choices.choiceContext, /Highlands Hauler/)
+  assert.match(choices.fallbackText, /scarred trailhead table/)
+})
+
+test('creates a causal transition with story history, visible stakes, and rising tension', () => {
+  const before = state()
+  const after = state({
+    sceneId: 'choose-route',
+    background: { name: 'Highlands Hauler' },
+    history: [{
+      type: 'choice',
+      sceneId: 'choose-background',
+      actionId: 'background:hauler',
+      backgroundId: 'hauler',
+    }],
+  })
+  const hook = createSceneTransitionNarrationHook(before, after)
+
+  assert.equal(hook.introKind, 'scene-transition')
+  assert.equal(hook.previousSceneId, 'choose-background')
+  assert.match(hook.storySoFar, /Highlands Hauler/)
+  assert.deepEqual(hook.continuityAnchors, ['Highlands Hauler'])
+  assert.match(hook.choiceContext, /Direct Ridge/)
+  assert.equal(hook.tensionLevel, 'commitment')
+  assert.match(hook.fallbackText, /split marker/)
+})
+
+test('supplies concrete background and route anchors for later continuity', () => {
+  const before = state({
+    sceneId: 'goblin-encounter',
+    background: { name: 'Fog-Table Adept' },
+    flags: { midpointChoice: null, routeId: 'fen' },
+  })
+  const after = state({
+    sceneId: 'midpoint',
+    background: { name: 'Fog-Table Adept' },
+    flags: { midpointChoice: null, routeId: 'fen' },
+    history: [{
+      type: 'check',
+      sceneId: 'goblin-encounter',
+      actionId: 'goblin:outlast',
+      outcome: 'failure',
+      success: false,
+      naturalOne: false,
+      rolls: [6],
+      roll: 6,
+    }],
+  })
+
+  const hook = createSceneTransitionNarrationHook(before, after)
+  assert.deepEqual(hook.continuityAnchors, ['Fog-Table Adept', 'The Suspicious Fen'])
+  assert.match(hook.storySoFar, /goblin:outlast resolved as failure/)
 })
 
 test('maps background and midpoint choice narration to their dedicated moments', () => {

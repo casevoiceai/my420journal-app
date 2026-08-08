@@ -1,72 +1,41 @@
-# Weed Goblins Future Interface Design
+# Weed Goblins Interface Design
 
-## Status and scope
+## Locked presentation
 
-This document locks the interface direction for a future Weed Goblins build phase. It is a design reference only. It does not authorize or include UI implementation, React components, styling work, animation work, or production integration.
+Weed Goblins is presented as a compact tabletop fantasy adventure. It must read immediately as a game, not as a private text conversation or a generic chat screen.
 
-## Core presentation
+The screen always exposes four layers:
 
-Weed Goblins presents as a real text-message conversation rather than a visible game interface.
+1. The quest header names Weed Goblins, the current chapter, quest, and scene.
+2. The objective states what the Goblin King stole and that the player must take it back.
+3. The character bar shows Strength, Defense, Mana, and Trouble whenever a background has been selected.
+4. The adventure log records S.T.O.N.E.R.'s narration, the player's moves, rolls, and outcomes.
 
-S.T.O.N.E.R.'s narration appears as incoming message bubbles:
+Fantasy presentation uses dark woodland color, warm gold accents, serif story text, bordered panels, and a visible d20. No contact name, avatar, message status, phone-chat composer, or speech-bubble layout belongs in this game.
 
-- left-aligned;
-- styled like messages from a normal saved contact;
-- visually consistent with an ordinary private text conversation;
-- used for narration, consequences, complications, dice outcomes in context, and ending text.
+## Player actions
 
-The player's selected choice appears as an outgoing message bubble:
+Every deterministic engine action must remain visible as a full action card in every active scene. Free-text support adds a custom-action field below those cards. It never replaces or hides the built-in actions.
 
-- right-aligned;
-- styled like a message the player typed and sent;
-- inserted into the conversation immediately after selection;
-- preserved in the conversation history so the exchange reads naturally from top to bottom.
+Each action card includes:
 
-## Player choices
+- the action name;
+- its immediate fictional intent;
+- the relevant check, Mana cost, advantage, or no-roll consequence;
+- a clear pressed, disabled, and keyboard-focus state.
 
-Available choices are presented as tappable suggestion chips above the message input area.
+Selecting a card must immediately record the player's move in the adventure log and advance the engine. A failure to resolve must produce a visible error and restore the available actions. No interaction failure may be swallowed silently.
 
-The interaction pattern should match the quick-reply suggestions already familiar from messaging applications such as iMessage and WhatsApp. Choices must not appear as a game-style menu, numbered command list, large action buttons, or a separate control panel.
+## Dice
 
-When the player selects a suggestion chip:
+A pending roll appears as a dedicated d20 control inside the adventure log. The player explicitly activates it. The resolved face then shows the selected number before the narrated outcome.
 
-1. the chip selection is accepted as the player's response;
-2. the selected text becomes a right-aligned outgoing message bubble;
-3. the suggestion chips are replaced by the next relevant set of choices when the engine advances.
+Fixed engine actions that already resolve their check immediately may keep the final die attached to their narrated result. Free-text checks retain the explicit setup, roll, result, and outcome sequence.
 
-The message input area may be visually present to preserve the appearance of a normal conversation, but free-text input is not implied or required by this design decision.
+## Narration typography
 
-## Dice display
+Narration uses ordinary periods, commas, colons, and semicolons. Generated narration must not contain em dashes or en dashes. The Worker prompt prohibits them and client validation rejects them before display.
 
-Dice results use a small die-shaped icon attached to the message associated with the check.
+## Responsive behavior
 
-The locked launch behavior is:
-
-- the icon has a minimal visual footprint;
-- it is static;
-- it appears blank while the roll is unresolved;
-- after resolution, it displays only the final selected D20 number;
-- it does not animate;
-- it does not open a large dice panel or create a game-like visual interruption.
-
-For a Mana-assisted advantage roll, the default conversation view still displays only the final selected number. Any future way to inspect both underlying rolls must remain secondary and must not make the ordinary conversation view look like a game screen.
-
-## Optional future dice animation
-
-A separate setting may later enable an animated rolling-die effect for the same small icon.
-
-That setting must be:
-
-- off by default;
-- explicitly optional;
-- treated as future scope;
-- intended for situations where discretion is not a concern;
-- implemented without changing the default static launch experience.
-
-Animated dice are not part of the initial interface build.
-
-## Locked design goal
-
-Someone looking at the player's phone screen from a normal glancing distance should see what looks like a text conversation, not a visible game.
-
-Every future interface decision should be evaluated against that requirement. Game mechanics may be present, but their visual treatment must remain subordinate to the appearance of an ordinary messaging exchange.
+On phones, actions stack as full-width cards and the status bar uses four compact columns. On larger screens, actions use a two-column grid and the adventure is centered in a bounded game frame. The story log and action panel may scroll independently so controls remain reachable on short screens.

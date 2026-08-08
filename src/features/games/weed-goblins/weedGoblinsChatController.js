@@ -7,6 +7,10 @@ import {
 import { generateNarrationFromHook } from './weedGoblinsAiComplication.js'
 import {
   createInitialNarrationHook,
+  createOpeningChoiceNarrationHook,
+  createPremiseNarrationHook,
+  createSceneTransitionNarrationHook,
+  getNarrationStoryContext,
   getNarrationHooksForTransition,
 } from './weedGoblinsNarrationHooks.js'
 import {
@@ -91,7 +95,7 @@ export function createRollResultMessage(value) {
 }
 
 export function getWeedGoblinsQuickReplies(state) {
-  return isWeedGoblinsFreeTextScene(state) ? [] : getAvailableActions(state)
+  return getAvailableActions(state)
 }
 
 export { isWeedGoblinsFreeTextScene }
@@ -175,6 +179,22 @@ export async function createWeedGoblinsChatSession({
   })
   if (openingMessage) messages.push(openingMessage)
 
+  const premiseMessage = await generatedMessageForHook({
+    hook: createPremiseNarrationHook(state),
+    state,
+    blockedRealNames,
+    generateNarration,
+  })
+  if (premiseMessage) messages.push(premiseMessage)
+
+  const choicePresentationMessage = await generatedMessageForHook({
+    hook: createOpeningChoiceNarrationHook(state),
+    state,
+    blockedRealNames,
+    generateNarration,
+  })
+  if (choicePresentationMessage) messages.push(choicePresentationMessage)
+
   return {
     state,
     messages,
@@ -215,9 +235,12 @@ function attemptHookForPlan(state, plan) {
     fictionalStolenItem: cleanText(state.stolenItem, 160),
     fictionalGoblinName: cleanText(state.goblinName, 100),
     fictionalLocationName: cleanText(state.fictionalLocationName, 120),
+    previousSceneId: cleanText(state.sceneId, 80),
+    ...getNarrationStoryContext(state),
     narrationTier: cleanText(state.narrationTier, 50) || 'normal',
     allowCallback: false,
     allowFourthWall: false,
+    requiresRoll: plan.style !== 'non-check',
     ...playerContextForPlan(plan),
   })
 }
@@ -240,6 +263,8 @@ function responseHookForPlan(state, plan) {
     fictionalStolenItem: cleanText(state.stolenItem, 160),
     fictionalGoblinName: cleanText(state.goblinName, 100),
     fictionalLocationName: cleanText(state.fictionalLocationName, 120),
+    previousSceneId: cleanText(state.sceneId, 80),
+    ...getNarrationStoryContext(state),
     narrationTier: cleanText(state.narrationTier, 50) || 'normal',
     allowCallback: false,
     allowFourthWall: false,
@@ -389,12 +414,30 @@ export async function resolveWeedGoblinsTransitionMessages({
   const narrationLines = after.narration.slice(before.narration.length)
   const messages = []
   let hookIndex = 0
+  const transitionHook = createSceneTransitionNarrationHook(before, after)
+  let transitionInserted = false
+
+  async function insertTransitionMessage() {
+    if (!transitionHook || transitionInserted) return
+    const generated = await generatedMessageForHook({
+      hook: transitionHook,
+      state: after,
+      blockedRealNames,
+      generateNarration,
+      die: null,
+    })
+    if (generated) messages.push(generated)
+    transitionInserted = true
+  }
 
   for (const line of narrationLines) {
     if (suppressManaAccounting && /^You spend \d+ Mana\./.test(line)) continue
 
     const rawHook = hooks[hookIndex]
     if (rawHook && cleanText(line, 300) === rawHook.fallbackText) {
+      if (rawHook.moment === 'goblin-king-taunt') {
+        await insertTransitionMessage()
+      }
       const hook = hookWithPlayerContext(rawHook, playerActionPlan)
       const generated = await generatedMessageForHook({
         hook,
@@ -411,6 +454,8 @@ export async function resolveWeedGoblinsTransitionMessages({
     const staticMessage = createIncomingChatMessage(line)
     if (staticMessage) messages.push(staticMessage)
   }
+
+  await insertTransitionMessage()
 
   return messages
 }

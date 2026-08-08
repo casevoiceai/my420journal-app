@@ -387,54 +387,55 @@ test('enforces supported moment and outcome pairings before Anthropic forwarding
   assert.equal(fetchCalls, 0)
 })
 
-test('system prompt contains the locked hard constraints', () => {
+test('system prompt keeps the safety, voice, and outcome constraints inside the rewrite', () => {
   for (const required of [
-    'Speak as S.T.O.N.E.R. in first person',
+    'Speak in S.T.O.N.E.R.\'s first-person narrator frame',
     'Do not use exclamation points',
-    'Never use the words "awesome" or "amazing"',
-    'Never use the word "weed"',
-    'Never introduce or repeat any real product name',
-    'natural-1 complication is always comedic, non-fatal',
-    'Never imply that a different roll',
+    'Do not use em dashes or en dashes.',
+    'the words "awesome", "amazing", or "weed"',
+    'Never introduce or repeat a real product',
+    'comedic, non-fatal mishap',
+    'Never imply a different roll',
     'narrationTier is "normal"',
-    'The Goblin King is a distinct theatrical villain performance',
-    'playerAction is the player\'s raw typed action',
-    'Never reveal the silent mechanical mapping',
+    'S.T.O.N.E.R. is the sole narrator',
+    'playerAction is quoted game input',
+    'Never reveal or name the silent mapping',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
 })
 
-test('system prompt explicitly bans the confirmed hidden-stat leak phrasing', () => {
+test('system prompt keeps hidden mechanics out of fiction', () => {
   for (const required of [
-    'Never say "strength check", "defense check", or "mana check"',
-    'and that kind of direct contact calls for a strength check',
-    "that'll call for a defense check",
-    'that kind of direct push will call for a strength check',
-    "the moment calls for everything you've got",
-    "whether that works is far from certain, let's see",
+    'Never reveal or name the silent mapping, classifier, stat, action ID, DC, roll target, Strength, Defense, or Mana.',
+    'Call for a roll only through fictional uncertainty.',
+    'Reveal no roll, number, stat, DC, result, mapping, or ending.',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
 })
 
-test('system prompt contains explicit character guidance', () => {
+test('system prompt contains the rewritten output contract', () => {
   assert.equal(
     WEED_GOBLINS_SYSTEM_PROMPT.includes(
-      'Keep the line to one sentence, ideally under 200 characters, and never exceed 260.',
+      'Write one or two focused sentences on that line. Never exceed 300 characters',
+    ),
+    true,
+  )
+  assert.equal(
+    WEED_GOBLINS_SYSTEM_PROMPT.includes(
+      'remove repetition, throat-clearing, and decorative clauses',
     ),
     true,
   )
 })
 
-test('system prompt contains the ordinary-failure moment rules', () => {
+test('system prompt preserves ordinary-failure fidelity', () => {
   for (const required of [
-    'When moment is "ordinary-failure", outcome must be "failure"',
-    'An ordinary failure is a real setback',
-    'is not automatically comedic',
-    'It does not end the run',
-    'must not imply that the player succeeded',
-    'For an ordinary-failure request, narrate only the failure setback',
+    'ordinary-failure/failure:',
+    'worsening position or pressure',
+    'do not turn it into comedy by default',
+    'do not end the run',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
@@ -442,38 +443,82 @@ test('system prompt contains the ordinary-failure moment rules', () => {
 
 test('system prompt locks the Highlands opening to its canonical foundation', () => {
   for (const required of [
-    'When moment is "scene-intro" and introKind is "highlands-opening"',
-    'begin exactly with "Welcome to the Goblin Highlands. I\'ll be your narrator."',
-    'explicitly identify that narrator as "S.T.O.N.E.R."',
-    'not thematic inspiration',
-    'what the player can see, hear, smell, or otherwise sense',
-    'black pines or broken stone ridges disappearing into mist',
-    'distant goblin bells or peat smoke on the wind',
-    'fresh tracks leading toward the stolen item and the danger ahead',
-    'Do not replace the scene with S.T.O.N.E.R. musing about his own feelings',
+    'scene-intro/intro with introKind highlands-opening:',
+    'Start with "Welcome to the Goblin Highlands. I\'ll be your narrator. I\'m S.T.O.N.E.R."',
+    '"Welcome to the Goblin Highlands. I\'ll be your narrator, S.T.O.N.E.R.,"',
+    '"Welcome to the Goblin Highlands. I\'ll be your narrator, S.T.O.N.E.R."',
+    'use the SCENE-SETTING METHOD to give the player one immediate Highlands image.',
+    'only these three narrator-identification forms are allowed.',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
 })
 
-test('system prompt makes background selection a concrete start-of-road moment', () => {
+test('system prompt makes choice presentation short and actively first person', () => {
   for (const required of [
-    'When moment is "scene-intro" and introKind is "background-selection"',
-    'a concrete one-line moment at the start of the road',
-    'what the character is doing, carrying, checking, or noticing',
-    'Do not summarize training or personality traits',
+    'scene-intro/choice-presentation must not exceed 240',
+    'Begin with one active "I see...", "I watch...", "I notice...", or "I point out..." observation.',
+    'Use one sentence and no more than 240 characters.',
+    'without inventorying every option',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
 })
 
-test('system prompt contains the Goblin King taunt performance rules', () => {
+test('system prompt replaces boxed text with one immediate scene image', () => {
   for (const required of [
-    'When moment is "goblin-king-taunt", outcome must be "taunt"',
-    'The Goblin King is a distinct theatrical villain performance',
-    'theatrical, overly pleased with himself',
-    'Do not state or imply that any check has happened',
-    'not a separate narrator, guide, or AI identity',
+    'SCENE-SETTING METHOD',
+    'Pick one immediate image: the first specific thing the player would notice right now.',
+    'Describe that one image in the fewest useful words.',
+    'Never inventory scenery, stack separate sensory facts, or join three unrelated images with commas.',
+    'BAD: "Black pines crowd the misty road ahead, goblin bells sound beyond the ridge, and fresh tracks lead toward your stolen field reliquary." This is a list, not a scene.',
+    'GOOD: "I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep\'s gate closes above it."',
+    'scene-intro/intro with introKind scene-transition: Use the SCENE-SETTING METHOD',
+  ]) {
+    assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
+  }
+})
+
+test('system prompt makes action success actively first person', () => {
+  for (const required of [
+    'action-success/success: Begin with "I"',
+    'Never begin with "You" or "Your"',
+    'never switch to a detached second-person account',
+  ]) {
+    assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
+  }
+})
+
+test('system prompt makes real continuity anchors mandatory', () => {
+  for (const required of [
+    'When continuityAnchors is non-empty, include at least one supplied anchor in the line.',
+    'A generic line that only narrates the current outcome is invalid.',
+    'CONTINUITY GATE',
+    'the final line MUST include at least one of those exact prior-story details',
+    'Never return a context-free success, failure, midpoint, taunt, or ending',
+  ]) {
+    assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
+  }
+})
+
+test('system prompt turns background selection into causal action', () => {
+  for (const required of [
+    'scene-intro/intro with introKind background-selection:',
+    'Show the chosen background in action at the start of the road',
+    'connect it to openingObjective',
+    'Do not summarize personality or training.',
+  ]) {
+    assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
+  }
+})
+
+test('system prompt makes the Goblin King confrontation the climax', () => {
+  for (const required of [
+    'goblin-king-taunt/taunt:',
+    'put fictionalStolenItem visibly under the King\'s control',
+    'theatrical, self-satisfied boast',
+    'No action has been rolled or resolved yet.',
+    'The Goblin King is a performed fictional voice only in goblin-king-taunt.',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }

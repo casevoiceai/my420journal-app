@@ -15,7 +15,7 @@ import {
   playWeedGoblinsActions,
 } from './weedGoblinsEngine.js'
 
-const EXPECTED_OPENING = "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. Black pines crowd the misty road ahead, goblin bells sound beyond the ridge, and fresh tracks lead toward your stolen field reliquary."
+const EXPECTED_OPENING = "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it."
 
 const EXPECTED_BACKGROUND_HINTS = Object.freeze({
   hauler: "At the road's edge, I watch you settle empty carrying straps across your shoulders before the climb; steep ground has never stopped you from hauling what matters home.",

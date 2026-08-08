@@ -1,5 +1,5 @@
 export const STONER_INTRODUCTION =
-  "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. Black pines crowd the misty road ahead, goblin bells sound beyond the ridge, and fresh tracks lead toward your stolen field reliquary."
+  "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it."
 
 export const STONER_RETURNING_LINE =
   "You've been to the Goblin Highlands before. Last time you [outcome]. I'm curious whether you'll make the same choices."

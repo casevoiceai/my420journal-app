@@ -51,7 +51,7 @@ const ordinaryFailureState = {
 
 const staticFallbacks = [event.complicationText]
 const ordinaryFailureFallbacks = [ordinaryFailureEvent.failureText]
-const highlandsOpeningFallback = "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. Black pines crowd the misty road ahead, goblin bells sound beyond the ridge, and fresh tracks lead toward your stolen field reliquary."
+const highlandsOpeningFallback = "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it."
 
 function response(text, model = 'claude-haiku-4-5-20251001') {
   return Promise.resolve(new Response(JSON.stringify({ text, model }), {
@@ -215,7 +215,7 @@ test('highlands opening rejects thematic drift and retries with the canonical we
   const requestBodies = []
   const drafts = [
     "I find the Goblin Highlands genuinely fascinating, and I should tell you up front that I've developed opinions about the characters here.",
-    "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. Black pines crowd the misty road ahead while goblin bells mark the trail of your stolen field reliquary.",
+    "Welcome to the Goblin Highlands. I'll be your narrator. I'm S.T.O.N.E.R. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it.",
   ]
   const hook = {
     moment: 'scene-intro',
@@ -240,9 +240,9 @@ test('highlands opening rejects thematic drift and retries with the canonical we
   assert.equal(result.source, 'ai')
   assert.equal(result.attempts, 2)
   assert.deepEqual(result.validationFailures[0].reasons, [
+    'does not use one active first-person scene observation',
     'does not begin with the locked Highlands welcome',
     'does not identify S.T.O.N.E.R. as the narrator',
-    'does not establish a concrete Highlands scene or stolen-item stakes',
     'uses narrator self-commentary instead of scene-setting',
   ])
   assert.match(requestBodies[1].correctiveNote, /locked Highlands welcome/i)
@@ -257,11 +257,30 @@ test('highlands opening rejects foundation-compliant narrator self-commentary', 
 
   assert.equal(validation.valid, false)
   assert.equal(
-    validation.reasons.includes('does not establish a concrete Highlands scene or stolen-item stakes'),
+    validation.reasons.includes('does not use one active first-person scene observation'),
     true,
   )
   assert.equal(
     validation.reasons.includes('uses narrator self-commentary instead of scene-setting'),
     true,
   )
+})
+
+test('highlands opening accepts the natural comma narrator form with concrete scene-setting', () => {
+  const validation = validateGeneratedNarration(
+    "Welcome to the Goblin Highlands. I'll be your narrator, S.T.O.N.E.R., and I watch your boot stop beside one fresh goblin footprint pressed into the mud.",
+    { moment: 'scene-intro', outcome: 'intro', introKind: 'highlands-opening' },
+  )
+
+  assert.equal(validation.valid, true, validation.reasons.join('; '))
+})
+
+test('natural comma narrator form is not rejected as a foundation or identity error', () => {
+  const validation = validateGeneratedNarration(
+    "Welcome to the Goblin Highlands. I'll be your narrator, S.T.O.N.E.R., and I'm here to tell you what happens next.",
+    { moment: 'scene-intro', outcome: 'intro', introKind: 'highlands-opening' },
+  )
+
+  assert.equal(validation.reasons.includes('does not begin with the locked Highlands welcome'), false)
+  assert.equal(validation.reasons.includes('does not identify S.T.O.N.E.R. as the narrator'), false)
 })
