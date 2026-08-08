@@ -6,6 +6,106 @@ export const WEED_GOBLINS_INTRODUCTION =
 export const WEED_GOBLINS_RETURNING_LINE =
   "You've been to the Goblin Highlands before. Last time you [outcome]. I'm curious whether you'll make the same choices."
 
+
+export const SESSION_ZERO_WELCOME = Object.freeze([
+  "Welcome, traveler. Before the road opens beneath you, sit with me a moment at the edge of it. I'm Eliza, and for as long as this story runs, I'll be watching everything that happens to you and telling it back, one true beat at a time. The Highlands ahead are not gentle country. Goblin banners hang from crooked posts along Windcut Trail, smoke rises from a keep built more from stubbornness than stone, and somewhere inside it sits a king who has something of yours he was never supposed to take.",
+  "But first, I need to know who's walking into that story. Every traveler who comes up this road carries a name, a look, a kind, and a way of meeting trouble. Let's settle those now.",
+])
+
+export const PLAYER_NAME_SUGGESTIONS = Object.freeze([
+  'Fenna Duskrow',
+  'Corvin Ashwell',
+  'Rell Marrowlight',
+  'Sable Underhollow',
+])
+
+export const PLAYER_KINDS = Object.freeze({
+  'human-sword': Object.freeze({
+    id: 'human-sword',
+    label: 'Human, Sword',
+    race: 'Human',
+    weapon: 'Sword',
+    flavor: 'Worn leather over practical mail. Steel and grit, no tricks, no excuses.',
+  }),
+  'human-bow': Object.freeze({
+    id: 'human-bow',
+    label: 'Human, Bow',
+    race: 'Human',
+    weapon: 'Bow',
+    flavor: 'Light leather built for movement. Steady hands, patient eyes.',
+  }),
+  'dwarf-battle-axe': Object.freeze({
+    id: 'dwarf-battle-axe',
+    label: 'Dwarf, Battle Axe',
+    race: 'Dwarf',
+    weapon: 'Battle Axe',
+    flavor: "Dented plate that's earned every scratch. Built low, hits heavy, holds a grudge as long as a mountain does.",
+  }),
+  'elf-bow': Object.freeze({
+    id: 'elf-bow',
+    label: 'Elf, Bow',
+    race: 'Elf',
+    weapon: 'Bow',
+    flavor: 'Cloth and leaf-cloak. Quiet feet, quicker eyes, gone before the echo catches up.',
+  }),
+  'elf-bo-staff': Object.freeze({
+    id: 'elf-bo-staff',
+    label: 'Elf, Bo Staff',
+    race: 'Elf',
+    weapon: 'Bo Staff',
+    flavor: 'Simple robes, old discipline. Every strike already three moves planned.',
+  }),
+  'gnome-mace': Object.freeze({
+    id: 'gnome-mace',
+    label: 'Gnome, Mace',
+    race: 'Gnome',
+    weapon: 'Mace',
+    flavor: 'A scavenged breastplate two sizes too big. Small frame, surprising swing.',
+  }),
+  'gnome-daggers': Object.freeze({
+    id: 'gnome-daggers',
+    label: 'Gnome, Daggers',
+    race: 'Gnome',
+    weapon: 'Daggers',
+    flavor: 'Dark leathers built for slipping through gaps. Quick hands, quicker mouth.',
+  }),
+})
+
+export const PLAYER_PRONOUN_OPTIONS = Object.freeze([
+  Object.freeze({ id: 'he', label: 'He', value: 'He' }),
+  Object.freeze({ id: 'she', label: 'She', value: 'She' }),
+  Object.freeze({ id: 'they', label: 'They', value: 'They' }),
+  Object.freeze({ id: 'skip', label: 'Skip this', value: null }),
+])
+
+export const PLAYER_LOOK_OPTIONS = Object.freeze([
+  Object.freeze({
+    id: 'tall-weathered',
+    label: 'Tall and weathered, hair silvered early, eyes the color of wet slate.',
+  }),
+  Object.freeze({
+    id: 'broad-scarred',
+    label: 'Broad-built and scarred, dark hair kept short, eyes a startling amber.',
+  }),
+  Object.freeze({
+    id: 'small-quick',
+    label: 'Small and quick, hair the color of dry grass, eyes that catch light strangely, faintly glowing at dusk.',
+  }),
+  Object.freeze({
+    id: 'heavyset-steady',
+    label: 'Heavyset and steady, hair long and braided, eyes a deep, ordinary brown that misses nothing.',
+  }),
+])
+
+export const WEAPON_FLAVOR_PHRASES = Object.freeze({
+  Sword: 'a clean cut',
+  Bow: 'an arrow finds its mark',
+  'Battle Axe': 'a heavy swing crushes through',
+  'Bo Staff': 'a precise, practiced strike',
+  Mace: 'a blunt crack connects',
+  Daggers: 'a quick double strike flickers in and out',
+})
+
 export const GOBLIN_KING_TAUNT_FALLBACK =
   "I watch the Goblin King lean back on his throne in the Stash Hall, crates stacked behind him, one crate marked with a seal he clearly didn't design himself, and say, 'You may begin whenever you are ready to disappoint yourself.'"
 
@@ -105,7 +205,12 @@ export const FIXED_TEST_ADVENTURE = Object.freeze({
 })
 
 const SCENES = Object.freeze({
+  sessionWelcome: 'session-zero-welcome',
+  sessionName: 'session-zero-name',
+  sessionKind: 'session-zero-kind',
   background: 'choose-background',
+  sessionPronoun: 'session-zero-pronoun',
+  sessionLook: 'session-zero-look',
   route: 'choose-route',
   goblin: 'goblin-encounter',
   midpoint: 'midpoint',
@@ -147,6 +252,87 @@ function drawFromList(list, rngState) {
 
 function normalizeText(value) {
   return String(value ?? '').trim().replace(/\s+/g, ' ')
+}
+
+
+function isNameHelpRequest(value) {
+  const text = normalizeText(value).toLowerCase()
+  if (!text) return true
+  return /\b(?:help|suggest|suggestion|name idea|name ideas|not sure|don't know|do not know)\b/.test(text)
+}
+
+function weaponFlavorSentence(weapon) {
+  const phrase = WEAPON_FLAVOR_PHRASES[weapon] || 'a direct strike'
+  return `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}.`
+}
+
+function finalizeSessionZero(state, playerLook, actionId) {
+  const returningLine = normalizeText(state.returningLine)
+  const narration = [
+    ...state.narration,
+    `${state.playerName}. I'll remember that.`,
+    WEED_GOBLINS_INTRODUCTION,
+  ]
+  if (returningLine) narration.push(returningLine)
+
+  return cloneState(state, {
+    playerLook,
+    returningLine: null,
+    sceneId: SCENES.route,
+    flags: { sessionZeroComplete: true },
+    history: [
+      ...state.history,
+      {
+        type: 'session-choice',
+        sceneId: SCENES.sessionLook,
+        actionId,
+        playerLook,
+      },
+    ],
+    narration,
+  })
+}
+
+export function isWeedGoblinsSessionTextScene(state) {
+  return Boolean(
+    state
+      && state.status !== 'completed'
+      && [SCENES.sessionName, SCENES.sessionLook].includes(state.sceneId),
+  )
+}
+
+export function advanceWeedGoblinsSessionText(state, value) {
+  if (!state || typeof state !== 'object') throw new Error('A run state is required.')
+  if (state.status === 'completed') throw new Error('This run is already complete.')
+
+  if (state.sceneId === SCENES.sessionName) {
+    const playerName = normalizeText(value).slice(0, 160)
+    if (isNameHelpRequest(playerName)) {
+      return cloneState(state, { flags: { nameSuggestionsVisible: true } })
+    }
+    return cloneState(state, {
+      playerName,
+      sceneId: SCENES.sessionKind,
+      flags: { nameSuggestionsVisible: false },
+      history: [
+        ...state.history,
+        {
+          type: 'session-choice',
+          sceneId: SCENES.sessionName,
+          actionId: 'session:name:custom',
+          playerName,
+        },
+      ],
+    })
+  }
+
+  if (state.sceneId === SCENES.sessionLook) {
+    const playerLook = normalizeText(value).slice(0, 160)
+    if (!playerLook) throw new Error('A character look is required.')
+    return finalizeSessionZero(state, playerLook, 'session:look:custom')
+  }
+
+  throw new Error(`Session text input is not available in scene ${state.sceneId}.`)
 }
 
 function normalizePriorCompletedRunCount(value) {
@@ -463,9 +649,6 @@ export function createWeedGoblinsRun({
   const environmentThemeFlavor = normalizeText(journalSnapshot?.terpeneEnvironmentFlavor)
 
   const returningLine = buildReturningNarration(previousRuns)
-  const narration = returningLine
-    ? [returningLine, WEED_GOBLINS_INTRODUCTION]
-    : [WEED_GOBLINS_INTRODUCTION]
 
   return {
     version: 1,
@@ -474,7 +657,13 @@ export function createWeedGoblinsRun({
     seed: String(seed),
     rngState,
     status: 'active',
-    sceneId: SCENES.background,
+    sceneId: SCENES.sessionWelcome,
+    playerName: null,
+    playerRace: null,
+    playerWeapon: null,
+    playerPronoun: null,
+    playerLook: null,
+    returningLine,
     background: null,
     stats: { strength: 0, defense: 0, manaPool: 0, maxMana: 0 },
     trouble: 0,
@@ -491,11 +680,13 @@ export function createWeedGoblinsRun({
       midpointChoice: null,
       goblinAlly: false,
       bossDcModifier: 0,
+      sessionZeroComplete: false,
+      nameSuggestionsVisible: false,
     },
     ending: null,
     runSummary: null,
     history: [],
-    narration,
+    narration: [...SESSION_ZERO_WELCOME],
   }
 }
 
@@ -506,10 +697,46 @@ function optionalManaCost(options) {
 export function getAvailableActions(state) {
   if (!state || state.status === 'completed') return []
 
+
+  if (state.sceneId === SCENES.sessionWelcome) {
+    return [{ id: 'session:continue', label: 'Continue' }]
+  }
+
+  if (state.sceneId === SCENES.sessionName) {
+    if (!state.flags.nameSuggestionsVisible) return []
+    return PLAYER_NAME_SUGGESTIONS.map((name, index) => ({
+      id: `session:name:${index}`,
+      label: name,
+    }))
+  }
+
+  if (state.sceneId === SCENES.sessionKind) {
+    return Object.values(PLAYER_KINDS).map((kind) => ({
+      id: `session:kind:${kind.id}`,
+      label: kind.label,
+      detail: kind.flavor,
+    }))
+  }
+
+
   if (state.sceneId === SCENES.background) {
     return Object.values(BACKGROUNDS).map((background) => ({
       id: `background:${background.id}`,
       label: background.name,
+    }))
+  }
+
+  if (state.sceneId === SCENES.sessionPronoun) {
+    return PLAYER_PRONOUN_OPTIONS.map((option) => ({
+      id: `session:pronoun:${option.id}`,
+      label: option.label,
+    }))
+  }
+
+  if (state.sceneId === SCENES.sessionLook) {
+    return PLAYER_LOOK_OPTIONS.map((option) => ({
+      id: `session:look:${option.id}`,
+      label: option.label,
     }))
   }
 
@@ -568,6 +795,57 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
     throw new Error(`Action ${actionId} is not available in scene ${state.sceneId}.`)
   }
 
+  if (state.sceneId === SCENES.sessionWelcome) {
+    return cloneState(state, {
+      sceneId: SCENES.sessionName,
+      history: [
+        ...state.history,
+        { type: 'session-choice', sceneId: SCENES.sessionWelcome, actionId },
+      ],
+    })
+  }
+
+  if (state.sceneId === SCENES.sessionName) {
+    const suggestionIndex = Number(actionId.split(':')[2])
+    const playerName = PLAYER_NAME_SUGGESTIONS[suggestionIndex]
+    if (!playerName) throw new Error('Unknown Session Zero name suggestion.')
+    return cloneState(state, {
+      playerName,
+      sceneId: SCENES.sessionKind,
+      flags: { nameSuggestionsVisible: false },
+      history: [
+        ...state.history,
+        {
+          type: 'session-choice',
+          sceneId: SCENES.sessionName,
+          actionId,
+          playerName,
+        },
+      ],
+    })
+  }
+
+  if (state.sceneId === SCENES.sessionKind) {
+    const kindId = actionId.slice('session:kind:'.length)
+    const kind = PLAYER_KINDS[kindId]
+    if (!kind) throw new Error('Unknown Session Zero kind.')
+    return cloneState(state, {
+      playerRace: kind.race,
+      playerWeapon: kind.weapon,
+      sceneId: SCENES.background,
+      history: [
+        ...state.history,
+        {
+          type: 'session-choice',
+          sceneId: SCENES.sessionKind,
+          actionId,
+          playerRace: kind.race,
+          playerWeapon: kind.weapon,
+        },
+      ],
+    })
+  }
+
   if (state.sceneId === SCENES.background) {
     const backgroundId = actionId.split(':')[1]
     const background = BACKGROUNDS[backgroundId]
@@ -575,7 +853,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
     return appendEvent(
       cloneState(state, {
         background,
-        sceneId: SCENES.route,
+        sceneId: SCENES.sessionPronoun,
         stats: {
           strength: background.strength,
           defense: background.defense,
@@ -583,9 +861,35 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
           maxMana: background.manaPool,
         },
       }),
-      { type: 'choice', sceneId: SCENES.background, actionId, backgroundId },
+      { type: 'session-choice', sceneId: SCENES.background, actionId, backgroundId },
       `${background.name}. ${background.flavor}${traitText}`,
     )
+  }
+
+  if (state.sceneId === SCENES.sessionPronoun) {
+    const pronounId = actionId.slice('session:pronoun:'.length)
+    const option = PLAYER_PRONOUN_OPTIONS.find((candidate) => candidate.id === pronounId)
+    if (!option) throw new Error('Unknown Session Zero pronoun option.')
+    return cloneState(state, {
+      playerPronoun: option.value,
+      sceneId: SCENES.sessionLook,
+      history: [
+        ...state.history,
+        {
+          type: 'session-choice',
+          sceneId: SCENES.sessionPronoun,
+          actionId,
+          playerPronoun: option.value,
+        },
+      ],
+    })
+  }
+
+  if (state.sceneId === SCENES.sessionLook) {
+    const lookId = actionId.slice('session:look:'.length)
+    const option = PLAYER_LOOK_OPTIONS.find((candidate) => candidate.id === lookId)
+    if (!option) throw new Error('Unknown Session Zero look option.')
+    return finalizeSessionZero(state, option.label, actionId)
   }
 
   if (state.sceneId === SCENES.route) {
@@ -622,13 +926,19 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       return cloneState(result.state, { sceneId: SCENES.midpoint })
     }
 
-    const stat = actionId === 'goblin:strike' ? 'strength' : 'defense'
+    const isStrike = actionId === 'goblin:strike'
+    const stat = isStrike ? 'strength' : 'defense'
+    const weaponFlavor = weaponFlavorSentence(state.playerWeapon)
     const result = resolveCheck(state, {
       actionId,
       stat,
       dc: DIFFICULTY.standard,
-      successText: `${state.goblinName} yields the path with theatrical reluctance.`,
-      failureText: `${state.goblinName} lands a surprisingly organized counterargument.`,
+      successText: isStrike
+        ? `${weaponFlavor} ${state.goblinName} yields the path with theatrical reluctance.`
+        : `${state.goblinName} yields the path with theatrical reluctance.`,
+      failureText: isStrike
+        ? `${weaponFlavor} ${state.goblinName} lands a surprisingly organized counterargument.`
+        : `${state.goblinName} lands a surprisingly organized counterargument.`,
       manaCost: optionalManaCost(options),
     })
     if (result.state.status === 'completed') return result.state
@@ -721,13 +1031,19 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       return result.state
     }
 
-    const stat = actionId === 'boss:overpower' ? 'strength' : 'defense'
+    const isOverpower = actionId === 'boss:overpower'
+    const stat = isOverpower ? 'strength' : 'defense'
+    const weaponFlavor = weaponFlavorSentence(state.playerWeapon)
     const result = resolveCheck(state, {
       actionId,
       stat,
       dc,
-      successText: 'The Goblin King is defeated within the accepted fictional meaning of defeated.',
-      failureText: 'The Goblin King remains king for at least one more action.',
+      successText: isOverpower
+        ? `${weaponFlavor} The Goblin King is defeated within the accepted fictional meaning of defeated.`
+        : 'The Goblin King is defeated within the accepted fictional meaning of defeated.',
+      failureText: isOverpower
+        ? `${weaponFlavor} The Goblin King remains king for at least one more action.`
+        : 'The Goblin King remains king for at least one more action.',
       manaCost: optionalManaCost(options),
     })
     if (result.state.status === 'completed') return result.state
