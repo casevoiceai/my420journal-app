@@ -10,18 +10,25 @@ import {
   createWeedGoblinsChatSession,
   getWeedGoblinsQuickReplies,
   isWeedGoblinsFreeTextScene,
+  isWeedGoblinsSessionTextScene,
   narrateWeedGoblinsResolvedTurn,
   prepareWeedGoblinsFreeTextTurn,
   resolveWeedGoblinsPreparedMechanics,
   resolveWeedGoblinsPreparedTurn,
   resolveWeedGoblinsTransitionWithStaticFallback,
   selectWeedGoblinsChatChoice,
+  submitWeedGoblinsSessionText,
 } from './weedGoblinsChatController.js'
 import { WEED_GOBLINS_NARRATOR_NAME } from './weedGoblinsEngine.js'
 import './WeedGoblinsChat.css'
 
 const SCENE_NAMES = Object.freeze({
-  'choose-background': 'Choose Your Background',
+  'session-zero-welcome': 'Session Zero',
+  'session-zero-name': 'Name Your Traveler',
+  'session-zero-kind': 'Choose Your Kind',
+  'choose-background': 'Choose Your Class',
+  'session-zero-pronoun': 'Picture Your Traveler',
+  'session-zero-look': 'Finish Your Traveler',
   'choose-route': 'Choose Your Road',
   'goblin-encounter': 'Goblin Ambush',
   midpoint: 'The Keep Gate',
@@ -30,9 +37,9 @@ const SCENE_NAMES = Object.freeze({
 })
 
 const BACKGROUND_DETAILS = Object.freeze({
-  'background:hauler': 'Strength 3  |  Defense 1  |  Mana 2',
-  'background:keeper': 'Strength 1  |  Defense 3  |  Mana 2',
-  'background:adept': 'Strength 1  |  Defense 2  |  Mana 4',
+  'background:tracker': 'Strength 3  |  Defense 1  |  Mana 2',
+  'background:warden': 'Strength 1  |  Defense 3  |  Mana 2',
+  'background:diviner': 'Strength 1  |  Defense 2  |  Mana 4',
 })
 
 function makeRunSeed() {
@@ -40,13 +47,6 @@ function makeRunSeed() {
     return `weed-goblins-chat:${crypto.randomUUID()}`
   }
   return `weed-goblins-chat:${Date.now()}`
-}
-
-function staticNarration({ hook }) {
-  return Promise.resolve({
-    text: hook.fallbackText,
-    source: 'static-fallback',
-  })
 }
 
 async function loadSnapshotWithFallback() {
@@ -58,21 +58,31 @@ async function loadSnapshotWithFallback() {
 }
 
 function actionDetail(state, action) {
+  if (action.detail) return action.detail
   if (BACKGROUND_DETAILS[action.id]) return BACKGROUND_DETAILS[action.id]
-  if (action.id === 'route:ridge') return 'Open ground  |  Strength check'
-  if (action.id === 'route:fen') return 'Hidden approach  |  Defense check'
+  if (action.id === 'route:loud') return 'Direct crossing  |  Strength check'
+  if (action.id === 'route:quiet') return 'Quiet crossing  |  Defense check'
   if (action.id === 'goblin:strike') return 'Force a path  |  Strength check'
   if (action.id === 'goblin:guard') return 'Hold your ground  |  Defense check'
   if (action.id === 'goblin:channel') return 'Spend 1 Mana  |  Roll with advantage'
-  if (action.id === 'midpoint:help') return 'Gain an ally  |  No roll'
-  if (action.id === 'midpoint:take-charm') return 'Risk the alarm  |  Defense check'
-  if (action.id === 'midpoint:read-runes') return 'Spend 1 Mana  |  Read the throne gate'
+  if (action.id === 'midpoint:help') return 'Help Nib  |  No roll'
+  if (action.id === 'midpoint:take-token') return 'Risk the alarm  |  Defense check'
+  if (action.id === 'midpoint:read-runes') return 'Spend 1 Mana  |  Read Cloudberry Shelf'
   if (action.id === 'midpoint:skip') return 'Press on now  |  No roll'
   if (action.id === 'boss:overpower') return 'Take back the item  |  Strength check'
   if (action.id === 'boss:outlast') return 'Break his control  |  Defense check'
   if (action.id === 'boss:spell') return 'Spend 2 Mana  |  Roll with advantage'
   if (action.id === 'boss:bargain') return 'Call your ally  |  Secure a bargain'
-  return state?.sceneId === 'choose-background' ? 'Choose your adventurer' : 'Advance the quest'
+  return state?.sceneId?.startsWith('session-zero-') ? 'Choose to continue' : 'Advance the quest'
+}
+
+function actionHeading(state) {
+  if (state?.sceneId === 'session-zero-kind') return 'Choose your kind'
+  if (state?.sceneId === 'choose-background') return 'Choose your class'
+  if (state?.sceneId === 'session-zero-pronoun') return 'How should I picture you?'
+  if (state?.sceneId === 'session-zero-look') return 'One more thing, how do you look?'
+  if (state?.sceneId === 'session-zero-name') return 'Choose a name'
+  return 'Choose your action'
 }
 
 function D20Icon({ value = null, size = 44 }) {
@@ -172,7 +182,9 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     [seed, runNumber],
   )
   const freeTextOpen = isWeedGoblinsFreeTextScene(state)
+  const sessionTextOpen = isWeedGoblinsSessionTextScene(state)
   const canType = freeTextOpen && !pendingTurn && !busy && state?.status !== 'completed'
+  const canSessionType = sessionTextOpen && !pendingTurn && !busy && state?.status !== 'completed'
   const sceneName = SCENE_NAMES[state?.sceneId] || 'Entering the Highlands'
 
   useEffect(() => {
@@ -189,15 +201,9 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
         journalSnapshot: snapshot,
         previousRuns: snapshot.previousRuns || [],
         priorCompletedRunCount: snapshot.previousRuns?.length || 0,
-        blockedRealNames: blockedNames,
       }
 
-      let session
-      try {
-        session = await createWeedGoblinsChatSession(options)
-      } catch {
-        session = await createWeedGoblinsChatSession({ ...options, generateNarration: staticNarration })
-      }
+      const session = await createWeedGoblinsChatSession(options)
       if (cancelled) return
       setState(session.state)
       setMessages(session.messages)
@@ -257,6 +263,7 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
       const optimisticMessages = [...baseMessages, transition.outgoingMessage]
       setState(transition.after)
       setMessages(optimisticMessages)
+      setDraft('')
       const incomingMessages = await resolveWeedGoblinsTransitionWithStaticFallback({
         before: transition.before,
         after: transition.after,
@@ -270,6 +277,46 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
       setMessages(baseMessages)
       setChoices(getWeedGoblinsQuickReplies(baseState))
       setActionError('That move did not resolve. Choose it again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleSessionTextSubmit(event) {
+    event?.preventDefault()
+    if (!state || !canSessionType) return
+    const isLookStep = state.sceneId === 'session-zero-look'
+    const text = draft.trim()
+    if (isLookStep && !text) return
+
+    const baseState = state
+    const baseMessages = messages
+    setActionError('')
+    setBusy(true)
+    setChoices([])
+
+    try {
+      const transition = submitWeedGoblinsSessionText(baseState, text)
+      const optimisticMessages = transition.outgoingMessage
+        ? [...baseMessages, transition.outgoingMessage]
+        : [...baseMessages]
+      setState(transition.after)
+      setMessages(optimisticMessages)
+      const incomingMessages = await resolveWeedGoblinsTransitionWithStaticFallback({
+        before: transition.before,
+        after: transition.after,
+        blockedRealNames,
+      })
+      setMessages([...optimisticMessages, ...incomingMessages])
+      setChoices(getWeedGoblinsQuickReplies(transition.after))
+      setDraft('')
+    } catch {
+      setState(baseState)
+      setMessages(baseMessages)
+      setChoices(getWeedGoblinsQuickReplies(baseState))
+      setActionError(isLookStep
+        ? 'Describe your traveler or choose one of the looks above.'
+        : 'That name could not be saved. Try it again.')
     } finally {
       setBusy(false)
     }
@@ -377,7 +424,9 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
       <section className="weed-goblins-game__quest-bar" aria-label="Quest status">
         <div className="weed-goblins-game__objective">
           <span>Objective</span>
-          <strong>{state?.stolenItem ? `Take ${state.stolenItem} back from the Goblin King` : 'Enter the Goblin Highlands'}</strong>
+          <strong>{state?.flags?.sessionZeroComplete && state?.stolenItem
+            ? `Take ${state.stolenItem} back from the Goblin King`
+            : 'Prepare your traveler for the Goblin Highlands'}</strong>
         </div>
         {state?.background && (
           <div className="weed-goblins-game__stats" aria-label="Character stats">
@@ -430,7 +479,7 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
               {choices.length > 0 && (
                 <div className="weed-goblins-game__action-block">
                   <div className="weed-goblins-game__action-heading">
-                    <h2>{state?.sceneId === 'choose-background' ? 'Choose your adventurer' : 'Choose your action'}</h2>
+                    <h2>{actionHeading(state)}</h2>
                     <span>{choices.length} available</span>
                   </div>
                   <div className="weed-goblins-game__action-grid">
@@ -452,6 +501,33 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {sessionTextOpen && (
+                <form className="weed-goblins-game__custom-action" onSubmit={handleSessionTextSubmit}>
+                  <label htmlFor="weed-goblins-session-input">
+                    {state?.sceneId === 'session-zero-name' ? 'What should I call you?' : 'Describe yourself'}
+                  </label>
+                  <div>
+                    <input
+                      id="weed-goblins-session-input"
+                      aria-label={state?.sceneId === 'session-zero-name' ? 'What should I call you?' : 'Describe yourself'}
+                      placeholder={state?.sceneId === 'session-zero-name'
+                        ? 'Enter a name, or ask for help'
+                        : 'Describe yourself'}
+                      value={draft}
+                      onChange={(event) => setDraft(event.target.value)}
+                      maxLength={160}
+                      disabled={!canSessionType}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!canSessionType || (state?.sceneId === 'session-zero-look' && !draft.trim())}
+                    >
+                      Continue
+                    </button>
+                  </div>
+                </form>
               )}
 
               {freeTextOpen && !pendingTurn && (
