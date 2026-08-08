@@ -1,14 +1,13 @@
 import {
   advanceWeedGoblinsFreeTextMidpointCheck,
   advanceWeedGoblinsRun,
+  advanceWeedGoblinsSessionText,
   createWeedGoblinsRun,
   getAvailableActions,
+  isWeedGoblinsSessionTextScene,
 } from './weedGoblinsEngine.js'
 import { generateNarrationFromHook } from './weedGoblinsAiComplication.js'
 import {
-  createInitialNarrationHook,
-  createOpeningChoiceNarrationHook,
-  createPremiseNarrationHook,
   createSceneTransitionNarrationHook,
   getNarrationStoryContext,
   getNarrationHooksForTransition,
@@ -98,7 +97,7 @@ export function getWeedGoblinsQuickReplies(state) {
   return getAvailableActions(state)
 }
 
-export { isWeedGoblinsFreeTextScene }
+export { isWeedGoblinsFreeTextScene, isWeedGoblinsSessionTextScene }
 
 function playerContextForPlan(plan) {
   return {
@@ -111,6 +110,28 @@ function playerContextForPlan(plan) {
   }
 }
 
+function sessionZeroCharacterContext(state) {
+  const name = cleanText(state?.playerName, 160)
+  const race = cleanText(state?.playerRace, 80)
+  const weapon = cleanText(state?.playerWeapon, 80)
+  const pronoun = cleanText(state?.playerPronoun, 40) || 'unspecified'
+  const look = cleanText(state?.playerLook, 160)
+  if (!name && !race && !weapon && !look) return ''
+  return cleanText(
+    `Player character: name ${name || 'unspecified'}; kind ${race || 'unspecified'}; weapon ${weapon || 'unspecified'}; pronoun ${pronoun}; look ${look || 'unspecified'}. These are flavor only and do not change mechanics or outcomes.`,
+    360,
+  )
+}
+
+function storyContextWithCharacter(state, baseContext = getNarrationStoryContext(state)) {
+  const characterContext = sessionZeroCharacterContext(state)
+  if (!characterContext) return baseContext
+  return {
+    ...baseContext,
+    storySoFar: cleanText(`${characterContext} ${baseContext.storySoFar || ''}`, 600),
+  }
+}
+
 function contextualFallback(hook, plan) {
   if (!plan) return hook.fallbackText
   const action = plan.narrationPlayerAction
@@ -120,11 +141,17 @@ function contextualFallback(hook, plan) {
   return cleanText(`I resolve ${action} through the scene: ${hook.fallbackText}`, 300)
 }
 
-function hookWithPlayerContext(hook, plan) {
-  if (!plan || hook.moment === 'goblin-king-taunt') return hook
+function hookWithPlayerContext(hook, plan, state) {
+  const hookWithCharacter = {
+    ...hook,
+    ...storyContextWithCharacter(state, hook),
+  }
+  if (!plan || hook.moment === 'goblin-king-taunt') {
+    return Object.freeze(hookWithCharacter)
+  }
   const fallbackText = contextualFallback(hook, plan)
   return Object.freeze({
-    ...hook,
+    ...hookWithCharacter,
     ...playerContextForPlan(plan),
     fallbackText,
     authoritativeText: fallbackText,
@@ -155,8 +182,6 @@ export async function createWeedGoblinsChatSession({
   journalSnapshot = {},
   previousRuns = [],
   priorCompletedRunCount = previousRuns.length,
-  blockedRealNames = [],
-  generateNarration = generateNarrationFromHook,
 } = {}) {
   const state = createWeedGoblinsRun({
     seed,
@@ -166,34 +191,8 @@ export async function createWeedGoblinsChatSession({
   })
 
   const messages = state.narration
-    .slice(0, -1)
     .map((line) => createIncomingChatMessage(line))
     .filter(Boolean)
-
-  const openingHook = createInitialNarrationHook(state)
-  const openingMessage = await generatedMessageForHook({
-    hook: openingHook,
-    state,
-    blockedRealNames,
-    generateNarration,
-  })
-  if (openingMessage) messages.push(openingMessage)
-
-  const premiseMessage = await generatedMessageForHook({
-    hook: createPremiseNarrationHook(state),
-    state,
-    blockedRealNames,
-    generateNarration,
-  })
-  if (premiseMessage) messages.push(premiseMessage)
-
-  const choicePresentationMessage = await generatedMessageForHook({
-    hook: createOpeningChoiceNarrationHook(state),
-    state,
-    blockedRealNames,
-    generateNarration,
-  })
-  if (choicePresentationMessage) messages.push(choicePresentationMessage)
 
   return {
     state,
@@ -217,6 +216,20 @@ export function selectWeedGoblinsChatChoice(state, action) {
   }
 }
 
+export function submitWeedGoblinsSessionText(state, value) {
+  if (!isWeedGoblinsSessionTextScene(state)) {
+    throw new Error(`Session text input is not available in scene ${state?.sceneId ?? '(missing)'}.`)
+  }
+  const text = cleanText(value, 160)
+  const before = state
+  const after = advanceWeedGoblinsSessionText(state, text)
+  return {
+    before,
+    after,
+    outgoingMessage: text ? createOutgoingTextMessage(text) : null,
+  }
+}
+
 function attemptHookForPlan(state, plan) {
   const fallbackText = buildPlayerActionSetupFallback(plan)
   return Object.freeze({
@@ -236,7 +249,7 @@ function attemptHookForPlan(state, plan) {
     fictionalGoblinName: cleanText(state.goblinName, 100),
     fictionalLocationName: cleanText(state.fictionalLocationName, 120),
     previousSceneId: cleanText(state.sceneId, 80),
-    ...getNarrationStoryContext(state),
+    ...storyContextWithCharacter(state),
     narrationTier: cleanText(state.narrationTier, 50) || 'normal',
     allowCallback: false,
     allowFourthWall: false,
@@ -264,7 +277,7 @@ function responseHookForPlan(state, plan) {
     fictionalGoblinName: cleanText(state.goblinName, 100),
     fictionalLocationName: cleanText(state.fictionalLocationName, 120),
     previousSceneId: cleanText(state.sceneId, 80),
-    ...getNarrationStoryContext(state),
+    ...storyContextWithCharacter(state),
     narrationTier: cleanText(state.narrationTier, 50) || 'normal',
     allowCallback: false,
     allowFourthWall: false,
@@ -361,7 +374,7 @@ export async function narrateWeedGoblinsResolvedTurn({
       .find((hook) => hook.moment === 'run-ending')
     if (!endingHook) return []
     const message = await generatedMessageForHook({
-      hook: hookWithPlayerContext(endingHook, preparedTurn.plan),
+      hook: hookWithPlayerContext(endingHook, preparedTurn.plan, mechanics.after),
       state: mechanics.after,
       blockedRealNames,
       generateNarration,
@@ -414,7 +427,12 @@ export async function resolveWeedGoblinsTransitionMessages({
   const narrationLines = after.narration.slice(before.narration.length)
   const messages = []
   let hookIndex = 0
-  const transitionHook = createSceneTransitionNarrationHook(before, after)
+  const sessionZeroCompleted = before.flags?.sessionZeroComplete !== true
+    && after.flags?.sessionZeroComplete === true
+  const sessionZeroStillOpen = after.flags?.sessionZeroComplete !== true
+  const transitionHook = sessionZeroStillOpen || sessionZeroCompleted
+    ? null
+    : createSceneTransitionNarrationHook(before, after)
   let transitionInserted = false
 
   async function insertTransitionMessage() {
@@ -438,7 +456,7 @@ export async function resolveWeedGoblinsTransitionMessages({
       if (rawHook.moment === 'goblin-king-taunt') {
         await insertTransitionMessage()
       }
-      const hook = hookWithPlayerContext(rawHook, playerActionPlan)
+      const hook = hookWithPlayerContext(rawHook, playerActionPlan, after)
       const generated = await generatedMessageForHook({
         hook,
         state: after,
