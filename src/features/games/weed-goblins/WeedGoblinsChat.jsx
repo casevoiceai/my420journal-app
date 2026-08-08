@@ -25,7 +25,8 @@ import './WeedGoblinsChat.css'
 const SCENE_NAMES = Object.freeze({
   'session-zero-welcome': 'Session Zero',
   'session-zero-name': 'Name Your Traveler',
-  'session-zero-kind': 'Choose Your Kind',
+  'session-zero-race': 'Choose Your Race',
+  'session-zero-weapon': 'Choose Your Weapon',
   'choose-background': 'Choose Your Class',
   'session-zero-pronoun': 'Picture Your Traveler',
   'session-zero-look': 'Finish Your Traveler',
@@ -84,7 +85,8 @@ function actionDetail(state, action) {
 }
 
 function actionHeading(state) {
-  if (state?.sceneId === 'session-zero-kind') return 'Choose your kind'
+  if (state?.sceneId === 'session-zero-race') return 'Choose your race'
+  if (state?.sceneId === 'session-zero-weapon') return 'Choose your weapon'
   if (state?.sceneId === 'choose-background') return 'Choose your class'
   if (state?.sceneId === 'session-zero-pronoun') return 'How should I picture you?'
   if (state?.sceneId === 'session-zero-look') return 'One more thing, how do you look?'
@@ -95,7 +97,8 @@ function actionHeading(state) {
 function hideSessionZeroChoiceChrome(state) {
   return [
     'session-zero-name',
-    'session-zero-kind',
+    'session-zero-race',
+    'session-zero-weapon',
     'session-zero-pronoun',
     'session-zero-look',
   ].includes(state?.sceneId)

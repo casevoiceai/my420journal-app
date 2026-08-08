@@ -12,17 +12,20 @@ export const SESSION_ZERO_WELCOME = Object.freeze([
   "But first, I need to know who's walking into that story. Every traveler who comes up this road carries a name, a look, a kind, and a way of meeting trouble. Let's settle those now.",
 ])
 
-const SESSION_KIND_QUESTION =
-  "Now tell me what you are, so I can picture you moving through this. A steady human hand, a dwarf built low and heavy, quiet elf feet, or a gnome quicker than anyone expects, your call."
+const SESSION_RACE_QUESTION =
+  'One more thing before the road takes you anywhere. What are you?'
+
+const SESSION_WEAPON_QUESTION =
+  'And what do you carry?'
 
 const SESSION_CLASS_QUESTION =
-  "And how do you carry yourself out here? Are you the one who reads the ground, the one who holds the line, or the one who trusts a map nobody else would?"
+  'How do you handle yourself when the road turns ugly?'
 
 const SESSION_PRONOUN_QUESTION =
-  "One more small thing. How should I picture you when I say 'you' in this story?"
+  "Last bit of bookkeeping. What do I call you, when I'm not using your name?"
 
 const SESSION_LOOK_QUESTION =
-  'Last thing. Paint yourself for me, however you like.'
+  'Paint yourself for me.'
 
 export const PLAYER_NAME_SUGGESTIONS = Object.freeze([
   'Fenna Duskrow',
@@ -31,62 +34,75 @@ export const PLAYER_NAME_SUGGESTIONS = Object.freeze([
   'Sable Underhollow',
 ])
 
-export const PLAYER_KINDS = Object.freeze({
-  'human-sword': Object.freeze({
-    id: 'human-sword',
-    label: 'Human, Sword',
-    race: 'Human',
-    weapon: 'Sword',
-    flavor: 'Worn leather over practical mail. Steel and grit, no tricks, no excuses.',
-    reaction: 'A sword-arm. Straightforward, honest work. I respect that.',
+export const PLAYER_RACES = Object.freeze({
+  human: Object.freeze({
+    id: 'human',
+    label: 'Human',
+    flavor: 'Adaptable enough to fit wherever this story needs you to.',
+    reaction: 'Human. Ground you can stand on, more or less.',
   }),
-  'human-bow': Object.freeze({
-    id: 'human-bow',
-    label: 'Human, Bow',
-    race: 'Human',
-    weapon: 'Bow',
-    flavor: 'Light leather built for movement. Steady hands, patient eyes.',
-    reaction: "A bow. Patient hands. You'll want that patience later.",
+  dwarf: Object.freeze({
+    id: 'dwarf',
+    label: 'Dwarf',
+    flavor: 'Built low, built to last, and built to hold a grudge as long as a mountain does.',
+    reaction: "Dwarf. I'd hate to be the door between you and wherever you're going.",
   }),
-  'dwarf-battle-axe': Object.freeze({
-    id: 'dwarf-battle-axe',
-    label: 'Dwarf, Battle Axe',
-    race: 'Dwarf',
-    weapon: 'Battle Axe',
-    flavor: "Dented plate that's earned every scratch. Built low, hits heavy, holds a grudge as long as a mountain does.",
-    reaction: "A battle axe, dwarven grip. That's not subtle, and I don't think you're going for subtle.",
+  elf: Object.freeze({
+    id: 'elf',
+    label: 'Elf',
+    flavor: "Quiet feet, quicker eyes, and a patience most things your age haven't earned yet.",
+    reaction: "Elf. You're already listening to something I haven't said yet.",
   }),
-  'elf-bow': Object.freeze({
-    id: 'elf-bow',
-    label: 'Elf, Bow',
-    race: 'Elf',
-    weapon: 'Bow',
-    flavor: 'Cloth and leaf-cloak. Quiet feet, quicker eyes, gone before the echo catches up.',
-    reaction: "An elf's bow. Quiet feet, quicker eyes. Good instincts.",
+  gnome: Object.freeze({
+    id: 'gnome',
+    label: 'Gnome',
+    flavor: 'Small enough to slip through gaps nobody else bothers checking.',
+    reaction: "Gnome. Small target, and somehow that's never once made you careful.",
   }),
-  'elf-bo-staff': Object.freeze({
-    id: 'elf-bo-staff',
-    label: 'Elf, Bo Staff',
-    race: 'Elf',
-    weapon: 'Bo Staff',
-    flavor: 'Simple robes, old discipline. Every strike already three moves planned.',
-    reaction: 'A bo staff, old discipline behind it. Someone taught you to think three moves ahead.',
+})
+
+export const PLAYER_WEAPONS = Object.freeze({
+  sword: Object.freeze({
+    id: 'sword',
+    label: 'Sword',
+    value: 'Sword',
+    flavor: 'Reliable, balanced, exactly as complicated as it needs to be.',
+    reaction: "A sword rides easy on your hip, like it's been there longer than you have.",
   }),
-  'gnome-mace': Object.freeze({
-    id: 'gnome-mace',
-    label: 'Gnome, Mace',
-    race: 'Gnome',
-    weapon: 'Mace',
-    flavor: 'A scavenged breastplate two sizes too big. Small frame, surprising swing.',
-    reaction: 'A mace, gnome-sized and heavier than it looks. I like a good surprise.',
+  bow: Object.freeze({
+    id: 'bow',
+    label: 'Bow',
+    value: 'Bow',
+    flavor: "Distance is a kind of honesty. You'd rather end a fight before it starts.",
+    reaction: 'A bow, restrung recently. You checked the tension twice before deciding it was fine.',
   }),
-  'gnome-daggers': Object.freeze({
-    id: 'gnome-daggers',
-    label: 'Gnome, Daggers',
-    race: 'Gnome',
-    weapon: 'Daggers',
-    flavor: 'Dark leathers built for slipping through gaps. Quick hands, quicker mouth.',
-    reaction: "Daggers, quick hands. You'll want every inch of that speed.",
+  battleAxe: Object.freeze({
+    id: 'battle-axe',
+    label: 'Battle Axe',
+    value: 'Battle Axe',
+    flavor: "Heavy, loud, and entirely uninterested in being anyone's second choice.",
+    reaction: 'The axe leaves a groove in the dirt when you set it down for a second.',
+  }),
+  boStaff: Object.freeze({
+    id: 'bo-staff',
+    label: 'Bo Staff',
+    value: 'Bo Staff',
+    flavor: 'Old discipline. Every strike already three moves planned.',
+    reaction: 'You spin the staff once, out of habit more than need.',
+  }),
+  mace: Object.freeze({
+    id: 'mace',
+    label: 'Mace',
+    value: 'Mace',
+    flavor: 'Blunt, direct, and heavier than it looks.',
+    reaction: 'The mace is heavier than it looks, and you clearly stopped noticing that a while ago.',
+  }),
+  daggers: Object.freeze({
+    id: 'daggers',
+    label: 'Daggers',
+    value: 'Daggers',
+    flavor: "Quick, close, and gone before anyone's sure what happened.",
+    reaction: 'Two daggers. I only spotted where you keep the second one because I was watching for it.',
   }),
 })
 
@@ -226,7 +242,8 @@ export const FIXED_TEST_ADVENTURE = Object.freeze({
 const SCENES = Object.freeze({
   sessionWelcome: 'session-zero-welcome',
   sessionName: 'session-zero-name',
-  sessionKind: 'session-zero-kind',
+  sessionRace: 'session-zero-race',
+  sessionWeapon: 'session-zero-weapon',
   background: 'choose-background',
   sessionPronoun: 'session-zero-pronoun',
   sessionLook: 'session-zero-look',
@@ -289,7 +306,7 @@ function finalizeSessionZero(state, playerLook, actionId) {
   const returningLine = normalizeText(state.returningLine)
   const narration = [
     ...state.narration,
-    `${state.playerName}. I'll remember that.`,
+    "Everything I need. Windcut Trail won\'t wait for the rest.",
     WEED_GOBLINS_INTRODUCTION,
   ]
   if (returningLine) narration.push(returningLine)
@@ -326,12 +343,12 @@ export function advanceWeedGoblinsSessionText(state, value) {
 
   if (state.sceneId === SCENES.sessionName) {
     const playerName = normalizeText(value).slice(0, 160)
-    if (isNameHelpRequest(playerName)) {
+    if (playerName.length < 2 || isNameHelpRequest(playerName)) {
       return cloneState(state, { flags: { nameSuggestionsVisible: true } })
     }
     return cloneState(state, {
       playerName,
-      sceneId: SCENES.sessionKind,
+      sceneId: SCENES.sessionRace,
       flags: { nameSuggestionsVisible: false },
       history: [
         ...state.history,
@@ -344,8 +361,8 @@ export function advanceWeedGoblinsSessionText(state, value) {
       ],
       narration: [
         ...state.narration,
-        `${playerName}. Good, that's who you'll be.`,
-        SESSION_KIND_QUESTION,
+        `${playerName}. Written down.`,
+        SESSION_RACE_QUESTION,
       ],
     })
   }
@@ -734,11 +751,19 @@ export function getAvailableActions(state) {
     }))
   }
 
-  if (state.sceneId === SCENES.sessionKind) {
-    return Object.values(PLAYER_KINDS).map((kind) => ({
-      id: `session:kind:${kind.id}`,
-      label: kind.label,
-      detail: kind.flavor,
+  if (state.sceneId === SCENES.sessionRace) {
+    return Object.values(PLAYER_RACES).map((race) => ({
+      id: `session:race:${race.id}`,
+      label: race.label,
+      detail: race.flavor,
+    }))
+  }
+
+  if (state.sceneId === SCENES.sessionWeapon) {
+    return Object.values(PLAYER_WEAPONS).map((weapon) => ({
+      id: `session:weapon:${weapon.id}`,
+      label: weapon.label,
+      detail: weapon.flavor,
     }))
   }
 
@@ -835,7 +860,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
     if (!playerName) throw new Error('Unknown Session Zero name suggestion.')
     return cloneState(state, {
       playerName,
-      sceneId: SCENES.sessionKind,
+      sceneId: SCENES.sessionRace,
       flags: { nameSuggestionsVisible: false },
       history: [
         ...state.history,
@@ -848,33 +873,55 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       ],
       narration: [
         ...state.narration,
-        `${playerName}. Good, that's who you'll be.`,
-        SESSION_KIND_QUESTION,
+        `${playerName}. Written down.`,
+        SESSION_RACE_QUESTION,
       ],
     })
   }
 
-  if (state.sceneId === SCENES.sessionKind) {
-    const kindId = actionId.slice('session:kind:'.length)
-    const kind = PLAYER_KINDS[kindId]
-    if (!kind) throw new Error('Unknown Session Zero kind.')
+  if (state.sceneId === SCENES.sessionRace) {
+    const raceId = actionId.slice('session:race:'.length)
+    const race = PLAYER_RACES[raceId]
+    if (!race) throw new Error('Unknown Session Zero race.')
     return cloneState(state, {
-      playerRace: kind.race,
-      playerWeapon: kind.weapon,
+      playerRace: race.label,
+      sceneId: SCENES.sessionWeapon,
+      history: [
+        ...state.history,
+        {
+          type: 'session-choice',
+          sceneId: SCENES.sessionRace,
+          actionId,
+          playerRace: race.label,
+        },
+      ],
+      narration: [
+        ...state.narration,
+        race.reaction,
+        SESSION_WEAPON_QUESTION,
+      ],
+    })
+  }
+
+  if (state.sceneId === SCENES.sessionWeapon) {
+    const weaponId = actionId.slice('session:weapon:'.length)
+    const weapon = Object.values(PLAYER_WEAPONS).find((candidate) => candidate.id === weaponId)
+    if (!weapon) throw new Error('Unknown Session Zero weapon.')
+    return cloneState(state, {
+      playerWeapon: weapon.value,
       sceneId: SCENES.background,
       history: [
         ...state.history,
         {
           type: 'session-choice',
-          sceneId: SCENES.sessionKind,
+          sceneId: SCENES.sessionWeapon,
           actionId,
-          playerRace: kind.race,
-          playerWeapon: kind.weapon,
+          playerWeapon: weapon.value,
         },
       ],
       narration: [
         ...state.narration,
-        kind.reaction,
+        weapon.reaction,
         SESSION_CLASS_QUESTION,
       ],
     })
