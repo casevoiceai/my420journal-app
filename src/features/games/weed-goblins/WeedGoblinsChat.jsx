@@ -159,7 +159,9 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   const [fatalError, setFatalError] = useState('')
   const [actionError, setActionError] = useState('')
   const [runNumber, setRunNumber] = useState(0)
+  const storyRef = useRef(null)
   const endRef = useRef(null)
+  const hasStartedScrollingRef = useRef(false)
   const resolvedSeed = useMemo(
     () => seed ? `${seed}:${runNumber}` : makeRunSeed(),
     [seed, runNumber],
@@ -210,6 +212,11 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   }, [resolvedSeed])
 
   useEffect(() => {
+    if (!hasStartedScrollingRef.current && messages.length > 0) {
+      storyRef.current?.scrollTo({ top: 0 })
+      hasStartedScrollingRef.current = true
+      return
+    }
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages, busy, pendingTurn])
 
@@ -344,6 +351,7 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     setFatalError('')
     setActionError('')
     setLoading(true)
+    hasStartedScrollingRef.current = false
     setRunNumber((current) => current + 1)
   }
 
@@ -376,7 +384,7 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
         )}
       </section>
 
-      <section className="weed-goblins-game__story" aria-live="polite" aria-busy={busy}>
+      <section ref={storyRef} className="weed-goblins-game__story" aria-live="polite" aria-busy={busy}>
         <div className="weed-goblins-game__story-heading">
           <span>Adventure log</span>
           <span>{sceneName}</span>
