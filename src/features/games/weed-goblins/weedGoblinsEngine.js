@@ -12,6 +12,18 @@ export const SESSION_ZERO_WELCOME = Object.freeze([
   "But first, I need to know who's walking into that story. Every traveler who comes up this road carries a name, a look, a kind, and a way of meeting trouble. Let's settle those now.",
 ])
 
+const SESSION_KIND_QUESTION =
+  "Now tell me what you are, so I can picture you moving through this. A steady human hand, a dwarf built low and heavy, quiet elf feet, or a gnome quicker than anyone expects, your call."
+
+const SESSION_CLASS_QUESTION =
+  "And how do you carry yourself out here? Are you the one who reads the ground, the one who holds the line, or the one who trusts a map nobody else would?"
+
+const SESSION_PRONOUN_QUESTION =
+  "One more small thing. How should I picture you when I say 'you' in this story?"
+
+const SESSION_LOOK_QUESTION =
+  'Last thing. Paint yourself for me, however you like.'
+
 export const PLAYER_NAME_SUGGESTIONS = Object.freeze([
   'Fenna Duskrow',
   'Corvin Ashwell',
@@ -26,6 +38,7 @@ export const PLAYER_KINDS = Object.freeze({
     race: 'Human',
     weapon: 'Sword',
     flavor: 'Worn leather over practical mail. Steel and grit, no tricks, no excuses.',
+    reaction: 'A sword-arm. Straightforward, honest work. I respect that.',
   }),
   'human-bow': Object.freeze({
     id: 'human-bow',
@@ -33,6 +46,7 @@ export const PLAYER_KINDS = Object.freeze({
     race: 'Human',
     weapon: 'Bow',
     flavor: 'Light leather built for movement. Steady hands, patient eyes.',
+    reaction: "A bow. Patient hands. You'll want that patience later.",
   }),
   'dwarf-battle-axe': Object.freeze({
     id: 'dwarf-battle-axe',
@@ -40,6 +54,7 @@ export const PLAYER_KINDS = Object.freeze({
     race: 'Dwarf',
     weapon: 'Battle Axe',
     flavor: "Dented plate that's earned every scratch. Built low, hits heavy, holds a grudge as long as a mountain does.",
+    reaction: "A battle axe, dwarven grip. That's not subtle, and I don't think you're going for subtle.",
   }),
   'elf-bow': Object.freeze({
     id: 'elf-bow',
@@ -47,6 +62,7 @@ export const PLAYER_KINDS = Object.freeze({
     race: 'Elf',
     weapon: 'Bow',
     flavor: 'Cloth and leaf-cloak. Quiet feet, quicker eyes, gone before the echo catches up.',
+    reaction: "An elf's bow. Quiet feet, quicker eyes. Good instincts.",
   }),
   'elf-bo-staff': Object.freeze({
     id: 'elf-bo-staff',
@@ -54,6 +70,7 @@ export const PLAYER_KINDS = Object.freeze({
     race: 'Elf',
     weapon: 'Bo Staff',
     flavor: 'Simple robes, old discipline. Every strike already three moves planned.',
+    reaction: 'A bo staff, old discipline behind it. Someone taught you to think three moves ahead.',
   }),
   'gnome-mace': Object.freeze({
     id: 'gnome-mace',
@@ -61,6 +78,7 @@ export const PLAYER_KINDS = Object.freeze({
     race: 'Gnome',
     weapon: 'Mace',
     flavor: 'A scavenged breastplate two sizes too big. Small frame, surprising swing.',
+    reaction: 'A mace, gnome-sized and heavier than it looks. I like a good surprise.',
   }),
   'gnome-daggers': Object.freeze({
     id: 'gnome-daggers',
@@ -68,6 +86,7 @@ export const PLAYER_KINDS = Object.freeze({
     race: 'Gnome',
     weapon: 'Daggers',
     flavor: 'Dark leathers built for slipping through gaps. Quick hands, quicker mouth.',
+    reaction: "Daggers, quick hands. You'll want every inch of that speed.",
   }),
 })
 
@@ -322,6 +341,11 @@ export function advanceWeedGoblinsSessionText(state, value) {
           actionId: 'session:name:custom',
           playerName,
         },
+      ],
+      narration: [
+        ...state.narration,
+        `${playerName}. Good, that's who you'll be.`,
+        SESSION_KIND_QUESTION,
       ],
     })
   }
@@ -822,6 +846,11 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
           playerName,
         },
       ],
+      narration: [
+        ...state.narration,
+        `${playerName}. Good, that's who you'll be.`,
+        SESSION_KIND_QUESTION,
+      ],
     })
   }
 
@@ -843,6 +872,11 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
           playerWeapon: kind.weapon,
         },
       ],
+      narration: [
+        ...state.narration,
+        kind.reaction,
+        SESSION_CLASS_QUESTION,
+      ],
     })
   }
 
@@ -850,7 +884,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
     const backgroundId = actionId.split(':')[1]
     const background = BACKGROUNDS[backgroundId]
     const traitText = backgroundTraitText(state.characterTraitFlavor)
-    return appendEvent(
+    const afterClassChoice = appendEvent(
       cloneState(state, {
         background,
         sceneId: SCENES.sessionPronoun,
@@ -864,6 +898,9 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       { type: 'session-choice', sceneId: SCENES.background, actionId, backgroundId },
       `${background.name}. ${background.flavor}${traitText}`,
     )
+    return cloneState(afterClassChoice, {
+      narration: [...afterClassChoice.narration, SESSION_PRONOUN_QUESTION],
+    })
   }
 
   if (state.sceneId === SCENES.sessionPronoun) {
@@ -882,6 +919,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
           playerPronoun: option.value,
         },
       ],
+      narration: [...state.narration, SESSION_LOOK_QUESTION],
     })
   }
 

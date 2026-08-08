@@ -92,6 +92,15 @@ function actionHeading(state) {
   return 'Choose your action'
 }
 
+function hideSessionZeroChoiceChrome(state) {
+  return [
+    'session-zero-name',
+    'session-zero-kind',
+    'session-zero-pronoun',
+    'session-zero-look',
+  ].includes(state?.sceneId)
+}
+
 function D20Icon({ value = null, size = 44 }) {
   const resolved = Number.isInteger(value) && value >= 1 && value <= 20
   return (
@@ -493,7 +502,9 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
                 <div className="weed-goblins-game__action-block">
                   <div className="weed-goblins-game__action-heading">
                     <h2>{actionHeading(state)}</h2>
-                    <span>{choices.length} available</span>
+                    {!hideSessionZeroChoiceChrome(state) && (
+                      <span>{choices.length} available</span>
+                    )}
                   </div>
                   <div className="weed-goblins-game__action-grid">
                     {choices.map((choice, index) => (
@@ -504,7 +515,9 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
                         onClick={() => handleChoice(choice)}
                         disabled={busy || Boolean(pendingTurn)}
                       >
-                        <span className="weed-goblins-game__action-number">{index + 1}</span>
+                        {!hideSessionZeroChoiceChrome(state) && (
+                          <span className="weed-goblins-game__action-number">{index + 1}</span>
+                        )}
                         <span className="weed-goblins-game__action-copy">
                           <strong>{choice.label}</strong>
                           <small>{actionDetail(state, choice)}</small>
@@ -518,9 +531,9 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
 
               {sessionTextOpen && (
                 <form className="weed-goblins-game__custom-action" onSubmit={handleSessionTextSubmit}>
-                  <label htmlFor="weed-goblins-session-input">
-                    {state?.sceneId === 'session-zero-name' ? 'What should I call you?' : 'Describe yourself'}
-                  </label>
+                  {state?.sceneId === 'session-zero-name' && (
+                    <label htmlFor="weed-goblins-session-input">What should I call you?</label>
+                  )}
                   <div>
                     <input
                       id="weed-goblins-session-input"
