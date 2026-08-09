@@ -22,13 +22,17 @@ validator_path.write_text(validator)
 
 voice_test_path = Path('server/weed-goblins-narration-worker/voice-audit.test.js')
 voice_test = voice_test_path.read_text()
+voice_test = voice_test.replace(
+    "assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /single em dash when the spoken rhythm genuinely cuts off/)",
+    "assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /period, an ellipsis, or a deliberate fragment/)",
+)
 old = "test('validator permits a deliberate em-dash trail-off but still rejects an en dash', () => {"
 if old in voice_test:
     start = voice_test.index(old)
     next_test = voice_test.find("\ntest(", start + len(old))
     end = len(voice_test) if next_test == -1 else next_test + 1
-    replacement = '''test('validator rejects both em dash and en dash punctuation', () => {\n  const emDash = validateGeneratedNarration(\n    'Something red moves behind the window — then the cloud closes over it.',\n    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },\n  )\n  assert.ok(emDash.reasons.includes('uses an em dash or en dash'))\n\n  const enDash = validateGeneratedNarration(\n    'The bridge is narrow – narrower than it looked from the trail.',\n    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },\n  )\n  assert.ok(enDash.reasons.includes('uses an em dash or en dash'))\n})\n\n'''
+    replacement = '''test('validator rejects both em dash and en dash punctuation', () => {\n  const emDash = validateGeneratedNarration(\n    'Something red moves behind the window \\u2014 then the cloud closes over it.',\n    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },\n  )\n  assert.ok(emDash.reasons.includes('uses an em dash or en dash'))\n\n  const enDash = validateGeneratedNarration(\n    'The bridge is narrow \\u2013 narrower than it looked from the trail.',\n    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },\n  )\n  assert.ok(enDash.reasons.includes('uses an em dash or en dash'))\n})\n\n'''
     voice_test = voice_test[:start] + replacement + voice_test[end:]
-else:
-    voice_test += '''\ntest('validator rejects both em dash and en dash punctuation', () => {\n  const emDash = validateGeneratedNarration(\n    'Something red moves behind the window — then the cloud closes over it.',\n    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },\n  )\n  assert.ok(emDash.reasons.includes('uses an em dash or en dash'))\n\n  const enDash = validateGeneratedNarration(\n    'The bridge is narrow – narrower than it looked from the trail.',\n    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },\n  )\n  assert.ok(enDash.reasons.includes('uses an em dash or en dash'))\n})\n'''
+elif "test('validator rejects both em dash and en dash punctuation'" not in voice_test:
+    voice_test += '''\ntest('validator rejects both em dash and en dash punctuation', () => {\n  const emDash = validateGeneratedNarration(\n    'Something red moves behind the window \\u2014 then the cloud closes over it.',\n    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },\n  )\n  assert.ok(emDash.reasons.includes('uses an em dash or en dash'))\n\n  const enDash = validateGeneratedNarration(\n    'The bridge is narrow \\u2013 narrower than it looked from the trail.',\n    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },\n  )\n  assert.ok(enDash.reasons.includes('uses an em dash or en dash'))\n})\n'''
 voice_test_path.write_text(voice_test)
