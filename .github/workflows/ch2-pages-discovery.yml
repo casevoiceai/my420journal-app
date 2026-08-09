@@ -1,0 +1,65 @@
+name: Temporary Chapter 2 Pages Discovery
+
+on:
+  push:
+    branches:
+      - temp/ch2-validation-20260809
+    paths:
+      - '.github/workflows/ch2-pages-discovery.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/ch2-validation-20260809
+          fetch-depth: 0
+      - name: Read Pages projects safely
+        shell: bash
+        run: |
+          mkdir -p .validation
+          http=$(curl --silent --show-error \
+            --output /tmp/pages.json \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects?per_page=100")
+          node - <<'NODE'
+          const fs = require('fs')
+          let raw = {}
+          try { raw = JSON.parse(fs.readFileSync('/tmp/pages.json','utf8')) } catch {}
+          const safe = {
+            httpStatus: process.env.HTTP_STATUS || null,
+            success: Boolean(raw.success),
+            errors: Array.isArray(raw.errors) ? raw.errors.map(e => ({ code: e.code, message: e.message })) : [],
+            resultCount: Array.isArray(raw.result) ? raw.result.length : null,
+            projects: Array.isArray(raw.result) ? raw.result.map(p => ({
+              name: p.name,
+              subdomain: p.subdomain || null,
+              production_branch: p.production_branch || null,
+            })) : [],
+          }
+          fs.writeFileSync('.validation/pages-projects-safe.json', JSON.stringify(safe, null, 2))
+          NODE
+          python - <<PY
+          import json
+          p='.validation/pages-projects-safe.json'
+          d=json.load(open(p))
+          d['httpStatus']='$http'
+          json.dump(d,open(p,'w'),indent=2)
+          PY
+          cat .validation/pages-projects-safe.json
+      - name: Save safe result
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .validation/pages-projects-safe.json
+          git commit -m 'Record safe Pages project discovery [skip ci]'
+          git push origin HEAD:temp/ch2-validation-20260809
