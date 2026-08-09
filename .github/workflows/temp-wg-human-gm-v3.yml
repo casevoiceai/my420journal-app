@@ -1,4 +1,4 @@
-name: Human GM Full Opening V3
+name: Human GM Natural Prose Playtest
 
 on:
   push:
@@ -34,10 +34,12 @@ jobs:
           git fetch origin feature/weed-goblins-session-zero
           test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
 
-      - name: Apply corrected prose candidate in runner only
+      - name: Apply natural table-GM prose candidate in runner only
         run: |
           python .playtest/apply_human_gm_prose_v3.py
           git diff --check
+          grep -q 'HUMAN TABLE GM PROSE' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -q 'Never exceed 650 characters' server/weed-goblins-narration-worker/legacyChapterOne.js
 
       - name: Build
         run: |
@@ -61,11 +63,11 @@ jobs:
           npm install --no-save --package-lock=false playwright@1.54.2
           npx playwright install --with-deps chromium
 
-      - name: Verify live full opening at 390x844
+      - name: Verify live natural opening at 390x844
         shell: bash
         run: |
           mkdir -p .validation
-          cat > .validation/v3.mjs <<'EOF'
+          cat > .validation/natural-gm.mjs <<'EOF'
           import { chromium } from 'playwright'
           const base = process.env.PLAYTEST_URL
           const check = (condition, message) => { if (!condition) throw new Error(message) }
@@ -77,58 +79,62 @@ jobs:
             await page.getByRole('button', { name: /Chapter 1/ }).click()
             await page.waitForURL('**/games/weed-goblins')
 
-            await page.getByText(/All right\. Here's where we're starting/i).waitFor({ timeout: 15000 })
-            await page.getByText(/same goblins who stole .* from you earlier today/i).waitFor()
-            await page.getByText(/I'm Eliza\. I'll run the world, the goblins/i).waitFor()
-            await page.getByText(/If you've never played a tabletop game like this before/i).waitFor()
-            await page.getByText(/if something needs a roll, I'll stop and tell you what matters/i).waitFor()
+            await page.getByText(/Before we make your character, let me give you the setup/i).waitFor({ timeout: 15000 })
+            await page.getByText(/small group of goblins stole .* Your character saw which way they went/i).waitFor()
+            await page.getByText(/Windcut Trail, an old road that climbs into the Goblin Highlands/i).waitFor()
+            await page.getByText(/For now, the job is simple enough: follow the trail, find the goblins/i).waitFor()
+            await page.getByText(/If this is your first time with a D&D-style game, don't worry about the rules/i).waitFor()
+            await page.getByText(/When something is uncertain enough to need a roll/i).waitFor()
 
             let body = await page.locator('body').innerText()
-            check(!body.includes("Hey. I'm Eliza. I'm running this one."), 'obsolete two-message opening returned')
-            check(!body.includes('For now, picture a road disappearing into wet grass'), 'obsolete clipped opening returned')
+            check(!body.includes("All right. Here's where we're starting."), 'old blocky opening returned')
+            check(!body.includes("Hey. I'm Eliza. I'm running this one."), 'old two-message opening returned')
+            check(!body.includes('For now, picture a road disappearing into wet grass'), 'old clipped opening returned')
             check(body.includes("King's Stash Hall"), 'King’s Stash Hall missing')
-            check(body.includes("you're here to get your stuff back"), 'theft objective missing')
+            check(body.includes('get your property back'), 'objective missing')
+            check(!/I'm Eliza\. I'll run the world|No guessing\.|Hit Continue when/i.test(body), 'software/onboarding copy still present')
 
             const incoming = await page.locator('.weed-goblins-game__message-row.is-incoming').count()
-            check(incoming >= 7, `expected full opening, got ${incoming} incoming rows`)
-            await page.screenshot({ path: '.validation/chapter1-full-opening-v3.png', fullPage: true })
+            check(incoming >= 5, `expected full narrative opening, got ${incoming} incoming rows`)
+            await page.screenshot({ path: '.validation/chapter1-natural-gm-opening.png', fullPage: true })
 
             await page.getByRole('button', { name: 'Continue' }).click()
             const composer = page.locator('.weed-goblins-game__composer input')
             await composer.waitFor()
             await composer.fill('Fenna')
             await page.locator('.weed-goblins-game__send-button').click()
-            await page.getByText('Fenna. Got it.', { exact: true }).waitFor()
-            await page.getByText(/What are you playing: human, dwarf, elf, or gnome/i).waitFor()
+            await page.getByText('Fenna. All right.', { exact: true }).waitFor()
+            await page.getByText(/And what are they: human, dwarf, elf, or gnome/i).waitFor()
 
             await page.getByRole('button', { name: 'Human' }).click()
+            await page.getByText('Human. All right.', { exact: true }).waitFor()
             await page.getByRole('button', { name: 'Sword' }).click()
             await page.getByRole('button', { name: 'Highland Tracker' }).click()
             await page.getByRole('button', { name: 'They' }).click()
             await page.locator('.weed-goblins-game__quick-reply').first().click()
-            await page.getByText(/Back on the trail, the goblin tracks drop toward Rattlebridge/i).waitFor()
-            await page.getByText(/goblin-shaped shadow ducks behind a post/i).waitFor()
+            await page.getByText(/The goblin tracks carry on through Windcut Trail until the ground drops toward Rattlebridge/i).waitFor()
+            await page.getByText(/You haven't been spotted yet/i).waitFor()
 
             await page.getByRole('button', { name: /Quiet Crossing/ }).click()
-            await page.getByText(/this one's risky\. Defense check, DC 12/i).waitFor()
+            await page.getByText(/That needs a roll\. It's a Defense check, DC 12/i).waitFor()
             const roll = page.getByRole('button', { name: /ROLL D20/i })
             await roll.waitFor()
             await roll.click()
-            await page.waitForTimeout(1000)
+            await page.waitForTimeout(1500)
 
             body = await page.locator('body').innerText()
             check(!/I resolve|I process|I interpret|written down|input received/i.test(body), 'machine voice present')
             const overflow = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }))
             check(overflow.scrollWidth <= overflow.width + 1, `horizontal overflow: ${JSON.stringify(overflow)}`)
-            console.log(JSON.stringify({ FULL_OPENING_V3: 'PASS', incoming, characterSetup: 'PASS', firstD20: 'PASS', overflow }))
+            console.log(JSON.stringify({ NATURAL_GM_PLAYTEST: 'PASS', incoming, characterSetup: 'PASS', firstD20: 'PASS', overflow }))
           } finally {
             await browser.close()
           }
           EOF
-          node .validation/v3.mjs
+          node .validation/natural-gm.mjs
 
       - uses: actions/upload-artifact@v4
         with:
-          name: chapter1-full-opening-v3
-          path: .validation/chapter1-full-opening-v3.png
+          name: chapter1-natural-gm-opening
+          path: .validation/chapter1-natural-gm-opening.png
           if-no-files-found: error
