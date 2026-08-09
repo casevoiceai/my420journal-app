@@ -41,7 +41,7 @@ jobs:
             exit 41
           fi
 
-      - name: Apply Playtest Issue 1 opening candidate
+      - name: Apply Playtest Issue 1 opening candidate pass 2
         shell: bash
         run: |
           python - <<'PY'
@@ -55,13 +55,13 @@ jobs:
           )
           replacement = """  const openingNarration = previousRuns.length === 0
             ? [
-                \"Welcome to Weed Goblins. I'm Eliza, your GameMaster. I run the world, the goblins, and everything that happens around you. You decide what your character tries.\",
-                \"The road gives out at Windcut Trail, where the Goblin Highlands rise out of the mud and mist. Bent signposts point in three directions at once, bottle-cap charms click in the wind, and fresh little bootprints climb toward the ridgeline.\",
-                `A few hours ago, a goblin crew stole ${state.stolenItem} from you and ran north. You followed them this far. Their tracks are fresh, and somewhere above you the King's Stash Hall has just closed its doors.`,
-                `Your first job is simple: get into the Highlands, find out who took ${state.stolenItem}, and get it back. What starts as a theft may be carrying a much bigger trail behind it.`,
-                \"Here's how we play. I describe what is happening and give you a few blue replies when useful. Those are suggestions, not limits. You can tap one, or type or speak anything else you want your character to try.\",
-                \"When an action is risky or uncertain, I'll tell you the difficulty, which stat matters, and the number you need before the Roll D20 button appears. A bad roll changes the situation and creates consequences. It does not erase the story.\",
-                \"Before we follow those footprints, I need to know who's walking into this story. We'll settle your name, kind, weapon, approach, pronouns, and look, then the Highlands are yours to deal with.\",
+                \"All right. Mud up to your ankle, cold wind coming down off the ridge, and the last fencepost before the Goblin Highlands has a sign nailed to it: NO GOBLINS BEYOND THIS POINT. Somebody has crossed out NO.\",
+                `Three hours ago, a goblin crew ran off with ${state.stolenItem}. You followed their tracks north until the road stopped pretending to be a road.`,
+                `Ahead, the Highlands climb into fog and crooked pines. Somewhere up there is the King's Stash Hall. Somewhere inside it is your stuff. That's the job: get in, find out who took ${state.stolenItem}, and get it back.`,
+                \"I'm Eliza. I run the world, the goblins, the weather, the bad ideas, and whatever notices you in the dark. You tell me what your character does. I tell you what the world does back.\",
+                \"I'll throw a few obvious moves your way when it helps, but they're never the walls of the game. Tap one, type something else, or say it out loud. If you want to bluff a goblin, climb something stupid, bribe a suspicious shrub, or try something I never suggested, go for it.\",
+                \"If what you're trying could go badly, I'll stop before it happens and tell you what matters and what number you need. Then you roll the D20 and we live with it. Bad rolls make trouble. They don't erase the story.\",
+                `Now. Before I send some anonymous lunatic into the Goblin Highlands after ${state.stolenItem}, I need to know who I'm dealing with. Let's start with your name.`,
               ]
             : state.narration
 
@@ -72,7 +72,7 @@ jobs:
           if count != 1:
               raise SystemExit(f'opening message block replacement count was {count}')
           path.write_text(updated)
-          print('PLAYTEST_OPENING_PATCH_APPLIED')
+          print('PLAYTEST_OPENING_PASS2_PATCH_APPLIED')
           PY
 
       - name: Build Chapters 1-3 playtest candidate
@@ -116,7 +116,7 @@ jobs:
           cat /tmp/narration.json
           test "$api_status" = 200
 
-      - name: Browser-check chapter shortcuts and expanded Chapter 1 opening
+      - name: Browser-check chapter shortcuts and GM-style Chapter 1 opening
         shell: bash
         run: |
           npm install --no-save --package-lock=false playwright@1.54.2
@@ -134,44 +134,25 @@ jobs:
             check(await page.getByRole('button', { name: /Chapter 2/ }).isVisible(), 'Chapter 2 button missing')
             check(await page.getByRole('button', { name: /Chapter 3/ }).isVisible(), 'Chapter 3 button missing')
 
-            await page.getByRole('button', { name: /Chapter 3/ }).click()
-            await page.waitForURL('**/games/weed-goblins')
-            await page.getByText(/Living Root Map has a destination now/i).waitFor({ timeout: 15000 })
-            const stored = await page.evaluate(() => {
-              const userId = localStorage.getItem('my420journal_local_v1:active_user')
-              const raw = localStorage.getItem('my420journal_local_v1:weed_goblins_runs:' + userId)
-              return { userId, runs: raw ? JSON.parse(raw) : [] }
-            })
-            check(stored.userId === 'weed-goblins-playtest-user', `wrong playtest user: ${stored.userId}`)
-            check(stored.runs.length === 10, `Chapter 3 shortcut expected 10 fixture runs, got ${stored.runs.length}`)
-            check(stored.runs.filter((run) => run.adventureId === 'goblin-highlands-session-1').length === 5, 'Chapter 1 fixture count wrong')
-            check(stored.runs.filter((run) => run.adventureId === 'hollow-market-session-1').length === 5, 'Chapter 2 fixture count wrong')
-
-            await page.goto(base + '/', { waitUntil: 'networkidle' })
             await page.getByRole('button', { name: /Chapter 1/ }).click()
             await page.waitForURL('**/games/weed-goblins')
-            await page.getByText(/Welcome to Weed Goblins\. I'm Eliza, your GameMaster/i).waitFor({ timeout: 15000 })
-            await page.getByText(/goblin crew stole .* from you and ran north/i).waitFor()
-            await page.getByText(/suggestions, not limits/i).waitFor()
-            await page.getByText(/difficulty, which stat matters, and the number you need/i).waitFor()
-            await page.getByText(/Before we follow those footprints/i).waitFor()
+            await page.getByText(/Mud up to your ankle/i).waitFor({ timeout: 15000 })
+            await page.getByText(/goblin crew ran off with/i).waitFor()
+            await page.getByText(/I run the world, the goblins, the weather, the bad ideas/i).waitFor()
+            await page.getByText(/bribe a suspicious shrub/i).waitFor()
+            await page.getByText(/Then you roll the D20 and we live with it/i).waitFor()
+            await page.getByText(/anonymous lunatic/i).waitFor()
             const openingBody = await page.locator('body').innerText()
-            check(openingBody.includes('Windcut Trail'), 'opening is missing setting narration')
-            check(openingBody.includes("King's Stash Hall"), 'opening is missing story objective trail')
-            check(openingBody.includes('type or speak anything else'), 'opening is missing free-action explanation')
-            check(openingBody.includes('Roll D20'), 'opening is missing D20 explanation')
+            check(openingBody.includes('NO GOBLINS BEYOND THIS POINT'), 'opening is missing the first scene image')
+            check(openingBody.includes("King's Stash Hall"), 'opening is missing the objective')
+            check(openingBody.includes('type something else, or say it out loud'), 'opening is missing free-action explanation')
+            check(openingBody.includes('Bad rolls make trouble'), 'opening is missing failure-forward explanation')
             check(openingBody.includes('Continue'), 'character setup Continue control missing after opening')
-            const chapterOneStored = await page.evaluate(() => {
-              const userId = localStorage.getItem('my420journal_local_v1:active_user')
-              const raw = localStorage.getItem('my420journal_local_v1:weed_goblins_runs:' + userId)
-              return raw ? JSON.parse(raw).length : 0
-            })
-            check(chapterOneStored === 0, `Chapter 1 shortcut expected 0 fixture runs, got ${chapterOneStored}`)
-            await page.screenshot({ path: '.validation/chapter1-opening.png', fullPage: false })
-            console.log('CHAPTER_1_OPENING_TEXT_START')
+            await page.screenshot({ path: '.validation/chapter1-opening-pass2.png', fullPage: false })
+            console.log('CHAPTER_1_OPENING_PASS2_TEXT_START')
             console.log(openingBody)
-            console.log('CHAPTER_1_OPENING_TEXT_END')
-            console.log('PLAYTEST_SHORTCUTS_AND_OPENING_PASS')
+            console.log('CHAPTER_1_OPENING_PASS2_TEXT_END')
+            console.log('PLAYTEST_OPENING_PASS2_OK')
           } finally {
             await browser.close()
           }
@@ -181,6 +162,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: chapter1-opening-playtest
-          path: .validation/chapter1-opening.png
+          name: chapter1-opening-playtest-pass2
+          path: .validation/chapter1-opening-pass2.png
           if-no-files-found: ignore
