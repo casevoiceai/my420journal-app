@@ -48,6 +48,8 @@ jobs:
           git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsNarrationValidation.js > src/features/games/weed-goblins/weedGoblinsNarrationValidation.js
           git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/voice-audit.test.js > server/weed-goblins-narration-worker/voice-audit.test.js
           git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/index.test.js > server/weed-goblins-narration-worker/index.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/story-beats.test.js > server/weed-goblins-narration-worker/story-beats.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsAiComplication.test.js > src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
           grep -F 'One GM turn is one coherent messenger bubble' server/weed-goblins-narration-worker/legacyChapterOne.js
           grep -F 'roughly one sentence in four or five may break grammatical completeness' server/weed-goblins-narration-worker/legacyChapterOne.js
           grep -F 'Use "as though" at most once in a scene.' server/weed-goblins-narration-worker/legacyChapterOne.js
