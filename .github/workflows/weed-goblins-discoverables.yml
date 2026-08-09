@@ -1,0 +1,228 @@
+name: Weed Goblins discoverables
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-discoverables-build
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out discoverable candidate
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-discoverables
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply discoverable UI packet
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/features/games/weed-goblins/WeedGoblinsChat.jsx')
+          text = path.read_text()
+
+          def replace_once(old, new):
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one match, found {count}: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              """import { WEED_GOBLINS_NARRATOR_NAME } from './weedGoblinsEngine.js'\nimport './WeedGoblinsChat.css'\n""",
+              """import { WEED_GOBLINS_NARRATOR_NAME } from './weedGoblinsEngine.js'\nimport { findWeedGoblinsDiscoverableMatches } from './weedGoblinsDiscoverables.js'\nimport './WeedGoblinsChat.css'\n""",
+          )
+
+          replace_once(
+              """function StoryEntry({ message, onRoll, canRoll, busy }) {\n""",
+              """function HighlightedMessageText({ text, state, onOpenDiscoverable }) {\n  const matches = findWeedGoblinsDiscoverableMatches(text, state)\n  if (matches.length === 0) return text\n\n  const parts = []\n  let cursor = 0\n  for (const match of matches) {\n    if (match.start > cursor) parts.push(text.slice(cursor, match.start))\n    parts.push(\n      <button\n        key={`${match.discoverable.id}-${match.start}`}\n        type=\"button\"\n        className=\"weed-goblins-game__discoverable\"\n        onClick={() => onOpenDiscoverable(match.discoverable)}\n      >\n        {match.text}\n      </button>,\n    )\n    cursor = match.end\n  }\n  if (cursor < text.length) parts.push(text.slice(cursor))\n  return parts\n}\n\nfunction StoryEntry({ message, onRoll, canRoll, busy, state, onOpenDiscoverable }) {\n""",
+          )
+
+          replace_once(
+              """      <article className=\"weed-goblins-game__message-bubble is-eliza\">\n        <p>{message.text}</p>\n""",
+              """      <article className=\"weed-goblins-game__message-bubble is-eliza\">\n        <p>\n          <HighlightedMessageText\n            text={message.text}\n            state={state}\n            onOpenDiscoverable={onOpenDiscoverable}\n          />\n        </p>\n""",
+          )
+
+          replace_once(
+              """  const [actionError, setActionError] = useState('')\n  const [runNumber, setRunNumber] = useState(0)\n""",
+              """  const [actionError, setActionError] = useState('')\n  const [activeDiscoverable, setActiveDiscoverable] = useState(null)\n  const [runNumber, setRunNumber] = useState(0)\n""",
+          )
+
+          old_text_handler = """  async function handleTextSubmit(event) {\n    event?.preventDefault()\n    const text = draft.trim()\n    if (!state || !canType || !text) return\n    setActionError('')\n    setBusy(true)\n    setChoices([])\n\n    try {\n      const prepared = await prepareWeedGoblinsFreeTextTurn({\n        state,\n        playerAction: text,\n        blockedRealNames,\n      })\n      const stagedMessages = [\n        ...messages,\n        prepared.outgoingMessage,\n        prepared.setupMessage,\n      ].filter(Boolean)\n      if (prepared.rollTriggerMessage) stagedMessages.push(prepared.rollTriggerMessage)\n      setDraft('')\n      setMessages(stagedMessages)\n\n      if (prepared.requiresRoll) {\n        setPendingTurn(prepared)\n      } else {\n        const resolution = await resolveWeedGoblinsPreparedTurn({\n          preparedTurn: prepared,\n          blockedRealNames,\n        })\n        await applyResolvedPreparedTurn(resolution, stagedMessages)\n      }\n    } catch {\n      setDraft(text)\n      setChoices(getWeedGoblinsQuickReplies(state))\n      setActionError('That custom move could not be resolved. Edit it or choose an action below.')\n    } finally {\n      setBusy(false)\n    }\n  }\n"""
+          new_text_handler = """  async function handleFreeTextAction(text, { restoreDraftOnError = true } = {}) {\n    const actionText = String(text ?? '').trim()\n    if (!state || !canType || !actionText) return\n    setActionError('')\n    setBusy(true)\n    setChoices([])\n\n    try {\n      const prepared = await prepareWeedGoblinsFreeTextTurn({\n        state,\n        playerAction: actionText,\n        blockedRealNames,\n      })\n      const stagedMessages = [\n        ...messages,\n        prepared.outgoingMessage,\n        prepared.setupMessage,\n      ].filter(Boolean)\n      if (prepared.rollTriggerMessage) stagedMessages.push(prepared.rollTriggerMessage)\n      setDraft('')\n      setMessages(stagedMessages)\n\n      if (prepared.requiresRoll) {\n        setPendingTurn(prepared)\n      } else {\n        const resolution = await resolveWeedGoblinsPreparedTurn({\n          preparedTurn: prepared,\n          blockedRealNames,\n        })\n        await applyResolvedPreparedTurn(resolution, stagedMessages)\n      }\n    } catch {\n      if (restoreDraftOnError) setDraft(actionText)\n      setChoices(getWeedGoblinsQuickReplies(state))\n      setActionError('That custom move could not be resolved. Edit it or choose an action below.')\n    } finally {\n      setBusy(false)\n    }\n  }\n\n  async function handleTextSubmit(event) {\n    event?.preventDefault()\n    await handleFreeTextAction(draft)\n  }\n\n  async function handleDiscoverableAction(action) {\n    if (!action || busy || pendingTurn) return\n    setActiveDiscoverable(null)\n    if (action.kind === 'engine') {\n      const available = getWeedGoblinsQuickReplies(state)\n      const choice = available.find((candidate) => candidate.id === action.id)\n        || { id: action.id, label: action.label }\n      await handleChoice(choice)\n      return\n    }\n    if (action.kind === 'free-text') {\n      await handleFreeTextAction(action.playerAction, { restoreDraftOnError: false })\n    }\n  }\n\n  function discoverableActionAvailable(action) {\n    if (!action || busy || pendingTurn) return false\n    if (action.kind === 'free-text') return canType\n    if (action.kind === 'engine') {\n      return getWeedGoblinsQuickReplies(state).some((choice) => choice.id === action.id)\n    }\n    return false\n  }\n"""
+          replace_once(old_text_handler, new_text_handler)
+
+          replace_once(
+              """    setActionError('')\n    setLoading(true)\n""",
+              """    setActionError('')\n    setActiveDiscoverable(null)\n    setLoading(true)\n""",
+          )
+
+          replace_once(
+              """              canRoll={Boolean(pendingTurn) && message.kind === 'roll-trigger' && index === messages.length - 1}\n              busy={busy}\n            />\n""",
+              """              canRoll={Boolean(pendingTurn) && message.kind === 'roll-trigger' && index === messages.length - 1}\n              busy={busy}\n              state={state}\n              onOpenDiscoverable={setActiveDiscoverable}\n            />\n""",
+          )
+
+          replace_once(
+              """      {!loading && !fatalError && (\n        <footer className=\"weed-goblins-game__controls\">\n""",
+              """      {activeDiscoverable && (\n        <div\n          className=\"weed-goblins-game__discoverable-overlay\"\n          role=\"presentation\"\n          onMouseDown={(event) => {\n            if (event.target === event.currentTarget) setActiveDiscoverable(null)\n          }}\n        >\n          <section\n            className=\"weed-goblins-game__discoverable-card\"\n            role=\"dialog\"\n            aria-modal=\"true\"\n            aria-labelledby=\"weed-goblins-discoverable-title\"\n          >\n            <button\n              type=\"button\"\n              className=\"weed-goblins-game__discoverable-close\"\n              onClick={() => setActiveDiscoverable(null)}\n              aria-label=\"Close information\"\n            >\n              ×\n            </button>\n            <h2 id=\"weed-goblins-discoverable-title\">{activeDiscoverable.title}</h2>\n            <p>{activeDiscoverable.body}</p>\n            {activeDiscoverable.action && discoverableActionAvailable(activeDiscoverable.action) && (\n              <button\n                type=\"button\"\n                className=\"weed-goblins-game__discoverable-action\"\n                onClick={() => handleDiscoverableAction(activeDiscoverable.action)}\n              >\n                {activeDiscoverable.action.label}\n              </button>\n            )}\n          </section>\n        </div>\n      )}\n\n      {!loading && !fatalError && (\n        <footer className=\"weed-goblins-game__controls\">\n""",
+          )
+
+          path.write_text(text)
+
+          css = Path('src/features/games/weed-goblins/WeedGoblinsChat.css')
+          css.write_text(css.read_text() + r'''
+
+.weed-goblins-game__discoverable {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  line-height: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.weed-goblins-game__discoverable:hover,
+.weed-goblins-game__discoverable:focus-visible {
+  border-bottom-style: solid;
+  outline: none;
+}
+
+.weed-goblins-game__discoverable-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9600;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(18, 20, 24, 0.32);
+}
+
+.weed-goblins-game__discoverable-card {
+  position: relative;
+  width: min(100%, 360px);
+  max-height: min(70dvh, 520px);
+  overflow-y: auto;
+  padding: 20px 18px 17px;
+  border: 1px solid #d9dce1;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #202226;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.18);
+}
+
+.weed-goblins-game__discoverable-card h2 {
+  margin: 0 34px 8px 0;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.weed-goblins-game__discoverable-card p {
+  margin: 0;
+  color: #555a61;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.weed-goblins-game__discoverable-close {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f0f1f3;
+  color: #555a61;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.weed-goblins-game__discoverable-close:hover,
+.weed-goblins-game__discoverable-close:focus-visible {
+  background: #e4e6e9;
+  outline: none;
+}
+
+.weed-goblins-game__discoverable-action {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 15px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: #2f72e8;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.weed-goblins-game__discoverable-action:hover,
+.weed-goblins-game__discoverable-action:focus-visible {
+  background: #245fc5;
+  outline: none;
+}
+''')
+          PY
+
+      - name: Verify exact packet scope
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          git diff --check origin/feature/weed-goblins-session-zero
+          mapfile -t changed < <(git diff --name-only origin/feature/weed-goblins-session-zero | sort)
+          expected=(
+            "src/features/games/weed-goblins/WeedGoblinsChat.css"
+            "src/features/games/weed-goblins/WeedGoblinsChat.jsx"
+            "src/features/games/weed-goblins/weedGoblinsDiscoverables.js"
+            "src/features/games/weed-goblins/weedGoblinsDiscoverables.test.js"
+          )
+          printf 'Changed files:\n'
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq "${#expected[@]}"
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run targeted gameplay tests
+        run: node --test src/features/games/weed-goblins/weedGoblinsDiscoverables.test.js src/features/games/weed-goblins/weedGoblinsDynamicChoices.test.js src/features/games/weed-goblins/weedGoblinsRooms.test.js src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit verified discoverable candidate
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/games/weed-goblins/WeedGoblinsChat.css \
+            src/features/games/weed-goblins/WeedGoblinsChat.jsx \
+            src/features/games/weed-goblins/weedGoblinsDiscoverables.js \
+            src/features/games/weed-goblins/weedGoblinsDiscoverables.test.js
+          git commit -m "Add tappable Weed Goblins discoverables"
+          git push origin HEAD:temp/weed-goblins-discoverables
