@@ -1,0 +1,105 @@
+name: Temporary Chapter 2 Live Staging Host
+
+on:
+  push:
+    branches:
+      - temp/ch2-live-staging-host-20260809
+    paths:
+      - '.validation/ch2-live-host/**'
+      - '.github/workflows/ch2-live-staging-host.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  validate-live-staging:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_STAGING_PROXY_SECRET }}
+      VALIDATION_URL: https://my420journal-wg-ch2-validation.casevoice-ai.workers.dev
+    steps:
+      - name: Check out temporary validation branch
+        uses: actions/checkout@v4
+        with:
+          ref: temp/ch2-live-staging-host-20260809
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Verify exact product base and temporary-only diff
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a048339cd8e59a91dad0cfb3a2acdc1524421623"
+          git diff --check origin/feature/weed-goblins-session-zero
+          git diff --name-only origin/feature/weed-goblins-session-zero
+
+      - name: Build exact Chapter 2 app
+        run: |
+          npm ci
+          npm run build
+
+      - name: Set temporary host staging proxy secret
+        shell: bash
+        run: |
+          printf '%s' "$STAGING_PROXY_SECRET" | npx wrangler@latest secret put WEED_GOBLINS_PROXY_SECRET --config .validation/ch2-live-host/wrangler.jsonc
+
+      - name: Deploy temporary Cloudflare staging host
+        run: npx wrangler@latest deploy --config .validation/ch2-live-host/wrangler.jsonc
+
+      - name: Validate live app route and Chapter 2 narration proxy
+        id: live
+        shell: bash
+        run: |
+          mkdir -p /tmp/ch2-live
+          app_status=$(curl -L -sS --connect-timeout 10 --max-time 45 \
+            -H 'Sec-Fetch-Mode: navigate' \
+            -o /tmp/ch2-live/app.html -w '%{http_code}' \
+            "$VALIDATION_URL/games/weed-goblins")
+          echo "APP_STATUS=$app_status"
+          test "$app_status" = 200
+          grep -qi '<html' /tmp/ch2-live/app.html
+
+          api_status=$(curl -sS --connect-timeout 10 --max-time 120 \
+            -o /tmp/ch2-live/narration.json -w '%{http_code}' \
+            -X POST "$VALIDATION_URL/api/weed-goblins-narration" \
+            -H "Origin: $VALIDATION_URL" \
+            -H 'Content-Type: application/json' \
+            --data '{"chapterNumber":2,"moment":"scene-intro","outcome":"intro","sceneId":"hollow-market:lantern-order","authoritativeText":"Three smokeless lanterns wait beneath the root bridge.","storySoFar":"You have reached Lantern Mouth.","marketState":"operational","wound":"None"}')
+          echo "API_STATUS=$api_status"
+          cat /tmp/ch2-live/narration.json
+          test "$api_status" = 200
+          node - <<'NODE'
+          const fs = require('fs')
+          const body = JSON.parse(fs.readFileSync('/tmp/ch2-live/narration.json','utf8'))
+          if (!body.text || typeof body.text !== 'string' || !body.text.trim()) process.exit(61)
+          console.log('LIVE_CH2_NARRATION_OK')
+          NODE
+          printf 'app_status=%s\napi_status=%s\n' "$app_status" "$api_status" > /tmp/ch2-live/result.txt
+
+      - name: Record live staging evidence on temporary branch
+        if: always()
+        shell: bash
+        run: |
+          git checkout temp/ch2-live-staging-host-20260809
+          mkdir -p .validation/ch2-live-evidence
+          cp /tmp/ch2-live/result.txt .validation/ch2-live-evidence/result.txt 2>/dev/null || true
+          cp /tmp/ch2-live/narration.json .validation/ch2-live-evidence/narration.json 2>/dev/null || true
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .validation/ch2-live-evidence
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record Chapter 2 live staging evidence [skip ci]'
+            git push origin HEAD:temp/ch2-live-staging-host-20260809
+          fi
+
+      - name: Delete temporary staging host
+        if: always()
+        shell: bash
+        run: npx wrangler@latest delete --name my420journal-wg-ch2-validation --force
