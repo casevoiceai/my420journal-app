@@ -1,0 +1,58 @@
+name: Weed Goblins messenger UI build check
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-messenger-ui-buildcheck
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out UI candidate
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-messenger-ui
+          fetch-depth: 0
+          path: candidate
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify candidate scope
+        working-directory: candidate
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          git diff --check origin/feature/weed-goblins-session-zero...HEAD
+          mapfile -t changed < <(git diff --name-only origin/feature/weed-goblins-session-zero...HEAD | sort)
+          expected=(
+            "src/features/games/weed-goblins/WeedGoblinsChat.css"
+            "src/features/games/weed-goblins/WeedGoblinsChat.jsx"
+          )
+          printf 'Changed files:\n'
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq "${#expected[@]}"
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Show runtime versions
+        working-directory: candidate
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        working-directory: candidate
+        run: npm install
+
+      - name: Run Weed Goblins tests
+        working-directory: candidate
+        run: npm test
+
+      - name: Build production bundle
+        working-directory: candidate
+        run: npm run build
