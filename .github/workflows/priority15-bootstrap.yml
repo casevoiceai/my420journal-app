@@ -1,0 +1,79 @@
+name: Priority 15 bootstrap verification
+
+on:
+  push:
+    branches:
+      - temp/priority-15-hollow-market-20260809
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out temporary verification branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Materialize Priority 15 packet
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/wg15
+          cat .priority15/packet.b64.* | base64 -d > /tmp/wg15.tar.gz
+          tar -xzf /tmp/wg15.tar.gz -C /tmp/wg15
+
+          WG=src/features/games/weed-goblins
+          cp "$WG/weedGoblinsChatController.js" "$WG/weedGoblinsChatControllerChapterOne.js"
+          cp "$WG/weedGoblinsHelp.js" "$WG/weedGoblinsHelpChapterOne.js"
+          cp "$WG/weedGoblinsPersistence.js" "$WG/weedGoblinsPersistenceChapterOne.js"
+          cp "$WG/weedGoblinsLocalDataAdapter.js" "$WG/weedGoblinsLocalDataAdapterChapterOne.js"
+          cp "$WG/weedGoblinsCharacterSummary.js" "$WG/weedGoblinsCharacterSummaryChapterOne.js"
+          cp "$WG/weedGoblinsDiscoverables.js" "$WG/weedGoblinsDiscoverablesChapterOne.js"
+          cp server/weed-goblins-narration-worker/index.js server/weed-goblins-narration-worker/legacyChapterOne.js
+
+          cp /tmp/wg15/*.js "$WG/"
+          cp /tmp/wg15/server/weed-goblins-narration-worker/*.js server/weed-goblins-narration-worker/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Weed Goblins tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test src/features/games/weed-goblins/*.test.js server/weed-goblins-narration-worker/*.test.js functions/api/weed-goblins-narration.test.js
+
+      - name: Build application
+        run: npm run build
+
+      - name: Verify protected engine and changed scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code b6876e41a6bd1189edafe9ce2a526507a6f3c69e -- src/features/games/weed-goblins/weedGoblinsEngine.js
+          git status --short
+          if git status --short | awk '{print $2}' | grep -Ev '^(\.priority15/|\.github/workflows/priority15-bootstrap\.yml$|src/features/games/weed-goblins/|server/weed-goblins-narration-worker/)' ; then
+            echo 'Unexpected changed-file scope detected.' >&2
+            exit 1
+          fi
+
+      - name: Commit verified Priority 15 code
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .priority15
+          rm -f .github/workflows/priority15-bootstrap.yml
+          git add -A
+          git config user.name "OpenAI Priority 15 Verification"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Build playable Hollow Market Chapter 2"
+          git push origin HEAD:temp/priority-15-hollow-market-20260809
