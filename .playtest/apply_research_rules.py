@@ -257,4 +257,70 @@ for required in [
         raise SystemExit(f'required research rule missing from Worker: {required}')
 
 worker_path.write_text(worker)
+
+
+index_test_path = Path('server/weed-goblins-narration-worker/index.test.js')
+index_test = index_test_path.read_text()
+old_index_test = '''test('system prompt defines Eliza as a real GM with a separate fiction register', () => {
+  for (const required of [
+    'You are Eliza, the GameMaster of Weed Goblins.',
+    'TWO REGISTERS, NEVER BLENDED',
+    'FICTION REGISTER',
+    'TABLE-ASIDE REGISTER',
+    'The deterministic engine owns legal actions, DCs, Strength, Defense, Mana, D20 results, Trouble, wounds, Rootcoin, inventory, rewards, rooms, campaign state, and endings.',
+    'Dramatize the ruling, not the mathematics behind it.',
+  ]) {
+    assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
+  }
+})'''
+new_index_test = '''test('system prompt defines Eliza as a fiction-first GM with inline rules', () => {
+  for (const required of [
+    'You are Eliza, the GameMaster of Weed Goblins.',
+    'FICTION AND RULES',
+    'RULES belong to the deterministic game UI, outside this Worker.',
+    'Never announce a mode switch.',
+    'The deterministic engine owns legal actions, DCs, Strength, Defense, Mana, D20 results, Trouble, wounds, Rootcoin, inventory, rewards, rooms, campaign state, and endings.',
+    'Dramatize the ruling, not the mathematics behind it.',
+  ]) {
+    assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
+  }
+})'''
+index_test = replace_once(index_test, old_index_test, new_index_test, 'index inline rules test')
+index_test_path.write_text(index_test)
+
+
+voice_test_path = Path('server/weed-goblins-narration-worker/voice-audit.test.js')
+voice_test = voice_test_path.read_text()
+old_voice_test = '''test('prompt separates fiction and table-aside registers and keeps Eliza distinct', () => {
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /TWO REGISTERS, NEVER BLENDED/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /separate from S\\.T\\.O\\.N\\.E\\.R\\./)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /1966 ELIZA chatbot/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /ELIZA's Mirror/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Sprout, Bloom, Harvest, and Wither/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Scraped, Bruised, Broken, and Downed/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Rootcoin/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Ashka Greyroot/)
+})'''
+new_voice_test = '''test('prompt keeps rules inline without announced mode switches and keeps Eliza distinct', () => {
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /FICTION AND RULES/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Never announce a mode switch/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /one brief mechanics sentence at the exact moment a rule is needed/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /separate from S\\.T\\.O\\.N\\.E\\.R\\./)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /1966 ELIZA chatbot/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /ELIZA's Mirror/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Sprout, Bloom, Harvest, and Wither/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Scraped, Bruised, Broken, and Downed/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Rootcoin/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Ashka Greyroot/)
+})
+
+test('prompt bundles character creation and rejects receipt echoes', () => {
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /use two or three broad conversational prompts/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Do not echo a player's answer as a standalone receipt/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Generic acknowledgments such as "okay", "great", "perfect", "got it", or "I love that" are not default responses/)
+})'''
+voice_test = replace_once(voice_test, old_voice_test, new_voice_test, 'voice inline rules and character creation tests')
+voice_test_path.write_text(voice_test)
+
 print('RESEARCH_RULES_APPLIED')
+print('RESEARCH_RULE_TESTS_UPDATED')
