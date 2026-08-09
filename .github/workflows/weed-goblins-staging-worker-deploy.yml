@@ -11,6 +11,9 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_STAGING_PROXY_SECRET }}
+      STAGING_ANTHROPIC_API_KEY: ${{ secrets.WEED_GOBLINS_ANTHROPIC_API_KEY }}
+      STAGING_RATE_LIMIT_SALT: ${{ secrets.WEED_GOBLINS_STAGING_RATE_LIMIT_SALT }}
     steps:
       - name: Check out verified feature branch
         uses: actions/checkout@v4
@@ -23,7 +26,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Require existing Cloudflare CI credentials
+      - name: Require staging credentials
         shell: bash
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
@@ -34,7 +37,27 @@ jobs:
             echo "CLOUDFLARE_ACCOUNT_ID_MISSING"
             exit 42
           fi
-          echo "Cloudflare CI credentials are present."
+          if [ -z "$STAGING_PROXY_SECRET" ]; then
+            echo "WEED_GOBLINS_STAGING_PROXY_SECRET_MISSING"
+            exit 43
+          fi
+          if [ -z "$STAGING_ANTHROPIC_API_KEY" ]; then
+            echo "WEED_GOBLINS_ANTHROPIC_API_KEY_MISSING"
+            exit 44
+          fi
+          if [ -z "$STAGING_RATE_LIMIT_SALT" ]; then
+            echo "WEED_GOBLINS_STAGING_RATE_LIMIT_SALT_MISSING"
+            exit 45
+          fi
+          echo "All staging credentials are present."
+
+      - name: Set staging Worker secrets
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: |
+          printf '%s' "$STAGING_PROXY_SECRET" | npx wrangler@latest secret put WEED_GOBLINS_PROXY_SECRET --env staging
+          printf '%s' "$STAGING_ANTHROPIC_API_KEY" | npx wrangler@latest secret put WEED_GOBLINS_ANTHROPIC_API_KEY --env staging
+          printf '%s' "$STAGING_RATE_LIMIT_SALT" | npx wrangler@latest secret put WEED_GOBLINS_RATE_LIMIT_SALT --env staging
 
       - name: Deploy staging Worker only
         working-directory: server/weed-goblins-narration-worker
