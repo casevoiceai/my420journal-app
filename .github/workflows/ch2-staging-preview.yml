@@ -11,95 +11,203 @@ permissions:
   contents: write
 
 jobs:
-  preview:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+  staging:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_STAGING_PROXY_SECRET }}
+      STAGING_ANTHROPIC_API_KEY: ${{ secrets.WEED_GOBLINS_ANTHROPIC_API_KEY }}
+      STAGING_RATE_LIMIT_SALT: ${{ secrets.WEED_GOBLINS_STAGING_RATE_LIMIT_SALT }}
+      STAGING_WORKER_URL: https://my420journal-weed-goblins-narration-staging.casevoice-ai.workers.dev
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out exact Chapter 2 feature head
+        uses: actions/checkout@v4
         with:
           ref: feature/weed-goblins-session-zero
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
 
-      - name: Check Cloudflare credentials without exposing them
-        id: creds
+      - name: Require staging credentials
         shell: bash
         run: |
-          token=no; account=no
-          [ -n "$CLOUDFLARE_API_TOKEN" ] && token=yes
-          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && account=yes
-          echo "token=${token}" >> "$GITHUB_OUTPUT"
-          echo "account=${account}" >> "$GITHUB_OUTPUT"
-          echo "CLOUDFLARE_API_TOKEN_PRESENT=${token}"
-          echo "CLOUDFLARE_ACCOUNT_ID_PRESENT=${account}"
+          test "$(git rev-parse HEAD)" = "a048339cd8e59a91dad0cfb3a2acdc1524421623"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$STAGING_PROXY_SECRET"
+          test -n "$STAGING_ANTHROPIC_API_KEY"
+          test -n "$STAGING_RATE_LIMIT_SALT"
+          echo 'STAGING_CREDENTIALS_PRESENT=yes'
 
-      - name: Install and build exact feature head
-        if: steps.creds.outputs.token == 'yes' && steps.creds.outputs.account == 'yes'
+      - name: Re-set staging-only Worker secrets
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: |
+          printf '%s' "$STAGING_PROXY_SECRET" | npx wrangler@latest secret put WEED_GOBLINS_PROXY_SECRET --env staging
+          printf '%s' "$STAGING_ANTHROPIC_API_KEY" | npx wrangler@latest secret put WEED_GOBLINS_ANTHROPIC_API_KEY --env staging
+          printf '%s' "$STAGING_RATE_LIMIT_SALT" | npx wrangler@latest secret put WEED_GOBLINS_RATE_LIMIT_SALT --env staging
+
+      - name: Deploy current Chapter 2 narration to staging Worker only
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: |
+          npx wrangler@latest deploy --env staging 2>&1 | tee /tmp/staging-worker-deploy.txt
+
+      - name: Smoke test live Chapter 2 staging narration
+        shell: bash
+        run: |
+          status=$(curl --silent --show-error \
+            --output /tmp/staging-ch2-response.json \
+            --write-out '%{http_code}' \
+            --request POST "$STAGING_WORKER_URL" \
+            --header 'Content-Type: application/json' \
+            --header "Authorization: Bearer $STAGING_PROXY_SECRET" \
+            --data '{"chapterNumber":2,"moment":"scene-intro","outcome":"intro","sceneId":"hollow-market:lantern-order","authoritativeText":"Three smokeless lanterns wait beneath the root bridge.","storySoFar":"You have reached Lantern Mouth.","marketState":"operational","wound":"None","recognizedStall":"mist-cartridge counter","counterfeitItem":"brass mist cartridge","notes":"PRIVATE_NOTE_MUST_NOT_PASS"}')
+          echo "STAGING_CH2_HTTP=${status}" | tee /tmp/staging-ch2-result.txt
+          test "$status" = 200
+          node - <<'NODE'
+          const fs = require('fs')
+          const body = JSON.parse(fs.readFileSync('/tmp/staging-ch2-response.json', 'utf8'))
+          if (!body.text || typeof body.text !== 'string') throw new Error('No staging narration text')
+          if (body.text.includes('PRIVATE_NOTE_MUST_NOT_PASS')) throw new Error('Private sentinel leaked')
+          fs.writeFileSync('/tmp/staging-ch2-public-result.txt', JSON.stringify({
+            ok: true,
+            hasText: true,
+            privateSentinelAbsent: true,
+            textLength: body.text.length,
+          }, null, 2))
+          console.log('STAGING_CH2_SMOKE_OK')
+          NODE
+
+      - name: Discover Pages projects through Cloudflare API
+        id: pages
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p /tmp/pages
+          http=$(curl --silent --show-error \
+            --output /tmp/pages/projects-raw.json \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects?per_page=100")
+          echo "PAGES_PROJECT_LIST_HTTP=${http}" | tee /tmp/pages/project-list-status.txt
+          node - <<'NODE'
+          const fs = require('fs')
+          let raw = {}
+          try { raw = JSON.parse(fs.readFileSync('/tmp/pages/projects-raw.json','utf8')) } catch {}
+          const projects = Array.isArray(raw.result) ? raw.result.map(p => ({
+            name: p.name,
+            subdomain: p.subdomain || null,
+            production_branch: p.production_branch || null,
+          })) : []
+          const safe = { success: Boolean(raw.success), errors: raw.errors || [], projects }
+          fs.writeFileSync('/tmp/pages/projects-safe.json', JSON.stringify(safe, null, 2))
+          const match = projects.find(p => p.name === 'my420journal-app' || p.subdomain === 'my420journal-app.pages.dev')
+          fs.writeFileSync('/tmp/pages/project-name.txt', match?.name || '')
+          NODE
+          project=$(cat /tmp/pages/project-name.txt)
+          echo "project_name=${project}" >> "$GITHUB_OUTPUT"
+          echo "PAGES_PROJECT_NAME=${project:-not-found}"
+          cat /tmp/pages/projects-safe.json
+
+      - name: Build exact feature head for Pages Preview
+        if: steps.pages.outputs.project_name != ''
+        shell: bash
         run: |
           npm ci
-          test "$(git rev-parse HEAD)" = "a048339cd8e59a91dad0cfb3a2acdc1524421623"
           npm run build
 
-      - name: Verify Pages project and create preview-only deployment
-        if: steps.creds.outputs.token == 'yes' && steps.creds.outputs.account == 'yes'
+      - name: Create non-production Pages Preview
+        id: deploy_preview
+        if: steps.pages.outputs.project_name != ''
+        continue-on-error: true
         shell: bash
         run: |
-          mkdir -p /tmp/ch2-staging
-          npx wrangler pages project list 2>&1 | tee /tmp/ch2-staging/projects.txt
-          grep -q 'my420journal-app' /tmp/ch2-staging/projects.txt
-          npx wrangler pages deploy dist \
-            --project-name my420journal-app \
+          project='${{ steps.pages.outputs.project_name }}'
+          npx wrangler@latest pages deploy dist \
+            --project-name "$project" \
             --branch feature/weed-goblins-session-zero \
             --commit-hash a048339cd8e59a91dad0cfb3a2acdc1524421623 \
-            --commit-dirty=false 2>&1 | tee /tmp/ch2-staging/deploy.txt
+            --commit-dirty=false 2>&1 | tee /tmp/pages/deploy.txt
+          npx wrangler@latest pages deployment list \
+            --project-name "$project" \
+            --environment preview \
+            --json > /tmp/pages/deployments.json
+          node - <<'NODE'
+          const fs = require('fs')
+          const rows = JSON.parse(fs.readFileSync('/tmp/pages/deployments.json','utf8'))
+          const wanted = Array.isArray(rows) ? rows.find(d => d?.deployment_trigger?.metadata?.commit_hash === 'a048339cd8e59a91dad0cfb3a2acdc1524421623') : null
+          const safe = wanted ? {
+            id: wanted.id,
+            url: wanted.url,
+            aliases: wanted.aliases || [],
+            environment: wanted.environment,
+            branch: wanted.deployment_trigger?.metadata?.branch || null,
+            commit_hash: wanted.deployment_trigger?.metadata?.commit_hash || null,
+            latest_stage: wanted.latest_stage?.status || null,
+          } : null
+          fs.writeFileSync('/tmp/pages/deployment-safe.json', JSON.stringify(safe, null, 2))
+          const url = safe?.url || (safe?.aliases || []).map(a => a.startsWith('http') ? a : `https://${a}`).find(Boolean) || ''
+          fs.writeFileSync('/tmp/pages/preview-url.txt', url)
+          NODE
+          url=$(cat /tmp/pages/preview-url.txt)
+          echo "preview_url=${url}" >> "$GITHUB_OUTPUT"
+          cat /tmp/pages/deployment-safe.json
 
-      - name: Probe preview and Chapter 2 narration
-        if: steps.creds.outputs.token == 'yes' && steps.creds.outputs.account == 'yes'
+      - name: Probe live Pages Preview and staging narration path
+        id: probe_preview
+        if: steps.deploy_preview.outputs.preview_url != ''
+        continue-on-error: true
         shell: bash
         run: |
-          mkdir -p /tmp/ch2-staging
-          preview_host='feature-weed-goblins-session-zero.my420journal-app.pages.dev'
-          for i in $(seq 1 20); do
-            status=$(curl -L -sS --connect-timeout 10 --max-time 30 -o /tmp/ch2-staging/preview.html -w '%{http_code}' "https://${preview_host}/games/weed-goblins")
-            [ "$status" = 200 ] && break
-            sleep 3
-          done
-          echo "PREVIEW_GET_STATUS=${status}" | tee /tmp/ch2-staging/result.txt
-          api_status=$(curl -sS --connect-timeout 10 --max-time 90 -o /tmp/ch2-staging/api.txt -w '%{http_code}' \
-            -X POST "https://${preview_host}/api/weed-goblins-narration" \
-            -H "Origin: https://${preview_host}" \
-            -H 'Content-Type: application/json' \
+          base='${{ steps.deploy_preview.outputs.preview_url }}'
+          base=${base%/}
+          host=${base#https://}
+          get_status=$(curl -L --silent --show-error --output /tmp/pages/preview.html --write-out '%{http_code}' "$base/games/weed-goblins")
+          api_status=$(curl --silent --show-error --output /tmp/pages/api.json --write-out '%{http_code}' \
+            --request POST "$base/api/weed-goblins-narration" \
+            --header "Origin: $base" \
+            --header 'Content-Type: application/json' \
             --data '{"chapterNumber":2,"moment":"scene-intro","outcome":"intro","sceneId":"hollow-market:lantern-order","authoritativeText":"Three smokeless lanterns wait beneath the root bridge.","storySoFar":"You have reached Lantern Mouth.","marketState":"operational","wound":"None"}')
-          echo "PREVIEW_NARRATION_STATUS=${api_status}" | tee -a /tmp/ch2-staging/result.txt
-          echo '--- narration body ---'
-          cat /tmp/ch2-staging/api.txt
-          test "$status" = 200
+          {
+            echo "PAGES_PREVIEW_URL=$base"
+            echo "PAGES_PREVIEW_GET_HTTP=$get_status"
+            echo "PAGES_PREVIEW_CH2_NARRATION_HTTP=$api_status"
+          } | tee /tmp/pages/probe-result.txt
+          cat /tmp/pages/api.json || true
+          test "$get_status" = 200
           test "$api_status" = 200
 
-      - name: Record staging result on temp branch
+      - name: Record staging evidence on temporary branch
         if: always()
         shell: bash
         run: |
           git fetch origin temp/ch2-validation-20260809
           git checkout -B temp/ch2-validation-20260809 origin/temp/ch2-validation-20260809
           mkdir -p .validation
-          {
-            echo "Cloudflare credential availability"
-            echo "API token present: ${{ steps.creds.outputs.token }}"
-            echo "Account ID present: ${{ steps.creds.outputs.account }}"
-            if [ -f /tmp/ch2-staging/result.txt ]; then cat /tmp/ch2-staging/result.txt; fi
-          } > .validation/staging-preview-result.txt
-          cp /tmp/ch2-staging/api.txt .validation/staging-preview-narration.txt 2>/dev/null || true
-          cp /tmp/ch2-staging/deploy.txt .validation/staging-preview-deploy.txt 2>/dev/null || true
+          cp /tmp/staging-worker-deploy.txt .validation/staging-worker-ch2-deploy.txt 2>/dev/null || true
+          cp /tmp/staging-ch2-result.txt .validation/staging-ch2-result.txt 2>/dev/null || true
+          cp /tmp/staging-ch2-public-result.txt .validation/staging-ch2-public-result.json 2>/dev/null || true
+          cp /tmp/pages/project-list-status.txt .validation/pages-project-list-status.txt 2>/dev/null || true
+          cp /tmp/pages/projects-safe.json .validation/pages-projects-safe.json 2>/dev/null || true
+          cp /tmp/pages/deploy.txt .validation/pages-preview-deploy.txt 2>/dev/null || true
+          cp /tmp/pages/deployment-safe.json .validation/pages-preview-deployment.json 2>/dev/null || true
+          cp /tmp/pages/probe-result.txt .validation/pages-preview-probe.txt 2>/dev/null || true
+          if [ -f /tmp/pages/api.json ]; then
+            node - <<'NODE'
+            const fs = require('fs')
+            const text = fs.readFileSync('/tmp/pages/api.json','utf8')
+            fs.writeFileSync('.validation/pages-preview-api-response.txt', text.slice(0, 4000))
+            NODE
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .validation/staging-preview-*.txt
+          git add .validation
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Record temporary staging preview validation [skip ci]'
+          git commit -m 'Record Chapter 2 staging validation evidence [skip ci]'
           git push origin HEAD:temp/ch2-validation-20260809
