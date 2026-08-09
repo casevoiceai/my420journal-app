@@ -10,9 +10,9 @@ approved_opening = '''export const SESSION_ZERO_WELCOME = Object.freeze([
   "You know exactly what made the groove. A brass corner has struck one of the stones hard enough to peel away the moss, leaving a fresh yellow scar in the gray rock: your Brass-Latched Research Case. Earlier this morning it belonged to you. Then came five goblins and a great deal of shouting, followed by an argument about whether taking somebody's property while they were actively objecting constituted theft or merely 'aggressive redistribution.' Paperwork, too. Nobody appeared to know what it was for. By the time the question came up, they were already running north with your case between them.",
   "Their journey hasn't improved since. A strip of yellow cloth hangs wetly from a thorn bush where somebody caught a sleeve. Beside another stone: two small handprints and the perfect impression of a goblin face in the mud, several feet farther downhill than seems physically reasonable. Whoever fell there got back up. The tracks continue.",
   "Somewhere above you, hidden by the cloud, a bell gives one miserable clonk. The sound rolls strangely across the ridge and disappears. A moment later the wind worries the mist apart, just for a few seconds, and the King's Stash Hall appears above you. Black timber under a crooked chimney. The patched roof crowds far too many windows, and behind one of them something red moves, gone before you can decide what you saw. Then the cloud closes over the building again. The goblin tracks point straight toward it.",
-  "Okay. Out of the story for a minute. I'm Eliza, and I'll be running the game for you. If you've never played something like this before, you don't need to learn a pile of rules first. Tell me what you want your character to try, and when a rule matters, I'll explain that rule then.",
-  "I'll usually give you a few obvious choices so you're never staring at the screen wondering what you're allowed to do, but you aren't limited to them. If you want to try something else, just say what you're doing.",
-  "All right. Back to the Highlands. Before I send somebody into that fog after your Brass-Latched Research Case, I should probably know who I'm sending. What's your character's name?",
+  "I'm Eliza, and I'll be running the game. You tell me what your character tries; when a rule matters, I'll explain it right where it comes up.",
+  "I'll usually put a few obvious choices in front of you so you're never left guessing what you can try, but they're suggestions, not limits. If you want something else, just say what you're doing.",
+  "Before somebody follows those tracks into the fog, give me the first part of the picture: what's your character's name, and what are they: human, dwarf, elf, or gnome?",
 ])'''
 
 pattern = re.compile(r"export const SESSION_ZERO_WELCOME = Object\.freeze\(\[.*?\n\]\)", re.S)
@@ -35,6 +35,8 @@ for forbidden in [
     'Before we make your character, let me give you the setup',
     "You haven't caught up yet, but you haven't lost them either",
     'the Carefully Labeled Moon Jar',
+    'Out of the story',
+    'Back to the Highlands',
 ]:
     if forbidden in approved_opening:
         raise SystemExit(f'forbidden old opening text remained: {forbidden}')
