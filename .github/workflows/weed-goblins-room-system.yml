@@ -1,0 +1,111 @@
+name: Weed Goblins room system
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-room-system-build
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out room candidate
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-room-system
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply room-state integration
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/features/games/weed-goblins/weedGoblinsEngine.js')
+          text = path.read_text()
+
+          def replace_once(old, new):
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one match, found {count}: {old[:80]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "export const WEED_GOBLINS_NARRATOR_NAME = 'Eliza'\n",
+              """import {\n  CHAPTER_ONE_ROOMS,\n  createWeedGoblinsRoomState,\n  visitWeedGoblinsRoom,\n} from './weedGoblinsRooms.js'\n\nexport const WEED_GOBLINS_NARRATOR_NAME = 'Eliza'\n""",
+          )
+
+          replace_once(
+              """function appendEvent(state, event, narrationLine) {\n  return cloneState(state, {\n    history: [...state.history, event],\n    narration: narrationLine ? [...state.narration, narrationLine] : [...state.narration],\n  })\n}\n\nfunction enterGoblinKingScene(state) {\n  return appendEvent(\n    cloneState(state, { sceneId: SCENES.boss }),\n""",
+              """function appendEvent(state, event, narrationLine) {\n  return cloneState(state, {\n    history: [...state.history, event],\n    narration: narrationLine ? [...state.narration, narrationLine] : [...state.narration],\n  })\n}\n\nfunction enterRoom(state, roomId) {\n  if (state.currentRoomId === roomId) return state\n  return cloneState(state, {\n    currentRoomId: roomId,\n    roomState: visitWeedGoblinsRoom(state.roomState, roomId),\n  })\n}\n\nfunction enterGoblinKingScene(state) {\n  const inStashHall = enterRoom(\n    cloneState(state, { sceneId: SCENES.boss }),\n    CHAPTER_ONE_ROOMS.kingsStashHall.id,\n  )\n  return appendEvent(\n    inStashHall,\n""",
+          )
+
+          replace_once(
+              """    status: 'active',\n    sceneId: SCENES.sessionWelcome,\n    playerName: null,\n""",
+              """    status: 'active',\n    sceneId: SCENES.sessionWelcome,\n    currentRoomId: CHAPTER_ONE_ROOMS.windcutTrail.id,\n    roomState: createWeedGoblinsRoomState(CHAPTER_ONE_ROOMS.windcutTrail.id),\n    playerName: null,\n""",
+          )
+
+          replace_once(
+              """    if (result.state.status === 'completed') return result.state\n    return cloneState(result.state, { sceneId: SCENES.goblin })\n  }\n\n  if (state.sceneId === SCENES.goblin) {\n""",
+              """    if (result.state.status === 'completed') return result.state\n    return enterRoom(\n      cloneState(result.state, { sceneId: SCENES.goblin }),\n      CHAPTER_ONE_ROOMS.rattlebridge.id,\n    )\n  }\n\n  if (state.sceneId === SCENES.goblin) {\n""",
+          )
+
+          replace_once(
+              """      if (result.state.status === 'completed') return result.state\n      return cloneState(result.state, { sceneId: SCENES.midpoint })\n    }\n\n    const isStrike = actionId === 'goblin:strike'\n""",
+              """      if (result.state.status === 'completed') return result.state\n      return enterRoom(\n        cloneState(result.state, { sceneId: SCENES.midpoint }),\n        CHAPTER_ONE_ROOMS.cloudberryShelf.id,\n      )\n    }\n\n    const isStrike = actionId === 'goblin:strike'\n""",
+          )
+
+          replace_once(
+              """    if (result.state.status === 'completed') return result.state\n    return cloneState(result.state, { sceneId: SCENES.midpoint })\n  }\n\n  if (state.sceneId === SCENES.midpoint) {\n""",
+              """    if (result.state.status === 'completed') return result.state\n    return enterRoom(\n      cloneState(result.state, { sceneId: SCENES.midpoint }),\n      CHAPTER_ONE_ROOMS.cloudberryShelf.id,\n    )\n  }\n\n  if (state.sceneId === SCENES.midpoint) {\n""",
+          )
+
+          path.write_text(text)
+          PY
+
+      - name: Verify exact packet scope
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          git diff --check origin/feature/weed-goblins-session-zero
+          mapfile -t changed < <(git diff --name-only origin/feature/weed-goblins-session-zero | sort)
+          expected=(
+            "src/features/games/weed-goblins/weedGoblinsEngine.js"
+            "src/features/games/weed-goblins/weedGoblinsRooms.js"
+            "src/features/games/weed-goblins/weedGoblinsRooms.test.js"
+          )
+          printf 'Changed files:\n'
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq "${#expected[@]}"
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run room and roll-cycle tests
+        run: node --test src/features/games/weed-goblins/weedGoblinsRooms.test.js src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit verified room candidate
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/games/weed-goblins/weedGoblinsEngine.js \
+            src/features/games/weed-goblins/weedGoblinsRooms.js \
+            src/features/games/weed-goblins/weedGoblinsRooms.test.js
+          git commit -m "Add persistent Weed Goblins room state"
+          git push origin HEAD:temp/weed-goblins-room-system
