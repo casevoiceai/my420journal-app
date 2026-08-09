@@ -1,0 +1,82 @@
+name: Weed Goblins Priority 11 Chapter 1
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-priority11-build
+    paths:
+      - .github/workflows/weed-goblins-priority11-build.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build-priority11:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out build branch
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-priority11-build
+          fetch-depth: 0
+
+      - name: Preserve rewrite helper and switch to clean code branch
+        shell: bash
+        run: |
+          cp .github/scripts/priority11_expand_chapter1.py /tmp/priority11_expand_chapter1.py
+          git checkout -B temp/weed-goblins-priority11-chapter1 origin/temp/weed-goblins-priority11-chapter1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Expand canonical Chapter 1
+        run: python /tmp/priority11_expand_chapter1.py
+
+      - name: Verify exact code scope
+        shell: bash
+        run: |
+          changed=$(git status --short | sed 's/^...//' | sort)
+          printf '%s\n' "$changed"
+          expected=$'src/features/games/weed-goblins/weedGoblinsChapterOne.js\nsrc/features/games/weed-goblins/weedGoblinsChapterOne.test.js\nsrc/features/games/weed-goblins/weedGoblinsChatController.js\nsrc/features/games/weed-goblins/weedGoblinsChoices.js\nsrc/features/games/weed-goblins/weedGoblinsDiscoverables.js\nsrc/features/games/weed-goblins/weedGoblinsDiscoverables.test.js\nsrc/features/games/weed-goblins/weedGoblinsEngine.js\nsrc/features/games/weed-goblins/weedGoblinsFreeTextInterpreter.js\nsrc/features/games/weed-goblins/weedGoblinsHelp.js\nsrc/features/games/weed-goblins/weedGoblinsNarrationHooks.js\nsrc/features/games/weed-goblins/weedGoblinsRooms.test.js'
+          if [ "$changed" != "$expected" ]; then
+            echo 'UNEXPECTED_SCOPE'
+            exit 61
+          fi
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run targeted Chapter 1 tests
+        run: >-
+          node --test
+          src/features/games/weed-goblins/weedGoblinsChapterOne.test.js
+          src/features/games/weed-goblins/weedGoblinsRooms.test.js
+          src/features/games/weed-goblins/weedGoblinsDynamicChoices.test.js
+          src/features/games/weed-goblins/weedGoblinsDiscoverables.test.js
+          src/features/games/weed-goblins/weedGoblinsHelp.test.js
+          src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js
+          src/features/games/weed-goblins/weedGoblinsFreeTextInterpreter.test.js
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit verified code to clean Priority 11 branch
+        shell: bash
+        run: |
+          git config user.name 'casevoiceai'
+          git config user.email 'casevoice.ai@gmail.com'
+          git add src/features/games/weed-goblins/weedGoblinsChapterOne.js \
+            src/features/games/weed-goblins/weedGoblinsChapterOne.test.js \
+            src/features/games/weed-goblins/weedGoblinsChatController.js \
+            src/features/games/weed-goblins/weedGoblinsChoices.js \
+            src/features/games/weed-goblins/weedGoblinsDiscoverables.js \
+            src/features/games/weed-goblins/weedGoblinsDiscoverables.test.js \
+            src/features/games/weed-goblins/weedGoblinsEngine.js \
+            src/features/games/weed-goblins/weedGoblinsFreeTextInterpreter.js \
+            src/features/games/weed-goblins/weedGoblinsHelp.js \
+            src/features/games/weed-goblins/weedGoblinsNarrationHooks.js \
+            src/features/games/weed-goblins/weedGoblinsRooms.test.js
+          git commit -m 'Expand canonical Weed Goblins Chapter 1'
+          git push origin HEAD:temp/weed-goblins-priority11-chapter1
