@@ -25,7 +25,7 @@ jobs:
         run: |
           cp .github/scripts/priority11_expand_chapter1.py /tmp/priority11_expand_chapter1.py
           sed -i 's/if count != 1:/if count < 1:/' /tmp/priority11_expand_chapter1.py
-          python -c "p='/tmp/priority11_expand_chapter1.py'; s=open(p).read(); s=s.replace('(?=\\nfunction {re.escape(next_name)}\\()', '(?=\\n(?:export )?function {re.escape(next_name)}\\()'); open(p,'w').write(s)"
+          sed -i 's/(?=\\nfunction /(?=\\n(?:export )?function /' /tmp/priority11_expand_chapter1.py
           git checkout -B temp/weed-goblins-priority11-chapter1 origin/temp/weed-goblins-priority11-chapter1
 
       - name: Set up Node
