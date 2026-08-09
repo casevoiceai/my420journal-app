@@ -36,10 +36,6 @@ jobs:
           fi
           echo "Cloudflare CI credentials are present."
 
-      - name: Confirm Cloudflare identity
-        working-directory: server/weed-goblins-narration-worker
-        run: npx wrangler@latest whoami
-
       - name: Deploy staging Worker only
         working-directory: server/weed-goblins-narration-worker
         run: npx wrangler@latest deploy --env staging
