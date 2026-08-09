@@ -24,6 +24,21 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Measure exact verified baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add /tmp/wg15-base b6876e41a6bd1189edafe9ce2a526507a6f3c69e
+          cd /tmp/wg15-base
+          npm ci >/tmp/wg15-baseline-install.txt 2>&1
+          set +e
+          node --test src/features/games/weed-goblins/*.test.js server/weed-goblins-narration-worker/*.test.js functions/api/weed-goblins-narration.test.js > /tmp/wg15-baseline-tests.txt 2>&1
+          set -e
+          grep '^not ok ' /tmp/wg15-baseline-tests.txt | sed -E 's/^not ok [0-9]+ - //' | sort -u > /tmp/wg15-baseline-failures.txt || true
+          grep '^# tests ' /tmp/wg15-baseline-tests.txt | tail -1 || true
+          grep '^# pass ' /tmp/wg15-baseline-tests.txt | tail -1 || true
+          grep '^# fail ' /tmp/wg15-baseline-tests.txt | tail -1 || true
+
       - name: Materialize Priority 15 packet
         shell: bash
         run: |
@@ -49,39 +64,44 @@ jobs:
 
           cp /tmp/wg15/*.js "$WG/"
           cp /tmp/wg15/server/weed-goblins-narration-worker/*.js server/weed-goblins-narration-worker/
+          git apply .priority15/fixes.patch
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Weed Goblins tests
-        id: tests
-        shell: bash
-        run: |
-          set +e
-          node --test src/features/games/weed-goblins/*.test.js server/weed-goblins-narration-worker/*.test.js functions/api/weed-goblins-narration.test.js > .priority15/test-output.txt 2>&1
-          status=$?
-          cat .priority15/test-output.txt
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      - name: Capture exact test failure
-        if: steps.tests.outputs.status != '0'
+      - name: Run strict Priority 15 tests
         shell: bash
         run: |
           set -euo pipefail
-          git add .priority15/test-output.txt
-          git config user.name "OpenAI Priority 15 Verification"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Capture Priority 15 test failure"
-          git push origin HEAD:temp/priority-15-hollow-market-20260809
-          exit 1
+          node --test src/features/games/weed-goblins/weedGoblinsChapterTwo*.test.js server/weed-goblins-narration-worker/chapterTwo.test.js | tee .priority15/targeted-output.txt
+
+      - name: Compare full suite with verified baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          node --test src/features/games/weed-goblins/*.test.js server/weed-goblins-narration-worker/*.test.js functions/api/weed-goblins-narration.test.js > .priority15/regression-output.txt 2>&1
+          set -e
+          grep '^not ok ' .priority15/regression-output.txt | sed -E 's/^not ok [0-9]+ - //' | sort -u > /tmp/wg15-current-failures.txt || true
+          comm -13 /tmp/wg15-baseline-failures.txt /tmp/wg15-current-failures.txt > /tmp/wg15-new-failures.txt
+          echo 'Baseline summary:'
+          grep '^# tests ' /tmp/wg15-baseline-tests.txt | tail -1 || true
+          grep '^# pass ' /tmp/wg15-baseline-tests.txt | tail -1 || true
+          grep '^# fail ' /tmp/wg15-baseline-tests.txt | tail -1 || true
+          echo 'Priority 15 full-suite summary:'
+          grep '^# tests ' .priority15/regression-output.txt | tail -1 || true
+          grep '^# pass ' .priority15/regression-output.txt | tail -1 || true
+          grep '^# fail ' .priority15/regression-output.txt | tail -1 || true
+          if [ -s /tmp/wg15-new-failures.txt ]; then
+            echo 'Priority 15 introduced these additional failures:' >&2
+            cat /tmp/wg15-new-failures.txt >&2
+            exit 1
+          fi
 
       - name: Build application
-        if: steps.tests.outputs.status == '0'
         run: npm run build
 
       - name: Verify protected engine and changed scope
-        if: steps.tests.outputs.status == '0'
         shell: bash
         run: |
           set -euo pipefail
@@ -93,14 +113,20 @@ jobs:
           fi
 
       - name: Commit verified Priority 15 code
-        if: steps.tests.outputs.status == '0'
         shell: bash
         run: |
           set -euo pipefail
+          targeted_tests=$(grep '^# tests ' .priority15/targeted-output.txt | tail -1 | awk '{print $3}')
+          targeted_pass=$(grep '^# pass ' .priority15/targeted-output.txt | tail -1 | awk '{print $3}')
+          targeted_fail=$(grep '^# fail ' .priority15/targeted-output.txt | tail -1 | awk '{print $3}')
+          baseline_fail=$(grep '^# fail ' /tmp/wg15-baseline-tests.txt | tail -1 | awk '{print $3}')
+          regression_tests=$(grep '^# tests ' .priority15/regression-output.txt | tail -1 | awk '{print $3}')
+          regression_pass=$(grep '^# pass ' .priority15/regression-output.txt | tail -1 | awk '{print $3}')
+          regression_fail=$(grep '^# fail ' .priority15/regression-output.txt | tail -1 | awk '{print $3}')
           rm -rf .priority15
           rm -f .github/workflows/priority15-bootstrap.yml
           git add -A
           git config user.name "OpenAI Priority 15 Verification"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Build playable Hollow Market Chapter 2"
+          git commit -m "Build playable Hollow Market Chapter 2" -m "Priority 15 targeted: ${targeted_tests} tests, ${targeted_pass} pass, ${targeted_fail} fail. Full suite: ${regression_tests} tests, ${regression_pass} pass, ${regression_fail} pre-existing baseline failures (${baseline_fail} at b6876e41). Build passed. weedGoblinsEngine.js unchanged."
           git push origin HEAD:temp/priority-15-hollow-market-20260809
