@@ -1,0 +1,60 @@
+name: Weed Goblins staging Preview prep
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-staging-preview-prep-build
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-staging-preview-prep
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify exact packet scope
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          git diff --check origin/feature/weed-goblins-session-zero
+          mapfile -t changed < <(git diff --name-only origin/feature/weed-goblins-session-zero | sort)
+          expected=(
+            "functions/api/weed-goblins-narration.js"
+            "server/weed-goblins-narration-worker/wrangler.jsonc"
+            "src/features/games/weed-goblins/weedGoblinsPagesFunction.test.js"
+          )
+          printf 'Changed files:\n'
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq "${#expected[@]}"
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run targeted gameplay and Pages tests
+        run: >-
+          node --test
+          src/features/games/weed-goblins/weedGoblinsPagesFunction.test.js
+          src/features/games/weed-goblins/weedGoblinsHelp.test.js
+          src/features/games/weed-goblins/weedGoblinsHiddenMenuVoice.test.js
+          src/features/games/weed-goblins/weedGoblinsDiscoverables.test.js
+          src/features/games/weed-goblins/weedGoblinsDynamicChoices.test.js
+          src/features/games/weed-goblins/weedGoblinsRooms.test.js
+          src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Validate staging Worker config with Wrangler dry run
+        working-directory: server/weed-goblins-narration-worker
+        run: npx wrangler@latest deploy --env staging --dry-run
