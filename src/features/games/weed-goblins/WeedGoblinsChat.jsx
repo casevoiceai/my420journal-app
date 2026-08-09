@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 import {
   createEmptyWeedGoblinsPersonalizationSnapshot,
-  readWeedGoblinsPersonalizationSnapshot,
+  readWeedGoblinsLocalContext,
   saveWeedGoblinsRunSummary,
 } from './weedGoblinsLocalDataAdapter.js'
 import {
@@ -33,6 +33,11 @@ import {
   getWeedGoblinsHelpResponse,
 } from './weedGoblinsHelp.js'
 import { weedGoblinsProgressionMetadata } from './weedGoblinsProgression.js'
+import {
+  clearWeedGoblinsActiveRun,
+  readWeedGoblinsActiveRun,
+  saveWeedGoblinsActiveRun,
+} from './weedGoblinsPersistence.js'
 import './WeedGoblinsChat.css'
 
 function makeRunSeed() {
@@ -49,11 +54,31 @@ function staticNarration({ hook }) {
   })
 }
 
-async function loadSnapshotWithFallback() {
+async function loadLocalContextWithFallback() {
   try {
-    return await readWeedGoblinsPersonalizationSnapshot()
+    return await readWeedGoblinsLocalContext()
   } catch {
-    return createEmptyWeedGoblinsPersonalizationSnapshot()
+    return {
+      userId: null,
+      snapshot: createEmptyWeedGoblinsPersonalizationSnapshot(),
+      campaignState: null,
+    }
+  }
+}
+
+function saveActiveRunSafely(session) {
+  try {
+    return saveWeedGoblinsActiveRun(session)
+  } catch {
+    return null
+  }
+}
+
+function clearActiveRunSafely(userId) {
+  try {
+    clearWeedGoblinsActiveRun({ userId })
+  } catch {
+    // The game remains playable when browser storage is unavailable.
   }
 }
 
@@ -235,11 +260,13 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   const [helpLevel, setHelpLevel] = useState(0)
   const [helpMessage, setHelpMessage] = useState(null)
   const [runNumber, setRunNumber] = useState(0)
+  const [localUserId, setLocalUserId] = useState(null)
   const storyRef = useRef(null)
   const endRef = useRef(null)
   const crestHoldTimerRef = useRef(null)
   const speechRecognitionRef = useRef(null)
   const hasStartedScrollingRef = useRef(false)
+  const previousHelpContextKeyRef = useRef('')
   const resolvedSeed = useMemo(
     () => seed ? `${seed}:${runNumber}` : makeRunSeed(),
     [seed, runNumber],
@@ -271,11 +298,27 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     let cancelled = false
 
     async function start() {
-      const snapshot = await loadSnapshotWithFallback()
+      const localContext = await loadLocalContextWithFallback()
       if (cancelled) return
 
+      const snapshot = localContext.snapshot || createEmptyWeedGoblinsPersonalizationSnapshot()
+      const userId = localContext.userId || null
       const blockedNames = Array.isArray(snapshot.productNames) ? snapshot.productNames : []
+      setLocalUserId(userId)
       setBlockedRealNames(blockedNames)
+
+      const restored = readWeedGoblinsActiveRun({ userId })
+      if (restored) {
+        setState(restored.state)
+        setMessages(restored.messages)
+        setChoices(restored.choices)
+        setPendingTurn(restored.pendingTurn)
+        setHelpLevel(restored.helpLevel)
+        setHelpMessage(restored.helpMessage)
+        setLoading(false)
+        return
+      }
+
       const options = {
         seed: resolvedSeed,
         journalSnapshot: snapshot,
@@ -294,6 +337,15 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
       setState(session.state)
       setMessages(session.messages)
       setChoices(session.choices)
+      saveActiveRunSafely({
+        userId,
+        state: session.state,
+        messages: session.messages,
+        choices: session.choices,
+        pendingTurn: null,
+        helpLevel: 0,
+        helpMessage: null,
+      })
       setLoading(false)
     }
 
@@ -314,8 +366,12 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   }, [])
 
   useEffect(() => {
-    setHelpLevel(0)
-    setHelpMessage(null)
+    const previousKey = previousHelpContextKeyRef.current
+    if (previousKey && helpContextKey && previousKey !== helpContextKey) {
+      setHelpLevel(0)
+      setHelpMessage(null)
+    }
+    previousHelpContextKeyRef.current = helpContextKey
   }, [helpContextKey])
 
   useEffect(() => {
@@ -327,12 +383,33 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages, busy, pendingTurn])
 
+  function persistStableRun({
+    nextState = state,
+    nextMessages = messages,
+    nextChoices = choices,
+    nextPendingTurn = pendingTurn,
+    nextHelpLevel = helpLevel,
+    nextHelpMessage = helpMessage,
+  } = {}) {
+    return saveActiveRunSafely({
+      userId: localUserId,
+      state: nextState,
+      messages: nextMessages,
+      choices: nextChoices,
+      pendingTurn: nextPendingTurn,
+      helpLevel: nextHelpLevel,
+      helpMessage: nextHelpMessage,
+    })
+  }
+
   async function saveCompletedRun(nextState) {
     if (nextState.status !== 'completed') return
     try {
       await saveWeedGoblinsRunSummary({ runSummary: nextState.runSummary })
     } catch {
-      // The run remains playable when browser storage is unavailable.
+      // The completed story still remains visible when browser storage is unavailable.
+    } finally {
+      clearActiveRunSafely(localUserId)
     }
   }
 
@@ -340,9 +417,18 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     const nextMessages = [...baseMessages]
     if (resolution.rollResultMessage) nextMessages.push(resolution.rollResultMessage)
     nextMessages.push(...resolution.outcomeMessages)
+    const nextChoices = getWeedGoblinsQuickReplies(resolution.after)
     setMessages(nextMessages)
     setState(resolution.after)
-    setChoices(getWeedGoblinsQuickReplies(resolution.after))
+    setChoices(nextChoices)
+    persistStableRun({
+      nextState: resolution.after,
+      nextMessages,
+      nextChoices,
+      nextPendingTurn: null,
+      nextHelpLevel: 0,
+      nextHelpMessage: null,
+    })
     await saveCompletedRun(resolution.after)
   }
 
@@ -373,6 +459,12 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
         setState(baseState)
         setMessages(stagedMessages)
         setPendingTurn(prepared)
+        persistStableRun({
+          nextState: baseState,
+          nextMessages: stagedMessages,
+          nextChoices: [],
+          nextPendingTurn: prepared,
+        })
         return
       }
 
@@ -382,8 +474,18 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
         after: prepared.after,
         blockedRealNames,
       })
-      setMessages([...optimisticMessages, ...incomingMessages])
-      setChoices(getWeedGoblinsQuickReplies(prepared.after))
+      const finalMessages = [...optimisticMessages, ...incomingMessages]
+      const nextChoices = getWeedGoblinsQuickReplies(prepared.after)
+      setMessages(finalMessages)
+      setChoices(nextChoices)
+      persistStableRun({
+        nextState: prepared.after,
+        nextMessages: finalMessages,
+        nextChoices,
+        nextPendingTurn: null,
+        nextHelpLevel: 0,
+        nextHelpMessage: null,
+      })
       await saveCompletedRun(prepared.after)
     } catch {
       setState(baseState)
@@ -420,9 +522,19 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
         after: transition.after,
         blockedRealNames,
       })
-      setMessages([...optimisticMessages, ...incomingMessages])
-      setChoices(getWeedGoblinsQuickReplies(transition.after))
+      const finalMessages = [...optimisticMessages, ...incomingMessages]
+      const nextChoices = getWeedGoblinsQuickReplies(transition.after)
+      setMessages(finalMessages)
+      setChoices(nextChoices)
       setDraft('')
+      persistStableRun({
+        nextState: transition.after,
+        nextMessages: finalMessages,
+        nextChoices,
+        nextPendingTurn: null,
+        nextHelpLevel: 0,
+        nextHelpMessage: null,
+      })
     } catch {
       setState(baseState)
       setMessages(baseMessages)
@@ -459,6 +571,12 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
 
       if (prepared.requiresRoll) {
         setPendingTurn(prepared)
+        persistStableRun({
+          nextState: state,
+          nextMessages: stagedMessages,
+          nextChoices: [],
+          nextPendingTurn: prepared,
+        })
       } else {
         const resolution = await resolveWeedGoblinsPreparedTurn({
           preparedTurn: prepared,
@@ -606,9 +724,14 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     if (!response) return
     setHelpLevel(nextLevel)
     setHelpMessage(response)
+    persistStableRun({
+      nextHelpLevel: nextLevel,
+      nextHelpMessage: response,
+    })
   }
 
   function restartRun() {
+    clearActiveRunSafely(localUserId)
     setState(null)
     setMessages([])
     setChoices([])
