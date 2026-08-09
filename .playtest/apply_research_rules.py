@@ -24,6 +24,11 @@ engine = replace_once(
     'bundled pronoun and look prompt',
 )
 
+reaction_pattern = re.compile(r"reaction: (?:'[^']*'|\"[^\"]*\"),")
+engine, reaction_count = reaction_pattern.subn("reaction: '',", engine)
+if reaction_count != 10:
+    raise SystemExit(f'expected ten race and weapon reaction fields, found {reaction_count}')
+
 name_echo = '''      narration: [
         ...state.narration,
         `${playerName}. All right.`,
