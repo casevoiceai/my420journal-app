@@ -1,20 +1,18 @@
-import * as legacy from './weedGoblinsLocalDataAdapterChapterOne.js'
+import * as prior from './weedGoblinsLocalDataAdapterThroughChapterTwo.js'
 import { attachWeedGoblinsProgressionMetadata } from './weedGoblinsProgression.js'
 import {
-  CHAPTER_TWO,
-  CHAPTER_TWO_MARKET_STATES,
-  CHAPTER_TWO_REWARDS,
-} from './weedGoblinsChapterTwo.js'
-import { CHAPTER_TWO_WOUNDS } from './weedGoblinsChapterTwoRuntime.js'
+  CHAPTER_THREE,
+  CHAPTER_THREE_GROVE_STATES,
+  CHAPTER_THREE_REWARDS,
+} from './weedGoblinsChapterThree.js'
+import { CHAPTER_THREE_WOUNDS } from './weedGoblinsChapterThreeRuntime.js'
 
-export * from './weedGoblinsLocalDataAdapterChapterOne.js'
+export * from './weedGoblinsLocalDataAdapterThroughChapterTwo.js'
 
-const MAX_TEXT_LENGTH = 120
-const VALID_MARKET_STATES = new Set(CHAPTER_TWO_MARKET_STATES)
-const VALID_REWARDS = new Set(Object.values(CHAPTER_TWO_REWARDS))
-const ENTRY_PRICES = new Set(['coin', 'memory', 'favor', 'none'])
+const VALID_GROVE_STATES = new Set(CHAPTER_THREE_GROVE_STATES)
+const VALID_REWARDS = new Set(Object.values(CHAPTER_THREE_REWARDS))
 
-function cleanText(value, maxLength = MAX_TEXT_LENGTH) {
+function cleanText(value, maxLength = 120) {
   return typeof value === 'string'
     ? value.trim().replace(/\s+/g, ' ').slice(0, maxLength)
     : ''
@@ -24,80 +22,6 @@ function safeInteger(value, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) {
   const number = Number(value)
   if (!Number.isFinite(number)) return null
   return Math.min(max, Math.max(min, Math.floor(number)))
-}
-
-function sanitizeRewards(value) {
-  if (!Array.isArray(value)) return []
-  return [...new Set(value.map((reward) => cleanText(reward, 100)).filter((reward) => VALID_REWARDS.has(reward)))]
-}
-
-function sanitizeChapterTwoBranches(value = {}) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-  const entryPrice = cleanText(value.entryPrice, 40)
-  const marketState = cleanText(value.marketState, 80)
-  const safe = {
-    entryPrice: ENTRY_PRICES.has(entryPrice) ? entryPrice : 'none',
-    marketState: VALID_MARKET_STATES.has(marketState) ? marketState : 'operational',
-    ledgerDisposition: cleanText(value.ledgerDisposition, 100) || 'unresolved',
-    collectorOutcome: cleanText(value.collectorOutcome, 100) || 'unresolved',
-    wardenSettlement: cleanText(value.wardenSettlement, 100) || 'unresolved',
-    recognizedStall: cleanText(value.recognizedStall, 120) || 'sealed field-goods stall',
-  }
-  return safe
-}
-
-function sanitizeChapterTwoRunSummary(summary) {
-  if (!summary || summary.adventureId !== CHAPTER_TWO.adventureId) return null
-  const metadata = attachWeedGoblinsProgressionMetadata(summary)
-  const safe = {
-    adventureId: CHAPTER_TWO.adventureId,
-    seed: cleanText(metadata.seed, 200),
-    gameId: cleanText(metadata.gameId, 80),
-    chapterId: cleanText(metadata.chapterId, 80),
-    chapterNumber: safeInteger(metadata.chapterNumber, { min: 1, max: 99 }) ?? 2,
-    chapterTitle: cleanText(metadata.chapterTitle, 120),
-    questId: cleanText(metadata.questId, 80),
-    questNumber: safeInteger(metadata.questNumber, { min: 1, max: 99 }) ?? 1,
-    questTitle: cleanText(metadata.questTitle, 120),
-    backgroundId: cleanText(metadata.backgroundId, 80),
-    ending: cleanText(metadata.ending, 100),
-    outcomeSummary: cleanText(metadata.outcomeSummary, 300),
-    trouble: safeInteger(metadata.trouble, { min: 0, max: 3 }) ?? 0,
-    manaRemaining: safeInteger(metadata.manaRemaining, { min: 0, max: 20 }) ?? 0,
-    complicationCount: safeInteger(metadata.complicationCount, { min: 0, max: 1000 }) ?? 0,
-    narrationTier: cleanText(metadata.narrationTier, 80) || 'normal',
-    reason: cleanText(metadata.reason, 160),
-    rootcoinRemaining: safeInteger(metadata.rootcoinRemaining, { min: 0, max: 99 }) ?? 0,
-    wound: CHAPTER_TWO_WOUNDS.includes(metadata.wound) ? metadata.wound : 'None',
-    chapterTwoBranches: sanitizeChapterTwoBranches(metadata.chapterTwoBranches),
-    chapterTwoRewards: sanitizeRewards(metadata.chapterTwoRewards),
-  }
-  for (const key of Object.keys(safe)) {
-    if (safe[key] === '' || safe[key] === null || safe[key] === undefined) delete safe[key]
-  }
-  return safe
-}
-
-function sanitizeStoredChapterTwoRun(run) {
-  if (!run || run.adventureId !== CHAPTER_TWO.adventureId) return null
-  return sanitizeChapterTwoRunSummary(run)
-}
-
-function sanitizeChapterTwoCampaign(value = {}) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-  const completedRunCount = safeInteger(value.completedRunCount, { min: 0, max: 100000 }) ?? 0
-  if (completedRunCount <= 0 && !cleanText(value.lastRunSeed, 200)) return null
-  const marketState = cleanText(value.marketState, 80)
-  return {
-    completedRunCount,
-    lastRunSeed: cleanText(value.lastRunSeed, 200),
-    lastEnding: cleanText(value.lastEnding, 100),
-    marketState: VALID_MARKET_STATES.has(marketState) ? marketState : 'operational',
-    latestBranches: sanitizeChapterTwoBranches(value.latestBranches) || sanitizeChapterTwoBranches({}),
-    rewards: sanitizeRewards(value.rewards),
-    rootcoin: safeInteger(value.rootcoin, { min: 0, max: 99 }) ?? 0,
-    wound: CHAPTER_TWO_WOUNDS.includes(value.wound) ? value.wound : 'None',
-  }
 }
 
 function readJson(storage, key, fallback) {
@@ -128,75 +52,130 @@ async function resolveUserId(store, explicitUserId) {
   return cleanText(result?.data?.user?.id, 100)
 }
 
-function previousSafeHistory(storage, userId) {
-  const key = legacy.weedGoblinsRunStorageKey(userId)
-  const raw = readJson(storage, key, [])
-  if (!Array.isArray(raw)) return []
+function sanitizeRewards(value) {
+  if (!Array.isArray(value)) return []
+  return [...new Set(value.map((reward) => cleanText(reward, 100)).filter((reward) => VALID_REWARDS.has(reward)))]
+}
 
-  const recent = raw.slice(-10)
-  const legacySafe = legacy.buildWeedGoblinsPersonalizationSnapshot({
-    entries: [],
-    previousRuns: recent,
-  }).previousRuns
-  const chapterTwoBySeed = new Map(
-    recent
-      .filter((run) => run?.adventureId === CHAPTER_TWO.adventureId)
-      .map(sanitizeStoredChapterTwoRun)
+function sanitizeChapterThreeBranches(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const groveState = cleanText(value.groveState, 60)
+  return {
+    groveState: VALID_GROVE_STATES.has(groveState) ? groveState : 'drained',
+    falseCureKnown: value.falseCureKnown === true,
+    kipWarningHeeded: value.kipWarningHeeded === true,
+    stalkerOutcome: cleanText(value.stalkerOutcome, 100) || 'unresolved',
+    nurseryOutcome: cleanText(value.nurseryOutcome, 100) || 'unresolved',
+    nightlyDrawOutcome: cleanText(value.nightlyDrawOutcome, 100) || 'unresolved',
+    bramblekinAllied: value.bramblekinAllied === true,
+    majorTruth: cleanText(value.majorTruth, 240) || 'The Cultivator is feeding through a deeper root network.',
+    rememberedConsequence: cleanText(value.rememberedConsequence, 300),
+  }
+}
+
+function sanitizeChapterThreeRunSummary(summary) {
+  if (!summary || summary.adventureId !== CHAPTER_THREE.adventureId) return null
+  const metadata = attachWeedGoblinsProgressionMetadata(summary)
+  const safe = {
+    adventureId: CHAPTER_THREE.adventureId,
+    seed: cleanText(metadata.seed, 200),
+    gameId: cleanText(metadata.gameId, 80),
+    chapterId: cleanText(metadata.chapterId, 80),
+    chapterNumber: safeInteger(metadata.chapterNumber, { min: 1, max: 99 }) ?? 3,
+    chapterTitle: cleanText(metadata.chapterTitle, 120),
+    questId: cleanText(metadata.questId, 80),
+    questNumber: safeInteger(metadata.questNumber, { min: 1, max: 99 }) ?? 1,
+    questTitle: cleanText(metadata.questTitle, 120),
+    backgroundId: cleanText(metadata.backgroundId, 80),
+    ending: cleanText(metadata.ending, 100),
+    outcomeSummary: cleanText(metadata.outcomeSummary, 300),
+    trouble: safeInteger(metadata.trouble, { min: 0, max: 3 }) ?? 0,
+    manaRemaining: safeInteger(metadata.manaRemaining, { min: 0, max: 20 }) ?? 0,
+    complicationCount: safeInteger(metadata.complicationCount, { min: 0, max: 1000 }) ?? 0,
+    narrationTier: cleanText(metadata.narrationTier, 80) || 'normal',
+    reason: cleanText(metadata.reason, 160),
+    rootcoinRemaining: safeInteger(metadata.rootcoinRemaining, { min: 0, max: 99 }) ?? 0,
+    wound: CHAPTER_THREE_WOUNDS.includes(metadata.wound) ? metadata.wound : 'None',
+    chapterThreeBranches: sanitizeChapterThreeBranches(metadata.chapterThreeBranches),
+    chapterThreeRewards: sanitizeRewards(metadata.chapterThreeRewards),
+  }
+  for (const key of Object.keys(safe)) {
+    if (safe[key] === '' || safe[key] === null || safe[key] === undefined) delete safe[key]
+  }
+  return safe
+}
+
+function sanitizeChapterThreeCampaign(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const completedRunCount = safeInteger(value.completedRunCount, { min: 0, max: 100000 }) ?? 0
+  if (completedRunCount <= 0 && !cleanText(value.lastRunSeed, 200)) return null
+  return {
+    completedRunCount,
+    lastRunSeed: cleanText(value.lastRunSeed, 200),
+    lastEnding: cleanText(value.lastEnding, 100),
+    groveState: VALID_GROVE_STATES.has(cleanText(value.groveState, 60)) ? cleanText(value.groveState, 60) : 'drained',
+    latestBranches: sanitizeChapterThreeBranches(value.latestBranches) || sanitizeChapterThreeBranches({}),
+    rewards: sanitizeRewards(value.rewards),
+    rootcoin: safeInteger(value.rootcoin, { min: 0, max: 99 }) ?? 0,
+    wound: CHAPTER_THREE_WOUNDS.includes(value.wound) ? value.wound : 'None',
+  }
+}
+
+function campaignStateWithChapterThree(baseCampaign, storedCampaign) {
+  const chapterThree = sanitizeChapterThreeCampaign(storedCampaign?.chapterThree)
+  return chapterThree ? { ...baseCampaign, chapterThree } : baseCampaign
+}
+
+function enrichChapterThreeHistory(baseHistory, storage, userId) {
+  if (!Array.isArray(baseHistory)) return []
+  const raw = readJson(storage, prior.weedGoblinsRunStorageKey(userId), [])
+  if (!Array.isArray(raw)) return baseHistory
+  const chapterThreeBySeed = new Map(
+    raw
+      .filter((run) => run?.adventureId === CHAPTER_THREE.adventureId)
+      .map(sanitizeChapterThreeRunSummary)
       .filter(Boolean)
       .map((run) => [cleanText(run.seed, 200), run]),
   )
-
-  return legacySafe.map((run) => {
-    if (run?.adventureId !== CHAPTER_TWO.adventureId) return run
-    return chapterTwoBySeed.get(cleanText(run.seed, 200)) || run
+  return baseHistory.map((run) => {
+    if (run?.adventureId !== CHAPTER_THREE.adventureId) return run
+    return chapterThreeBySeed.get(cleanText(run.seed, 200)) || run
   })
 }
 
-function mergeSafeChapterTwoHistory(history, chapterTwoSummary) {
-  const withoutSameSeed = history.filter((run) => !(
-    run?.adventureId === CHAPTER_TWO.adventureId
-    && chapterTwoSummary.seed
-    && cleanText(run.seed, 200) === chapterTwoSummary.seed
+function mergeChapterThreeHistory(baseHistory, summary) {
+  const withoutSameSeed = baseHistory.filter((run) => !(
+    run?.adventureId === CHAPTER_THREE.adventureId
+    && summary.seed
+    && cleanText(run.seed, 200) === summary.seed
   ))
-  return [...withoutSameSeed, chapterTwoSummary].slice(-10)
+  return [...withoutSameSeed, summary].slice(-10)
 }
 
-function campaignStateWithChapterTwo(baseCampaign, storedCampaign) {
-  const chapterTwo = sanitizeChapterTwoCampaign(storedCampaign?.chapterTwo)
-  return chapterTwo ? { ...baseCampaign, chapterTwo } : baseCampaign
-}
-
-function advanceChapterTwoCampaign(baseCampaign, priorCampaign, summary, wasExistingSeed) {
-  const previous = sanitizeChapterTwoCampaign(priorCampaign?.chapterTwo) || {
+function advanceChapterThreeCampaign(baseCampaign, priorCampaign, summary, wasExistingSeed) {
+  const previous = sanitizeChapterThreeCampaign(priorCampaign?.chapterThree) || {
     completedRunCount: 0,
     lastRunSeed: '',
     lastEnding: '',
-    marketState: 'operational',
-    latestBranches: sanitizeChapterTwoBranches({}),
+    groveState: 'drained',
+    latestBranches: sanitizeChapterThreeBranches({}),
     rewards: [],
     rootcoin: 0,
     wound: 'None',
   }
-  const branches = sanitizeChapterTwoBranches(summary.chapterTwoBranches) || previous.latestBranches
-  const rewards = sanitizeRewards([...previous.rewards, ...sanitizeRewards(summary.chapterTwoRewards)])
-  const next = {
-    completedRunCount: previous.completedRunCount + (wasExistingSeed ? 0 : 1),
-    lastRunSeed: summary.seed || previous.lastRunSeed,
-    lastEnding: summary.ending || previous.lastEnding,
-    marketState: branches.marketState,
-    latestBranches: branches,
-    rewards,
-    rootcoin: safeInteger(summary.rootcoinRemaining, { min: 0, max: 99 }) ?? previous.rootcoin,
-    wound: CHAPTER_TWO_WOUNDS.includes(summary.wound) ? summary.wound : previous.wound,
-  }
-  const totalCompleted = Math.max(
-    0,
-    Number(baseCampaign.completedRunCount) || 0,
-  )
+  const branches = sanitizeChapterThreeBranches(summary.chapterThreeBranches) || previous.latestBranches
   return {
     ...baseCampaign,
-    completedRunCount: wasExistingSeed ? Math.max(0, totalCompleted - 1) : totalCompleted,
-    chapterTwo: next,
+    chapterThree: {
+      completedRunCount: previous.completedRunCount + (wasExistingSeed ? 0 : 1),
+      lastRunSeed: summary.seed || previous.lastRunSeed,
+      lastEnding: summary.ending || previous.lastEnding,
+      groveState: branches.groveState,
+      latestBranches: branches,
+      rewards: sanitizeRewards([...previous.rewards, ...sanitizeRewards(summary.chapterThreeRewards)]),
+      rootcoin: safeInteger(summary.rootcoinRemaining, { min: 0, max: 99 }) ?? previous.rootcoin,
+      wound: CHAPTER_THREE_WOUNDS.includes(summary.wound) ? summary.wound : previous.wound,
+    },
   }
 }
 
@@ -206,52 +185,46 @@ export async function saveWeedGoblinsRunSummary({
   storage = typeof localStorage === 'undefined' ? null : localStorage,
   userId = null,
 } = {}) {
-  if (runSummary?.adventureId !== CHAPTER_TWO.adventureId) {
-    const localStore = await resolveLocalStore(store)
-    const resolvedUserId = await resolveUserId(localStore, userId)
-    const priorCampaign = readJson(storage, legacy.weedGoblinsCampaignStorageKey(resolvedUserId), {})
-    const result = await legacy.saveWeedGoblinsRunSummary({ runSummary, store: localStore, storage, userId: resolvedUserId })
-    const chapterTwo = sanitizeChapterTwoCampaign(priorCampaign?.chapterTwo)
-    if (!chapterTwo) return result
-    const campaignState = { ...result.campaignState, chapterTwo }
-    writeJson(storage, legacy.weedGoblinsCampaignStorageKey(resolvedUserId), campaignState)
+  const localStore = await resolveLocalStore(store)
+  const resolvedUserId = await resolveUserId(localStore, userId)
+  const campaignKey = resolvedUserId ? prior.weedGoblinsCampaignStorageKey(resolvedUserId) : null
+  const priorCampaign = campaignKey ? readJson(storage, campaignKey, {}) : {}
+
+  if (runSummary?.adventureId !== CHAPTER_THREE.adventureId) {
+    const result = await prior.saveWeedGoblinsRunSummary({ runSummary, store: localStore, storage, userId: resolvedUserId })
+    const chapterThree = sanitizeChapterThreeCampaign(priorCampaign?.chapterThree)
+    if (!chapterThree || !resolvedUserId) return result
+    const campaignState = { ...result.campaignState, chapterThree }
+    writeJson(storage, campaignKey, campaignState)
     return { ...result, campaignState }
   }
 
-  const localStore = await resolveLocalStore(store)
-  const resolvedUserId = await resolveUserId(localStore, userId)
   if (!resolvedUserId) throw new Error('A local user is required to save Weed Goblins history.')
   if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function') {
     throw new Error('Writable local storage is required to save Weed Goblins history.')
   }
+  const safeSummary = sanitizeChapterThreeRunSummary(runSummary)
+  if (!safeSummary) throw new Error('A completed Chapter 3 run summary is required.')
 
-  const safeChapterTwo = sanitizeChapterTwoRunSummary(runSummary)
-  if (!safeChapterTwo) throw new Error('A completed Chapter 2 run summary is required.')
-  const historyBefore = previousSafeHistory(storage, resolvedUserId)
-  const wasExistingSeed = Boolean(safeChapterTwo.seed) && historyBefore.some((run) => (
-    run?.adventureId === CHAPTER_TWO.adventureId
-    && cleanText(run.seed, 200) === safeChapterTwo.seed
+  const historyBefore = readJson(storage, prior.weedGoblinsRunStorageKey(resolvedUserId), [])
+  const wasExistingSeed = Boolean(safeSummary.seed) && Array.isArray(historyBefore) && historyBefore.some((run) => (
+    run?.adventureId === CHAPTER_THREE.adventureId
+    && cleanText(run.seed, 200) === safeSummary.seed
   ))
-  const priorCampaign = readJson(storage, legacy.weedGoblinsCampaignStorageKey(resolvedUserId), {})
 
-  const base = await legacy.saveWeedGoblinsRunSummary({
+  const base = await prior.saveWeedGoblinsRunSummary({
     runSummary,
     store: localStore,
     storage,
     userId: resolvedUserId,
   })
+  const enriched = enrichChapterThreeHistory(base.history, storage, resolvedUserId)
+  const history = mergeChapterThreeHistory(enriched, safeSummary)
+  writeJson(storage, prior.weedGoblinsRunStorageKey(resolvedUserId), history)
 
-  const history = mergeSafeChapterTwoHistory(previousSafeHistory(storage, resolvedUserId), safeChapterTwo)
-  writeJson(storage, legacy.weedGoblinsRunStorageKey(resolvedUserId), history)
-
-  const campaignState = advanceChapterTwoCampaign(base.campaignState, priorCampaign, safeChapterTwo, wasExistingSeed)
-  writeJson(storage, legacy.weedGoblinsCampaignStorageKey(resolvedUserId), campaignState)
-
-  return {
-    summary: safeChapterTwo,
-    history,
-    campaignState,
-  }
+  const campaignState = advanceChapterThreeCampaign(base.campaignState, priorCampaign, safeSummary, wasExistingSeed)
+  writeJson(storage, campaignKey, campaignState)
+  return { summary: safeSummary, history, campaignState }
 }
 
 export async function readWeedGoblinsCampaignState({
@@ -261,10 +234,10 @@ export async function readWeedGoblinsCampaignState({
 } = {}) {
   const localStore = await resolveLocalStore(store)
   const resolvedUserId = await resolveUserId(localStore, userId)
-  const base = await legacy.readWeedGoblinsCampaignState({ store: localStore, storage, userId: resolvedUserId })
+  const base = await prior.readWeedGoblinsCampaignState({ store: localStore, storage, userId: resolvedUserId })
   if (!resolvedUserId) return base
-  const stored = readJson(storage, legacy.weedGoblinsCampaignStorageKey(resolvedUserId), {})
-  return campaignStateWithChapterTwo(base, stored)
+  const stored = readJson(storage, prior.weedGoblinsCampaignStorageKey(resolvedUserId), {})
+  return campaignStateWithChapterThree(base, stored)
 }
 
 export async function readWeedGoblinsLocalContext({
@@ -274,17 +247,16 @@ export async function readWeedGoblinsLocalContext({
 } = {}) {
   const localStore = await resolveLocalStore(store)
   const resolvedUserId = await resolveUserId(localStore, userId)
-  const base = await legacy.readWeedGoblinsLocalContext({ store: localStore, storage, userId: resolvedUserId })
+  const base = await prior.readWeedGoblinsLocalContext({ store: localStore, storage, userId: resolvedUserId })
   if (!resolvedUserId) return base
-  const history = previousSafeHistory(storage, resolvedUserId)
-  const storedCampaign = readJson(storage, legacy.weedGoblinsCampaignStorageKey(resolvedUserId), {})
+  const storedCampaign = readJson(storage, prior.weedGoblinsCampaignStorageKey(resolvedUserId), {})
   return {
     ...base,
     snapshot: {
       ...base.snapshot,
-      previousRuns: history,
+      previousRuns: enrichChapterThreeHistory(base.snapshot?.previousRuns || [], storage, resolvedUserId),
     },
-    campaignState: campaignStateWithChapterTwo(base.campaignState, storedCampaign),
+    campaignState: campaignStateWithChapterThree(base.campaignState, storedCampaign),
   }
 }
 
