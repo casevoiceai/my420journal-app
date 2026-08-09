@@ -1,0 +1,39 @@
+name: Temporary Weed Goblins Chapter 3 Validation
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-chapter3-withered-grove-20260809
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-chapter3-withered-grove-20260809
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify protected Chapter 1 engine is unchanged
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a048339cd8e59a91dad0cfb3a2acdc1524421623"
+          test "$(git hash-object src/features/games/weed-goblins/weedGoblinsEngine.js)" = "02b3bdc10a32687fed81e230525b418567645b6a"
+      - name: Run Chapter 3 targeted and adjacent regression tests
+        run: |
+          node --test \
+            src/features/games/weed-goblins/weedGoblinsChapterThreeRuntime.test.js \
+            src/features/games/weed-goblins/weedGoblinsProgression.test.js \
+            src/features/games/weed-goblins/weedGoblinsChapterTwoRuntime.test.js \
+            server/weed-goblins-narration-worker/chapterThree.test.js \
+            server/weed-goblins-narration-worker/chapterTwo.test.js
+      - name: Production build
+        run: npm run build
