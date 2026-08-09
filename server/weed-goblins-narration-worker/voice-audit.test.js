@@ -14,6 +14,22 @@ test('prompt separates fiction and table-aside registers and keeps Eliza distinc
   assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Ashka Greyroot/)
 })
 
+test('prompt locks messenger bubble structure and controlled fragments', () => {
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /One GM turn is one coherent messenger bubble/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /usually two to five sentences/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Fragments are punctuation for dramatic effect, not the default structure/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Never stack fragment after fragment/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Do not optimize for concision\. Optimize for immersion\./)
+})
+
+test('prompt limits hedge explanations and breaks the repeated triad cadence', () => {
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Use "as though" at most once in a scene/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Do not replace a cut hedge with "as if", "seemingly", "almost as if", or another phrase that performs the same explanatory job/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Do not default to lists of three/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Vary enumeration shape across neighboring beats/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /one strong image with no list at all/)
+})
+
 test('validator accepts grounded direct narration without first-person observer framing', () => {
   const result = validateGeneratedNarration(
     'Cold rain beads on the bottle-cap alarm line. It ticks softly against the bridge rail while mud pulls at your heel, and the goblin prints continue across the boards.',
