@@ -1,0 +1,155 @@
+name: Weed Goblins hidden menu and voice
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-hidden-menu-voice-build
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-hidden-menu-voice
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply hidden menu and voice UI
+        shell: bash
+        env:
+          EXTRA_CSS_B64: Ci53ZWVkLWdvYmxpbnMtZ2FtZV9fY3Jlc3QgewogIGJvcmRlcjogMDsKICBwYWRkaW5nOiAwOwogIGN1cnNvcjogcG9pbnRlcjsKICAtd2Via2l0LXVzZXItc2VsZWN0OiBub25lOwogIHVzZXItc2VsZWN0OiBub25lOwogIHRvdWNoLWFjdGlvbjogbWFuaXB1bGF0aW9uOwp9Cgoud2VlZC1nb2JsaW5zLWdhbWVfX2NyZXN0OmZvY3VzLXZpc2libGUgewogIG91dGxpbmU6IDJweCBzb2xpZCAjOGFhMGJmOwogIG91dGxpbmUtb2Zmc2V0OiAycHg7Cn0KCi53ZWVkLWdvYmxpbnMtZ2FtZV9fY29tcG9zZXItc2hlbGwgewogIGdyaWQtdGVtcGxhdGUtY29sdW1uczogMzRweCBtaW5tYXgoMCwgMWZyKSAzNHB4Owp9Cgoud2VlZC1nb2JsaW5zLWdhbWVfX2NvbXBvc2VyIC53ZWVkLWdvYmxpbnMtZ2FtZV9fdm9pY2UtYnV0dG9uIHsKICBiYWNrZ3JvdW5kOiAjZWVmMGYzOwogIGNvbG9yOiAjNWM2MjZhOwp9Cgoud2VlZC1nb2JsaW5zLWdhbWVfX2NvbXBvc2VyIC53ZWVkLWdvYmxpbnMtZ2FtZV9fdm9pY2UtYnV0dG9uOmhvdmVyOm5vdCg6ZGlzYWJsZWQpLAoud2VlZC1nb2JsaW5zLWdhbWVfX2NvbXBvc2VyIC53ZWVkLWdvYmxpbnMtZ2FtZV9fdm9pY2UtYnV0dG9uOmZvY3VzLXZpc2libGUgewogIGJhY2tncm91bmQ6ICNlMmU1ZTk7Cn0KCi53ZWVkLWdvYmxpbnMtZ2FtZV9fY29tcG9zZXIgLndlZWQtZ29ibGlucy1nYW1lX192b2ljZS1idXR0b24uaXMtbGlzdGVuaW5nIHsKICBiYWNrZ3JvdW5kOiAjZGRlN2Y4OwogIGNvbG9yOiAjMjQ1ZmM1Owp9Cgoud2VlZC1nb2JsaW5zLWdhbWVfX3ZvaWNlLWljb24gewogIHdpZHRoOiAxN3B4OwogIGhlaWdodDogMTdweDsKICBkaXNwbGF5OiBibG9jazsKfQoKLndlZWQtZ29ibGlucy1nYW1lX19jaGFyYWN0ZXItb3ZlcmxheSB7CiAgcG9zaXRpb246IGZpeGVkOwogIGluc2V0OiAwOwogIHotaW5kZXg6IDk3MDA7CiAgZGlzcGxheTogZ3JpZDsKICBhbGlnbi1pdGVtczogZW5kOwogIGp1c3RpZnktaXRlbXM6IGNlbnRlcjsKICBiYWNrZ3JvdW5kOiByZ2JhKDE4LCAyMCwgMjQsIDAuMjgpOwp9Cgoud2VlZC1nb2JsaW5zLWdhbWVfX2NoYXJhY3Rlci1zaGVldCB7CiAgcG9zaXRpb246IHJlbGF0aXZlOwogIHdpZHRoOiBtaW4oMTAwJSwgNDQwcHgpOwogIG1heC1oZWlnaHQ6IDc4ZHZoOwogIG92ZXJmbG93LXk6IGF1dG87CiAgcGFkZGluZzogMThweCAxOHB4IGNhbGMoMjBweCArIGVudihzYWZlLWFyZWEtaW5zZXQtYm90dG9tKSk7CiAgYm9yZGVyOiAxcHggc29saWQgI2Q5ZGNlMTsKICBib3JkZXItYm90dG9tOiAwOwogIGJvcmRlci1yYWRpdXM6IDIycHggMjJweCAwIDA7CiAgYmFja2dyb3VuZDogI2ZmZmZmZjsKICBjb2xvcjogIzIwMjIyNjsKICBib3gtc2hhZG93OiAwIC0xMnB4IDQwcHggcmdiYSgwLCAwLCAwLCAwLjE2KTsKfQoKLndlZWQtZ29ibGlucy1nYW1lX19jaGFyYWN0ZXItaGVhZCB7CiAgZGlzcGxheTogZmxleDsKICBhbGlnbi1pdGVtczogY2VudGVyOwogIGdhcDogMTBweDsKICBwYWRkaW5nLXJpZ2h0OiAzNnB4OwogIG1hcmdpbi1ib3R0b206IDE0cHg7Cn0KCi53ZWVkLWdvYmxpbnMtZ2FtZV9fY2hhcmFjdGVyLWhlYWQgLndlZWQtZ29ibGlucy1nYW1lX19jcmVzdCB7CiAgY3Vyc29yOiBkZWZhdWx0Owp9Cgoud2VlZC1nb2JsaW5zLWdhbWVfX2NoYXJhY3Rlci1oZWFkIGgyIHsKICBtYXJnaW46IDA7CiAgZm9udC1zaXplOiAxOHB4OwogIGxpbmUtaGVpZ2h0OiAxLjE1Owp9Cgoud2VlZC1nb2JsaW5zLWdhbWVfX2NoYXJhY3Rlci1oZWFkIHAgewogIG1hcmdpbjogM3B4IDAgMDsKICBjb2xvcjogIzc3N2I4MTsKICBmb250LXNpemU6IDEycHg7Cn0KCi53ZWVkLWdvYmxpbnMtZ2FtZV9fY2hhcmFjdGVyLWNsb3NlIHsKICBwb3NpdGlvbjogYWJzb2x1dGU7CiAgdG9wOiAxMHB4OwogIHJpZ2h0OiAxMHB4OwogIHdpZHRoOiAzMnB4OwogIGhlaWdodDogMzJweDsKICBkaXNwbGF5OiBncmlkOwogIHBsYWNlLWl0ZW1zOiBjZW50ZXI7CiAgcGFkZGluZzogMDsKICBib3JkZXI6IDA7CiAgYm9yZGVyLXJhZGl1czogNTAlOwogIGJhY2tncm91bmQ6ICNmMGYxZjM7CiAgY29sb3I6ICM1NTVhNjE7CiAgZm9udC1zaXplOiAyMnB4OwogIGxpbmUtaGVpZ2h0OiAxOwogIGN1cnNvcjogcG9pbnRlcjsKfQoKLndlZWQtZ29ibGlucy1nYW1lX19jaGFyYWN0ZXItY2xvc2U6aG92ZXIsCi53ZWVkLWdvYmxpbnMtZ2FtZV9fY2hhcmFjdGVyLWNsb3NlOmZvY3VzLXZpc2libGUgewogIGJhY2tncm91bmQ6ICNlNGU2ZTk7CiAgb3V0bGluZTogbm9uZTsKfQoKLndlZWQtZ29ibGlucy1nYW1lX19jaGFyYWN0ZXItZ3JpZCB7CiAgZGlzcGxheTogZ3JpZDsKICBncmlkLXRlbXBsYXRlLWNvbHVtbnM6IHJlcGVhdCgyLCBtaW5tYXgoMCwgMWZyKSk7CiAgZ2FwOiA4cHg7Cn0KCi53ZWVkLWdvYmxpbnMtZ2FtZV9fY2hhcmFjdGVyLWZpZWxkIHsKICBtaW4td2lkdGg6IDA7CiAgcGFkZGluZzogMTBweDsKICBib3JkZXItcmFkaXVzOiAxMnB4OwogIGJhY2tncm91bmQ6ICNmNGY1Zjc7Cn0KCi53ZWVkLWdvYmxpbnMtZ2FtZV9fY2hhcmFjdGVyLWZpZWxkIHNwYW4gewogIGRpc3BsYXk6IGJsb2NrOwogIG1hcmdpbi1ib3R0b206IDNweDsKICBjb2xvcjogIzdhN2U4NTsKICBmb250LXNpemU6IDEwcHg7CiAgZm9udC13ZWlnaHQ6IDcwMDsKICBsZXR0ZXItc3BhY2luZzogMC4wNGVtOwogIHRleHQtdHJhbnNmb3JtOiB1cHBlcmNhc2U7Cn0KCi53ZWVkLWdvYmxpbnMtZ2FtZV9fY2hhcmFjdGVyLWZpZWxkIHN0cm9uZyB7CiAgZGlzcGxheTogYmxvY2s7CiAgb3ZlcmZsb3ctd3JhcDogYW55d2hlcmU7CiAgY29sb3I6ICMyOTJjMzE7CiAgZm9udC1zaXplOiAxM3B4OwogIGxpbmUtaGVpZ2h0OiAxLjM7Cn0KCi53ZWVkLWdvYmxpbnMtZ2FtZV9fY2hhcmFjdGVyLW9iamVjdGl2ZSwKLndlZWQtZ29ibGlucy1nYW1lX19jaGFyYWN0ZXItbG9vayB7CiAgbWFyZ2luLXRvcDogMTBweDsKICBwYWRkaW5nOiAxMXB4IDEycHg7CiAgYm9yZGVyLXJhZGl1czogMTJweDsKICBiYWNrZ3JvdW5kOiAjZjdmOGZhOwp9Cgoud2VlZC1nb2JsaW5zLWdhbWVfX2NoYXJhY3Rlci1vYmplY3RpdmUgc3BhbiwKLndlZWQtZ29ibGlucy1nYW1lX19jaGFyYWN0ZXItbG9vayBzcGFuIHsKICBkaXNwbGF5OiBibG9jazsKICBtYXJnaW4tYm90dG9tOiA0cHg7CiAgY29sb3I6ICM3YTdlODU7CiAgZm9udC1zaXplOiAxMHB4OwogIGZvbnQtd2VpZ2h0OiA3MDA7CiAgbGV0dGVyLXNwYWNpbmc6IDAuMDRlbTsKICB0ZXh0LXRyYW5zZm9ybTogdXBwZXJjYXNlOwp9Cgoud2VlZC1nb2JsaW5zLWdhbWVfX2NoYXJhY3Rlci1vYmplY3RpdmUgcCwKLndlZWQtZ29ibGlucy1nYW1lX19jaGFyYWN0ZXItbG9vayBwIHsKICBtYXJnaW46IDA7CiAgY29sb3I6ICM0MjQ2NGM7CiAgZm9udC1zaXplOiAxM3B4OwogIGxpbmUtaGVpZ2h0OiAxLjQ7Cn0KCkBtZWRpYSAobWluLXdpZHRoOiA2MjBweCkgewogIC53ZWVkLWdvYmxpbnMtZ2FtZV9fY2hhcmFjdGVyLW92ZXJsYXkgewogICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICB9CgogIC53ZWVkLWdvYmxpbnMtZ2FtZV9fY2hhcmFjdGVyLXNoZWV0IHsKICAgIGJvcmRlci1ib3R0b206IDFweCBzb2xpZCAjZDlkY2UxOwogICAgYm9yZGVyLXJhZGl1czogMjJweDsKICAgIHBhZGRpbmctYm90dG9tOiAyMHB4OwogIH0KfQo=
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/features/games/weed-goblins/WeedGoblinsChat.jsx')
+          text = path.read_text()
+
+          def replace_once(old, new):
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected one match, found {count}: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              """import { findWeedGoblinsDiscoverableMatches } from './weedGoblinsDiscoverables.js'\nimport './WeedGoblinsChat.css'\n""",
+              """import { findWeedGoblinsDiscoverableMatches } from './weedGoblinsDiscoverables.js'\nimport { buildWeedGoblinsCharacterSummary } from './weedGoblinsCharacterSummary.js'\nimport {\n  WEED_GOBLINS_COMPOSER_MAX_LENGTH,\n  appendWeedGoblinsVoiceTranscript,\n  getBrowserSpeechRecognition,\n} from './weedGoblinsVoiceInput.js'\nimport './WeedGoblinsChat.css'\n""",
+          )
+
+          old_composer = """function MessageComposer({\n  id,\n  value,\n  onChange,\n  onSubmit,\n  placeholder,\n  ariaLabel,\n  disabled,\n  submitDisabled,\n}) {\n  return (\n    <form className=\"weed-goblins-game__composer\" onSubmit={onSubmit}>\n      <div className=\"weed-goblins-game__composer-shell\">\n        <input\n          id={id}\n          aria-label={ariaLabel}\n          placeholder={placeholder}\n          value={value}\n          onChange={onChange}\n          maxLength={160}\n          disabled={disabled}\n          autoComplete=\"off\"\n        />\n        <button type=\"submit\" aria-label=\"Send message\" disabled={submitDisabled}>\n          <span aria-hidden=\"true\">↑</span>\n        </button>\n      </div>\n    </form>\n  )\n}\n"""
+          new_composer = """function MicrophoneIcon() {\n  return (\n    <svg className=\"weed-goblins-game__voice-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\">\n      <path d=\"M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Zm-6-4a6 6 0 0 0 12 0M12 16.5V21M9 21h6\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"1.8\" strokeLinecap=\"round\" strokeLinejoin=\"round\" />\n    </svg>\n  )\n}\n\nfunction MessageComposer({\n  id,\n  value,\n  onChange,\n  onSubmit,\n  placeholder,\n  ariaLabel,\n  disabled,\n  submitDisabled,\n  voiceAvailable = false,\n  voiceDisabled = false,\n  listening = false,\n  onVoiceToggle = () => {},\n}) {\n  return (\n    <form className=\"weed-goblins-game__composer\" onSubmit={onSubmit}>\n      <div className=\"weed-goblins-game__composer-shell\">\n        <button\n          type=\"button\"\n          className={`weed-goblins-game__voice-button${listening ? ' is-listening' : ''}`}\n          onClick={onVoiceToggle}\n          aria-label={listening ? 'Stop voice input' : 'Start voice input'}\n          title={voiceAvailable ? 'Voice to text' : 'Voice input is not available in this browser'}\n          disabled={!voiceAvailable || voiceDisabled}\n        >\n          <MicrophoneIcon />\n        </button>\n        <input\n          id={id}\n          aria-label={ariaLabel}\n          placeholder={placeholder}\n          value={value}\n          onChange={onChange}\n          maxLength={WEED_GOBLINS_COMPOSER_MAX_LENGTH}\n          disabled={disabled}\n          autoComplete=\"off\"\n        />\n        <button className=\"weed-goblins-game__send-button\" type=\"submit\" aria-label=\"Send message\" disabled={submitDisabled}>\n          <span aria-hidden=\"true\">↑</span>\n        </button>\n      </div>\n    </form>\n  )\n}\n"""
+          replace_once(old_composer, new_composer)
+
+          replace_once(
+              """  const [activeDiscoverable, setActiveDiscoverable] = useState(null)\n  const [runNumber, setRunNumber] = useState(0)\n  const storyRef = useRef(null)\n  const endRef = useRef(null)\n  const hasStartedScrollingRef = useRef(false)\n""",
+              """  const [activeDiscoverable, setActiveDiscoverable] = useState(null)\n  const [characterSheetOpen, setCharacterSheetOpen] = useState(false)\n  const [listening, setListening] = useState(false)\n  const [runNumber, setRunNumber] = useState(0)\n  const storyRef = useRef(null)\n  const endRef = useRef(null)\n  const crestHoldTimerRef = useRef(null)\n  const speechRecognitionRef = useRef(null)\n  const hasStartedScrollingRef = useRef(false)\n""",
+          )
+
+          replace_once(
+              """  const canType = freeTextOpen && !pendingTurn && !busy && state?.status !== 'completed'\n  const canSessionType = sessionTextOpen && !pendingTurn && !busy && state?.status !== 'completed'\n\n  useEffect(() => {\n""",
+              """  const canType = freeTextOpen && !pendingTurn && !busy && state?.status !== 'completed'\n  const canSessionType = sessionTextOpen && !pendingTurn && !busy && state?.status !== 'completed'\n  const SpeechRecognition = useMemo(\n    () => typeof window !== 'undefined' ? getBrowserSpeechRecognition(window) : null,\n    [],\n  )\n  const characterSummary = useMemo(() => buildWeedGoblinsCharacterSummary(state), [state])\n  const voiceInputEnabled = canType || canSessionType\n\n  useEffect(() => {\n""",
+          )
+
+          replace_once(
+              """  useEffect(() => {\n    if (!hasStartedScrollingRef.current && messages.length > 0) {\n""",
+              """  useEffect(() => () => {\n    if (crestHoldTimerRef.current) clearTimeout(crestHoldTimerRef.current)\n    if (speechRecognitionRef.current?.abort) speechRecognitionRef.current.abort()\n  }, [])\n\n  useEffect(() => {\n    if (!hasStartedScrollingRef.current && messages.length > 0) {\n""",
+          )
+
+          insert_before_restart = """  function restartRun() {\n"""
+          controls = """  function clearCrestHold() {\n    if (!crestHoldTimerRef.current) return\n    clearTimeout(crestHoldTimerRef.current)\n    crestHoldTimerRef.current = null\n  }\n\n  function beginCrestHold() {\n    if (!state || crestHoldTimerRef.current) return\n    crestHoldTimerRef.current = setTimeout(() => {\n      crestHoldTimerRef.current = null\n      setCharacterSheetOpen(true)\n    }, 550)\n  }\n\n  function handleCrestKeyDown(event) {\n    if (event.key !== 'Enter' && event.key !== ' ') return\n    event.preventDefault()\n    beginCrestHold()\n  }\n\n  function handleCrestKeyUp(event) {\n    if (event.key !== 'Enter' && event.key !== ' ') return\n    event.preventDefault()\n    clearCrestHold()\n  }\n\n  function toggleVoiceInput() {\n    if (!SpeechRecognition || !voiceInputEnabled) return\n    if (listening && speechRecognitionRef.current?.stop) {\n      speechRecognitionRef.current.stop()\n      return\n    }\n\n    const recognition = new SpeechRecognition()\n    recognition.lang = 'en-US'\n    recognition.continuous = false\n    recognition.interimResults = false\n    recognition.maxAlternatives = 1\n    recognition.onresult = (event) => {\n      const transcript = Array.from(event.results || [])\n        .map((result) => result?.[0]?.transcript || '')\n        .join(' ')\n      setDraft((current) => appendWeedGoblinsVoiceTranscript(current, transcript))\n    }\n    recognition.onerror = () => {\n      setListening(false)\n      setActionError('Voice input stopped. You can keep typing.')\n    }\n    recognition.onend = () => {\n      speechRecognitionRef.current = null\n      setListening(false)\n    }\n\n    try {\n      speechRecognitionRef.current = recognition\n      recognition.start()\n      setListening(true)\n    } catch {\n      speechRecognitionRef.current = null\n      setListening(false)\n      setActionError('Voice input could not start. You can keep typing.')\n    }\n  }\n\n"""
+          replace_once(insert_before_restart, controls + insert_before_restart)
+
+          replace_once(
+              """    setActionError('')\n    setActiveDiscoverable(null)\n    setLoading(true)\n""",
+              """    setActionError('')\n    setActiveDiscoverable(null)\n    setCharacterSheetOpen(false)\n    if (speechRecognitionRef.current?.abort) speechRecognitionRef.current.abort()\n    speechRecognitionRef.current = null\n    setListening(false)\n    setLoading(true)\n""",
+          )
+
+          replace_once(
+              """        <div className=\"weed-goblins-game__contact\">\n          <div className=\"weed-goblins-game__crest\" aria-hidden=\"true\">E</div>\n          <div className=\"weed-goblins-game__contact-copy\">\n""",
+              """        <div className=\"weed-goblins-game__contact\">\n          <button\n            type=\"button\"\n            className=\"weed-goblins-game__crest\"\n            aria-label=\"Hold for character details\"\n            onPointerDown={beginCrestHold}\n            onPointerUp={clearCrestHold}\n            onPointerCancel={clearCrestHold}\n            onPointerLeave={clearCrestHold}\n            onKeyDown={handleCrestKeyDown}\n            onKeyUp={handleCrestKeyUp}\n            onContextMenu={(event) => event.preventDefault()}\n            onClick={(event) => event.preventDefault()}\n          >\n            E\n          </button>\n          <div className=\"weed-goblins-game__contact-copy\">\n""",
+          )
+
+          replace_once(
+              """      {activeDiscoverable && (\n""",
+              """      {characterSheetOpen && characterSummary && (\n        <div\n          className=\"weed-goblins-game__character-overlay\"\n          role=\"presentation\"\n          onMouseDown={(event) => {\n            if (event.target === event.currentTarget) setCharacterSheetOpen(false)\n          }}\n        >\n          <section\n            className=\"weed-goblins-game__character-sheet\"\n            role=\"dialog\"\n            aria-modal=\"true\"\n            aria-labelledby=\"weed-goblins-character-title\"\n          >\n            <button\n              type=\"button\"\n              className=\"weed-goblins-game__character-close\"\n              onClick={() => setCharacterSheetOpen(false)}\n              aria-label=\"Close character details\"\n            >\n              ×\n            </button>\n            <div className=\"weed-goblins-game__character-head\">\n              <div className=\"weed-goblins-game__crest\" aria-hidden=\"true\">E</div>\n              <div>\n                <h2 id=\"weed-goblins-character-title\">{characterSummary.name}</h2>\n                <p>{characterSummary.location || 'Goblin Highlands'}</p>\n              </div>\n            </div>\n            <div className=\"weed-goblins-game__character-grid\">\n              <div className=\"weed-goblins-game__character-field\"><span>Race</span><strong>{characterSummary.race}</strong></div>\n              <div className=\"weed-goblins-game__character-field\"><span>Class</span><strong>{characterSummary.className}</strong></div>\n              <div className=\"weed-goblins-game__character-field\"><span>Weapon</span><strong>{characterSummary.weapon}</strong></div>\n              <div className=\"weed-goblins-game__character-field\"><span>Ability</span><strong>{characterSummary.ability || 'Not chosen yet'}</strong></div>\n              <div className=\"weed-goblins-game__character-field\"><span>Strength</span><strong>{characterSummary.strength}</strong></div>\n              <div className=\"weed-goblins-game__character-field\"><span>Defense</span><strong>{characterSummary.defense}</strong></div>\n              <div className=\"weed-goblins-game__character-field\"><span>Mana</span><strong>{characterSummary.mana}/{characterSummary.maxMana}</strong></div>\n              <div className=\"weed-goblins-game__character-field\"><span>Trouble</span><strong>{characterSummary.trouble}/3</strong></div>\n            </div>\n            {characterSummary.pronoun && (\n              <div className=\"weed-goblins-game__character-look\">\n                <span>Pronouns</span>\n                <p>{characterSummary.pronoun}</p>\n              </div>\n            )}\n            {characterSummary.look && (\n              <div className=\"weed-goblins-game__character-look\">\n                <span>Appearance</span>\n                <p>{characterSummary.look}</p>\n              </div>\n            )}\n            <div className=\"weed-goblins-game__character-objective\">\n              <span>Current objective</span>\n              <p>{characterSummary.objective}</p>\n            </div>\n          </section>\n        </div>\n      )}\n\n      {activeDiscoverable && (\n""",
+          )
+
+          for marker in [
+              """                    submitDisabled={!canSessionType || (state?.sceneId === 'session-zero-look' && !draft.trim())}\n                  />\n""",
+              """                    submitDisabled={!canType || !draft.trim()}\n                  />\n""",
+              """                    disabled\n                    submitDisabled\n                  />\n""",
+          ]:
+              if marker not in text:
+                  raise SystemExit(f'missing composer marker: {marker[:70]!r}')
+
+          text = text.replace(
+              """                    submitDisabled={!canSessionType || (state?.sceneId === 'session-zero-look' && !draft.trim())}\n                  />\n""",
+              """                    submitDisabled={!canSessionType || (state?.sceneId === 'session-zero-look' && !draft.trim())}\n                    voiceAvailable={Boolean(SpeechRecognition)}\n                    voiceDisabled={!canSessionType}\n                    listening={listening}\n                    onVoiceToggle={toggleVoiceInput}\n                  />\n""",
+              1,
+          )
+          text = text.replace(
+              """                    submitDisabled={!canType || !draft.trim()}\n                  />\n""",
+              """                    submitDisabled={!canType || !draft.trim()}\n                    voiceAvailable={Boolean(SpeechRecognition)}\n                    voiceDisabled={!canType}\n                    listening={listening}\n                    onVoiceToggle={toggleVoiceInput}\n                  />\n""",
+              1,
+          )
+          text = text.replace(
+              """                    disabled\n                    submitDisabled\n                  />\n""",
+              """                    disabled\n                    submitDisabled\n                    voiceAvailable={Boolean(SpeechRecognition)}\n                    voiceDisabled\n                    listening={false}\n                    onVoiceToggle={toggleVoiceInput}\n                  />\n""",
+              1,
+          )
+
+          path.write_text(text)
+          PY
+          printf '%s' "$EXTRA_CSS_B64" | base64 --decode >> src/features/games/weed-goblins/WeedGoblinsChat.css
+
+      - name: Verify exact packet scope
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          git diff --check origin/feature/weed-goblins-session-zero
+          mapfile -t changed < <(git diff --name-only origin/feature/weed-goblins-session-zero | sort)
+          expected=(
+            "src/features/games/weed-goblins/WeedGoblinsChat.css"
+            "src/features/games/weed-goblins/WeedGoblinsChat.jsx"
+            "src/features/games/weed-goblins/weedGoblinsCharacterSummary.js"
+            "src/features/games/weed-goblins/weedGoblinsHiddenMenuVoice.test.js"
+            "src/features/games/weed-goblins/weedGoblinsVoiceInput.js"
+          )
+          printf 'Changed files:\n'
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq "${#expected[@]}"
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run targeted gameplay tests
+        run: node --test src/features/games/weed-goblins/weedGoblinsHiddenMenuVoice.test.js src/features/games/weed-goblins/weedGoblinsDiscoverables.test.js src/features/games/weed-goblins/weedGoblinsDynamicChoices.test.js src/features/games/weed-goblins/weedGoblinsRooms.test.js src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit verified candidate
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/games/weed-goblins/WeedGoblinsChat.css \
+            src/features/games/weed-goblins/WeedGoblinsChat.jsx \
+            src/features/games/weed-goblins/weedGoblinsCharacterSummary.js \
+            src/features/games/weed-goblins/weedGoblinsHiddenMenuVoice.test.js \
+            src/features/games/weed-goblins/weedGoblinsVoiceInput.js
+          git commit -m "Add hidden character menu and voice input"
+          git push origin HEAD:temp/weed-goblins-hidden-menu-voice
