@@ -5,7 +5,6 @@ import {
   getChapterTwoHelpResponse,
 } from './weedGoblinsChapterTwoHelp.js'
 import {
-  getChapterThreeAutomaticGuidance,
   getChapterThreeHelpContextKey,
   getChapterThreeHelpResponse,
 } from './weedGoblinsChapterThreeHelp.js'
@@ -16,8 +15,9 @@ export function shouldShowAutomaticWeedGoblinsGuidance(chapterNumber) {
 }
 
 export function getWeedGoblinsAutomaticGuidance(state, chapterNumber = 1) {
-  if (state?.chapterNumber === 3 || Number(chapterNumber) === 3) {
-    return getChapterThreeAutomaticGuidance(state)
+  if (state?.chapterNumber === 3) return null
+  if (Number(chapterNumber) === 3) {
+    return chapterOne.getWeedGoblinsAutomaticGuidance(state, chapterNumber)
   }
   if (state?.chapterNumber === 2 || Number(chapterNumber) === 2) {
     return getChapterTwoAutomaticGuidance(state)
@@ -26,9 +26,7 @@ export function getWeedGoblinsAutomaticGuidance(state, chapterNumber = 1) {
 }
 
 export function getWeedGoblinsHelpContextKey(state, chapterNumber = 1) {
-  if (state?.chapterNumber === 3 || Number(chapterNumber) === 3) {
-    return getChapterThreeHelpContextKey(state)
-  }
+  if (state?.chapterNumber === 3) return getChapterThreeHelpContextKey(state)
   if (state?.chapterNumber === 2 || Number(chapterNumber) === 2) {
     return getChapterTwoHelpContextKey(state)
   }
@@ -36,9 +34,7 @@ export function getWeedGoblinsHelpContextKey(state, chapterNumber = 1) {
 }
 
 export function getWeedGoblinsHelpResponse(state, level = 1, chapterNumber = 1) {
-  if (state?.chapterNumber === 3 || Number(chapterNumber) === 3) {
-    return getChapterThreeHelpResponse(state, level)
-  }
+  if (state?.chapterNumber === 3) return getChapterThreeHelpResponse(state, level)
   if (state?.chapterNumber === 2 || Number(chapterNumber) === 2) {
     return getChapterTwoHelpResponse(state, level)
   }
