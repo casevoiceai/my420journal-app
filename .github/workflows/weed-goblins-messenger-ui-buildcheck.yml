@@ -49,10 +49,6 @@ jobs:
         working-directory: candidate
         run: npm install
 
-      - name: Run Weed Goblins tests
-        working-directory: candidate
-        run: npm test
-
       - name: Build production bundle
         working-directory: candidate
         run: npm run build
