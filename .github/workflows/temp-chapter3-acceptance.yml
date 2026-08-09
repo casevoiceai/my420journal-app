@@ -1,0 +1,216 @@
+name: Temporary Weed Goblins Chapter 3 Acceptance
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-chapter3-withered-grove-20260809
+
+permissions:
+  contents: read
+
+jobs:
+  mobile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-chapter3-withered-grove-20260809
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify exact product base and protected engine
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a048339cd8e59a91dad0cfb3a2acdc1524421623"
+          test "$(git hash-object src/features/games/weed-goblins/weedGoblinsEngine.js)" = "02b3bdc10a32687fed81e230525b418567645b6a"
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+      - name: Validate Chapter 3 messenger at 390x844
+        shell: bash
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/vite.log 2>&1 &
+          echo $! > /tmp/vite.pid
+          for i in $(seq 1 40); do
+            curl -sSf http://127.0.0.1:4173/games/weed-goblins >/dev/null && break
+            sleep 1
+          done
+          cat > /tmp/ch3-mobile.mjs <<'EOF'
+          import { chromium } from 'playwright'
+          const check = (condition, message) => { if (!condition) throw new Error(message) }
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 })
+            await page.goto('http://127.0.0.1:4173/games/weed-goblins', { waitUntil: 'networkidle' })
+            const seeded = await page.evaluate(async () => {
+              localStorage.clear()
+              const runtime = await import('/src/features/games/weed-goblins/weedGoblinsChapterThreeRuntime.js')
+              const persistence = await import('/src/features/games/weed-goblins/weedGoblinsPersistence.js')
+              const { localStore } = await import('/src/lib/localStore.js')
+              const userResult = await localStore.auth.getUser()
+              const userId = userResult?.data?.user?.id || null
+              const state = runtime.createChapterThreeRunFromSessionZero({
+                seed: 'mobile-chapter-three-validation',
+                rngState: 15360,
+                flags: { sessionZeroComplete: true },
+                playerName: 'Fenna Duskrow',
+                playerRace: 'Human',
+                playerWeapon: 'Sword',
+                playerPronoun: 'they',
+                playerLook: 'tall and weathered',
+                background: null,
+                stats: { strength: 3, defense: 3, manaPool: 2, maxMana: 2 },
+              }, {
+                personalization: runtime.buildChapterThreePersonalization({ effectTags: ['Relaxed', 'Focused'] }),
+                previousRuns: [],
+              })
+              const choices = runtime.getChapterThreeAvailableActions(state)
+              const record = persistence.saveWeedGoblinsActiveRun({
+                storage: localStorage,
+                userId,
+                state,
+                messages: [{ direction: 'incoming', kind: 'message', text: state.narration[0], source: 'validation' }],
+                choices,
+                pendingTurn: null,
+                helpLevel: 0,
+                helpMessage: null,
+              })
+              return { sceneId: record?.state?.sceneId, choiceCount: record?.choices?.length }
+            })
+            check(seeded.sceneId === 'chapter-3:gray-verge', `wrong seeded scene: ${seeded.sceneId}`)
+            check(seeded.choiceCount === 4, `wrong seeded choice count: ${seeded.choiceCount}`)
+
+            await page.reload({ waitUntil: 'networkidle' })
+            await page.locator('.weed-goblins-game__quick-reply').first().waitFor()
+            const initialChoices = await page.locator('.weed-goblins-game__quick-reply').count()
+            check(initialChoices === 4, `expected 4 Gray Verge choices, got ${initialChoices}`)
+            check(await page.locator('.weed-goblins-game__composer input').isVisible(), 'composer not visible')
+            check((await page.locator('body').innerText()).includes('Gray Verge'), 'Gray Verge opening missing')
+            let overflow = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }))
+            check(overflow.scrollWidth <= overflow.width + 1, `initial horizontal overflow: ${JSON.stringify(overflow)}`)
+
+            const help = page.locator('.weed-goblins-game__help-button')
+            await help.click(); await help.click(); await help.click()
+            const helpLabel = await help.getAttribute('aria-label')
+            check(helpLabel?.includes('level 3'), `Help did not reach level 3: ${helpLabel}`)
+            check((await page.locator('body').innerText()).includes('apparent cure'), 'Gray Verge level-3 Help missing')
+
+            const crest = page.getByRole('button', { name: 'Hold for character details' })
+            await crest.dispatchEvent('pointerdown')
+            await page.waitForTimeout(650)
+            await crest.dispatchEvent('pointerup')
+            check(await page.locator('.weed-goblins-game__character-sheet').isVisible(), 'character sheet did not open')
+            check((await page.locator('.weed-goblins-game__character-sheet').innerText()).includes('Withered Grove'), 'Chapter 3 objective missing from character sheet')
+            const close = page.locator('.weed-goblins-game__character-sheet button').first()
+            if (await close.isVisible().catch(() => false)) await close.click()
+
+            await page.getByRole('button', { name: 'Compare the living patch to the gray trees' }).click()
+            await page.getByRole('button', { name: 'Seed, sapling, canopy' }).waitFor()
+            check(await page.locator('.weed-goblins-game__quick-reply').count() === 4, 'memory ring choices not rendered')
+            await page.getByRole('button', { name: 'Seed, sapling, canopy' }).click()
+            await page.getByRole('button', { name: 'One stone to each need' }).waitFor()
+            await page.getByRole('button', { name: 'One stone to each need' }).click()
+            await page.getByRole('button', { name: 'Stay still and watch it move' }).waitFor()
+
+            await page.reload({ waitUntil: 'networkidle' })
+            await page.getByRole('button', { name: 'Stay still and watch it move' }).waitFor()
+            check((await page.locator('body').innerText()).includes('Withering Stalker'), 'save/resume did not restore Stalker scene')
+
+            const composer = page.locator('.weed-goblins-game__composer input')
+            await composer.fill('I crawl behind the resin trunk and cross when it turns away')
+            await page.locator('.weed-goblins-game__send-button').click()
+            await page.getByText('I crawl behind the resin trunk and cross when it turns away', { exact: true }).waitFor()
+            const rollButton = page.getByRole('button', { name: /ROLL D20/i })
+            await rollButton.waitFor()
+            check((await page.locator('body').innerText()).match(/DC 15|Harvest/i), 'explicit check target not shown before roll')
+            await rollButton.click()
+            await page.waitForTimeout(300)
+            check((await page.locator('body').innerText()).match(/Sleeping Nursery|rolled/i), 'roll result/outcome did not render')
+
+            overflow = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }))
+            check(overflow.scrollWidth <= overflow.width + 1, `horizontal overflow after interaction: ${JSON.stringify(overflow)}`)
+            console.log(JSON.stringify({
+              MOBILE_CH3_VALIDATION: 'PASS',
+              viewport: { width: 390, height: 844 },
+              initialChoices,
+              helpLevel: 3,
+              characterSheet: true,
+              saveResume: true,
+              customText: true,
+              explicitRoll: true,
+              overflow,
+            }))
+          } finally {
+            await browser.close()
+          }
+          EOF
+          node /tmp/ch3-mobile.mjs
+          kill "$(cat /tmp/vite.pid)" || true
+
+  staging-worker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_STAGING_PROXY_SECRET }}
+      STAGING_ANTHROPIC_API_KEY: ${{ secrets.WEED_GOBLINS_ANTHROPIC_API_KEY }}
+      STAGING_RATE_LIMIT_SALT: ${{ secrets.WEED_GOBLINS_STAGING_RATE_LIMIT_SALT }}
+      STAGING_WORKER_URL: https://my420journal-weed-goblins-narration-staging.casevoice-ai.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-chapter3-withered-grove-20260809
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require staging-only credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$STAGING_PROXY_SECRET"
+          test -n "$STAGING_ANTHROPIC_API_KEY"
+          test -n "$STAGING_RATE_LIMIT_SALT"
+      - name: Reapply staging Worker secrets
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: |
+          printf '%s' "$STAGING_PROXY_SECRET" | npx wrangler@latest secret put WEED_GOBLINS_PROXY_SECRET --env staging
+          printf '%s' "$STAGING_ANTHROPIC_API_KEY" | npx wrangler@latest secret put WEED_GOBLINS_ANTHROPIC_API_KEY --env staging
+          printf '%s' "$STAGING_RATE_LIMIT_SALT" | npx wrangler@latest secret put WEED_GOBLINS_RATE_LIMIT_SALT --env staging
+      - name: Deploy current Chapter 3 source to staging Worker only
+        working-directory: server/weed-goblins-narration-worker
+        run: npx wrangler@latest deploy --env staging
+      - name: Verify unauthenticated staging probe remains protected
+        shell: bash
+        run: |
+          status=$(curl -sS -o /tmp/unauth.json -w '%{http_code}' -X POST "$STAGING_WORKER_URL" -H 'Content-Type: application/json' --data '{}')
+          echo "STAGING_UNAUTH_STATUS=$status"
+          test "$status" = 401
+      - name: Smoke Chapter 3 Eliza on staging
+        shell: bash
+        run: |
+          status=$(curl -sS --connect-timeout 10 --max-time 120 \
+            -o /tmp/ch3-staging.json -w '%{http_code}' \
+            -X POST "$STAGING_WORKER_URL" \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer $STAGING_PROXY_SECRET" \
+            --data '{"chapterNumber":3,"moment":"scene-intro","outcome":"intro","sceneId":"chapter-3:gray-verge","dangerTier":"bloom","authoritativeText":"The Gray Verge begins where the color stops.","storySoFar":"The grove is turning gray from the roots up while water and sunlight remain.","scenePurpose":"Establish the dying grove and the underground pull.","tensionLevel":"rising","memorySensation":"a low laugh preserved inside amber resin","wound":"None","trouble":0,"manaRemaining":2,"rootcoin":0,"narrationTier":"normal"}')
+          echo "STAGING_CH3_STATUS=$status"
+          cat /tmp/ch3-staging.json
+          test "$status" = 200
+          node - <<'NODE'
+          const fs = require('fs')
+          const body = JSON.parse(fs.readFileSync('/tmp/ch3-staging.json', 'utf8'))
+          if (!body.text || typeof body.text !== 'string' || !body.text.trim()) process.exit(61)
+          if (body.text.includes('!') || /[–—]/.test(body.text)) process.exit(62)
+          console.log('STAGING_CH3_NARRATION_OK')
+          NODE
