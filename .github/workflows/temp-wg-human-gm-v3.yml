@@ -74,6 +74,32 @@ jobs:
           ! grep -F 'Out of the story' src/features/games/weed-goblins/weedGoblinsEngine.js
           ! grep -F 'Back to the Highlands' src/features/games/weed-goblins/weedGoblinsEngine.js
 
+      - name: Verify bundled Session Zero state flow
+        shell: bash
+        run: |
+          node --input-type=module <<'EOF'
+          import {
+            createWeedGoblinsRun,
+            advanceWeedGoblinsRun,
+            advanceWeedGoblinsSessionText,
+            getAvailableActions,
+          } from './src/features/games/weed-goblins/weedGoblinsEngine.js'
+          const fail = (message) => { throw new Error(message) }
+          let state = createWeedGoblinsRun({ seed: 'research-rule-state-flow' })
+          state = advanceWeedGoblinsRun(state, 'session:continue')
+          state = advanceWeedGoblinsSessionText(state, 'Fenna')
+          if (state.sceneId !== 'session-zero-race') fail(`expected race, got ${state.sceneId}`)
+          state = advanceWeedGoblinsRun(state, 'session:race:human')
+          if (state.sceneId !== 'session-zero-weapon') fail(`expected weapon, got ${state.sceneId}`)
+          state = advanceWeedGoblinsRun(state, 'session:weapon:sword')
+          const actions = getAvailableActions(state)
+          console.log('AFTER_SWORD_STATE', state.sceneId)
+          console.log('AFTER_SWORD_ACTIONS', JSON.stringify(actions))
+          if (state.sceneId !== 'choose-background') fail(`expected background, got ${state.sceneId}`)
+          if (!actions.some((action) => action.label === 'Highland Tracker')) fail('Highland Tracker missing after Sword')
+          console.log('BUNDLED_SESSION_ZERO_STATE_FLOW=PASS')
+          EOF
+
       - name: Install, test, and build
         shell: bash
         run: |
@@ -134,6 +160,10 @@ jobs:
             }))
           }
 
+          async function logButtons(page, label) {
+            console.log(label, JSON.stringify(await page.getByRole('button').allTextContents()))
+          }
+
           const browser = await chromium.launch({ headless: true })
           try {
             const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
@@ -164,7 +194,10 @@ jobs:
             await page.getByRole('button', { name: 'Human' }).click()
             await page.getByText(/Now give me the practical part:/i).waitFor()
             await page.getByRole('button', { name: 'Sword' }).click()
-            await page.getByRole('button', { name: 'Highland Tracker' }).waitFor()
+            await page.waitForTimeout(1000)
+            await logButtons(page, 'LIVE_AFTER_SWORD_BUTTONS')
+            console.log('LIVE_AFTER_SWORD_ACTION_ERROR', await page.locator('.weed-goblins-game__error').allTextContents().catch(() => []))
+            await page.getByRole('button', { name: 'Highland Tracker' }).waitFor({ timeout: 10000 })
 
             body = await page.locator('body').innerText()
             check(!body.includes('Human. All right.'), 'race confirmation echo present')
