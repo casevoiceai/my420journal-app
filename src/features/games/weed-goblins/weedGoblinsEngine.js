@@ -735,6 +735,122 @@ function optionalManaCost(options) {
   return options.useManaAdvantage === true || options.useManaReroll === true ? 1 : 0
 }
 
+function noRollPreview() {
+  return Object.freeze({
+    requiresRoll: false,
+    stat: null,
+    dc: null,
+    statBonus: 0,
+    requiredDie: null,
+    manaCost: 0,
+    advantage: false,
+  })
+}
+
+function checkPreview(state, { stat, dc, manaCost = 0 }) {
+  const statBonus = Number(state?.stats?.[stat]) || 0
+  return Object.freeze({
+    requiresRoll: true,
+    stat,
+    dc,
+    statBonus,
+    requiredDie: Math.min(20, Math.max(2, dc - statBonus)),
+    manaCost,
+    advantage: manaCost > 0,
+  })
+}
+
+function bossCheckDc(state) {
+  return Math.max(
+    DIFFICULTY.easy,
+    DIFFICULTY.goblinKing + state.flags.bossDcModifier,
+  )
+}
+
+export function getWeedGoblinsActionCheckPreview(state, actionId, options = {}) {
+  if (!state || typeof state !== 'object') throw new Error('A run state is required.')
+  const id = String(actionId ?? '')
+
+  if (id.startsWith('session:') || id.startsWith('background:')) return noRollPreview()
+
+  if (state.sceneId === SCENES.route) {
+    const routeId = id.split(':')[1]
+    const route = state.adventure.routes[routeId]
+    if (!route) return noRollPreview()
+    return checkPreview(state, {
+      stat: route.stat,
+      dc: route.dc,
+      manaCost: optionalManaCost(options),
+    })
+  }
+
+  if (state.sceneId === SCENES.goblin) {
+    if (id === 'goblin:channel') {
+      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: 1 })
+    }
+    if (id === 'goblin:strike') {
+      return checkPreview(state, {
+        stat: 'strength',
+        dc: DIFFICULTY.standard,
+        manaCost: optionalManaCost(options),
+      })
+    }
+    if (id === 'goblin:guard') {
+      return checkPreview(state, {
+        stat: 'defense',
+        dc: DIFFICULTY.standard,
+        manaCost: optionalManaCost(options),
+      })
+    }
+    return noRollPreview()
+  }
+
+  if (state.sceneId === SCENES.midpoint) {
+    if (id === 'midpoint:help' || id === 'midpoint:skip') return noRollPreview()
+    if (id === 'midpoint:read-runes') {
+      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: 1 })
+    }
+    if (id === 'midpoint:take-token') {
+      return checkPreview(state, {
+        stat: 'defense',
+        dc: DIFFICULTY.easy,
+        manaCost: optionalManaCost(options),
+      })
+    }
+    if (id.startsWith('free-text:midpoint:')) {
+      const style = id.slice('free-text:midpoint:'.length)
+      const manaCost = style === 'mana' ? 1 : 0
+      const stat = style === 'strength' ? 'strength' : 'defense'
+      return checkPreview(state, { stat, dc: DIFFICULTY.standard, manaCost })
+    }
+    return noRollPreview()
+  }
+
+  if (state.sceneId === SCENES.boss) {
+    if (id === 'boss:bargain') return noRollPreview()
+    const dc = bossCheckDc(state)
+    if (id === 'boss:spell') {
+      return checkPreview(state, { stat: 'defense', dc, manaCost: 2 })
+    }
+    if (id === 'boss:overpower') {
+      return checkPreview(state, {
+        stat: 'strength',
+        dc,
+        manaCost: optionalManaCost(options),
+      })
+    }
+    if (id === 'boss:outlast') {
+      return checkPreview(state, {
+        stat: 'defense',
+        dc,
+        manaCost: optionalManaCost(options),
+      })
+    }
+  }
+
+  return noRollPreview()
+}
+
 export function getAvailableActions(state) {
   if (!state || state.status === 'completed') return []
 
@@ -1097,10 +1213,7 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       return completeRun(state, ENDINGS.bargain, 'goblin clerk testimony')
     }
 
-    const dc = Math.max(
-      DIFFICULTY.easy,
-      DIFFICULTY.goblinKing + state.flags.bossDcModifier,
-    )
+    const dc = bossCheckDc(state)
 
     if (actionId === 'boss:spell') {
       const result = resolveCheck(state, {

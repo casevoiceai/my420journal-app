@@ -12,11 +12,11 @@ import {
   isWeedGoblinsFreeTextScene,
   isWeedGoblinsSessionTextScene,
   narrateWeedGoblinsResolvedTurn,
+  prepareWeedGoblinsChoiceTurn,
   prepareWeedGoblinsFreeTextTurn,
   resolveWeedGoblinsPreparedMechanics,
   resolveWeedGoblinsPreparedTurn,
   resolveWeedGoblinsTransitionWithStaticFallback,
-  selectWeedGoblinsChatChoice,
   submitWeedGoblinsSessionText,
 } from './weedGoblinsChatController.js'
 import { WEED_GOBLINS_NARRATOR_NAME } from './weedGoblinsEngine.js'
@@ -255,19 +255,32 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     setChoices([])
 
     try {
-      const transition = selectWeedGoblinsChatChoice(baseState, action)
-      const optimisticMessages = [...baseMessages, transition.outgoingMessage]
-      setState(transition.after)
-      setMessages(optimisticMessages)
+      const prepared = prepareWeedGoblinsChoiceTurn({ state: baseState, action })
+      const optimisticMessages = [...baseMessages, prepared.outgoingMessage]
       setDraft('')
+      setMessages(optimisticMessages)
+
+      if (prepared.requiresRoll) {
+        const stagedMessages = [
+          ...optimisticMessages,
+          prepared.setupMessage,
+          prepared.rollTriggerMessage,
+        ].filter(Boolean)
+        setState(baseState)
+        setMessages(stagedMessages)
+        setPendingTurn(prepared)
+        return
+      }
+
+      setState(prepared.after)
       const incomingMessages = await resolveWeedGoblinsTransitionWithStaticFallback({
-        before: transition.before,
-        after: transition.after,
+        before: prepared.before,
+        after: prepared.after,
         blockedRealNames,
       })
       setMessages([...optimisticMessages, ...incomingMessages])
-      setChoices(getWeedGoblinsQuickReplies(transition.after))
-      await saveCompletedRun(transition.after)
+      setChoices(getWeedGoblinsQuickReplies(prepared.after))
+      await saveCompletedRun(prepared.after)
     } catch {
       setState(baseState)
       setMessages(baseMessages)
