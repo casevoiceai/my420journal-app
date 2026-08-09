@@ -1,0 +1,46 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { WEED_GOBLINS_SYSTEM_PROMPT } from './legacyChapterOne.js'
+import { validateGeneratedNarration } from '../../src/features/games/weed-goblins/weedGoblinsNarrationValidation.js'
+
+test('prompt separates fiction and table-aside registers and keeps Eliza distinct', () => {
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /TWO REGISTERS, NEVER BLENDED/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /separate from S\.T\.O\.N\.E\.R\./)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /1966 ELIZA chatbot/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /ELIZA's Mirror/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Sprout, Bloom, Harvest, and Wither/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Scraped, Bruised, Broken, and Downed/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Rootcoin/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Ashka Greyroot/)
+})
+
+test('validator accepts grounded direct narration without first-person observer framing', () => {
+  const result = validateGeneratedNarration(
+    'Cold rain beads on the bottle-cap alarm line. It ticks softly against the bridge rail while mud pulls at your heel, and the goblin prints continue across the boards.',
+    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },
+  )
+  assert.equal(result.valid, true, result.reasons.join('; '))
+})
+
+test('validator rejects observer framing and UI language inside fiction', () => {
+  const observer = validateGeneratedNarration(
+    'I watch the rain gather on the bridge rail while the tracks continue uphill.',
+    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },
+  )
+  assert.ok(observer.reasons.includes('uses narrator-observer framing instead of direct scene narration'))
+
+  const ui = validateGeneratedNarration(
+    'The tracks continue uphill. Hit Continue when you are ready.',
+    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },
+  )
+  assert.ok(ui.reasons.includes('contains UI instruction in the fiction register'))
+})
+
+test('validator permits varied rhythm beyond the old 300-character ceiling', () => {
+  const text = 'Wind comes down off the ridge cold enough to sting your ears, carrying the smell of wet pine and old smoke. Four sets of small bootprints cut through the mud ahead of you; a fifth wanders in and out of the others as if its owner could not decide where the road was. Fresh. Water has only just begun to collect in the heels.'
+  assert.ok(text.length > 300)
+  const result = validateGeneratedNarration(text, {
+    moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition',
+  })
+  assert.equal(result.valid, true, result.reasons.join('; '))
+})

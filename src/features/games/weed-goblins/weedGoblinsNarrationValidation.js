@@ -73,7 +73,9 @@ const QUOTED_DIALOGUE_SIGNAL = /(?:"[^"]+"|“[^”]+”)/
 const PRE_ROLL_RESULT_SIGNAL = /\b(?:roll(?:ed)?|d20|die|dice)\b[^.!?]{0,24}\b(?:[1-9]|1\d|20)\b/i
 const HIDDEN_MAPPING_SIGNAL = /\b(?:strength|defense|mana)\b|\bDC\s*\d+\b|\b(?:map|mapped|mapping|classify|classified|classification)\b[^.!?]{0,40}\b(?:strength|defense|mana)\b/i
 const ACTIVE_FIRST_PERSON_LEAD_SIGNAL = /^I(?:\b|['’](?:m|ve|ll)\b)/i
-const ACTIVE_SCENE_OBSERVATION_SIGNAL = /\bI (?:see|watch|hear|smell|notice|point(?:\s+(?:out|to|at))?)\b/i
+const NARRATOR_OBSERVER_SIGNAL = /(?:^|[.!?]\s+)I (?:see|watch|hear|smell|notice|observe)\b/i
+const UI_NARRATION_SIGNAL = /\b(?:hit|tap|click|press)\s+Continue\b|\b(?:message box|screen|user interface|UI control)\b/i
+const LOGIC_SUMMARY_SIGNAL = /\b(?:So,\s*(?:yes|no)|In other words)\b/i
 const THREE_PART_SCENE_LIST_SIGNAL = /,[^,.;!?]{3,},\s*(?:and\s+)?[^,.;!?]{3,}/i
 const SCENE_SETTING_INTRO_KINDS = new Set([
   'highlands-opening',
@@ -388,8 +390,8 @@ export function validateGeneratedNarration(
   const text = typeof value === 'string' ? value.trim() : ''
   const reasons = []
   const maxLength = moment === 'scene-intro' && introKind === 'choice-presentation'
-    ? 240
-    : 300
+    ? 420
+    : 520
 
   if (!isSupportedMomentOutcome(moment, outcome)) {
     reasons.push('uses an unsupported narration moment/outcome pairing')
@@ -423,36 +425,20 @@ export function validateGeneratedNarration(
     }
   }
 
-  const narratorFrame = narratorFrameForFirstPerson(text, moment)
-  if (!FIRST_PERSON_SIGNAL.test(narratorFrame)) {
-    reasons.push('is not written in first person')
+  if (NARRATOR_OBSERVER_SIGNAL.test(text)) {
+    reasons.push('uses narrator-observer framing instead of direct scene narration')
+  }
+  if (UI_NARRATION_SIGNAL.test(text)) {
+    reasons.push('contains UI instruction in the fiction register')
+  }
+  if (LOGIC_SUMMARY_SIGNAL.test(text)) {
+    reasons.push('uses a canned logic-summary phrase')
   }
 
   if (moment === 'goblin-king-taunt' && !hasGoblinKingDialogue(text)) {
     reasons.push('does not include attributed Goblin King dialogue')
   }
 
-  if (
-    moment === 'scene-intro'
-    && introKind === 'choice-presentation'
-    && !ACTIVE_FIRST_PERSON_LEAD_SIGNAL.test(text)
-  ) {
-    reasons.push('does not begin in Eliza\'s active first-person voice')
-  }
-
-  if (moment === 'action-success' && !ACTIVE_FIRST_PERSON_LEAD_SIGNAL.test(text)) {
-    reasons.push('does not begin in Eliza\'s active first-person voice')
-  }
-
-  if (moment === 'scene-intro' && SCENE_SETTING_INTRO_KINDS.has(introKind)) {
-    const sceneDetail = sceneSettingDetailText(text, introKind)
-    if (!ACTIVE_SCENE_OBSERVATION_SIGNAL.test(sceneDetail)) {
-      reasons.push('does not use one active first-person scene observation')
-    }
-    if (sceneSettingReadsLikeList(sceneDetail)) {
-      reasons.push('lists multiple scene details instead of landing on one image')
-    }
-  }
 
   if (Array.isArray(continuityAnchors) && continuityAnchors.length > 0
     && !containsContinuityAnchor(text, continuityAnchors)) {
@@ -482,21 +468,9 @@ export function validateGeneratedNarration(
     }
   }
 
-  if (moment === 'scene-intro' && introKind === 'highlands-opening') {
-    const openingForm = HIGHLANDS_OPENING_FORM_SIGNAL.exec(text)
-    const openingRemainder = text.slice(
-      openingForm?.[0].length ?? HIGHLANDS_OPENING_FOUNDATION.length,
-    )
-    const narratorIdentityText = text.slice(HIGHLANDS_OPENING_LEAD.length)
-    if (!openingForm) {
-      reasons.push('does not begin with the locked Highlands welcome')
-    }
-    if (!ELIZA_NAME_SIGNAL.test(narratorIdentityText)) {
-      reasons.push('does not identify Eliza as the narrator')
-    }
-    if (HIGHLANDS_SELF_COMMENTARY_SIGNAL.test(openingRemainder)) {
-      reasons.push('uses narrator self-commentary instead of scene-setting')
-    }
+  if (moment === 'scene-intro' && introKind === 'highlands-opening'
+    && HIGHLANDS_SELF_COMMENTARY_SIGNAL.test(text)) {
+    reasons.push('uses narrator self-commentary instead of scene-setting')
   }
 
   if (/\b(treats?|treated|treating|cures?|cured|curing|diagnos(?:e|es|ed|is)|therapeutic|medical benefit|dosage|symptoms?)\b/i.test(text)

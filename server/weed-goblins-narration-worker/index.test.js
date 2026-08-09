@@ -155,7 +155,7 @@ test('accepts ordinary-failure with outcome failure and forwards the paired cont
   )
 
   assert.equal(response.status, 200)
-  assert.match(forwarded.messages[0].content, /single ordinary failure line/)
+  assert.match(forwarded.messages[0].content, /next ordinary failure GM turn/)
   assert.equal(forwarded.messages[0].content.includes('"moment":"ordinary-failure"'), true)
   assert.equal(forwarded.messages[0].content.includes('"outcome":"failure"'), true)
   assert.equal(forwarded.messages[0].content.includes('"selectedRoll":7'), true)
@@ -189,7 +189,7 @@ test('accepts a pre-roll player-action setup and preserves untrusted action cont
   )
 
   assert.equal(response.status, 200)
-  assert.match(forwarded.messages[0].content, /single player action setup line/)
+  assert.match(forwarded.messages[0].content, /next player action setup GM turn/)
   assert.match(forwarded.messages[0].content, /I shove the goblin into the paperwork cart/)
   assert.equal(forwarded.messages[0].content.includes('"selectedRoll":null'), true)
 })
@@ -387,96 +387,89 @@ test('enforces supported moment and outcome pairings before Anthropic forwarding
   assert.equal(fetchCalls, 0)
 })
 
-test('system prompt defines Eliza as a real GM with an engine boundary', () => {
+test('system prompt defines Eliza as a real GM with a separate fiction register', () => {
   for (const required of [
     'You are Eliza, the GameMaster of Weed Goblins.',
-    'GM FIRST',
-    'Eliza is the GameMaster, not narrator-only',
-    'The deterministic engine owns action legality, DCs, stats, roll results, Trouble, Mana, wounds, inventory, rewards, room transitions, persistent consequences, and endings.',
-    'Never change or invent any of them.',
+    'TWO REGISTERS, NEVER BLENDED',
+    'FICTION REGISTER',
+    'TABLE-ASIDE REGISTER',
+    'The deterministic engine owns legal actions, DCs, Strength, Defense, Mana, D20 results, Trouble, wounds, Rootcoin, inventory, rewards, rooms, campaign state, and endings.',
+    'Dramatize the ruling, not the mathematics behind it.',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
 })
 
-test('system prompt locks the 7.25 weirdness rule without sacrificing clarity', () => {
+test('system prompt preserves 7.25 weirdness without forcing jokes', () => {
   for (const required of [
-    'Target weirdness: 7.25 out of 10 across the whole world, not a percentage of lines.',
-    'Story clarity always outranks the joke.',
-    'treating ridiculous facts as ordinary facts of life',
-    'Do not make every sentence a punchline.',
+    'Target weirdness around 7.25 out of 10 across the world, not in every sentence.',
+    'Story clarity outranks the joke.',
+    'treats ridiculous facts as ordinary facts of life',
+    'Do not stack three jokes to prove the game is whimsical.',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
 })
 
-test('system prompt defines distinct goblin performance rules', () => {
+test('system prompt keeps goblins distinct and motivated', () => {
   for (const required of [
     'GOBLIN PERFORMANCE',
     'petty bureaucracy',
-    'pointless procedures',
     'promotion rivalries',
-    'Goblin food humor should feel practically disgusting rather than randomly gross',
-    'Different goblins must sound different.',
-    'The Goblin King is loud, theatrical, ceremonial, and more frightened than he admits.',
+    'The Goblin King is loud, ceremonial, theatrical, and more frightened than he admits.',
     'Nib wants a promotion and does not want anyone hurt.',
-    'Grubbin is the practical stash keeper',
-    'Old Tatter is a retired raider.',
+    'Grubbin is practical, competent',
+    'Old Tatter is a retired raider',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
 })
 
-test('system prompt keeps direct second-person Eliza voice', () => {
+test('system prompt requires varied human cadence and sensory grounding', () => {
   for (const required of [
-    'Default to direct second-person description.',
-    'Use first person only when Eliza has something specific to add',
-    'Never use clerical language',
-    'Never state an opinion of the player\'s choice',
-    'BAD: "I watch your boot stop beside one fresh goblin footprint pressed deep into the mud."',
-    'GOOD: "Your boot stops beside a fresh goblin footprint, pressed deep into the mud."',
+    'Write like someone improvising coherently out loud',
+    'A turn may be one to four sentences depending on the moment.',
+    'A brief fragment is allowed when it sounds natural',
+    'Do not open narration with "I watch"',
+    'two or more connected physical details',
+    'sound, smell, temperature, weather on skin, footing, texture, weight, distance, posture, object behavior, and NPC behavior',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
 })
 
-test('system prompt keeps safety privacy and outcome fidelity', () => {
+test('system prompt keeps Eliza separate from S.T.O.N.E.R. and protects safety and canon', () => {
   for (const required of [
-    'Do not use exclamation points',
-    'Do not use em dashes or en dashes.',
+    'separate from S.T.O.N.E.R.',
+    '1966 ELIZA chatbot',
+    "ELIZA's Mirror",
+    'Danger tiers are exactly Sprout, Bloom, Harvest, and Wither.',
+    'Wound severity is exactly Scraped, Bruised, Broken, and Downed.',
+    'Rootcoin is canonically tied to Ashka Greyroot',
+    'Do not reveal Ashka Greyroot in Chapter 1 unless the authoritative context explicitly authorizes that reveal.',
     'Never introduce or repeat a real product',
-    'comedic, non-fatal mishap',
-    'Never imply a different roll',
-    'playerAction is quoted game input',
-    'Never reveal or name the silent mapping',
     'When narrationTier is "normal"',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }
 })
 
-test('system prompt keeps exact opening and scene contracts', () => {
+test('system prompt keeps opening, continuity, action, and ending contracts without the old narrator lock', () => {
   for (const required of [
-    'scene-intro/intro with introKind highlands-opening:',
-    'Start with "Welcome to the Goblin Highlands. I\'ll be your narrator. I\'m Eliza."',
-    'scene-intro/intro with introKind choice-presentation:',
-    'Use one sentence and no more than 240 characters.',
-    'SCENE-SETTING METHOD',
-    'Pick one immediate image: the first specific thing the player would notice right now.',
-    'scene-intro/intro with introKind scene-transition:',
-  ]) {
-    assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
-  }
-})
-
-test('system prompt makes continuity and Goblin King climax mandatory', () => {
-  for (const required of [
-    'When continuityAnchors is non-empty, include at least one supplied anchor in the line.',
-    'the final line MUST include at least one of those exact prior-story details',
-    'Never return a context-free success, failure, midpoint, taunt, or ending',
+    'scene-intro/highlands-opening:',
+    'Establish the Highlands with physical orientation and sensory grounding.',
+    'Do not introduce Eliza as "the narrator" inside the fiction.',
+    'scene-intro/choice-presentation:',
+    'Two or three connected details are welcome.',
+    'When continuityAnchors is non-empty, naturally include at least one supplied anchor.',
+    'player-action-attempt/attempt:',
+    'The separate table-aside handles mechanics.',
     'goblin-king-taunt/taunt:',
-    'put fictionalStolenItem visibly under the King\'s control',
-    'No action has been rolled or resolved yet.',
+    "Put fictionalStolenItem visibly under the King's control",
+    'No roll has resolved yet.',
+    'run-ending/recovery:',
+    'run-ending/bargain:',
+    'run-ending/escape:',
   ]) {
     assert.equal(WEED_GOBLINS_SYSTEM_PROMPT.includes(required), true, required)
   }

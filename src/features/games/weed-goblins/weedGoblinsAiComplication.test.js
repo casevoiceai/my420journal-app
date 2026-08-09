@@ -211,11 +211,11 @@ test('ordinary-failure retries once and uses its static failure line when both d
   assert.equal(result.validationFailures.length, 2)
 })
 
-test('highlands opening rejects thematic drift and retries with the canonical welcome and narrator identity', async () => {
+test('highlands opening retries narrator-observer framing and accepts grounded direct narration', async () => {
   const requestBodies = []
   const drafts = [
-    "I find the Goblin Highlands genuinely fascinating, and I should tell you up front that I've developed opinions about the characters here.",
-    "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it.",
+    'I watch your boot stop beside a fresh goblin footprint while the wind moves through the wet grass.',
+    'Cold rain beads on the grass and runs into the heel marks ahead of you. Four sets of little goblin prints cut uphill through the mud, still sharp at the edges. Fresh.',
   ]
   const hook = {
     moment: 'scene-intro',
@@ -239,48 +239,44 @@ test('highlands opening rejects thematic drift and retries with the canonical we
 
   assert.equal(result.source, 'ai')
   assert.equal(result.attempts, 2)
-  assert.deepEqual(result.validationFailures[0].reasons, [
-    'does not use one active first-person scene observation',
-    'does not begin with the locked Highlands welcome',
-    'does not identify Eliza as the narrator',
-    'uses narrator self-commentary instead of scene-setting',
-  ])
-  assert.match(requestBodies[1].correctiveNote, /locked Highlands welcome/i)
+  assert.ok(result.validationFailures[0].reasons.includes(
+    'uses narrator-observer framing instead of direct scene narration',
+  ))
+  assert.match(requestBodies[1].correctiveNote, /narrator-observer framing/i)
   assert.equal(result.text, drafts[1])
 })
 
-test('highlands opening rejects foundation-compliant narrator self-commentary', () => {
+test('highlands opening rejects narrator self-commentary instead of scene-setting', () => {
   const validation = validateGeneratedNarration(
-    "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I've got a strange feeling, like something's been growing.",
+    "I've got a strange feeling, like something's been growing up here while nobody was looking.",
     { moment: 'scene-intro', outcome: 'intro', introKind: 'highlands-opening' },
   )
 
   assert.equal(validation.valid, false)
-  assert.equal(
-    validation.reasons.includes('does not use one active first-person scene observation'),
-    true,
-  )
   assert.equal(
     validation.reasons.includes('uses narrator self-commentary instead of scene-setting'),
     true,
   )
 })
 
-test('highlands opening accepts the natural comma narrator form with concrete scene-setting', () => {
+test('highlands opening rejects UI instruction bleeding into narrator voice', () => {
   const validation = validateGeneratedNarration(
-    "Welcome to the Goblin Highlands. I'll be your narrator, Eliza, and I watch your boot stop beside one fresh goblin footprint pressed into the mud.",
+    'The goblin tracks climb into the wet grass. Hit Continue when you are ready.',
+    { moment: 'scene-intro', outcome: 'intro', introKind: 'highlands-opening' },
+  )
+
+  assert.equal(validation.valid, false)
+  assert.equal(
+    validation.reasons.includes('contains UI instruction in the fiction register'),
+    true,
+  )
+})
+
+test('highlands opening accepts direct sensory narration with mixed rhythm', () => {
+  const validation = validateGeneratedNarration(
+    'Wind comes down off the ridge cold enough to sting your ears, carrying wet pine and woodsmoke. Four sets of little bootprints cut through the mud. Fresh. Rainwater has only just begun to gather in the heels.',
     { moment: 'scene-intro', outcome: 'intro', introKind: 'highlands-opening' },
   )
 
   assert.equal(validation.valid, true, validation.reasons.join('; '))
-})
-
-test('natural comma narrator form is not rejected as a foundation or identity error', () => {
-  const validation = validateGeneratedNarration(
-    "Welcome to the Goblin Highlands. I'll be your narrator, Eliza, and I'm here to tell you what happens next.",
-    { moment: 'scene-intro', outcome: 'intro', introKind: 'highlands-opening' },
-  )
-
-  assert.equal(validation.reasons.includes('does not begin with the locked Highlands welcome'), false)
-  assert.equal(validation.reasons.includes('does not identify Eliza as the narrator'), false)
 })

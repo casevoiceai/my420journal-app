@@ -146,20 +146,18 @@ test('exports the exact story-beat outcome sets', () => {
   ])
 })
 
-test('system prompt defines one continuous one-shot contract for every moment', () => {
+test('system prompt defines one continuous human-GM story contract for every moment', () => {
   for (const required of [
-    'one beat of a single continuous fantasy one-shot',
-    'Premise before choice.',
+    'continuous, specific, responsive, and human',
+    'STORY LAW',
+    'Keep the premise clear.',
     'Choices grow from visible pressure.',
-    'Show, never muse.',
+    'Ground before explaining.',
     'Preserve causality.',
-    'Improvise with "yes, and".',
-    'Escalate.',
+    'Escalate according to tensionLevel',
     'Close the loop.',
-    'CONTINUITY GATE',
-    'the final line MUST include at least one of those exact prior-story details',
     'premise-statement/premise:',
-    'scene-intro/intro with introKind highlands-opening:',
+    'scene-intro/highlands-opening:',
     'action-success/success:',
     'ordinary-failure/failure:',
     'natural-one-complication/complication:',

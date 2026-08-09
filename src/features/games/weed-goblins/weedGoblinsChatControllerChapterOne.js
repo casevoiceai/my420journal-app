@@ -81,9 +81,9 @@ function checkInstructionText(preview) {
   const statLabel = preview.stat === 'strength' ? 'Strength' : 'Defense'
   const diePhrase = preview.advantage ? 'on either die' : 'on the die'
   const advantageText = preview.advantage
-    ? `You're spending ${preview.manaCost} Mana, so you roll with advantage. `
+    ? ` You're spending ${preview.manaCost} Mana, so roll with advantage.`
     : ''
-  return `${advantageText}This is DC ${preview.dc}. Your ${statLabel} is +${preview.statBonus}, so you need ${preview.requiredDie} or better ${diePhrase}. Roll it.`
+  return `Out of the story for a second: this is a ${statLabel} check, DC ${preview.dc}. You're +${preview.statBonus}, so you need ${preview.requiredDie} or better ${diePhrase}.${advantageText} Roll the d20.`
 }
 
 function choiceIntentForSetup(state, action) {
