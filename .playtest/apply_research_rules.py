@@ -66,7 +66,7 @@ engine = replace_once(
 )
 
 background_pattern = re.compile(
-    r"  if \(state\.sceneId === SCENES\.background\) \{.*?\n  \}\n\n  if \(state\.sceneId === SCENES\.sessionPronoun\)",
+    r"  if \(state\.sceneId === SCENES\.background\) \{\n    const backgroundId = actionId\.split\(':\'\)\[1\].*?\n  \}\n\n  if \(state\.sceneId === SCENES\.sessionPronoun\)",
     re.S,
 )
 background_replacement = '''  if (state.sceneId === SCENES.background) {
@@ -138,6 +138,9 @@ export function isWeedGoblinsSessionTextScene'''
 engine, count = finalize_pattern.subn(finalize_replacement, engine, count=1)
 if count != 1:
     raise SystemExit(f'finalizeSessionZero replacement count was {count}')
+
+if "if (state.sceneId === SCENES.background) {\n    return Object.values(BACKGROUNDS).map" not in engine:
+    raise SystemExit('background choice display block was altered unexpectedly')
 
 for forbidden in [
     'Human. All right.',
