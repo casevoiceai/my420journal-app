@@ -1,0 +1,10 @@
+Weed Goblins Chapter 2 validation
+Product commit under test: a048339cd8e59a91dad0cfb3a2acdc1524421623
+Temporary validation branch only: temp/ch2-validation-20260809
+Chapter 2 targeted tests: 39 tests, 39 pass, 0 fail
+Full suite: 241 tests, 205 pass, 36 pre-existing failures
+Build: PASS
+Mobile validation exit code: 1
+Pages preview GET: HTTP 404
+Staging Worker unauthenticated probe: HTTP 401
+Pages preview -> narration staging call: HTTP 404
