@@ -1,0 +1,107 @@
+name: Weed Goblins Narration Voice Audit V2
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-narration-voice-audit-20260809
+    paths:
+      - .github/workflows/temp-narration-voice-audit-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-narration-voice-audit-20260809
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify feature branch and protected engine
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
+          test "$(git hash-object src/features/games/weed-goblins/weedGoblinsEngine.js)" = "02b3bdc10a32687fed81e230525b418567645b6a"
+      - name: Apply audited narration changes
+        run: python .github/scripts/apply_narration_voice_audit.py
+      - name: Add focused voice tests
+        shell: bash
+        run: |
+          cat > server/weed-goblins-narration-worker/voice-audit.test.js <<'EOF'
+          import test from 'node:test'
+          import assert from 'node:assert/strict'
+          import { WEED_GOBLINS_SYSTEM_PROMPT } from './legacyChapterOne.js'
+          import { validateGeneratedNarration } from '../../src/features/games/weed-goblins/weedGoblinsNarrationValidation.js'
+
+          test('prompt separates fiction and table-aside registers and keeps Eliza distinct', () => {
+            assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /TWO REGISTERS, NEVER BLENDED/)
+            assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /separate from S\.T\.O\.N\.E\.R\./)
+            assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /1966 ELIZA chatbot/)
+            assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /ELIZA's Mirror/)
+            assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Sprout, Bloom, Harvest, and Wither/)
+            assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Scraped, Bruised, Broken, and Downed/)
+            assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Rootcoin/)
+            assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Ashka Greyroot/)
+          })
+
+          test('validator accepts grounded direct narration without first-person observer framing', () => {
+            const result = validateGeneratedNarration(
+              'Cold rain beads on the bottle-cap alarm line. It ticks softly against the bridge rail while mud pulls at your heel, and the goblin prints continue across the boards.',
+              { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },
+            )
+            assert.equal(result.valid, true, result.reasons.join('; '))
+          })
+
+          test('validator rejects observer framing and UI language inside fiction', () => {
+            const observer = validateGeneratedNarration(
+              'I watch the rain gather on the bridge rail while the tracks continue uphill.',
+              { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },
+            )
+            assert.ok(observer.reasons.includes('uses narrator-observer framing instead of direct scene narration'))
+
+            const ui = validateGeneratedNarration(
+              'The tracks continue uphill. Hit Continue when you are ready.',
+              { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },
+            )
+            assert.ok(ui.reasons.includes('contains UI instruction in the fiction register'))
+          })
+
+          test('validator permits varied rhythm beyond the old 300-character ceiling', () => {
+            const text = 'Wind comes down off the ridge cold enough to sting your ears, carrying the smell of wet pine and old smoke. Four sets of small bootprints cut through the mud ahead of you; a fifth wanders in and out of the others as if its owner could not decide where the road was. Fresh. Water has only just begun to collect in the heels.'
+            assert.ok(text.length > 300)
+            const result = validateGeneratedNarration(text, {
+              moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition',
+            })
+            assert.equal(result.valid, true, result.reasons.join('; '))
+          })
+          EOF
+      - name: Run narration tests
+        shell: bash
+        run: |
+          node --test \
+            server/weed-goblins-narration-worker/voice-audit.test.js \
+            server/weed-goblins-narration-worker/index.test.js \
+            server/weed-goblins-narration-worker/story-beats.test.js \
+            src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
+      - name: Build
+        run: npm run build
+      - name: Commit audited product changes
+        shell: bash
+        run: |
+          git config user.name 'casevoiceai'
+          git config user.email 'casevoice.ai@gmail.com'
+          git add \
+            server/weed-goblins-narration-worker/legacyChapterOne.js \
+            server/weed-goblins-narration-worker/voice-audit.test.js \
+            src/features/games/weed-goblins/weedGoblinsNarrationValidation.js \
+            src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js
+          git commit -m 'Apply narration voice audit'
+          git push origin HEAD:temp/weed-goblins-narration-voice-audit-20260809
