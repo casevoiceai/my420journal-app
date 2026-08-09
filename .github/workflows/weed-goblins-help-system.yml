@@ -1,0 +1,126 @@
+name: Weed Goblins help system
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-help-system-build
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-help-system
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply Help UI
+        shell: bash
+        env:
+          HELP_CSS_B64: Ci53ZWVkLWdvYmxpbnMtZ2FtZV9fZ3VpZGFuY2UtYnViYmxlIHsKICBiYWNrZ3JvdW5kOiAjZWRmMWY1OwogIGNvbG9yOiAjNGQ1MzViOwogIGZvbnQtc2l6ZTogMTNweDsKfQoKLndlZWQtZ29ibGlucy1nYW1lX19oZWxwLWJ1YmJsZSB7CiAgYmFja2dyb3VuZDogI2VlZjBmMzsKfQoKLndlZWQtZ29ibGlucy1nYW1lX19oZWxwLWJ1YmJsZS5pcy1zb2x1dGlvbiB7CiAgYmFja2dyb3VuZDogI2Y0ZjBlODsKfQoKLndlZWQtZ29ibGlucy1nYW1lX19oZWxwLXJvdyB7CiAgZGlzcGxheTogZmxleDsKICBqdXN0aWZ5LWNvbnRlbnQ6IGZsZXgtZW5kOwogIG1hcmdpbjogMCAycHggNnB4Owp9Cgoud2VlZC1nb2JsaW5zLWdhbWVfX2hlbHAtYnV0dG9uIHsKICBtaW4taGVpZ2h0OiAyOHB4OwogIHBhZGRpbmc6IDNweCA5cHg7CiAgYm9yZGVyOiAwOwogIGJvcmRlci1yYWRpdXM6IDEycHg7CiAgYmFja2dyb3VuZDogdHJhbnNwYXJlbnQ7CiAgY29sb3I6ICM3Mzc3N2U7CiAgZm9udC1zaXplOiAxMXB4OwogIGZvbnQtd2VpZ2h0OiA2NTA7CiAgY3Vyc29yOiBwb2ludGVyOwp9Cgoud2VlZC1nb2JsaW5zLWdhbWVfX2hlbHAtYnV0dG9uOmhvdmVyOm5vdCg6ZGlzYWJsZWQpLAoud2VlZC1nb2JsaW5zLWdhbWVfX2hlbHAtYnV0dG9uOmZvY3VzLXZpc2libGUgewogIGJhY2tncm91bmQ6ICNlZWYwZjM7CiAgY29sb3I6ICM0NTRhNTA7CiAgb3V0bGluZTogbm9uZTsKfQoKLndlZWQtZ29ibGlucy1nYW1lX19oZWxwLWJ1dHRvbjpkaXNhYmxlZCB7CiAgY3Vyc29yOiBkZWZhdWx0OwogIG9wYWNpdHk6IDAuNDU7Cn0K
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/features/games/weed-goblins/WeedGoblinsChat.jsx')
+          text = path.read_text()
+
+          def replace_once(old, new):
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected one match, found {count}: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              """import {\n  WEED_GOBLINS_COMPOSER_MAX_LENGTH,\n  appendWeedGoblinsVoiceTranscript,\n  getBrowserSpeechRecognition,\n} from './weedGoblinsVoiceInput.js'\nimport './WeedGoblinsChat.css'\n""",
+              """import {\n  WEED_GOBLINS_COMPOSER_MAX_LENGTH,\n  appendWeedGoblinsVoiceTranscript,\n  getBrowserSpeechRecognition,\n} from './weedGoblinsVoiceInput.js'\nimport {\n  getWeedGoblinsAutomaticGuidance,\n  getWeedGoblinsHelpContextKey,\n  getWeedGoblinsHelpResponse,\n} from './weedGoblinsHelp.js'\nimport { weedGoblinsProgressionMetadata } from './weedGoblinsProgression.js'\nimport './WeedGoblinsChat.css'\n""",
+          )
+
+          replace_once(
+              """  const [characterSheetOpen, setCharacterSheetOpen] = useState(false)\n  const [listening, setListening] = useState(false)\n  const [runNumber, setRunNumber] = useState(0)\n""",
+              """  const [characterSheetOpen, setCharacterSheetOpen] = useState(false)\n  const [listening, setListening] = useState(false)\n  const [helpLevel, setHelpLevel] = useState(0)\n  const [helpMessage, setHelpMessage] = useState(null)\n  const [runNumber, setRunNumber] = useState(0)\n""",
+          )
+
+          replace_once(
+              """  const characterSummary = useMemo(() => buildWeedGoblinsCharacterSummary(state), [state])\n  const voiceInputEnabled = canType || canSessionType\n\n  useEffect(() => {\n""",
+              """  const characterSummary = useMemo(() => buildWeedGoblinsCharacterSummary(state), [state])\n  const voiceInputEnabled = canType || canSessionType\n  const chapterNumber = useMemo(\n    () => weedGoblinsProgressionMetadata(state?.adventureId)?.chapterNumber || 1,\n    [state?.adventureId],\n  )\n  const helpContextKey = useMemo(\n    () => getWeedGoblinsHelpContextKey(state, chapterNumber),\n    [state, chapterNumber],\n  )\n  const automaticGuidance = useMemo(\n    () => getWeedGoblinsAutomaticGuidance(state, chapterNumber),\n    [state, chapterNumber],\n  )\n\n  useEffect(() => {\n""",
+          )
+
+          replace_once(
+              """  useEffect(() => {\n    if (!hasStartedScrollingRef.current && messages.length > 0) {\n""",
+              """  useEffect(() => {\n    setHelpLevel(0)\n    setHelpMessage(null)\n  }, [helpContextKey])\n\n  useEffect(() => {\n    if (!hasStartedScrollingRef.current && messages.length > 0) {\n""",
+          )
+
+          replace_once(
+              """  function restartRun() {\n""",
+              """  function handleHelp() {\n    if (!state || state.status === 'completed' || busy) return\n    const nextLevel = Math.min(3, helpLevel + 1)\n    const response = getWeedGoblinsHelpResponse(state, nextLevel, chapterNumber)\n    if (!response) return\n    setHelpLevel(nextLevel)\n    setHelpMessage(response)\n  }\n\n  function restartRun() {\n""",
+          )
+
+          replace_once(
+              """    setCharacterSheetOpen(false)\n    if (speechRecognitionRef.current?.abort) speechRecognitionRef.current.abort()\n""",
+              """    setCharacterSheetOpen(false)\n    setHelpLevel(0)\n    setHelpMessage(null)\n    if (speechRecognitionRef.current?.abort) speechRecognitionRef.current.abort()\n""",
+          )
+
+          replace_once(
+              """          {busy && !loading && (\n            <div className=\"weed-goblins-game__message-row is-incoming\">\n              <div className=\"weed-goblins-game__message-bubble is-eliza is-typing\">\n                <TypingIndicator />\n              </div>\n            </div>\n          )}\n          <div ref={endRef} />\n""",
+              """          {!busy && automaticGuidance && !helpMessage && (\n            <div className=\"weed-goblins-game__message-row is-incoming\">\n              <article className=\"weed-goblins-game__message-bubble is-eliza weed-goblins-game__guidance-bubble\">\n                <p>{automaticGuidance}</p>\n              </article>\n            </div>\n          )}\n          {helpMessage && (\n            <div className=\"weed-goblins-game__message-row is-incoming\">\n              <article className={`weed-goblins-game__message-bubble is-eliza weed-goblins-game__help-bubble${helpMessage.solvesObstacle ? ' is-solution' : ''}`}>\n                <p>{helpMessage.text}</p>\n              </article>\n            </div>\n          )}\n          {busy && !loading && (\n            <div className=\"weed-goblins-game__message-row is-incoming\">\n              <div className=\"weed-goblins-game__message-bubble is-eliza is-typing\">\n                <TypingIndicator />\n              </div>\n            </div>\n          )}\n          <div ref={endRef} />\n""",
+          )
+
+          replace_once(
+              """            {actionError && (\n              <div className=\"weed-goblins-game__action-error\" role=\"alert\">{actionError}</div>\n            )}\n\n            {state?.status === 'completed' ? (\n""",
+              """            {actionError && (\n              <div className=\"weed-goblins-game__action-error\" role=\"alert\">{actionError}</div>\n            )}\n\n            {state?.status !== 'completed' && (\n              <div className=\"weed-goblins-game__help-row\">\n                <button\n                  type=\"button\"\n                  className=\"weed-goblins-game__help-button\"\n                  onClick={handleHelp}\n                  disabled={busy}\n                  aria-label={`Help with current scene${helpLevel > 0 ? `, level ${helpLevel}` : ''}`}\n                >\n                  Help\n                </button>\n              </div>\n            )}\n\n            {state?.status === 'completed' ? (\n""",
+          )
+
+          path.write_text(text)
+          PY
+          printf '%s' "$HELP_CSS_B64" | base64 --decode >> src/features/games/weed-goblins/WeedGoblinsChat.css
+
+      - name: Verify exact packet scope
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          git diff --check origin/feature/weed-goblins-session-zero
+          mapfile -t changed < <(git diff --name-only origin/feature/weed-goblins-session-zero | sort)
+          expected=(
+            "src/features/games/weed-goblins/WeedGoblinsChat.css"
+            "src/features/games/weed-goblins/WeedGoblinsChat.jsx"
+            "src/features/games/weed-goblins/weedGoblinsHelp.js"
+            "src/features/games/weed-goblins/weedGoblinsHelp.test.js"
+          )
+          printf 'Changed files:\n'
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq "${#expected[@]}"
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run targeted gameplay tests
+        run: node --test src/features/games/weed-goblins/weedGoblinsHelp.test.js src/features/games/weed-goblins/weedGoblinsHiddenMenuVoice.test.js src/features/games/weed-goblins/weedGoblinsDiscoverables.test.js src/features/games/weed-goblins/weedGoblinsDynamicChoices.test.js src/features/games/weed-goblins/weedGoblinsRooms.test.js src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit verified candidate
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/games/weed-goblins/WeedGoblinsChat.css \
+            src/features/games/weed-goblins/WeedGoblinsChat.jsx \
+            src/features/games/weed-goblins/weedGoblinsHelp.js \
+            src/features/games/weed-goblins/weedGoblinsHelp.test.js
+          git commit -m "Add graduated Weed Goblins Help"
+          git push origin HEAD:temp/weed-goblins-help-system
