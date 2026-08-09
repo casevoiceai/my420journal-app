@@ -1,0 +1,20 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "initialChoices": 4,
+  "entryChoices": 5,
+  "helpLevel": 3,
+  "characterSheet": true,
+  "saveResume": true,
+  "customText": true,
+  "overflowBefore": {
+    "width": 390,
+    "scrollWidth": 390
+  },
+  "overflowAfter": {
+    "width": 390,
+    "scrollWidth": 390
+  }
+}

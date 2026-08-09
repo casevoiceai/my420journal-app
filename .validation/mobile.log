@@ -1,14 +1,1 @@
-node:internal/modules/run_main:123
-    triggerUncaughtException(
-    ^
-
-locator.dispatchEvent: Error: strict mode violation: locator('.weed-goblins-game__crest') resolved to 2 elements:
-    1) <button type="button" class="weed-goblins-game__crest" aria-label="Hold for character details">E</button> aka getByRole('button', { name: 'Hold for character details' })
-    2) <div aria-hidden="true" class="weed-goblins-game__crest">E</div> aka getByLabel('Fenna Duskrow').getByText('E', { exact: true })
-
-Call log:
-  - waiting for locator('.weed-goblins-game__crest')
-
-    at /home/runner/work/my420journal-app/my420journal-app/.validation/mobile-validation.mjs:60:15
-
-Node.js v22.23.1
+MOBILE_CH2_VALIDATION=PASS
