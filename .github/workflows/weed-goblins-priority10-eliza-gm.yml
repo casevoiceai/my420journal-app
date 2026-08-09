@@ -36,7 +36,7 @@ jobs:
       - name: Verify exact feature scope
         shell: bash
         run: |
-          changed=$(git diff --name-only feature/weed-goblins-session-zero...HEAD | sort)
+          changed=$(git diff --name-only origin/feature/weed-goblins-session-zero...HEAD | sort)
           printf '%s\n' "$changed"
           expected=$'server/weed-goblins-narration-worker/index.js\nserver/weed-goblins-narration-worker/index.test.js'
           if [ "$changed" != "$expected" ]; then
