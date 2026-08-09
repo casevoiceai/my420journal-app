@@ -1,0 +1,130 @@
+name: Temporary Weed Goblins Human Playtest 1-3
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-human-playtest-1-3-20260809
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-playtest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_STAGING_PROXY_SECRET }}
+      PLAYTEST_URL: https://my420journal-wg-playtest-1-3.casevoice-ai.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-human-playtest-1-3-20260809
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Verify exact Chapter 3 feature base and test-only scope
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
+          git diff --check origin/feature/weed-goblins-session-zero
+          unexpected=$(git diff --name-only origin/feature/weed-goblins-session-zero | grep -Ev '^(.playtest/|.github/workflows/temp-wg-human-playtest.yml$)' || true)
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected non-playtest changes:"
+            echo "$unexpected"
+            exit 41
+          fi
+
+      - name: Build exact Chapters 1-3 app
+        run: |
+          npm ci
+          npm run build
+          rm -f dist/_redirects
+
+      - name: Set test-host proxy secret
+        shell: bash
+        run: |
+          printf '%s' "$STAGING_PROXY_SECRET" | npx wrangler@latest secret put WEED_GOBLINS_PROXY_SECRET --config .playtest/host/wrangler.jsonc
+
+      - name: Deploy persistent unlisted playtest host
+        run: npx wrangler@latest deploy --config .playtest/host/wrangler.jsonc
+
+      - name: Smoke playtest landing game route and staging narration
+        shell: bash
+        run: |
+          landing_status=000
+          for i in $(seq 1 25); do
+            landing_status=$(curl -L -sS --connect-timeout 10 --max-time 30 -o /tmp/playtest.html -w '%{http_code}' "$PLAYTEST_URL/" || true)
+            if [ "$landing_status" = 200 ] && grep -q 'Chapter 1' /tmp/playtest.html && grep -q 'Chapter 2' /tmp/playtest.html && grep -q 'Chapter 3' /tmp/playtest.html; then
+              break
+            fi
+            sleep 2
+          done
+          echo "PLAYTEST_LANDING_STATUS=$landing_status"
+          test "$landing_status" = 200
+          grep -q 'Chapter 1' /tmp/playtest.html
+          grep -q 'Chapter 2' /tmp/playtest.html
+          grep -q 'Chapter 3' /tmp/playtest.html
+
+          game_status=$(curl -L -sS --connect-timeout 10 --max-time 30 -H 'Sec-Fetch-Mode: navigate' -o /tmp/game.html -w '%{http_code}' "$PLAYTEST_URL/games/weed-goblins")
+          echo "PLAYTEST_GAME_STATUS=$game_status"
+          test "$game_status" = 200
+          grep -qi '<html' /tmp/game.html
+
+          api_status=$(curl -sS --connect-timeout 10 --max-time 120 -o /tmp/narration.json -w '%{http_code}' -X POST "$PLAYTEST_URL/api/weed-goblins-narration" -H "Origin: $PLAYTEST_URL" -H 'Content-Type: application/json' --data '{"chapterNumber":3,"moment":"scene-intro","outcome":"intro","sceneId":"chapter-3:gray-verge","dangerTier":"bloom","authoritativeText":"The Gray Verge begins where the color stops.","storySoFar":"The grove is turning gray from the roots up while water and sunlight remain.","scenePurpose":"Establish the dying grove and the underground pull.","tensionLevel":"rising","memorySensation":"a low laugh preserved inside amber resin","wound":"None","trouble":0,"manaRemaining":2,"rootcoin":0,"narrationTier":"normal"}')
+          echo "PLAYTEST_API_STATUS=$api_status"
+          cat /tmp/narration.json
+          test "$api_status" = 200
+
+      - name: Browser-check chapter shortcuts
+        shell: bash
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+          mkdir -p .validation
+          cat > .validation/playtest-shortcuts.mjs <<'EOF'
+          import { chromium } from 'playwright'
+          const base = process.env.PLAYTEST_URL
+          const check = (condition, message) => { if (!condition) throw new Error(message) }
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+            await page.goto(base + '/', { waitUntil: 'networkidle' })
+            check(await page.getByRole('button', { name: /Chapter 1/ }).isVisible(), 'Chapter 1 button missing')
+            check(await page.getByRole('button', { name: /Chapter 2/ }).isVisible(), 'Chapter 2 button missing')
+            check(await page.getByRole('button', { name: /Chapter 3/ }).isVisible(), 'Chapter 3 button missing')
+
+            await page.getByRole('button', { name: /Chapter 3/ }).click()
+            await page.waitForURL('**/games/weed-goblins')
+            await page.getByText(/Living Root Map has a destination now/i).waitFor({ timeout: 15000 })
+            const stored = await page.evaluate(() => {
+              const userId = localStorage.getItem('my420journal_local_v1:active_user')
+              const raw = localStorage.getItem('my420journal_local_v1:weed_goblins_runs:' + userId)
+              return { userId, runs: raw ? JSON.parse(raw) : [] }
+            })
+            check(stored.userId === 'weed-goblins-playtest-user', `wrong playtest user: ${stored.userId}`)
+            check(stored.runs.length === 10, `Chapter 3 shortcut expected 10 fixture runs, got ${stored.runs.length}`)
+            check(stored.runs.filter((run) => run.adventureId === 'goblin-highlands-session-1').length === 5, 'Chapter 1 fixture count wrong')
+            check(stored.runs.filter((run) => run.adventureId === 'hollow-market-session-1').length === 5, 'Chapter 2 fixture count wrong')
+
+            await page.goto(base + '/', { waitUntil: 'networkidle' })
+            await page.getByRole('button', { name: /Chapter 1/ }).click()
+            await page.waitForURL('**/games/weed-goblins')
+            const chapterOneStored = await page.evaluate(() => {
+              const userId = localStorage.getItem('my420journal_local_v1:active_user')
+              const raw = localStorage.getItem('my420journal_local_v1:weed_goblins_runs:' + userId)
+              return raw ? JSON.parse(raw).length : 0
+            })
+            check(chapterOneStored === 0, `Chapter 1 shortcut expected 0 fixture runs, got ${chapterOneStored}`)
+            console.log('PLAYTEST_SHORTCUTS_PASS')
+          } finally {
+            await browser.close()
+          }
+          EOF
+          node .validation/playtest-shortcuts.mjs
