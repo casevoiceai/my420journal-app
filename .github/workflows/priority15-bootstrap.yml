@@ -28,7 +28,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/wg15
-          cat .priority15/packet.b64.* | base64 -d > /tmp/wg15.tar.gz
+          cat \
+            .priority15/packet.b64.aa \
+            .priority15/packet.b64.ab1 \
+            .priority15/packet.b64.ab2 \
+            .priority15/packet.b64.ac \
+            .priority15/packet.b64.ad \
+            | base64 -d > /tmp/wg15.tar.gz
           tar -xzf /tmp/wg15.tar.gz -C /tmp/wg15
 
           WG=src/features/games/weed-goblins
