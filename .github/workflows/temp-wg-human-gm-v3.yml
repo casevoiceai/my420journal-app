@@ -34,7 +34,7 @@ jobs:
           git fetch origin feature/weed-goblins-session-zero
           test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
 
-      - name: Apply private playtest prose candidate in runner only
+      - name: Apply private opening and prose candidate in runner only
         run: |
           python .playtest/apply_human_gm_prose_v3.py
           python .playtest/apply_approved_kings_stash_opening.py
@@ -42,7 +42,7 @@ jobs:
           grep -F "stolenItem: 'the Brass-Latched Research Case'" src/features/games/weed-goblins/weedGoblinsEngine.js
           grep -F "your Brass-Latched Research Case" src/features/games/weed-goblins/weedGoblinsEngine.js
 
-      - name: Load final audited narration contract into private preview
+      - name: Load audited narration base into private preview
         shell: bash
         run: |
           git fetch origin temp/weed-goblins-narration-voice-audit-20260809
@@ -53,11 +53,26 @@ jobs:
           git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/index.test.js > server/weed-goblins-narration-worker/index.test.js
           git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/story-beats.test.js > server/weed-goblins-narration-worker/story-beats.test.js
           git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsAiComplication.test.js > src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
-          grep -F 'One GM turn is one coherent messenger bubble' server/weed-goblins-narration-worker/legacyChapterOne.js
-          grep -F 'roughly one sentence in four or five may break grammatical completeness' server/weed-goblins-narration-worker/legacyChapterOne.js
+
+      - name: Apply eight research rules in runner only
+        shell: bash
+        run: |
+          python .playtest/apply_research_rules.py
+          git diff --check
+          grep -F 'use two or three broad conversational prompts' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F "Do not echo a player's answer as a standalone receipt" server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'Never announce a mode switch' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'Automatic affirmation is forbidden' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'must change the immediate fiction or reveal new actionable information' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'concrete local goal' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'Do not open narration with "I watch", "I see", "I notice", "I observe", "I hear", or "I smell".' server/weed-goblins-narration-worker/legacyChapterOne.js
           grep -F 'Use "as though" at most once in a scene.' server/weed-goblins-narration-worker/legacyChapterOne.js
           grep -F 'Do not default to lists of three.' server/weed-goblins-narration-worker/legacyChapterOne.js
           grep -F 'Never use an em dash or en dash.' server/weed-goblins-narration-worker/legacyChapterOne.js
+          ! grep -F 'A sword. Okay.' src/features/games/weed-goblins/weedGoblinsEngine.js
+          ! grep -F 'Human. All right.' src/features/games/weed-goblins/weedGoblinsEngine.js
+          ! grep -F 'Out of the story' src/features/games/weed-goblins/weedGoblinsEngine.js
+          ! grep -F 'Back to the Highlands' src/features/games/weed-goblins/weedGoblinsEngine.js
 
       - name: Install, test, and build
         shell: bash
@@ -87,12 +102,14 @@ jobs:
           npm install --no-save --package-lock=false playwright@1.54.2
           npx playwright install --with-deps chromium
 
-      - name: Verify approved opening live at 390x844
+      - name: Run full live sequence through first NPC interaction
         shell: bash
         run: |
           mkdir -p .validation
-          cat > .validation/natural-gm.mjs <<'EOF'
+          cat > .validation/research-rules-playthrough.mjs <<'EOF'
+          import fs from 'node:fs'
           import { chromium } from 'playwright'
+
           const base = process.env.PLAYTEST_URL
           const check = (condition, message) => { if (!condition) throw new Error(message) }
           const approved = [
@@ -101,10 +118,22 @@ jobs:
             "You know exactly what made the groove. A brass corner has struck one of the stones hard enough to peel away the moss, leaving a fresh yellow scar in the gray rock: your Brass-Latched Research Case. Earlier this morning it belonged to you. Then came five goblins and a great deal of shouting, followed by an argument about whether taking somebody's property while they were actively objecting constituted theft or merely 'aggressive redistribution.' Paperwork, too. Nobody appeared to know what it was for. By the time the question came up, they were already running north with your case between them.",
             "Their journey hasn't improved since. A strip of yellow cloth hangs wetly from a thorn bush where somebody caught a sleeve. Beside another stone: two small handprints and the perfect impression of a goblin face in the mud, several feet farther downhill than seems physically reasonable. Whoever fell there got back up. The tracks continue.",
             "Somewhere above you, hidden by the cloud, a bell gives one miserable clonk. The sound rolls strangely across the ridge and disappears. A moment later the wind worries the mist apart, just for a few seconds, and the King's Stash Hall appears above you. Black timber under a crooked chimney. The patched roof crowds far too many windows, and behind one of them something red moves, gone before you can decide what you saw. Then the cloud closes over the building again. The goblin tracks point straight toward it.",
-            "Okay. Out of the story for a minute. I'm Eliza, and I'll be running the game for you. If you've never played something like this before, you don't need to learn a pile of rules first. Tell me what you want your character to try, and when a rule matters, I'll explain that rule then.",
-            "I'll usually give you a few obvious choices so you're never staring at the screen wondering what you're allowed to do, but you aren't limited to them. If you want to try something else, just say what you're doing.",
-            "All right. Back to the Highlands. Before I send somebody into that fog after your Brass-Latched Research Case, I should probably know who I'm sending. What's your character's name?",
+            "I'm Eliza, and I'll be running the game. You tell me what your character tries; when a rule matters, I'll explain it right where it comes up.",
+            "I'll usually put a few obvious choices in front of you so you're never left guessing what you can try, but they're suggestions, not limits. If you want something else, just say what you're doing.",
+            "Before somebody follows those tracks into the fog, give me the first part of the picture: what's your character's name, and what are they: human, dwarf, elf, or gnome?",
           ]
+
+          async function transcript(page) {
+            const rows = page.locator('.weed-goblins-game__message-row')
+            return rows.evaluateAll((nodes) => nodes.map((node) => {
+              const speaker = node.classList.contains('is-outgoing') ? 'PLAYER' : 'ELIZA'
+              const text = node.innerText.replace(/\s+/g, ' ').trim()
+              const die = node.querySelector('svg text')?.textContent?.trim()
+              const value = text || (die ? `[D20 ${die}]` : '[non-text game control]')
+              return `${speaker}: ${value}`
+            }))
+          }
+
           const browser = await chromium.launch({ headless: true })
           try {
             const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
@@ -118,53 +147,79 @@ jobs:
             for (const text of approved) check(body.includes(text), `approved opening text missing: ${text.slice(0, 80)}`)
             check(body.includes('Brass-Latched Research Case'), 'approved stolen item missing')
             check(!body.includes('Carefully Labeled Moon Jar'), 'old Moon Jar still present')
-            check(!body.includes('Before we make your character, let me give you the setup'), 'old meta opener still present')
-            check(!body.includes("You haven't caught up yet, but you haven't lost them either"), 'old symmetrical sentence still present')
+            check(!/out of the story|back to the story|back to the Highlands/i.test(body), 'announced mode switch still present')
             check(!body.includes('\u2014'), 'forbidden punctuation present in opening')
-
-            const incoming = await page.locator('.weed-goblins-game__message-row.is-incoming').count()
-            check(incoming >= 8, `expected approved opening bubbles, got ${incoming}`)
-            console.log(JSON.stringify({ LIVE_APPROVED_OPENING: approved, incoming }))
-            await page.screenshot({ path: '.validation/chapter1-natural-gm-opening.png', fullPage: true })
 
             await page.getByRole('button', { name: 'Continue' }).click()
             const composer = page.locator('.weed-goblins-game__composer input')
             await composer.waitFor()
             await composer.fill('Fenna')
             await page.locator('.weed-goblins-game__send-button').click()
-            await page.getByText('Fenna. All right.', { exact: true }).waitFor()
-            await page.getByText(/And what are they: human, dwarf, elf, or gnome/i).waitFor()
-
-            await page.getByRole('button', { name: 'Human' }).click()
-            await page.getByText('Human. All right.', { exact: true }).waitFor()
-            await page.getByRole('button', { name: 'Sword' }).click()
-            await page.getByRole('button', { name: 'Highland Tracker' }).click()
-            await page.getByRole('button', { name: 'They' }).click()
-            await page.locator('.weed-goblins-game__quick-reply').first().click()
-            await page.getByText(/The goblin tracks carry on through Windcut Trail until the ground drops toward Rattlebridge/i).waitFor()
-            await page.getByText(/You haven't been spotted yet/i).waitFor()
-
-            await page.getByRole('button', { name: /Quiet Crossing/ }).click()
-            await page.getByText(/That needs a roll\. It's a Defense check, DC 12/i).waitFor()
-            const roll = page.getByRole('button', { name: /ROLL D20/i })
-            await roll.waitFor()
-            await roll.click()
-            await page.waitForTimeout(1800)
+            await page.getByRole('button', { name: 'Human' }).waitFor()
 
             body = await page.locator('body').innerText()
-            check(!/I resolve|I process|I interpret|written down|input received/i.test(body), 'machine voice present')
-            check(!body.includes('\u2014'), 'forbidden punctuation present after D20')
+            check(!body.includes('Fenna. All right.'), 'name confirmation echo present')
+            check(!body.includes('Fenna. Written down.'), 'name receipt echo present')
+
+            await page.getByRole('button', { name: 'Human' }).click()
+            await page.getByText(/Now give me the practical part:/i).waitFor()
+            await page.getByRole('button', { name: 'Sword' }).click()
+            await page.getByRole('button', { name: 'Highland Tracker' }).waitFor()
+
+            body = await page.locator('body').innerText()
+            check(!body.includes('Human. All right.'), 'race confirmation echo present')
+            check(!body.includes('A sword. Okay.'), 'weapon confirmation echo present')
+
+            await page.getByRole('button', { name: 'Highland Tracker' }).click()
+            await page.getByText(/Last pass: what pronouns should I use/i).waitFor()
+            await page.getByRole('button', { name: 'They' }).click()
+            await page.locator('.weed-goblins-game__quick-reply').first().waitFor()
+            await page.locator('.weed-goblins-game__quick-reply').first().click()
+
+            await page.getByText(/The goblin tracks carry on through Windcut Trail until the ground drops toward Rattlebridge/i).waitFor()
+            await page.getByRole('button', { name: /Quiet Crossing/ }).click()
+            await page.getByText(/Defense check, DC 12;/i).waitFor()
+
+            body = await page.locator('body').innerText()
+            check(!body.includes("You're trying to cross Rattlebridge quietly"), 'choice confirmation paraphrase present before rule')
+            const firstRoll = page.getByRole('button', { name: /ROLL D20/i })
+            await firstRoll.waitFor()
+            await firstRoll.click()
+            await page.getByRole('button', { name: /Outlast / }).waitFor({ timeout: 20000 })
+
+            await page.getByRole('button', { name: /Outlast / }).click()
+            await page.getByText(/Defense check, DC 12;/i).last().waitFor()
+            const secondRoll = page.getByRole('button', { name: /ROLL D20/i })
+            await secondRoll.waitFor()
+            await secondRoll.click()
+            await page.getByRole('button', { name: /Keep Nib safe/i }).waitFor({ timeout: 20000 })
+
+            body = await page.locator('body').innerText()
+            check(!/Great choice|I love that|Perfect\.?$/im.test(body), 'automatic affirmation present')
+            check(!/I see|I notice|I hear|I realize/i.test(body), 'repeated observer opener present')
+            check(!body.includes('\u2014'), 'forbidden punctuation present in playthrough')
+
+            const lines = await transcript(page)
+            const text = lines.join('\n')
+            fs.writeFileSync('.validation/research-rule-transcript.txt', text + '\n')
+            await page.screenshot({ path: '.validation/research-rule-playthrough.png', fullPage: true })
+
             const overflow = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }))
             check(overflow.scrollWidth <= overflow.width + 1, `horizontal overflow: ${JSON.stringify(overflow)}`)
-            console.log(JSON.stringify({ APPROVED_GM_PLAYTEST: 'PASS', characterSetup: 'PASS', firstD20: 'PASS', overflow }))
+            console.log('FULL_RESEARCH_RULE_TRANSCRIPT_START')
+            console.log(text)
+            console.log('FULL_RESEARCH_RULE_TRANSCRIPT_END')
+            console.log(JSON.stringify({ RESEARCH_RULE_PLAYTHROUGH: 'PASS', overflow, rows: lines.length }))
           } finally {
             await browser.close()
           }
           EOF
-          node .validation/natural-gm.mjs
+          node .validation/research-rules-playthrough.mjs
 
       - uses: actions/upload-artifact@v4
         with:
-          name: chapter1-approved-gm-preview
-          path: .validation/chapter1-natural-gm-opening.png
+          name: chapter1-research-rule-playthrough
+          path: |
+            .validation/research-rule-transcript.txt
+            .validation/research-rule-playthrough.png
           if-no-files-found: error
