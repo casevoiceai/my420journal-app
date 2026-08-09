@@ -34,16 +34,35 @@ jobs:
           git fetch origin feature/weed-goblins-session-zero
           test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
 
-      - name: Apply natural table-GM prose candidate in runner only
+      - name: Apply private playtest prose candidate in runner only
         run: |
           python .playtest/apply_human_gm_prose_v3.py
           git diff --check
-          grep -q 'HUMAN TABLE GM PROSE' server/weed-goblins-narration-worker/legacyChapterOne.js
-          grep -q 'Never exceed 650 characters' server/weed-goblins-narration-worker/legacyChapterOne.js
 
-      - name: Build
+      - name: Load final audited narration contract into private preview
+        shell: bash
+        run: |
+          git fetch origin temp/weed-goblins-narration-voice-audit-20260809
+          test "$(git rev-parse origin/temp/weed-goblins-narration-voice-audit-20260809)" = "c7f67befc2cf5175787d615ada1e3a1017294f48"
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/legacyChapterOne.js > server/weed-goblins-narration-worker/legacyChapterOne.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsNarrationValidation.js > src/features/games/weed-goblins/weedGoblinsNarrationValidation.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/voice-audit.test.js > server/weed-goblins-narration-worker/voice-audit.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/index.test.js > server/weed-goblins-narration-worker/index.test.js
+          grep -F 'One GM turn is one coherent messenger bubble' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'roughly one sentence in four or five may break grammatical completeness' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'Use "as though" at most once in a scene.' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'Do not default to lists of three.' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'Never use an em dash or en dash.' server/weed-goblins-narration-worker/legacyChapterOne.js
+
+      - name: Install, test, and build
+        shell: bash
         run: |
           npm ci
+          node --test \
+            server/weed-goblins-narration-worker/voice-audit.test.js \
+            server/weed-goblins-narration-worker/index.test.js \
+            server/weed-goblins-narration-worker/story-beats.test.js \
+            src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
           npm run build
           rm -f dist/_redirects
 
@@ -63,7 +82,7 @@ jobs:
           npm install --no-save --package-lock=false playwright@1.54.2
           npx playwright install --with-deps chromium
 
-      - name: Verify live natural opening at 390x844
+      - name: Verify live private playtest at 390x844
         shell: bash
         run: |
           mkdir -p .validation
@@ -93,6 +112,7 @@ jobs:
             check(body.includes("King's Stash Hall"), 'King’s Stash Hall missing')
             check(body.includes('get your property back'), 'objective missing')
             check(!/I'm Eliza\. I'll run the world|No guessing\.|Hit Continue when/i.test(body), 'software/onboarding copy still present')
+            check(!body.includes('\u2014'), 'forbidden punctuation present in opening')
 
             const incoming = await page.locator('.weed-goblins-game__message-row.is-incoming').count()
             check(incoming >= 5, `expected full narrative opening, got ${incoming} incoming rows`)
@@ -120,13 +140,14 @@ jobs:
             const roll = page.getByRole('button', { name: /ROLL D20/i })
             await roll.waitFor()
             await roll.click()
-            await page.waitForTimeout(1500)
+            await page.waitForTimeout(1800)
 
             body = await page.locator('body').innerText()
             check(!/I resolve|I process|I interpret|written down|input received/i.test(body), 'machine voice present')
+            check(!body.includes('\u2014'), 'forbidden punctuation present after D20')
             const overflow = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }))
             check(overflow.scrollWidth <= overflow.width + 1, `horizontal overflow: ${JSON.stringify(overflow)}`)
-            console.log(JSON.stringify({ NATURAL_GM_PLAYTEST: 'PASS', incoming, characterSetup: 'PASS', firstD20: 'PASS', overflow }))
+            console.log(JSON.stringify({ AUDITED_GM_PLAYTEST: 'PASS', incoming, characterSetup: 'PASS', firstD20: 'PASS', overflow }))
           } finally {
             await browser.close()
           }
@@ -135,6 +156,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: chapter1-natural-gm-opening
+          name: chapter1-audited-gm-preview
           path: .validation/chapter1-natural-gm-opening.png
           if-no-files-found: error
