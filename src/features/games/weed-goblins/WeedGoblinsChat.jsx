@@ -22,27 +22,6 @@ import {
 import { WEED_GOBLINS_NARRATOR_NAME } from './weedGoblinsEngine.js'
 import './WeedGoblinsChat.css'
 
-const SCENE_NAMES = Object.freeze({
-  'session-zero-welcome': 'Session Zero',
-  'session-zero-name': 'Name Your Traveler',
-  'session-zero-race': 'Choose Your Race',
-  'session-zero-weapon': 'Choose Your Weapon',
-  'choose-background': 'Choose Your Class',
-  'session-zero-pronoun': 'Picture Your Traveler',
-  'session-zero-look': 'Finish Your Traveler',
-  'choose-route': 'Choose Your Road',
-  'goblin-encounter': 'Goblin Ambush',
-  midpoint: 'The Keep Gate',
-  'goblin-king': 'The Goblin King',
-  ending: 'Quest Complete',
-})
-
-const BACKGROUND_DETAILS = Object.freeze({
-  'background:tracker': 'Strength 3  |  Defense 1  |  Mana 2',
-  'background:warden': 'Strength 1  |  Defense 3  |  Mana 2',
-  'background:diviner': 'Strength 1  |  Defense 2  |  Mana 4',
-})
-
 function makeRunSeed() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `weed-goblins-chat:${crypto.randomUUID()}`
@@ -65,45 +44,6 @@ async function loadSnapshotWithFallback() {
   }
 }
 
-function actionDetail(state, action) {
-  if (action.detail) return action.detail
-  if (BACKGROUND_DETAILS[action.id]) return BACKGROUND_DETAILS[action.id]
-  if (action.id === 'route:loud') return 'Direct crossing  |  Strength check'
-  if (action.id === 'route:quiet') return 'Quiet crossing  |  Defense check'
-  if (action.id === 'goblin:strike') return 'Force a path  |  Strength check'
-  if (action.id === 'goblin:guard') return 'Hold your ground  |  Defense check'
-  if (action.id === 'goblin:channel') return 'Spend 1 Mana  |  Roll with advantage'
-  if (action.id === 'midpoint:help') return 'Help Nib  |  No roll'
-  if (action.id === 'midpoint:take-token') return 'Risk the alarm  |  Defense check'
-  if (action.id === 'midpoint:read-runes') return 'Spend 1 Mana  |  Read Cloudberry Shelf'
-  if (action.id === 'midpoint:skip') return 'Press on now  |  No roll'
-  if (action.id === 'boss:overpower') return 'Take back the item  |  Strength check'
-  if (action.id === 'boss:outlast') return 'Break his control  |  Defense check'
-  if (action.id === 'boss:spell') return 'Spend 2 Mana  |  Roll with advantage'
-  if (action.id === 'boss:bargain') return 'Call your ally  |  Secure a bargain'
-  return state?.sceneId?.startsWith('session-zero-') ? 'Choose to continue' : 'Advance the quest'
-}
-
-function actionHeading(state) {
-  if (state?.sceneId === 'session-zero-race') return 'Choose your race'
-  if (state?.sceneId === 'session-zero-weapon') return 'Choose your weapon'
-  if (state?.sceneId === 'choose-background') return 'Choose your class'
-  if (state?.sceneId === 'session-zero-pronoun') return 'How should I picture you?'
-  if (state?.sceneId === 'session-zero-look') return 'One more thing, how do you look?'
-  if (state?.sceneId === 'session-zero-name') return 'Choose a name'
-  return 'Choose your action'
-}
-
-function hideSessionZeroChoiceChrome(state) {
-  return [
-    'session-zero-name',
-    'session-zero-race',
-    'session-zero-weapon',
-    'session-zero-pronoun',
-    'session-zero-look',
-  ].includes(state?.sceneId)
-}
-
 function D20Icon({ value = null, size = 44 }) {
   const resolved = Number.isInteger(value) && value >= 1 && value <= 20
   return (
@@ -122,11 +62,12 @@ function D20Icon({ value = null, size = 44 }) {
   )
 }
 
-function Stat({ label, value, danger = false }) {
+function TypingIndicator({ label = 'Eliza is typing' }) {
   return (
-    <div className={`weed-goblins-game__stat${danger ? ' is-danger' : ''}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <div className="weed-goblins-game__typing" aria-label={label}>
+      <span />
+      <span />
+      <span />
     </div>
   )
 }
@@ -134,11 +75,15 @@ function Stat({ label, value, danger = false }) {
 function StoryEntry({ message, onRoll, canRoll, busy }) {
   if (message.kind === 'roll-trigger') {
     return (
-      <div className="weed-goblins-game__roll-panel">
-        <p>The outcome hangs on a d20.</p>
-        <button type="button" onClick={onRoll} disabled={!canRoll || busy}>
-          <D20Icon />
-          <span>{canRoll ? 'Roll the die' : 'Die rolled'}</span>
+      <div className="weed-goblins-game__roll-row">
+        <button
+          type="button"
+          className="weed-goblins-game__roll-button"
+          onClick={onRoll}
+          disabled={!canRoll || busy}
+        >
+          <D20Icon size={30} />
+          <span>{canRoll ? 'Roll D20' : 'Rolled'}</span>
         </button>
       </div>
     )
@@ -147,36 +92,63 @@ function StoryEntry({ message, onRoll, canRoll, busy }) {
   if (message.kind === 'roll-result') {
     return (
       <div className="weed-goblins-game__roll-result" aria-label={`D20 result ${message.die}`}>
-        <span>Roll result</span>
-        <D20Icon value={message.die} size={54} />
+        <D20Icon value={message.die} size={46} />
       </div>
     )
   }
 
   if (message.direction === 'outgoing') {
     return (
-      <article className="weed-goblins-game__story-entry is-player">
-        <div className="weed-goblins-game__entry-label">Your move</div>
-        <p>{message.text}</p>
-      </article>
+      <div className="weed-goblins-game__message-row is-outgoing">
+        <article className="weed-goblins-game__message-bubble is-player">
+          <p>{message.text}</p>
+        </article>
+      </div>
     )
   }
 
   return (
-    <article className="weed-goblins-game__story-entry is-narrator">
-      <div className="weed-goblins-game__narrator-mark" aria-hidden="true">
-        {WEED_GOBLINS_NARRATOR_NAME.charAt(0)}
-      </div>
-      <div className="weed-goblins-game__entry-copy">
-        <div className="weed-goblins-game__entry-label">
-          {WEED_GOBLINS_NARRATOR_NAME} narrates
-        </div>
+    <div className="weed-goblins-game__message-row is-incoming">
+      <article className="weed-goblins-game__message-bubble is-eliza">
         <p>{message.text}</p>
+        {message.die !== null && message.die !== undefined && (
+          <span className="weed-goblins-game__inline-die" aria-label={`D20 result ${message.die}`}>
+            <D20Icon value={message.die} size={30} />
+          </span>
+        )}
+      </article>
+    </div>
+  )
+}
+
+function MessageComposer({
+  id,
+  value,
+  onChange,
+  onSubmit,
+  placeholder,
+  ariaLabel,
+  disabled,
+  submitDisabled,
+}) {
+  return (
+    <form className="weed-goblins-game__composer" onSubmit={onSubmit}>
+      <div className="weed-goblins-game__composer-shell">
+        <input
+          id={id}
+          aria-label={ariaLabel}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          maxLength={160}
+          disabled={disabled}
+          autoComplete="off"
+        />
+        <button type="submit" aria-label="Send message" disabled={submitDisabled}>
+          <span aria-hidden="true">↑</span>
+        </button>
       </div>
-      {message.die !== null && message.die !== undefined && (
-        <D20Icon value={message.die} size={42} />
-      )}
-    </article>
+    </form>
   )
 }
 
@@ -204,7 +176,6 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   const sessionTextOpen = isWeedGoblinsSessionTextScene(state)
   const canType = freeTextOpen && !pendingTurn && !busy && state?.status !== 'completed'
   const canSessionType = sessionTextOpen && !pendingTurn && !busy && state?.status !== 'completed'
-  const sceneName = SCENE_NAMES[state?.sceneId] || 'Entering the Highlands'
 
   useEffect(() => {
     let cancelled = false
@@ -432,152 +403,140 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     setRunNumber((current) => current + 1)
   }
 
+  const composerPlaceholder = pendingTurn
+    ? 'Roll the die above'
+    : choices.length > 0
+      ? 'Message Eliza...'
+      : 'Message Eliza...'
+
   return (
-    <main className="weed-goblins-game" aria-label="Weed Goblins adventure">
+    <main className="weed-goblins-game" aria-label="Conversation with Eliza">
       <header className="weed-goblins-game__header">
-        <button type="button" className="weed-goblins-game__back" onClick={() => navigate(-1)} aria-label="Leave adventure">
+        <button
+          type="button"
+          className="weed-goblins-game__back"
+          onClick={() => navigate(-1)}
+          aria-label="Leave conversation"
+        >
           <span aria-hidden="true">‹</span>
         </button>
-        <div className="weed-goblins-game__title-group">
-          <div className="weed-goblins-game__eyebrow">Chapter 1 · Quest 1</div>
-          <h1>Eliza</h1>
-          <p>{sceneName}</p>
+        <div className="weed-goblins-game__contact">
+          <div className="weed-goblins-game__crest" aria-hidden="true">E</div>
+          <div className="weed-goblins-game__contact-copy">
+            <h1>{WEED_GOBLINS_NARRATOR_NAME}</h1>
+            <p>{busy ? 'typing…' : 'online'}</p>
+          </div>
         </div>
-        <div className="weed-goblins-game__crest" aria-hidden="true">E</div>
+        <div className="weed-goblins-game__header-spacer" aria-hidden="true" />
       </header>
 
-      <section className="weed-goblins-game__quest-bar" aria-label="Quest status">
-        <div className="weed-goblins-game__objective">
-          <span>Objective</span>
-          <strong>{state?.flags?.sessionZeroComplete && state?.stolenItem
-            ? `Take ${state.stolenItem} back from the Goblin King`
-            : 'Prepare your traveler for the Goblin Highlands'}</strong>
+      <section
+        ref={storyRef}
+        className="weed-goblins-game__story"
+        aria-live="polite"
+        aria-busy={busy}
+      >
+        <div className="weed-goblins-game__thread">
+          {loading && (
+            <div className="weed-goblins-game__message-row is-incoming">
+              <div className="weed-goblins-game__message-bubble is-eliza is-typing">
+                <TypingIndicator label="Eliza is opening the conversation" />
+              </div>
+            </div>
+          )}
+          {!loading && fatalError && (
+            <div className="weed-goblins-game__error" role="alert">{fatalError}</div>
+          )}
+          {messages.map((message, index) => (
+            <StoryEntry
+              key={`${message.kind || 'message'}-${message.direction}-${index}-${message.actionId || 'story'}`}
+              message={message}
+              onRoll={handleRoll}
+              canRoll={Boolean(pendingTurn) && message.kind === 'roll-trigger' && index === messages.length - 1}
+              busy={busy}
+            />
+          ))}
+          {busy && !loading && (
+            <div className="weed-goblins-game__message-row is-incoming">
+              <div className="weed-goblins-game__message-bubble is-eliza is-typing">
+                <TypingIndicator />
+              </div>
+            </div>
+          )}
+          <div ref={endRef} />
         </div>
-        {state?.background && (
-          <div className="weed-goblins-game__stats" aria-label="Character stats">
-            <Stat label="STR" value={state.stats.strength} />
-            <Stat label="DEF" value={state.stats.defense} />
-            <Stat label="MANA" value={`${state.stats.manaPool}/${state.stats.maxMana}`} />
-            <Stat label="TROUBLE" value={`${state.trouble}/3`} danger={state.trouble >= 2} />
-          </div>
-        )}
-      </section>
-
-      <section ref={storyRef} className="weed-goblins-game__story" aria-live="polite" aria-busy={busy}>
-        <div className="weed-goblins-game__story-heading">
-          <span>Adventure log</span>
-          <span>{sceneName}</span>
-        </div>
-        {loading && (
-          <div className="weed-goblins-game__loading">
-            <D20Icon />
-            <span>Opening the road...</span>
-          </div>
-        )}
-        {!loading && fatalError && <div className="weed-goblins-game__error">{fatalError}</div>}
-        {messages.map((message, index) => (
-          <StoryEntry
-            key={`${message.kind || 'message'}-${message.direction}-${index}-${message.actionId || 'story'}`}
-            message={message}
-            onRoll={handleRoll}
-            canRoll={Boolean(pendingTurn) && message.kind === 'roll-trigger' && index === messages.length - 1}
-            busy={busy}
-          />
-        ))}
-        {busy && (
-          <div className="weed-goblins-game__resolving">
-            {WEED_GOBLINS_NARRATOR_NAME} is resolving the move...
-          </div>
-        )}
-        <div ref={endRef} />
       </section>
 
       {!loading && !fatalError && (
-        <footer className="weed-goblins-game__actions">
-          {actionError && <div className="weed-goblins-game__action-error" role="alert">{actionError}</div>}
-          {state?.status === 'completed' ? (
-            <button type="button" className="weed-goblins-game__play-again" onClick={restartRun}>
-              Begin a new run
-            </button>
-          ) : (
-            <>
-              {choices.length > 0 && (
-                <div className="weed-goblins-game__action-block">
-                  <div className="weed-goblins-game__action-heading">
-                    <h2>{actionHeading(state)}</h2>
-                    {!hideSessionZeroChoiceChrome(state) && (
-                      <span>{choices.length} available</span>
-                    )}
-                  </div>
-                  <div className="weed-goblins-game__action-grid">
-                    {choices.map((choice, index) => (
+        <footer className="weed-goblins-game__controls">
+          <div className="weed-goblins-game__controls-inner">
+            {actionError && (
+              <div className="weed-goblins-game__action-error" role="alert">{actionError}</div>
+            )}
+
+            {state?.status === 'completed' ? (
+              <button type="button" className="weed-goblins-game__play-again" onClick={restartRun}>
+                Start another run
+              </button>
+            ) : (
+              <>
+                {choices.length > 0 && (
+                  <div className="weed-goblins-game__quick-replies" aria-label="Reply choices">
+                    {choices.map((choice) => (
                       <button
                         key={choice.id}
                         type="button"
-                        className="weed-goblins-game__action-card"
+                        className="weed-goblins-game__quick-reply"
                         onClick={() => handleChoice(choice)}
                         disabled={busy || Boolean(pendingTurn)}
                       >
-                        {!hideSessionZeroChoiceChrome(state) && (
-                          <span className="weed-goblins-game__action-number">{index + 1}</span>
-                        )}
-                        <span className="weed-goblins-game__action-copy">
-                          <strong>{choice.label}</strong>
-                          <small>{actionDetail(state, choice)}</small>
-                        </span>
-                        <span className="weed-goblins-game__action-arrow" aria-hidden="true">›</span>
+                        {choice.label}
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
 
-              {sessionTextOpen && (
-                <form className="weed-goblins-game__custom-action" onSubmit={handleSessionTextSubmit}>
-                  {state?.sceneId === 'session-zero-name' && (
-                    <label htmlFor="weed-goblins-session-input">What should I call you?</label>
-                  )}
-                  <div>
-                    <input
-                      id="weed-goblins-session-input"
-                      aria-label={state?.sceneId === 'session-zero-name' ? 'What should I call you?' : 'Describe yourself'}
-                      placeholder={state?.sceneId === 'session-zero-name'
-                        ? 'Enter a name, or ask for help'
-                        : 'Describe yourself'}
-                      value={draft}
-                      onChange={(event) => setDraft(event.target.value)}
-                      maxLength={160}
-                      disabled={!canSessionType}
-                    />
-                    <button
-                      type="submit"
-                      disabled={!canSessionType || (state?.sceneId === 'session-zero-look' && !draft.trim())}
-                    >
-                      Continue
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {freeTextOpen && !pendingTurn && (
-                <form className="weed-goblins-game__custom-action" onSubmit={handleTextSubmit}>
-                  <label htmlFor="weed-goblins-custom-action">Try another action</label>
-                  <div>
-                    <input
-                      id="weed-goblins-custom-action"
-                      aria-label="Describe another action"
-                      placeholder="Describe what your character does"
-                      value={draft}
-                      onChange={(event) => setDraft(event.target.value)}
-                      maxLength={160}
-                      disabled={!canType}
-                    />
-                    <button type="submit" disabled={!canType || !draft.trim()}>Attempt</button>
-                  </div>
-                </form>
-              )}
-            </>
-          )}
+                {sessionTextOpen ? (
+                  <MessageComposer
+                    id="weed-goblins-session-input"
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onSubmit={handleSessionTextSubmit}
+                    placeholder={state?.sceneId === 'session-zero-name'
+                      ? 'Message Eliza a name...'
+                      : 'Describe yourself...'}
+                    ariaLabel={state?.sceneId === 'session-zero-name'
+                      ? 'Message Eliza a name'
+                      : 'Describe yourself to Eliza'}
+                    disabled={!canSessionType}
+                    submitDisabled={!canSessionType || (state?.sceneId === 'session-zero-look' && !draft.trim())}
+                  />
+                ) : freeTextOpen && !pendingTurn ? (
+                  <MessageComposer
+                    id="weed-goblins-custom-action"
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onSubmit={handleTextSubmit}
+                    placeholder="Message Eliza..."
+                    ariaLabel="Message Eliza another action"
+                    disabled={!canType}
+                    submitDisabled={!canType || !draft.trim()}
+                  />
+                ) : (
+                  <MessageComposer
+                    id="weed-goblins-disabled-composer"
+                    value=""
+                    onChange={() => {}}
+                    onSubmit={(event) => event.preventDefault()}
+                    placeholder={composerPlaceholder}
+                    ariaLabel="Message input unavailable"
+                    disabled
+                    submitDisabled
+                  />
+                )}
+              </>
+            )}
+          </div>
         </footer>
       )}
     </main>
