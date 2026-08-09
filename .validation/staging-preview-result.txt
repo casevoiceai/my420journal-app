@@ -1,0 +1,3 @@
+Cloudflare credential availability
+API token present: yes
+Account ID present: yes
