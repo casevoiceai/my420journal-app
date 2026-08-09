@@ -215,7 +215,7 @@
 					<button onclick="reveal()" type="button" id="cf-footer-ip-reveal" class="cf-footer-ip-reveal-btn">
 						Click to reveal
 					</button>
-					<span class="hidden" id="cf-footer-ip">172.172.158.1</span>
+					<span class="hidden" id="cf-footer-ip">172.182.195.43</span>
 				</span></dd>
       </div>
     
@@ -228,13 +228,13 @@
 
       <div class="margin-3 margin-bottom-0">
         <dt class="display-inline">Ray ID:</dt>
-        <dd class="display-inline">a2853c4fdba9cec0</dd>
+        <dd class="display-inline">a2854348acf0dcfa</dd>
       </div>
     
 
       <div class="margin-3 margin-bottom-0">
         <dt class="display-inline"></dt>
-        <dd class="display-inline">2026-08-09T08:01:55.185Z</dd>
+        <dd class="display-inline">2026-08-09T08:06:40.760Z</dd>
       </div>
     
   </dl>
