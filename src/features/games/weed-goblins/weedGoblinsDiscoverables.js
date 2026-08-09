@@ -1,5 +1,9 @@
 import * as chapterOne from './weedGoblinsDiscoverablesChapterOne.js'
 import { CHAPTER_TWO_LOCATIONS } from './weedGoblinsChapterTwo.js'
+import {
+  CHAPTER_THREE_LOCATIONS,
+  CHAPTER_THREE_REWARDS,
+} from './weedGoblinsChapterThree.js'
 
 function discoverable(id, title, terms, body, action = null) {
   return Object.freeze({
@@ -47,7 +51,55 @@ function chapterTwoDiscoverables(state) {
   return Object.freeze(items)
 }
 
+function chapterThreeDiscoverables(state) {
+  const items = []
+  if (visited(state, CHAPTER_THREE_LOCATIONS.grayVerge.id)) {
+    items.push(
+      discoverable('grove:bramblekin', 'Bramblekin', ['Bramblekin'], 'A grove spirit barely holding a shape. Bramblekin can feel that the gray pull comes from underground.', { kind: 'engine', id: 'verge:bramblekin', label: 'Ask Bramblekin where the pull goes' }),
+      discoverable('grove:corla', 'Corla the Forager', ['Corla the Forager', 'Corla'], 'Practical and exhausted, Corla keeps one living patch alive by hand and carries one living seed in a locket.', { kind: 'engine', id: 'verge:corla', label: 'Ask Corla what she has tried' }),
+      discoverable('grove:kip', 'Kip', ['Kip'], 'A young spriggan who hears schedules and numbers in the roots. Adults dismissed them as fear until the timing started matching the pull.', { kind: 'engine', id: 'verge:kip', label: 'Listen to Kip’s root schedule' }),
+      discoverable('grove:gray-verge', 'Gray Verge', ['Gray Verge'], 'The edge of the Withered Grove, where full daylight and running water have not stopped the roots from turning gray.'),
+    )
+  }
+  if (visited(state, CHAPTER_THREE_LOCATIONS.resinChapel.id)) {
+    items.push(
+      discoverable('grove:resin-chapel', 'Resin Chapel', ['Resin Chapel'], 'A place where the grove stored memories in resin before the gray reached them.'),
+      discoverable('grove:memory-rings', 'Grove Memory Rings', ['memory rings', 'grove memory rings'], 'The rings preserve growth memories. They are read by growth order, not by clock time.'),
+    )
+  }
+  if (visited(state, CHAPTER_THREE_LOCATIONS.thirstingRun.id)) {
+    items.push(
+      discoverable('grove:thirsting-run', 'Thirsting Run', ['Thirsting Run'], 'A divided watercourse where preservation, evacuation, and access compete for the same limited flow.'),
+      discoverable('grove:water-stones', 'Three Water Stones', ['three water stones', 'water stones'], 'Three movable stones direct water between preservation, evacuation, and access.'),
+      discoverable('grove:stalker', 'Withering Stalker', ['Withering Stalker', 'Stalker'], 'A deer-shaped thing of dead branch and old root. It is silent and visible only when it moves. Stillness and thick resin trunks create blind spots.'),
+    )
+  }
+  if (visited(state, CHAPTER_THREE_LOCATIONS.sleepingNursery.id)) {
+    items.push(
+      discoverable('grove:sleeping-nursery', 'Sleeping Nursery', ['Sleeping Nursery'], 'Root-beds holding the grove’s sleepers while the underground pull worsens.'),
+      discoverable('grove:root-leeches', 'Root Leeches', ['Root Leeches', 'root leeches'], 'They attach beneath major roots and pull toward magic.'),
+    )
+  }
+  if (visited(state, CHAPTER_THREE_LOCATIONS.siphonWell.id)) {
+    items.push(
+      discoverable('grove:siphon-well', 'Siphon Well', ['Siphon Well'], 'The place where multiple conduits join the Cultivator’s deeper feeding network.'),
+      discoverable('grove:nightly-draw', 'Nightly Draw', ['Nightly Draw'], 'The Wither-tier pull when every active conduit tightens at once.'),
+    )
+  }
+  if (state?.inventory?.includes(CHAPTER_THREE_REWARDS.corlasLastSeed)) {
+    items.push(discoverable('grove:last-seed', CHAPTER_THREE_REWARDS.corlasLastSeed, [CHAPTER_THREE_REWARDS.corlasLastSeed], 'Corla’s single living seed. It survives this chapter and matters later in the campaign.'))
+  }
+  if (state?.inventory?.includes(CHAPTER_THREE_REWARDS.greyBarkShard)) {
+    items.push(discoverable('grove:grey-bark', CHAPTER_THREE_REWARDS.greyBarkShard, [CHAPTER_THREE_REWARDS.greyBarkShard], 'A shard of gray bark that can identify the same corruption when it appears again.'))
+  }
+  if (state?.inventory?.includes(CHAPTER_THREE_REWARDS.livingRootMap)) {
+    items.push(discoverable('grove:root-map', CHAPTER_THREE_REWARDS.livingRootMap, [CHAPTER_THREE_REWARDS.livingRootMap], 'A living route through the root network pointing toward the Sunken Greenhouse.'))
+  }
+  return Object.freeze(items)
+}
+
 export function getWeedGoblinsDiscoverables(state) {
+  if (state?.chapterNumber === 3) return chapterThreeDiscoverables(state)
   if (state?.chapterNumber === 2) return chapterTwoDiscoverables(state)
   return chapterOne.getWeedGoblinsDiscoverables(state)
 }
@@ -56,8 +108,7 @@ function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-export function findWeedGoblinsDiscoverableMatches(text, state) {
-  if (state?.chapterNumber !== 2) return chapterOne.findWeedGoblinsDiscoverableMatches(text, state)
+function localDiscoverableMatches(text, state) {
   const source = typeof text === 'string' ? text : ''
   if (!source) return Object.freeze([])
   const candidates = getWeedGoblinsDiscoverables(state)
@@ -77,4 +128,11 @@ export function findWeedGoblinsDiscoverableMatches(text, state) {
     }
   }
   return Object.freeze(matches.sort((left, right) => left.start - right.start))
+}
+
+export function findWeedGoblinsDiscoverableMatches(text, state) {
+  if (![2, 3].includes(Number(state?.chapterNumber))) {
+    return chapterOne.findWeedGoblinsDiscoverableMatches(text, state)
+  }
+  return localDiscoverableMatches(text, state)
 }

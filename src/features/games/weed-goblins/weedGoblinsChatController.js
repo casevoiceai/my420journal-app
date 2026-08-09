@@ -1,9 +1,9 @@
-import * as chapterOne from './weedGoblinsChatControllerChapterOne.js'
+import * as prior from './weedGoblinsChatControllerThroughChapterTwo.js'
 import {
-  buildChapterTwoPersonalization,
-  createChapterTwoRunFromSessionZero,
-} from './weedGoblinsChapterTwoRuntime.js'
-import * as chapterTwo from './weedGoblinsChapterTwoChatController.js'
+  buildChapterThreePersonalization,
+  createChapterThreeRunFromSessionZero,
+} from './weedGoblinsChapterThreeRuntime.js'
+import * as chapterThree from './weedGoblinsChapterThreeChatController.js'
 import { calculateWeedGoblinsProgression } from './weedGoblinsProgression.js'
 
 export {
@@ -12,23 +12,23 @@ export {
   createOutgoingTextMessage,
   createRollResultMessage,
   createRollTriggerMessage,
-} from './weedGoblinsChatControllerChapterOne.js'
+} from './weedGoblinsChatControllerThroughChapterTwo.js'
 
-const TARGET_CHAPTER_TWO = 2
+const TARGET_CHAPTER_THREE = 3
 
-function isChapterTwoState(state) {
-  return state?.chapterNumber === TARGET_CHAPTER_TWO
-    || state?.adventureId === 'hollow-market-session-1'
+function isChapterThreeState(state) {
+  return state?.chapterNumber === TARGET_CHAPTER_THREE
+    || state?.adventureId === 'withered-grove-session-1'
 }
 
-function isChapterTwoSessionZero(state) {
-  return state?.targetChapterNumber === TARGET_CHAPTER_TWO && !isChapterTwoState(state)
+function isChapterThreeSessionZero(state) {
+  return state?.targetChapterNumber === TARGET_CHAPTER_THREE && !isChapterThreeState(state)
 }
 
-function chapterTwoShouldStart(previousRuns = []) {
+function chapterThreeShouldStart(previousRuns = []) {
   const progression = calculateWeedGoblinsProgression(previousRuns)
   const playable = progression.nextChapterReference || progression.currentChapter
-  return playable?.number === TARGET_CHAPTER_TWO
+  return playable?.number === TARGET_CHAPTER_THREE
 }
 
 function safePreviousRuns(previousRuns = []) {
@@ -44,37 +44,40 @@ function safePreviousRuns(previousRuns = []) {
     chapterTwoRewards: Array.isArray(run?.chapterTwoRewards)
       ? run.chapterTwoRewards.filter((value) => typeof value === 'string').slice(0, 8)
       : [],
+    chapterThreeRewards: Array.isArray(run?.chapterThreeRewards)
+      ? run.chapterThreeRewards.filter((value) => typeof value === 'string').slice(0, 8)
+      : [],
   }))
 }
 
-function tagChapterTwoSessionState(state, {
+function tagChapterThreeSessionState(state, {
   journalSnapshot = {},
   previousRuns = [],
 } = {}) {
   return {
     ...state,
-    targetChapterNumber: TARGET_CHAPTER_TWO,
-    chapterTwoPersonalization: buildChapterTwoPersonalization(journalSnapshot),
-    chapterTwoPreviousRuns: safePreviousRuns(previousRuns),
+    targetChapterNumber: TARGET_CHAPTER_THREE,
+    chapterThreePersonalization: buildChapterThreePersonalization(journalSnapshot),
+    chapterThreePreviousRuns: safePreviousRuns(previousRuns),
   }
 }
 
 function preserveTargetTags(before, after) {
-  if (!isChapterTwoSessionZero(before) || !after) return after
+  if (!isChapterThreeSessionZero(before) || !after) return after
   return {
     ...after,
-    targetChapterNumber: TARGET_CHAPTER_TWO,
-    chapterTwoPersonalization: before.chapterTwoPersonalization,
-    chapterTwoPreviousRuns: before.chapterTwoPreviousRuns,
+    targetChapterNumber: TARGET_CHAPTER_THREE,
+    chapterThreePersonalization: before.chapterThreePersonalization,
+    chapterThreePreviousRuns: before.chapterThreePreviousRuns,
   }
 }
 
-function maybeEnterChapterTwo(state) {
-  if (!isChapterTwoSessionZero(state)) return state
+function maybeEnterChapterThree(state) {
+  if (!isChapterThreeSessionZero(state)) return state
   if (!state.flags?.sessionZeroComplete || state.sceneId !== 'choose-route') return state
-  return createChapterTwoRunFromSessionZero(state, {
-    previousRuns: state.chapterTwoPreviousRuns || [],
-    personalization: state.chapterTwoPersonalization,
+  return createChapterThreeRunFromSessionZero(state, {
+    previousRuns: state.chapterThreePreviousRuns || [],
+    personalization: state.chapterThreePersonalization,
   })
 }
 
@@ -88,20 +91,20 @@ function targetSessionPrompt(state) {
     'session-zero-look': 'Paint yourself for me.',
   }
   return prompts[state?.sceneId]
-    || 'Character setup stays the same. Once this is settled, the Hollow Market opens below the root bridge.'
+    || 'Character setup stays the same. Once this is settled, the Gray Verge is waiting at the edge of the Withered Grove.'
 }
 
 function targetSessionTransitionMessages(after) {
-  const message = chapterOne.createIncomingChatMessage(targetSessionPrompt(after), {
-    source: 'chapter-two-session-zero',
+  const message = prior.createIncomingChatMessage(targetSessionPrompt(after), {
+    source: 'chapter-three-session-zero',
   })
   return message ? [message] : []
 }
 
 function convertPreparedTargetTurn(prepared) {
-  if (!prepared?.before || !isChapterTwoSessionZero(prepared.before)) return prepared
+  if (!prepared?.before || !isChapterThreeSessionZero(prepared.before)) return prepared
   const taggedAfter = prepared.after
-    ? maybeEnterChapterTwo(preserveTargetTags(prepared.before, prepared.after))
+    ? maybeEnterChapterThree(preserveTargetTags(prepared.before, prepared.after))
     : prepared.after
   return Object.freeze({
     ...prepared,
@@ -112,130 +115,130 @@ function convertPreparedTargetTurn(prepared) {
 
 export async function createWeedGoblinsChatSession(options = {}) {
   const previousRuns = Array.isArray(options.previousRuns) ? options.previousRuns : []
-  if (!chapterTwoShouldStart(previousRuns)) return chapterOne.createWeedGoblinsChatSession(options)
+  if (!chapterThreeShouldStart(previousRuns)) return prior.createWeedGoblinsChatSession(options)
 
-  const legacySession = await chapterOne.createWeedGoblinsChatSession(options)
-  const state = tagChapterTwoSessionState(legacySession.state, options)
+  const legacySession = await prior.createWeedGoblinsChatSession(options)
+  const state = tagChapterThreeSessionState(legacySession.state, options)
   const messages = [
-    chapterOne.createIncomingChatMessage(
-      'The Hollow Market is open to you now. Before we go below the collapsed root bridge, I need to know who is walking in.',
-      { source: 'chapter-two-session-zero' },
+    prior.createIncomingChatMessage(
+      'The Living Root Map has a destination now. Before we step into the Gray Verge, I need to know who is walking in.',
+      { source: 'chapter-three-session-zero' },
     ),
-    chapterOne.createIncomingChatMessage(
-      'Same traveler rules as before: name, kind, weapon, approach, pronouns, and look. Then we find the three smokeless lanterns.',
-      { source: 'chapter-two-session-zero' },
+    prior.createIncomingChatMessage(
+      'Name, kind, weapon, approach, pronouns, and look. Then we follow the gray roots into the Withered Grove.',
+      { source: 'chapter-three-session-zero' },
     ),
   ].filter(Boolean)
   return {
     state,
     messages,
-    choices: chapterOne.getWeedGoblinsQuickReplies(state),
+    choices: prior.getWeedGoblinsQuickReplies(state),
   }
 }
 
 export function getWeedGoblinsQuickReplies(state) {
-  if (isChapterTwoState(state)) return chapterTwo.getChapterTwoQuickReplies(state)
-  return chapterOne.getWeedGoblinsQuickReplies(state)
+  if (isChapterThreeState(state)) return chapterThree.getChapterThreeQuickReplies(state)
+  return prior.getWeedGoblinsQuickReplies(state)
 }
 
 export function isWeedGoblinsFreeTextScene(state) {
-  if (isChapterTwoState(state)) return chapterTwo.isChapterTwoFreeTextScene(state)
-  if (isChapterTwoSessionZero(state)) return false
-  return chapterOne.isWeedGoblinsFreeTextScene(state)
+  if (isChapterThreeState(state)) return chapterThree.isChapterThreeFreeTextScene(state)
+  if (isChapterThreeSessionZero(state)) return false
+  return prior.isWeedGoblinsFreeTextScene(state)
 }
 
 export function isWeedGoblinsSessionTextScene(state) {
-  if (isChapterTwoState(state)) return false
-  return chapterOne.isWeedGoblinsSessionTextScene(state)
+  if (isChapterThreeState(state)) return false
+  return prior.isWeedGoblinsSessionTextScene(state)
 }
 
 export function selectWeedGoblinsChatChoice(state, action) {
-  if (isChapterTwoState(state)) return chapterTwo.selectChapterTwoChatChoice(state, action)
-  const result = chapterOne.selectWeedGoblinsChatChoice(state, action)
-  if (!isChapterTwoSessionZero(state)) return result
-  const after = maybeEnterChapterTwo(preserveTargetTags(state, result.after))
+  if (isChapterThreeState(state)) return chapterThree.selectChapterThreeChatChoice(state, action)
+  const result = prior.selectWeedGoblinsChatChoice(state, action)
+  if (!isChapterThreeSessionZero(state)) return result
+  const after = maybeEnterChapterThree(preserveTargetTags(state, result.after))
   return { ...result, before: state, after }
 }
 
 export function prepareWeedGoblinsChoiceTurn({ state, action } = {}) {
-  if (isChapterTwoState(state)) return chapterTwo.prepareChapterTwoChoiceTurn({ state, action })
-  return convertPreparedTargetTurn(chapterOne.prepareWeedGoblinsChoiceTurn({ state, action }))
+  if (isChapterThreeState(state)) return chapterThree.prepareChapterThreeChoiceTurn({ state, action })
+  return convertPreparedTargetTurn(prior.prepareWeedGoblinsChoiceTurn({ state, action }))
 }
 
 export async function prepareWeedGoblinsQuickReplyTurn(options = {}) {
-  if (isChapterTwoState(options.state)) return chapterTwo.prepareChapterTwoQuickReplyTurn(options)
-  const prepared = await chapterOne.prepareWeedGoblinsQuickReplyTurn(options)
+  if (isChapterThreeState(options.state)) return chapterThree.prepareChapterThreeQuickReplyTurn(options)
+  const prepared = await prior.prepareWeedGoblinsQuickReplyTurn(options)
   return convertPreparedTargetTurn(prepared)
 }
 
 export function submitWeedGoblinsSessionText(state, value) {
-  if (isChapterTwoState(state)) {
+  if (isChapterThreeState(state)) {
     throw new Error(`Session text input is not available in scene ${state?.sceneId ?? '(missing)'}.`)
   }
-  const transition = chapterOne.submitWeedGoblinsSessionText(state, value)
-  if (!isChapterTwoSessionZero(state)) return transition
+  const transition = prior.submitWeedGoblinsSessionText(state, value)
+  if (!isChapterThreeSessionZero(state)) return transition
   const tagged = preserveTargetTags(state, transition.after)
   return {
     ...transition,
     before: state,
-    after: maybeEnterChapterTwo(tagged),
+    after: maybeEnterChapterThree(tagged),
   }
 }
 
 export async function prepareWeedGoblinsFreeTextTurn(options = {}) {
-  if (isChapterTwoState(options.state)) return chapterTwo.prepareChapterTwoFreeTextTurn(options)
-  return chapterOne.prepareWeedGoblinsFreeTextTurn(options)
+  if (isChapterThreeState(options.state)) return chapterThree.prepareChapterThreeFreeTextTurn(options)
+  return prior.prepareWeedGoblinsFreeTextTurn(options)
 }
 
 export function resolveWeedGoblinsPreparedMechanics(options = {}) {
-  if (isChapterTwoState(options.preparedTurn?.before)) {
-    return chapterTwo.resolveChapterTwoPreparedMechanics(options)
+  if (isChapterThreeState(options.preparedTurn?.before)) {
+    return chapterThree.resolveChapterThreePreparedMechanics(options)
   }
-  return chapterOne.resolveWeedGoblinsPreparedMechanics(options)
+  return prior.resolveWeedGoblinsPreparedMechanics(options)
 }
 
 export async function narrateWeedGoblinsResolvedTurn(options = {}) {
-  if (isChapterTwoState(options.preparedTurn?.before)) {
-    return chapterTwo.narrateChapterTwoResolvedTurn(options)
+  if (isChapterThreeState(options.preparedTurn?.before)) {
+    return chapterThree.narrateChapterThreeResolvedTurn(options)
   }
-  return chapterOne.narrateWeedGoblinsResolvedTurn(options)
+  return prior.narrateWeedGoblinsResolvedTurn(options)
 }
 
 export async function resolveWeedGoblinsPreparedTurn(options = {}) {
-  if (isChapterTwoState(options.preparedTurn?.before)) {
-    return chapterTwo.resolveChapterTwoPreparedTurn(options)
+  if (isChapterThreeState(options.preparedTurn?.before)) {
+    return chapterThree.resolveChapterThreePreparedTurn(options)
   }
-  return chapterOne.resolveWeedGoblinsPreparedTurn(options)
+  return prior.resolveWeedGoblinsPreparedTurn(options)
 }
 
 export async function resolveWeedGoblinsTransitionMessages(options = {}) {
   const { before, after } = options
-  if (isChapterTwoState(after)) {
-    if (isChapterTwoSessionZero(before)) {
-      return chapterTwo.createChapterTwoOpeningMessages({
+  if (isChapterThreeState(after)) {
+    if (isChapterThreeSessionZero(before)) {
+      return chapterThree.createChapterThreeOpeningMessages({
         state: after,
         blockedRealNames: options.blockedRealNames,
         generateNarration: options.generateNarration,
       })
     }
-    return chapterTwo.resolveChapterTwoTransitionMessages(options)
+    return chapterThree.resolveChapterThreeTransitionMessages(options)
   }
-  if (isChapterTwoSessionZero(before) || isChapterTwoSessionZero(after)) {
+  if (isChapterThreeSessionZero(before) || isChapterThreeSessionZero(after)) {
     return targetSessionTransitionMessages(after)
   }
-  return chapterOne.resolveWeedGoblinsTransitionMessages(options)
+  return prior.resolveWeedGoblinsTransitionMessages(options)
 }
 
 export async function resolveWeedGoblinsTransitionWithStaticFallback(options = {}) {
   try {
     return await resolveWeedGoblinsTransitionMessages(options)
   } catch {
-    if (isChapterTwoState(options.after)) {
-      return chapterTwo.resolveChapterTwoTransitionWithStaticFallback(options)
+    if (isChapterThreeState(options.after)) {
+      return chapterThree.resolveChapterThreeTransitionWithStaticFallback(options)
     }
-    if (isChapterTwoSessionZero(options.before) || isChapterTwoSessionZero(options.after)) {
+    if (isChapterThreeSessionZero(options.before) || isChapterThreeSessionZero(options.after)) {
       return targetSessionTransitionMessages(options.after)
     }
-    return chapterOne.resolveWeedGoblinsTransitionWithStaticFallback(options)
+    return prior.resolveWeedGoblinsTransitionWithStaticFallback(options)
   }
 }
