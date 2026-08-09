@@ -14,6 +14,7 @@ jobs:
       STAGING_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_STAGING_PROXY_SECRET }}
       STAGING_ANTHROPIC_API_KEY: ${{ secrets.WEED_GOBLINS_ANTHROPIC_API_KEY }}
       STAGING_RATE_LIMIT_SALT: ${{ secrets.WEED_GOBLINS_STAGING_RATE_LIMIT_SALT }}
+      STAGING_WORKER_URL: https://my420journal-weed-goblins-narration-staging.casevoice-ai.workers.dev
     steps:
       - name: Check out verified feature branch
         uses: actions/checkout@v4
@@ -62,3 +63,20 @@ jobs:
       - name: Deploy staging Worker only
         working-directory: server/weed-goblins-narration-worker
         run: npx wrangler@latest deploy --env staging
+
+      - name: Smoke test staging narration
+        shell: bash
+        run: |
+          status=$(curl --silent --show-error \
+            --output /tmp/weed-goblins-staging-response.json \
+            --write-out '%{http_code}' \
+            --request POST "$STAGING_WORKER_URL" \
+            --header 'Content-Type: application/json' \
+            --header "Authorization: Bearer $STAGING_PROXY_SECRET" \
+            --data '{"moment":"natural-one-complication","outcome":"complication","sceneId":"choose-route","actionId":"route:ridge","stat":"strength","dc":12,"rolls":[1],"selectedRoll":1,"troubleBefore":0,"troubleAfter":2,"fictionalStolenItem":"the Amber Field Satchel","fictionalGoblinName":"Professor Grub","narrationTier":"normal"}')
+          if [ "$status" != "200" ]; then
+            echo "STAGING_SMOKE_TEST_HTTP_$status"
+            cat /tmp/weed-goblins-staging-response.json
+            exit 51
+          fi
+          node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/weed-goblins-staging-response.json','utf8')); if(!j.text || typeof j.text !== 'string') process.exit(52); console.log('STAGING_SMOKE_TEST_OK')"
