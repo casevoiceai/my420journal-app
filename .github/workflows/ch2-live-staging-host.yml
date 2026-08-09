@@ -44,6 +44,7 @@ jobs:
         run: |
           npm ci
           npm run build
+          rm -f dist/_redirects
 
       - name: Set temporary host staging proxy secret
         shell: bash
@@ -102,4 +103,9 @@ jobs:
       - name: Delete temporary staging host
         if: always()
         shell: bash
-        run: npx wrangler@latest delete --name my420journal-wg-ch2-validation --force
+        run: |
+          response=$(curl -sS -X DELETE \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/my420journal-wg-ch2-validation" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H 'Content-Type: application/json')
+          echo "$response" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s); if(!j.success) { console.error(JSON.stringify(j.errors||[])); process.exit(1) } console.log('TEMP_STAGING_HOST_DELETED')})"
