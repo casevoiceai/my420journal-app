@@ -26,22 +26,22 @@ test('prompt varies sentence completeness without undoing coherent bubble chunki
   assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /roughly one sentence in four or five may break grammatical completeness/)
   assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /highest tension, the sharpest visual detail, the sudden realization, or the dry punch of the joke/)
   assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /This is a rhythm tool, not a content tool/)
-  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /single em dash when the spoken rhythm genuinely cuts off/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /period, an ellipsis, or a deliberate fragment/)
   assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Do not force a break just to hit a quota/)
 })
 
-test('validator permits a deliberate em-dash trail-off but still rejects an en dash', () => {
+test('validator rejects both em dash and en dash punctuation', () => {
   const emDash = validateGeneratedNarration(
-    'The bottle-cap line trembles once, then goes still. Something moved beneath the bridge—',
+    'Something red moves behind the window \u2014 then the cloud closes over it.',
     { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },
   )
-  assert.equal(emDash.valid, true, emDash.reasons.join('; '))
+  assert.ok(emDash.reasons.includes('uses an em dash or en dash'))
 
   const enDash = validateGeneratedNarration(
-    'The bridge is quiet – too quiet to trust.',
+    'The bridge is narrow \u2013 narrower than it looked from the trail.',
     { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },
   )
-  assert.ok(enDash.reasons.includes('uses an en dash'))
+  assert.ok(enDash.reasons.includes('uses an em dash or en dash'))
 })
 
 test('prompt limits hedge explanations and breaks the repeated triad cadence', () => {

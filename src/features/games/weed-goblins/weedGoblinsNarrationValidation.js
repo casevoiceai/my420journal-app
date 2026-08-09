@@ -1,5 +1,5 @@
 const BANNED_WORDS = Object.freeze(['awesome', 'amazing', 'weed'])
-const BANNED_DASH_SIGNAL = /[\u2013]/
+const BANNED_DASH_SIGNAL = /[\u2013\u2014]/
 const RUN_ENDING_OUTCOMES = Object.freeze(['recovery', 'bargain', 'escape'])
 const HIGHLANDS_OPENING_LEAD = "Welcome to the Goblin Highlands. I'll be your narrator"
 const HIGHLANDS_OPENING_FOUNDATION = `${HIGHLANDS_OPENING_LEAD}.`
@@ -399,7 +399,7 @@ export function validateGeneratedNarration(
   if (!text) reasons.push('empty response')
   if (text.length > maxLength) reasons.push('response is too long')
   if (text.includes('!')) reasons.push('contains an exclamation point')
-  if (BANNED_DASH_SIGNAL.test(text)) reasons.push('uses an en dash')
+  if (BANNED_DASH_SIGNAL.test(text)) reasons.push('uses an em dash or en dash')
 
   if (['player-action-attempt', 'player-action-response'].includes(moment) && !String(playerAction).trim()) {
     reasons.push('is missing player action context')
