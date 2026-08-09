@@ -1,0 +1,48 @@
+name: Weed Goblins Priority 14 Hollow Market foundation
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-priority14-build
+    paths:
+      - .github/workflows/weed-goblins-priority14-build.yml
+
+jobs:
+  verify-chapter-two-foundation:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out clean Chapter 2 foundation branch
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-priority14-chapter2-foundation
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify exact feature scope
+        shell: bash
+        run: |
+          changed=$(git diff --name-only origin/feature/weed-goblins-session-zero...HEAD | sort)
+          printf '%s\n' "$changed"
+          expected=$'src/features/games/weed-goblins/weedGoblinsChapterTwo.js\nsrc/features/games/weed-goblins/weedGoblinsChapterTwo.test.js\nsrc/features/games/weed-goblins/weedGoblinsProgression.js\nsrc/features/games/weed-goblins/weedGoblinsProgression.test.js'
+          if [ "$changed" != "$expected" ]; then
+            echo 'UNEXPECTED_SCOPE'
+            exit 61
+          fi
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Chapter 2 foundation and progression tests
+        run: >-
+          node --test
+          src/features/games/weed-goblins/weedGoblinsChapterTwo.test.js
+          src/features/games/weed-goblins/weedGoblinsProgression.test.js
+          src/features/games/weed-goblins/weedGoblinsReplay.test.js
+          src/features/games/weed-goblins/weedGoblinsPersistence.test.js
+
+      - name: Build production bundle
+        run: npm run build
