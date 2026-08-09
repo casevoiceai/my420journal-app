@@ -27,68 +27,56 @@ jobs:
       - name: Install app dependencies
         run: npm ci
 
-      - name: Run Chapter 2 targeted tests
+      - name: Verify Chapter 2 tests and build
         shell: bash
         run: |
           set -o pipefail
-          mapfile -t tests < <(find src/features/games/weed-goblins server/weed-goblins-narration-worker -type f \( -iname '*chaptertwo*.test.js' -o -iname '*chapter-two*.test.js' \) | sort)
-          node --test --test-reporter=tap "${tests[@]}" 2>&1 | tee /tmp/ch2-targeted.tap
-          tests_count=$(grep -E '^# tests ' /tmp/ch2-targeted.tap | tail -1 | awk '{print $3}')
-          pass_count=$(grep -E '^# pass ' /tmp/ch2-targeted.tap | tail -1 | awk '{print $3}')
-          fail_count=$(grep -E '^# fail ' /tmp/ch2-targeted.tap | tail -1 | awk '{print $3}')
-          echo "TARGET_TESTS=${tests_count}" >> /tmp/validation.env
-          echo "TARGET_PASS=${pass_count}" >> /tmp/validation.env
-          echo "TARGET_FAIL=${fail_count}" >> /tmp/validation.env
-
-      - name: Run full Weed Goblins suite against baseline
-        shell: bash
-        run: |
+          mapfile -t targeted < <(find src/features/games/weed-goblins server/weed-goblins-narration-worker -type f \( -iname '*chaptertwo*.test.js' -o -iname '*chapter-two*.test.js' \) | sort)
+          node --test --test-reporter=tap "${targeted[@]}" 2>&1 | tee /tmp/ch2-targeted.tap
+          echo "TARGET_TESTS=$(grep -E '^# tests ' /tmp/ch2-targeted.tap | tail -1 | awk '{print $3}')" >> /tmp/validation.env
+          echo "TARGET_PASS=$(grep -E '^# pass ' /tmp/ch2-targeted.tap | tail -1 | awk '{print $3}')" >> /tmp/validation.env
+          echo "TARGET_FAIL=$(grep -E '^# fail ' /tmp/ch2-targeted.tap | tail -1 | awk '{print $3}')" >> /tmp/validation.env
           set +e
-          mapfile -t tests < <(find src/features/games/weed-goblins server/weed-goblins-narration-worker -type f -name '*.test.js' | sort)
-          node --test --test-reporter=tap "${tests[@]}" > /tmp/ch2-full.tap 2>&1
+          mapfile -t full < <(find src/features/games/weed-goblins server/weed-goblins-narration-worker -type f -name '*.test.js' | sort)
+          node --test --test-reporter=tap "${full[@]}" > /tmp/ch2-full.tap 2>&1
           rc=$?
           set -e
-          tests_count=$(grep -E '^# tests ' /tmp/ch2-full.tap | tail -1 | awk '{print $3}')
-          pass_count=$(grep -E '^# pass ' /tmp/ch2-full.tap | tail -1 | awk '{print $3}')
-          fail_count=$(grep -E '^# fail ' /tmp/ch2-full.tap | tail -1 | awk '{print $3}')
-          echo "FULL_TESTS=${tests_count}" >> /tmp/validation.env
-          echo "FULL_PASS=${pass_count}" >> /tmp/validation.env
-          echo "FULL_FAIL=${fail_count}" >> /tmp/validation.env
-          if [ "${tests_count}" != "241" ] || [ "${pass_count}" != "205" ] || [ "${fail_count}" != "36" ]; then
-            tail -120 /tmp/ch2-full.tap
-            exit 1
-          fi
+          tests=$(grep -E '^# tests ' /tmp/ch2-full.tap | tail -1 | awk '{print $3}')
+          pass=$(grep -E '^# pass ' /tmp/ch2-full.tap | tail -1 | awk '{print $3}')
+          fail=$(grep -E '^# fail ' /tmp/ch2-full.tap | tail -1 | awk '{print $3}')
+          echo "FULL_TESTS=${tests}" >> /tmp/validation.env
+          echo "FULL_PASS=${pass}" >> /tmp/validation.env
+          echo "FULL_FAIL=${fail}" >> /tmp/validation.env
+          test "$tests" = 241
+          test "$pass" = 205
+          test "$fail" = 36
           test "$rc" -ne 0
+          npm run build
 
-      - name: Build production bundle
-        run: npm run build
-
-      - name: Probe Cloudflare staging surfaces
+      - name: Probe staging surfaces
         shell: bash
         run: |
           set +e
           preview_host='feature-weed-goblins-session-zero.my420journal-app.pages.dev'
-          preview_url="https://${preview_host}/games/weed-goblins"
-          worker_url='https://my420journal-weed-goblins-narration-staging.casevoice-ai.workers.dev/'
-          get_status=$(curl -L -sS --connect-timeout 10 --max-time 30 -o /tmp/preview.html -w '%{http_code}' "$preview_url")
-          worker_status=$(curl -sS --connect-timeout 10 --max-time 30 -o /tmp/worker.txt -w '%{http_code}' "$worker_url")
-          api_status=$(curl -sS --connect-timeout 10 --max-time 60 -o /tmp/api.txt -w '%{http_code}' \
+          preview_status=$(curl -L -sS --connect-timeout 10 --max-time 30 -o /tmp/preview.html -w '%{http_code}' "https://${preview_host}/games/weed-goblins")
+          worker_status=$(curl -sS --connect-timeout 10 --max-time 30 -o /tmp/worker.txt -w '%{http_code}' 'https://my420journal-weed-goblins-narration-staging.casevoice-ai.workers.dev/')
+          narration_status=$(curl -sS --connect-timeout 10 --max-time 60 -o /tmp/api.txt -w '%{http_code}' \
             -X POST "https://${preview_host}/api/weed-goblins-narration" \
             -H "Origin: https://${preview_host}" \
             -H 'Content-Type: application/json' \
             --data '{"chapterNumber":2,"moment":"scene-intro","outcome":"intro","sceneId":"hollow-market:lantern-order","authoritativeText":"Three smokeless lanterns wait beneath the root bridge.","storySoFar":"You have reached Lantern Mouth.","marketState":"operational","wound":"None"}')
           set -e
-          echo "PREVIEW_GET_STATUS=${get_status}" >> /tmp/validation.env
+          echo "PREVIEW_GET_STATUS=${preview_status}" >> /tmp/validation.env
           echo "STAGING_WORKER_UNAUTH_STATUS=${worker_status}" >> /tmp/validation.env
-          echo "PREVIEW_NARRATION_STATUS=${api_status}" >> /tmp/validation.env
-          echo "preview=${get_status} worker=${worker_status} narration=${api_status}"
+          echo "PREVIEW_NARRATION_STATUS=${narration_status}" >> /tmp/validation.env
+          echo "preview=${preview_status} worker=${worker_status} narration=${narration_status}"
 
-      - name: Install Chromium validation dependency
+      - name: Install Chromium
         run: |
           npm install --no-save --package-lock=false playwright@1.54.2
           npx playwright install --with-deps chromium
 
-      - name: Run mobile Chapter 2 play and resume validation
+      - name: Validate Chapter 2 at mobile viewport
         continue-on-error: true
         shell: bash
         run: |
@@ -96,13 +84,13 @@ jobs:
           npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/vite.log 2>&1 &
           echo $! > /tmp/vite.pid
           for i in $(seq 1 40); do
-            if curl -sSf http://127.0.0.1:4173/games/weed-goblins >/dev/null; then break; fi
+            curl -sSf http://127.0.0.1:4173/games/weed-goblins >/dev/null && break
             sleep 1
           done
-          cat > /tmp/mobile-validation.mjs <<'EOF'
+          cat > .validation/mobile-validation.mjs <<'EOF'
           import { chromium } from 'playwright'
           import fs from 'node:fs'
-          function check(condition, message) { if (!condition) throw new Error(message) }
+          const check = (condition, message) => { if (!condition) throw new Error(message) }
           const browser = await chromium.launch({ headless: true })
           try {
             const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 })
@@ -115,54 +103,73 @@ jobs:
               const userResult = await localStore.auth.getUser()
               const userId = userResult?.data?.user?.id || null
               const state = runtime.createChapterTwoRunFromSessionZero({
-                seed: 'mobile-chapter-two-validation', rngState: 15360,
-                flags: { sessionZeroComplete: true }, playerName: 'Fenna Duskrow', playerRace: 'Human',
-                playerWeapon: 'Sword', playerPronoun: 'they', playerLook: 'tall and weathered', background: null,
+                seed: 'mobile-chapter-two-validation',
+                rngState: 15360,
+                flags: { sessionZeroComplete: true },
+                playerName: 'Fenna Duskrow',
+                playerRace: 'Human',
+                playerWeapon: 'Sword',
+                playerPronoun: 'they',
+                playerLook: 'tall and weathered',
+                background: null,
                 stats: { strength: 3, defense: 3, manaPool: 2, maxMana: 2 },
-              }, { personalization: runtime.buildChapterTwoPersonalization({ productCategories: ['Vape'] }), previousRuns: [] })
+              }, {
+                personalization: runtime.buildChapterTwoPersonalization({ productCategories: ['Vape'] }),
+                previousRuns: [],
+              })
               const choices = runtime.getChapterTwoAvailableActions(state)
               const record = persistence.saveWeedGoblinsActiveRun({
-                storage: localStorage, userId, state,
+                storage: localStorage,
+                userId,
+                state,
                 messages: [{ direction: 'incoming', kind: 'message', text: state.narration[0], source: 'validation' }],
-                choices, pendingTurn: null, helpLevel: 0, helpMessage: null,
+                choices,
+                pendingTurn: null,
+                helpLevel: 0,
+                helpMessage: null,
               })
-              return { userId, sceneId: record?.state?.sceneId, choiceCount: record?.choices?.length }
+              return { sceneId: record?.state?.sceneId, choiceCount: record?.choices?.length }
             })
-            console.log('seeded', JSON.stringify(seeded))
             check(seeded.sceneId === 'hollow-market:lantern-order', `wrong seeded scene: ${seeded.sceneId}`)
             check(seeded.choiceCount === 4, `wrong seeded choice count: ${seeded.choiceCount}`)
             await page.reload({ waitUntil: 'networkidle' })
             await page.locator('.weed-goblins-game__quick-reply').first().waitFor()
-            const firstCount = await page.locator('.weed-goblins-game__quick-reply').count()
-            check(firstCount === 4, `expected 4 lantern choices, got ${firstCount}`)
-            check(await page.locator('.weed-goblins-game__composer input').isVisible(), 'composer not visible in Chapter 2')
-            check((await page.locator('body').innerText()).includes('Hollow Market'), 'Chapter 2 opening text missing')
+            const initialChoices = await page.locator('.weed-goblins-game__quick-reply').count()
+            check(initialChoices === 4, `expected 4 lantern choices, got ${initialChoices}`)
+            check(await page.locator('.weed-goblins-game__composer input').isVisible(), 'composer not visible')
+            check((await page.locator('body').innerText()).includes('Hollow Market'), 'Hollow Market opening missing')
             const overflowBefore = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }))
-            check(overflowBefore.scrollWidth <= overflowBefore.width + 1, `mobile horizontal overflow: ${JSON.stringify(overflowBefore)}`)
+            check(overflowBefore.scrollWidth <= overflowBefore.width + 1, `horizontal overflow: ${JSON.stringify(overflowBefore)}`)
             const help = page.locator('.weed-goblins-game__help-button')
             await help.click(); await help.click(); await help.click()
             const helpLabel = await help.getAttribute('aria-label')
             check(helpLabel?.includes('level 3'), `Help did not reach level 3: ${helpLabel}`)
             const crest = page.locator('.weed-goblins-game__crest')
-            await crest.dispatchEvent('pointerdown'); await page.waitForTimeout(650); await crest.dispatchEvent('pointerup')
-            check(await page.locator('.weed-goblins-game__character-sheet').isVisible(), 'long-press E character sheet did not open')
-            const closeButton = page.locator('.weed-goblins-game__character-sheet button').first()
-            if (await closeButton.isVisible().catch(() => false)) await closeButton.click()
+            await crest.dispatchEvent('pointerdown')
+            await page.waitForTimeout(650)
+            await crest.dispatchEvent('pointerup')
+            check(await page.locator('.weed-goblins-game__character-sheet').isVisible(), 'character sheet did not open')
+            const close = page.locator('.weed-goblins-game__character-sheet button').first()
+            if (await close.isVisible().catch(() => false)) await close.click()
             await page.getByRole('button', { name: 'Moth, root, coin' }).click()
             await page.getByRole('button', { name: /Pay one Rootcoin/ }).waitFor()
-            const afterLanternChoices = await page.locator('.weed-goblins-game__quick-reply').count()
-            check(afterLanternChoices >= 4 && afterLanternChoices <= 5, `entry scene choice count out of range: ${afterLanternChoices}`)
+            const entryChoices = await page.locator('.weed-goblins-game__quick-reply').count()
+            check(entryChoices >= 4 && entryChoices <= 5, `entry choices out of range: ${entryChoices}`)
             await page.reload({ waitUntil: 'networkidle' })
             await page.getByRole('button', { name: /Pay one Rootcoin/ }).waitFor()
-            check((await page.locator('body').innerText()).includes('Rootcoin'), 'save/resume did not restore Chapter 2 entry state')
+            check((await page.locator('body').innerText()).includes('Rootcoin'), 'save/resume failed')
             const composer = page.locator('.weed-goblins-game__composer input')
             await composer.fill('I ask what happens if I owe the market a favor instead')
             await page.locator('.weed-goblins-game__send-button').click()
             await page.getByText('I ask what happens if I owe the market a favor instead', { exact: true }).waitFor()
             const overflowAfter = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }))
-            check(overflowAfter.scrollWidth <= overflowAfter.width + 1, `mobile overflow after interaction: ${JSON.stringify(overflowAfter)}`)
+            check(overflowAfter.scrollWidth <= overflowAfter.width + 1, `overflow after interaction: ${JSON.stringify(overflowAfter)}`)
             await page.screenshot({ path: '.validation/ch2-mobile-390x844.png', fullPage: true })
-            fs.writeFileSync('.validation/mobile-results.json', JSON.stringify({ viewport: { width: 390, height: 844 }, initialChoices: firstCount, entryChoices: afterLanternChoices, helpLevel: 3, characterSheet: true, saveResume: true, customText: true, overflowBefore, overflowAfter }, null, 2))
+            fs.writeFileSync('.validation/mobile-results.json', JSON.stringify({
+              viewport: { width: 390, height: 844 }, initialChoices, entryChoices,
+              helpLevel: 3, characterSheet: true, saveResume: true, customText: true,
+              overflowBefore, overflowAfter,
+            }, null, 2))
             console.log('MOBILE_CH2_VALIDATION=PASS')
           } finally {
             await browser.close()
@@ -170,7 +177,7 @@ jobs:
           EOF
           set +e
           set -o pipefail
-          node /tmp/mobile-validation.mjs 2>&1 | tee .validation/mobile.log
+          node .validation/mobile-validation.mjs 2>&1 | tee .validation/mobile.log
           rc=${PIPESTATUS[0]}
           set +o pipefail
           set -e
@@ -199,15 +206,13 @@ jobs:
           Pages preview -> narration staging call: HTTP ${PREVIEW_NARRATION_STATUS:-unknown}
           EOF
           cat .validation/ch2-validation-report.txt
-          echo '--- mobile log ---'
           cat .validation/mobile.log 2>/dev/null || true
-          echo '--- staging narration response ---'
-          cat .validation/staging-narration-response.txt 2>/dev/null || true
 
-      - name: Preserve temporary validation evidence
+      - name: Preserve validation evidence
         if: always()
         shell: bash
         run: |
+          rm -f .validation/mobile-validation.mjs
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add .validation
