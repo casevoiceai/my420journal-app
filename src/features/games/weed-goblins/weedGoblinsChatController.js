@@ -92,7 +92,13 @@ function choiceIntentForSetup(state, action) {
   if (action.id === 'goblin:strike') return `force your way past ${state.goblinName}`
   if (action.id === 'goblin:guard') return `hold your ground and outlast ${state.goblinName}`
   if (action.id === 'goblin:channel') return `confuse ${state.goblinName} with the magic available to you`
-  if (action.id === 'midpoint:take-token') return 'take the unattended tribute token without waking the bell'
+  if (action.id === 'midpoint:take-charm') return 'take the unattended highland charm without waking the bell'
+  if (action.id === 'camp:expose-tribute') return 'use the picture tribute ledger to expose the tribute arrangement'
+  if (action.id === 'camp:protect-tribute') return 'alter the picture tribute ledger to protect the tribute arrangement'
+  if (action.id === 'camp:force-ledger') return 'pull the picture tribute ledger loose and take the evidence'
+  if (action.id === 'latch:read-face') return 'read the carved faces and open the Stash Hall latch'
+  if (action.id === 'latch:force') return 'force the carved-face Stash Hall latch open'
+  if (action.id === 'latch:channel') return 'use Mana to read the carved-face Stash Hall latch'
   if (action.id === 'midpoint:read-runes') return 'read the old trail-runes at Cloudberry Shelf before moving on'
   if (action.id === 'boss:overpower') return `take ${state.stolenItem} back by overpowering the Goblin King`
   if (action.id === 'boss:outlast') return `outlast the Goblin King long enough to break his control of the room`

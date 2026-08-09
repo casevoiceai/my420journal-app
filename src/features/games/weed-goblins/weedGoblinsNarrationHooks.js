@@ -24,40 +24,38 @@ function continuityAnchorsForState(state) {
   const routeName = routeNameForState(state)
   if (backgroundName) anchors.push(backgroundName)
   if (routeName) anchors.push(routeName)
-  if (state?.flags?.goblinAlly) anchors.push('goblin clerk')
-  if (state?.flags?.hasCharm) anchors.push('brass charm')
-  if (state?.flags?.runeKnowledge) anchors.push('throne-room runes')
+  if (state?.flags?.nibTreatment === 'safe') anchors.push('Nib')
+  if (state?.flags?.hasHighlandCharm) anchors.push('highland charm')
+  if (state?.flags?.blackRootSealKnown) anchors.push('black-root seal')
+  if (state?.flags?.tributeArrangement === 'exposed') anchors.push('picture tribute ledger')
+  if (state?.flags?.tributeArrangement === 'protected') anchors.push('protected tribute arrangement')
   return Object.freeze([...new Set(anchors)].slice(0, 6))
 }
+
 
 function storySoFarForState(state) {
   const parts = [openingObjectiveForState(state)]
   if (state?.background?.name) parts.push(`The player chose ${state.background.name}.`)
   const routeName = routeNameForState(state)
   if (routeName) parts.push(`The player took ${routeName}.`)
-  if (state?.flags?.midpointChoice) {
-    parts.push(`At the keep, the player chose ${cleanText(state.flags.midpointChoice, 80)}.`)
-  }
+  if (state?.flags?.midpointChoice) parts.push(`At Cloudberry Shelf, the player chose ${cleanText(state.flags.midpointChoice, 80)}.`)
+  if (state?.flags?.nibTreatment) parts.push(`Nib was treated as ${cleanText(state.flags.nibTreatment, 40)}.`)
+  if (state?.flags?.tributeArrangement) parts.push(`The tribute arrangement is ${cleanText(state.flags.tributeArrangement, 40)}.`)
+  if (state?.flags?.hasHighlandCharm) parts.push('The player carries the highland charm.')
+  if (state?.flags?.blackRootSealKnown) parts.push('Old Tatter or the ledger identified the black-root seal.')
   const latestEvent = state?.history?.at(-1)
-  if (latestEvent?.outcome) {
-    parts.push(`The latest authoritative outcome was ${cleanText(latestEvent.outcome, 40)}.`)
-  } else if (latestEvent?.ending) {
-    parts.push(`The authoritative ending is ${cleanText(latestEvent.ending, 40)}.`)
-  }
+  if (latestEvent?.outcome) parts.push(`The latest authoritative outcome was ${cleanText(latestEvent.outcome, 40)}.`)
+  else if (latestEvent?.ending) parts.push(`The authoritative ending is ${cleanText(latestEvent.ending, 40)}.`)
   parts.push(`Current Trouble is ${Number(state?.trouble) || 0}.`)
-  const resolvedChecks = (state?.history || [])
-    .filter((event) => event?.type === 'check')
-    .slice(-4)
+  const resolvedChecks = (state?.history || []).filter((event) => event?.type === 'check').slice(-4)
   for (const event of resolvedChecks) {
     const result = event.naturalOne ? 'natural-1 complication' : cleanText(event.outcome, 40)
     parts.push(`${cleanText(event.actionId, 80) || 'A prior action'} resolved as ${result}.`)
   }
-  if (state?.flags?.goblinAlly) parts.push('The goblin clerk is now an ally.')
-  if (state?.flags?.hasCharm) parts.push('The player carries the brass charm.')
-  if (state?.flags?.runeKnowledge) parts.push('The player learned the throne-room runes.')
-  if (state?.flags?.dangerousForce) parts.push('The player used dangerous force earlier.')
+  if (state?.flags?.goblinAlly) parts.push('Nib is now a goblin ally.')
   return cleanText(parts.join(' '), 600)
 }
+
 
 function tensionLevelForScene(sceneId) {
   return ({
@@ -65,65 +63,73 @@ function tensionLevelForScene(sceneId) {
     'choose-route': 'commitment',
     'goblin-encounter': 'rising',
     midpoint: 'high',
+    'highland-camp': 'high',
+    'stash-latch': 'high',
     'goblin-king': 'climax',
     ending: 'resolution',
   })[sceneId] || 'rising'
 }
 
+
 function choiceContextForScene(state) {
   if (state?.sceneId === 'choose-background') {
-    return 'Highlands Hauler means carrying the stolen item back over steep ground; Cautious Keeper means securing every latch against goblin hands; Fog-Table Adept means reading the Highlands through a shifting map and strange signs.'
+    return 'Highland Tracker favors Strength, Trail Warden favors Defense, and Fen Diviner carries the deepest Mana pool.'
   }
   if (state?.sceneId === 'choose-route') {
-    const ridge = cleanText(state?.adventure?.routes?.ridge?.name, 100) || 'The Direct Ridge'
-    const fen = cleanText(state?.adventure?.routes?.fen?.name, 100) || 'The Suspicious Fen'
-    return `${ridge} reaches a stone gate directly and risks open resistance; ${fen} offers concealment in fog but threatens unsecured gear.`
+    const quiet = cleanText(state?.adventure?.routes?.quiet?.name, 100) || 'The Quiet Crossing'
+    const loud = cleanText(state?.adventure?.routes?.loud?.name, 100) || 'The Direct Crossing'
+    return `${quiet} crosses Rattlebridge using care and Defense; ${loud} crosses it using Strength before the alarm lines can react.`
   }
   if (state?.sceneId === 'goblin-encounter') {
-    return `${cleanText(state?.goblinName, 100) || 'A goblin'} physically blocks the only clear passage; the player may confront, endure, distract, negotiate with, or otherwise act on that obstacle.`
+    return `${cleanText(state?.goblinName, 100) || 'A goblin'} blocks the clear passage; the player may confront, endure, distract, negotiate with, or otherwise act on that obstacle.`
   }
   if (state?.sceneId === 'midpoint') {
-    return 'A stranded goblin clerk needs help with scattered forms, an unattended brass charm can be taken, runes cover the throne-room gate, and the player can also keep moving.'
+    return 'At Cloudberry Shelf, Nib is caught up with a snapped tripwire. The player can keep him safe, use him as bait, take a highland charm, read old trail-runes, or move on.'
+  }
+  if (state?.sceneId === 'highland-camp') {
+    return 'At Highland Camp, Grubbin guards a picture tribute ledger and resents the outgoing tribute. Old Tatter can identify the black-root seal. The player can expose, protect, question, investigate, or leave the arrangement alone.'
+  }
+  if (state?.sceneId === 'stash-latch') {
+    return 'A carved-face latch seals the King’s Stash Hall. It can be read carefully, forced, read with Mana, or opened with the highland charm if the player has it.'
   }
   if (state?.sceneId === 'goblin-king') {
-    return `The Goblin King controls ${cleanText(state?.stolenItem, 160) || 'the stolen item'} in the throne room; the player must overcome him, outlast him, use a prepared advantage, bargain if an ally permits it, or attempt another concrete action.`
+    return `The Goblin King controls ${cleanText(state?.stolenItem, 160) || 'the stolen item'} in the Stash Hall; the player can humiliate him with Strength, spare him through Defense, use Mana, bargain if Nib is an ally, or attempt another concrete action.`
   }
   return ''
 }
 
+
 function scenePurposeForScene(sceneId) {
   return ({
-    'choose-background': 'Make the three preparations legible before the player chooses one.',
-    'choose-route': 'Turn preparation into a committed route with different visible risks.',
-    'goblin-encounter': 'Put a named physical obstacle between the player and the keep.',
-    midpoint: 'Raise pressure by presenting a consequential choice at the threshold of the throne room.',
-    'goblin-king': 'Bring the stolen item, the antagonist, and the accumulated run state together for the climax.',
+    'choose-background': 'Make the three character approaches legible before the player chooses one.',
+    'choose-route': 'Turn preparation into a committed Rattlebridge crossing with different visible risks.',
+    'goblin-encounter': 'Put a named goblin obstacle between the player and Cloudberry Shelf.',
+    midpoint: 'Make the Nib decision and local leverage matter before Highland Camp.',
+    'highland-camp': 'Reveal the tribute arrangement through Grubbin, Old Tatter, and the picture tribute ledger.',
+    'stash-latch': 'Make the carved-face latch the final obstacle before the King.',
+    'goblin-king': 'Bring the stolen item, the antagonist, and accumulated branch state together for the climax.',
     ending: 'Resolve the exact objective established at the opening.',
   })[sceneId] || 'Continue the same causal story from the authoritative state.'
 }
 
+
 function sceneFallbackForState(state) {
-  if (state?.sceneId === 'choose-background') {
-    return 'I watch you stop at one scarred trailhead table where the waiting gear asks a single question: what kind of traveler will bring the stolen item home?'
-  }
-  if (state?.sceneId === 'choose-route') {
-    const ridge = cleanText(state?.adventure?.routes?.ridge?.name, 100) || 'The Direct Ridge'
-    const fen = cleanText(state?.adventure?.routes?.fen?.name, 100) || 'The Suspicious Fen'
-    return `I watch your gear settle beside one split marker, its bare face pointing toward ${ridge} and its mossed face toward ${fen}.`
-  }
+  if (state?.sceneId === 'choose-background') return 'Three ways of meeting trouble wait at Windcut Trail: tracking it, holding against it, or reading the strange signs around it.'
+  if (state?.sceneId === 'choose-route') return 'Rattlebridge narrows ahead, bottle-cap alarm lines trembling across both the quiet path and the direct one.'
   if (state?.sceneId === 'goblin-encounter') {
     const goblin = cleanText(state?.goblinName, 100) || 'a goblin sentry'
-    return `I watch broken stones narrow around ${goblin}, who plants one boot across the only clear passage.`
+    return `${goblin} plants one boot across the only clear passage beyond Rattlebridge.`
   }
-  if (state?.sceneId === 'midpoint') {
-    return 'I watch the throne-room gate begin to close while a stranded clerk reaches through it with one numbered form.'
-  }
+  if (state?.sceneId === 'midpoint') return 'At Cloudberry Shelf, Nib is tangled beside a snapped tripwire while a highland charm and old trail-runes sit within reach.'
+  if (state?.sceneId === 'highland-camp') return 'At Highland Camp, Grubbin keeps one hand on a picture tribute ledger while Old Tatter studies the black-root seal stamped across its cover.'
+  if (state?.sceneId === 'stash-latch') return 'Four carved goblin faces stare from the Stash Hall latch, each rotated to a different expression.'
   if (state?.sceneId === 'goblin-king') {
     const stolenItem = cleanText(state?.stolenItem, 160) || 'the stolen field reliquary'
-    return `I watch the Goblin King's hand settle on ${stolenItem} as the throne-room doors grind shut behind you.`
+    return `The Goblin King's hand settles on ${stolenItem} as the Stash Hall doors close behind you.`
   }
   return ''
 }
+
 
 export function getNarrationStoryContext(state) {
   const sceneId = cleanText(state?.sceneId, 80)

@@ -1,4 +1,5 @@
 import { CHAPTER_ONE_ROOM_LIST } from './weedGoblinsRooms.js'
+import { CHAPTER_ONE_NPC_LIST } from './weedGoblinsChapterOne.js'
 
 const MAX_PLAYER_ACTION_LENGTH = 160
 
@@ -6,6 +7,8 @@ export const FREE_TEXT_SCENES = Object.freeze([
   'choose-route',
   'goblin-encounter',
   'midpoint',
+  'highland-camp',
+  'stash-latch',
   'goblin-king',
 ])
 
@@ -34,6 +37,11 @@ const SKIP_MIDPOINT_SIGNAL = /\b(?:keep moving|move on|continue on|continue forw
 const CHARM_SIGNAL = /\b(?:take|grab|snatch|steal|pocket|lift|swipe|reach for)\b[^.!?]{0,80}\bcharm\b|\bcharm\b[^.!?]{0,80}\b(?:take|grab|snatch|steal|pocket|lift|swipe|reach)\b/i
 const RUNE_SIGNAL = /\b(?:read|study|inspect|decode|translate|trace|understand|examine)\b[^.!?]{0,80}\brunes?\b|\brunes?\b[^.!?]{0,80}\b(?:read|study|inspect|decode|translate|trace|understand|examine)\b/i
 const BARGAIN_SIGNAL = /\b(?:bargain|negotiate|make a deal|offer terms|invoke (?:the )?(?:clerk|witness)|call (?:the )?(?:clerk|witness)|ask (?:the )?clerk to testify|testimony)\b/i
+const EXPOSE_TRIBUTE_SIGNAL = /\b(?:expose|reveal|prove|show)\b[^.!?]{0,80}\b(?:tribute|ledger|arrangement)\b/i
+const PROTECT_TRIBUTE_SIGNAL = /\b(?:protect|hide|cover|alter|change)\b[^.!?]{0,80}\b(?:tribute|ledger|arrangement)\b/i
+const GRUBBIN_SIGNAL = /\bGrubbin\b/i
+const OLD_TATTER_SIGNAL = /\bOld Tatter\b/i
+const LATCH_SIGNAL = /\b(?:latch|carved faces?|carved-face)\b/i
 
 const NON_CHECK_SIGNALS = Object.freeze([
   /\b(?:wave|nod|bow|greet|say hello|say hi)\b/i,
@@ -164,7 +172,12 @@ function interpretedActionFor(state, style, exactActionId = '') {
   if (exactActionId === 'midpoint:skip') return 'leave the clerk and keep moving toward the throne room'
   if (exactActionId === 'midpoint:take-charm') return 'take the brass charm without drawing unwanted attention'
   if (exactActionId === 'midpoint:read-runes') return 'work carefully with the gate runes using the magic available here'
-  if (exactActionId === 'boss:bargain') return 'use the goblin clerk as a witness and press for a formal bargain'
+  if (exactActionId === 'boss:bargain') return 'use the goblin ally as a witness and press for a formal bargain'
+  if (exactActionId === 'camp:question-grubbin') return 'ask Grubbin what the picture tribute ledger is hiding'
+  if (exactActionId === 'camp:ask-old-tatter') return 'ask Old Tatter to identify the black-root seal'
+  if (exactActionId === 'camp:expose-tribute') return 'use the picture tribute ledger to expose the tribute arrangement'
+  if (exactActionId === 'camp:protect-tribute') return 'alter the picture tribute ledger to protect the tribute arrangement'
+  if (exactActionId === 'latch:use-charm') return 'fit the highland charm into the carved-face stash latch'
 
   if (style === 'non-check') return 'let the simple in-world action play out without a roll'
 
@@ -184,6 +197,18 @@ function interpretedActionFor(state, style, exactActionId = '') {
     if (style === 'strength') return 'handle the midpoint obstacle with direct physical effort'
     if (style === 'mana') return 'use the magic or improvised cleverness available here to affect the midpoint obstacle'
     return 'handle the midpoint obstacle with a careful or defensive approach'
+  }
+
+  if (state.sceneId === 'highland-camp') {
+    if (style === 'strength') return 'take direct physical control of the picture tribute ledger'
+    if (style === 'mana') return 'use the available magic to decode the picture tribute ledger'
+    return 'work carefully through the picture tribute ledger and its tribute pattern'
+  }
+
+  if (state.sceneId === 'stash-latch') {
+    if (style === 'strength') return 'force the carved-face stash latch open'
+    if (style === 'mana') return 'use the available magic to read the carved-face stash latch'
+    return 'study the carved faces and open the stash latch carefully'
   }
 
   if (state.sceneId === 'goblin-king') {
@@ -209,6 +234,25 @@ function exactSceneAction(state, text) {
     if (RUNE_SIGNAL.test(text) && hasAvailableMana(state, state.sceneId)) {
       return { kind: 'existing-action', style: 'mana', actionId: 'midpoint:read-runes' }
     }
+  }
+
+  if (state.sceneId === 'highland-camp') {
+    if (GRUBBIN_SIGNAL.test(text)) {
+      return { kind: 'existing-action', style: 'non-check', actionId: 'camp:question-grubbin' }
+    }
+    if (OLD_TATTER_SIGNAL.test(text)) {
+      return { kind: 'existing-action', style: 'non-check', actionId: 'camp:ask-old-tatter' }
+    }
+    if (PROTECT_TRIBUTE_SIGNAL.test(text)) {
+      return { kind: 'existing-action', style: 'defense', actionId: 'camp:protect-tribute' }
+    }
+    if (EXPOSE_TRIBUTE_SIGNAL.test(text)) {
+      return { kind: 'existing-action', style: 'defense', actionId: 'camp:expose-tribute' }
+    }
+  }
+
+  if (state.sceneId === 'stash-latch' && CHARM_SIGNAL.test(text) && state.flags?.hasHighlandCharm) {
+    return { kind: 'existing-action', style: 'non-check', actionId: 'latch:use-charm' }
   }
 
   if (state.sceneId === 'goblin-king' && BARGAIN_SIGNAL.test(text) && state.flags?.goblinAlly) {
@@ -261,6 +305,20 @@ function actionForStyle(state, requestedStyle) {
       actionId: `free-text:midpoint:${style}`,
       manaUnavailable,
     }
+  }
+
+  if (state.sceneId === 'highland-camp') {
+    if (style === 'strength') return { kind: 'check', style, actionId: 'camp:force-ledger', manaUnavailable }
+    if (style === 'mana') {
+      return { kind: 'check', style, actionId: 'camp:expose-tribute', manaUnavailable, engineOptions: Object.freeze({ useManaAdvantage: true }) }
+    }
+    return { kind: 'check', style: 'defense', actionId: 'camp:expose-tribute', manaUnavailable }
+  }
+
+  if (state.sceneId === 'stash-latch') {
+    if (style === 'strength') return { kind: 'check', style, actionId: 'latch:force', manaUnavailable }
+    if (style === 'mana') return { kind: 'check', style, actionId: 'latch:channel', manaUnavailable }
+    return { kind: 'check', style: 'defense', actionId: 'latch:read-face', manaUnavailable }
   }
 
   if (state.sceneId === 'goblin-king') {
@@ -316,6 +374,7 @@ export function interpretWeedGoblinsFreeText(state, value, { blockedRealNames = 
     state.stolenItem,
     state.fictionalLocationName,
     ...CHAPTER_ONE_ROOM_LIST.map((room) => room.name),
+    ...CHAPTER_ONE_NPC_LIST.map((npc) => npc.name),
   ].filter(Boolean)
   const setting = settingBreakFor(playerAction, blockedRealNames)
   const inputGuardrail = playerInputNeedsSafetyGuardrail(

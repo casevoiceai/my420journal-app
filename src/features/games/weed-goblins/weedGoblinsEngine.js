@@ -3,6 +3,7 @@ import {
   createWeedGoblinsRoomState,
   visitWeedGoblinsRoom,
 } from './weedGoblinsRooms.js'
+import { CHAPTER_ONE_REWARDS } from './weedGoblinsChapterOne.js'
 
 export const WEED_GOBLINS_NARRATOR_NAME = 'Eliza'
 
@@ -175,6 +176,8 @@ export const NATURAL_ONE_COMPLICATIONS = Object.freeze([
   'A goblin stamps your sleeve TEMPORARY ASSISTANT. The stamp is permanent for the rest of the afternoon.',
   "The field reliquary acquires a dent shaped exactly like a goblin's opinion. Its contents remain secure.",
   'You reach the correct tactical position one minute after it stops being the correct tactical position.',
+  'The picture tribute ledger flips itself to a page consisting entirely of accusing little arrows.',
+  'One carved face on the stash latch bites your glove and then looks smug about the paperwork.',
 ])
 
 export const BACKGROUNDS = Object.freeze({
@@ -256,6 +259,8 @@ const SCENES = Object.freeze({
   route: 'choose-route',
   goblin: 'goblin-encounter',
   midpoint: 'midpoint',
+  camp: 'highland-camp',
+  latch: 'stash-latch',
   boss: 'goblin-king',
   ending: 'ending',
 })
@@ -487,6 +492,20 @@ function enterRoom(state, roomId) {
   })
 }
 
+function enterHighlandCamp(state) {
+  return enterRoom(
+    cloneState(state, { sceneId: SCENES.camp }),
+    CHAPTER_ONE_ROOMS.highlandCamp.id,
+  )
+}
+
+function enterStashLatch(state) {
+  return enterRoom(
+    cloneState(state, { sceneId: SCENES.latch }),
+    CHAPTER_ONE_ROOMS.kingsStashHall.id,
+  )
+}
+
 function enterGoblinKingScene(state) {
   const inStashHall = enterRoom(
     cloneState(state, { sceneId: SCENES.boss }),
@@ -542,6 +561,8 @@ function selectComplication(state, actionId) {
   if (String(actionId).startsWith('goblin:')) return NATURAL_ONE_COMPLICATIONS[2]
   if (String(actionId).startsWith('midpoint:')) return NATURAL_ONE_COMPLICATIONS[3]
   if (String(actionId).startsWith('boss:')) return NATURAL_ONE_COMPLICATIONS[4]
+  if (String(actionId).startsWith('camp:')) return NATURAL_ONE_COMPLICATIONS[5]
+  if (String(actionId).startsWith('latch:')) return NATURAL_ONE_COMPLICATIONS[6]
   return NATURAL_ONE_COMPLICATIONS[state.complicationCount % NATURAL_ONE_COMPLICATIONS.length]
 }
 
@@ -643,6 +664,18 @@ function endingNarration(ending, state) {
   return `You escape the Highlands without ${state.stolenItem}. A black-root seal on the nearest crate is the last thing you see before the trail closes behind you, someone else's tribute, headed somewhere you don't yet have a name for.`
 }
 
+function stolenItemConditionForRun(state, ending) {
+  if (ending === ENDINGS.escape) return 'not-recovered'
+  return state.trouble >= 2 ? 'altered' : 'intact'
+}
+
+function chapterOneRewardsForRun(state) {
+  const rewards = [CHAPTER_ONE_REWARDS.blackRootSeal]
+  if (state.flags.goblinFavor) rewards.push(CHAPTER_ONE_REWARDS.goblinFavor)
+  if (state.flags.hasHighlandCharm) rewards.push(CHAPTER_ONE_REWARDS.highlandCharm)
+  return rewards
+}
+
 function completeRun(state, ending, reason = null) {
   if (!Object.values(ENDINGS).includes(ending)) {
     throw new Error(`Unknown ending: ${ending}`)
@@ -655,6 +688,13 @@ function completeRun(state, ending, reason = null) {
     stolenItem: state.stolenItem,
     routeId: state.flags.routeId,
     midpointChoice: state.flags.midpointChoice,
+    chapterOneBranches: {
+      nibTreatment: state.flags.nibTreatment || 'ignored',
+      tributeArrangement: state.flags.tributeArrangement || 'unknown',
+      kingTreatment: state.flags.kingTreatment || 'unresolved',
+      stolenItemCondition: stolenItemConditionForRun(state, ending),
+    },
+    chapterOneRewards: chapterOneRewardsForRun(state),
     ending,
     outcomeSummary:
       ending === ENDINGS.recovery
@@ -740,6 +780,13 @@ export function createWeedGoblinsRun({
       routeId: null,
       midpointChoice: null,
       goblinAlly: false,
+      goblinFavor: false,
+      hasHighlandCharm: false,
+      blackRootSealKnown: false,
+      nibTreatment: null,
+      tributeArrangement: null,
+      kingTreatment: null,
+      latchOutcome: null,
       bossDcModifier: 0,
       sessionZeroComplete: false,
       nameSuggestionsVisible: false,
@@ -826,11 +873,11 @@ export function getWeedGoblinsActionCheckPreview(state, actionId, options = {}) 
   }
 
   if (state.sceneId === SCENES.midpoint) {
-    if (id === 'midpoint:help' || id === 'midpoint:skip') return noRollPreview()
+    if (['midpoint:help', 'midpoint:bait-nib', 'midpoint:skip'].includes(id)) return noRollPreview()
     if (id === 'midpoint:read-runes') {
       return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: 1 })
     }
-    if (id === 'midpoint:take-token') {
+    if (id === 'midpoint:take-charm') {
       return checkPreview(state, {
         stat: 'defense',
         dc: DIFFICULTY.easy,
@@ -842,6 +889,33 @@ export function getWeedGoblinsActionCheckPreview(state, actionId, options = {}) 
       const manaCost = style === 'mana' ? 1 : 0
       const stat = style === 'strength' ? 'strength' : 'defense'
       return checkPreview(state, { stat, dc: DIFFICULTY.standard, manaCost })
+    }
+    return noRollPreview()
+  }
+
+  if (state.sceneId === SCENES.camp) {
+    if (['camp:question-grubbin', 'camp:ask-old-tatter', 'camp:move-on'].includes(id)) {
+      return noRollPreview()
+    }
+    if (id === 'camp:force-ledger') {
+      return checkPreview(state, { stat: 'strength', dc: DIFFICULTY.standard, manaCost: optionalManaCost(options) })
+    }
+    if (['camp:expose-tribute', 'camp:protect-tribute'].includes(id)) {
+      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: optionalManaCost(options) })
+    }
+    return noRollPreview()
+  }
+
+  if (state.sceneId === SCENES.latch) {
+    if (id === 'latch:use-charm') return noRollPreview()
+    if (id === 'latch:channel') {
+      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: 1 })
+    }
+    if (id === 'latch:force') {
+      return checkPreview(state, { stat: 'strength', dc: DIFFICULTY.standard, manaCost: optionalManaCost(options) })
+    }
+    if (id === 'latch:read-face') {
+      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: optionalManaCost(options) })
     }
     return noRollPreview()
   }
@@ -946,8 +1020,9 @@ export function getAvailableActions(state) {
 
   if (state.sceneId === SCENES.midpoint) {
     const actions = [
-      { id: 'midpoint:help', label: 'Help Nib untangle a snapped tripwire' },
-      { id: 'midpoint:take-token', label: 'Take the unattended tribute token' },
+      { id: 'midpoint:help', label: 'Keep Nib safe and help with the snapped tripwire' },
+      { id: 'midpoint:bait-nib', label: 'Use Nib as bait to draw the patrol away' },
+      { id: 'midpoint:take-charm', label: 'Take the unattended highland charm' },
       { id: 'midpoint:skip', label: 'Keep moving' },
     ]
     if (state.stats.manaPool >= 1) {
@@ -956,10 +1031,35 @@ export function getAvailableActions(state) {
     return actions
   }
 
+  if (state.sceneId === SCENES.camp) {
+    return [
+      { id: 'camp:expose-tribute', label: 'Use the picture ledger to expose the tribute arrangement' },
+      { id: 'camp:protect-tribute', label: 'Alter the picture ledger to protect the tribute arrangement' },
+      { id: 'camp:question-grubbin', label: 'Ask Grubbin why the best goods leave camp' },
+      { id: 'camp:ask-old-tatter', label: 'Ask Old Tatter about the black-root seal' },
+      { id: 'camp:move-on', label: 'Leave the ledger alone and head for the Stash Hall' },
+      { id: 'camp:force-ledger', label: 'Pull the tribute ledger loose and take the evidence with you' },
+    ]
+  }
+
+  if (state.sceneId === SCENES.latch) {
+    const actions = [
+      { id: 'latch:read-face', label: 'Read the carved faces and set the latch correctly' },
+      { id: 'latch:force', label: 'Force the carved-face latch open' },
+    ]
+    if (state.stats.manaPool >= 1) {
+      actions.push({ id: 'latch:channel', label: 'Spend 1 Mana for advantage while reading the latch' })
+    }
+    if (state.flags.hasHighlandCharm) {
+      actions.push({ id: 'latch:use-charm', label: 'Fit the highland charm into the latch' })
+    }
+    return actions
+  }
+
   if (state.sceneId === SCENES.boss) {
     const actions = [
-      { id: 'boss:overpower', label: 'Overpower the Goblin King' },
-      { id: 'boss:outlast', label: 'Outlast the Goblin King' },
+      { id: 'boss:overpower', label: 'Humiliate the Goblin King and take it back' },
+      { id: 'boss:outlast', label: 'Spare the Goblin King, but make him surrender it' },
     ]
     if (state.stats.manaPool >= 2) {
       actions.push({ id: 'boss:spell', label: 'Spend 2 Mana for advantage on a decisive theory' })
@@ -1177,69 +1277,193 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
 
   if (state.sceneId === SCENES.midpoint) {
     if (actionId === 'midpoint:help') {
-      return enterGoblinKingScene(
+      return enterHighlandCamp(
         appendEvent(
           cloneState(state, {
-            flags: { midpointChoice: 'help', goblinAlly: true },
+            flags: {
+              midpointChoice: 'help',
+              goblinAlly: true,
+              goblinFavor: true,
+              nibTreatment: 'safe',
+            },
           }),
           { type: 'choice', sceneId: SCENES.midpoint, actionId },
-          'You help a nervous young scout named Nib untangle a snapped tripwire. Nib is grateful, and a little surprised anyone bothered.',
+          'You keep Nib out of the patrol path and help untangle the snapped tripwire. He immediately starts practicing how he will describe this during his promotion review.',
+        ),
+      )
+    }
+
+    if (actionId === 'midpoint:bait-nib') {
+      return enterHighlandCamp(
+        appendEvent(
+          cloneState(state, {
+            flags: {
+              midpointChoice: 'bait-nib',
+              nibTreatment: 'bait',
+              bossDcModifier: -1,
+            },
+          }),
+          { type: 'choice', sceneId: SCENES.midpoint, actionId },
+          'Nib draws the patrol away while loudly insisting this absolutely counts toward a promotion. The path to Highland Camp opens behind him.',
         ),
       )
     }
 
     if (actionId === 'midpoint:read-runes') {
       const result = resolveCheck(
-        cloneState(state, { flags: { midpointChoice: 'read-runes' } }),
+        cloneState(state, { flags: { midpointChoice: 'read-runes', nibTreatment: 'ignored' } }),
         {
           actionId,
           stat: 'defense',
           dc: DIFFICULTY.standard,
           manaCost: 1,
-          successText: "The old trail-runes at Cloudberry Shelf explain the Stash Hall's entrance in unnecessary detail. I approve of the detail.",
+          successText: "The old trail-runes at Cloudberry Shelf explain the Stash Hall's entrance in unnecessary detail. The goblins included a diagram and then argued with it in the margin.",
           failureText: 'The runes include a footnote you interpret as optional. The entrance does not.',
         },
       )
       if (result.state.status === 'completed') return result.state
-      return enterGoblinKingScene(
+      return enterHighlandCamp(
         cloneState(result.state, {
           flags: { bossDcModifier: result.success ? -2 : 1 },
         }),
       )
     }
 
-    if (actionId === 'midpoint:take-token') {
+    if (actionId === 'midpoint:take-charm') {
       const result = resolveCheck(
-        cloneState(state, { flags: { midpointChoice: 'take-token' } }),
+        cloneState(state, { flags: { midpointChoice: 'take-charm', nibTreatment: 'ignored' } }),
         {
           actionId,
           stat: 'defense',
           dc: DIFFICULTY.easy,
-          successText: 'You take the unattended tribute token without waking the small but judgmental bell.',
-          failureText: 'The bell announces your decision to the entire camp.',
+          successText: 'You lift the unattended highland charm without waking the small but judgmental bell beside it.',
+          failureText: 'The bell announces your interest in the highland charm to everyone with ears and several things without them.',
           manaCost: optionalManaCost(options),
         },
       )
       if (result.state.status === 'completed') return result.state
-      return enterGoblinKingScene(
+      return enterHighlandCamp(
         cloneState(result.state, {
-          flags: { bossDcModifier: result.success ? -1 : 1 },
+          flags: {
+            hasHighlandCharm: result.success,
+            bossDcModifier: result.success ? -1 : 1,
+          },
         }),
       )
     }
 
-    return enterGoblinKingScene(
+    return enterHighlandCamp(
       appendEvent(
-        cloneState(state, { flags: { midpointChoice: 'skip' } }),
+        cloneState(state, { flags: { midpointChoice: 'skip', nibTreatment: 'ignored' } }),
         { type: 'choice', sceneId: SCENES.midpoint, actionId },
-        'You continue without interfering. This is a valid choice. I have no additional comment. I have several comments.',
+        'You leave Nib, the charm, and the trail-runes where they are and keep moving toward Highland Camp.',
       ),
+    )
+  }
+
+  if (state.sceneId === SCENES.camp) {
+    if (actionId === 'camp:question-grubbin') {
+      return enterStashLatch(
+        appendEvent(
+          cloneState(state, {
+            flags: { tributeArrangement: 'exposed', blackRootSealKnown: true },
+          }),
+          { type: 'choice', sceneId: SCENES.camp, actionId },
+          "Grubbin, the stash keeper, points at the picture ledger and complains that the King keeps sending the best goods away as tribute. Every outgoing crate carries the same black-root seal.",
+        ),
+      )
+    }
+
+    if (actionId === 'camp:ask-old-tatter') {
+      return enterStashLatch(
+        appendEvent(
+          cloneState(state, { flags: { tributeArrangement: 'unknown', blackRootSealKnown: true } }),
+          { type: 'choice', sceneId: SCENES.camp, actionId },
+          "Old Tatter turns the ledger over once, taps the black-root seal with a scarred finger, and identifies it as an old tribute mark from beyond the Highlands.",
+        ),
+      )
+    }
+
+    if (actionId === 'camp:move-on') {
+      return enterStashLatch(
+        appendEvent(
+          cloneState(state, { flags: { tributeArrangement: 'unknown' } }),
+          { type: 'choice', sceneId: SCENES.camp, actionId },
+          "You leave Grubbin, Old Tatter, and the picture ledger to their argument and take the uphill path to the King's Stash Hall.",
+        ),
+      )
+    }
+
+    const exposing = actionId === 'camp:expose-tribute' || actionId === 'camp:force-ledger'
+    const protecting = actionId === 'camp:protect-tribute'
+    const result = resolveCheck(state, {
+      actionId,
+      stat: actionId === 'camp:force-ledger' ? 'strength' : 'defense',
+      dc: DIFFICULTY.standard,
+      successText: exposing
+        ? 'The picture tribute ledger gives up its pattern: the best goods are leaving Highland Camp under the black-root seal.'
+        : 'You alter the picture ledger just enough that the tribute arrangement becomes somebody else’s administrative problem.',
+      failureText: exposing
+        ? 'The picture ledger refuses to become evidence neatly, but the black-root seal on its cover is impossible to miss.'
+        : 'Your attempt to protect the tribute arrangement leaves a correction so obvious that Grubbin winces professionally.',
+      manaCost: optionalManaCost(options),
+    })
+    if (result.state.status === 'completed') return result.state
+    return enterStashLatch(
+      cloneState(result.state, {
+        flags: {
+          tributeArrangement: protecting ? 'protected' : 'exposed',
+          blackRootSealKnown: true,
+          goblinFavor: protecting && result.success ? true : result.state.flags.goblinFavor,
+          bossDcModifier: result.state.flags.bossDcModifier + (result.success ? -1 : 1),
+        },
+      }),
+    )
+  }
+
+  if (state.sceneId === SCENES.latch) {
+    if (actionId === 'latch:use-charm') {
+      return enterGoblinKingScene(
+        appendEvent(
+          cloneState(state, { flags: { latchOutcome: 'charm', bossDcModifier: state.flags.bossDcModifier - 1 } }),
+          { type: 'choice', sceneId: SCENES.latch, actionId },
+          'The highland charm fits into the carved-face latch like the goblins designed a master key and then forgot to mention it.',
+        ),
+      )
+    }
+
+    const isForce = actionId === 'latch:force'
+    const isMana = actionId === 'latch:channel'
+    const result = resolveCheck(state, {
+      actionId,
+      stat: isForce ? 'strength' : 'defense',
+      dc: DIFFICULTY.standard,
+      manaCost: isMana ? 1 : optionalManaCost(options),
+      successText: isForce
+        ? 'The carved-face latch gives way with all four faces looking personally offended.'
+        : 'You rotate the carved faces into the one expression the goblins apparently consider trustworthy. The latch clicks open.',
+      failureText: isForce
+        ? 'The carved faces hold. One of them appears to enjoy this more than the others.'
+        : 'The carved faces settle into the wrong order and a tiny wooden tongue sticks out from the center of the latch.',
+    })
+    if (result.state.status === 'completed') return result.state
+    return enterGoblinKingScene(
+      cloneState(result.state, {
+        flags: {
+          latchOutcome: result.success ? 'opened-cleanly' : 'opened-with-trouble',
+          bossDcModifier: result.state.flags.bossDcModifier + (result.success ? -1 : 1),
+        },
+      }),
     )
   }
 
   if (state.sceneId === SCENES.boss) {
     if (actionId === 'boss:bargain') {
-      return completeRun(state, ENDINGS.bargain, 'goblin clerk testimony')
+      return completeRun(
+        cloneState(state, { flags: { kingTreatment: 'spared', goblinFavor: true } }),
+        ENDINGS.bargain,
+        'goblin ally testimony',
+      )
     }
 
     const dc = bossCheckDc(state)
@@ -1254,7 +1478,13 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
         failureText: 'The Goblin King identifies a missing label on the diagram and remains in control of the room.',
       })
       if (result.state.status === 'completed') return result.state
-      if (result.success) return completeRun(result.state, ENDINGS.recovery, 'mana-assisted victory')
+      if (result.success) {
+        return completeRun(
+          cloneState(result.state, { flags: { kingTreatment: 'spared' } }),
+          ENDINGS.recovery,
+          'mana-assisted victory',
+        )
+      }
       return result.state
     }
 
@@ -1274,7 +1504,18 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       manaCost: optionalManaCost(options),
     })
     if (result.state.status === 'completed') return result.state
-    if (result.success) return completeRun(result.state, ENDINGS.recovery, `${stat} victory`)
+    if (result.success) {
+      return completeRun(
+        cloneState(result.state, {
+          flags: {
+            kingTreatment: isOverpower ? 'humiliated' : 'spared',
+            goblinFavor: isOverpower ? result.state.flags.goblinFavor : true,
+          },
+        }),
+        ENDINGS.recovery,
+        `${stat} victory`,
+      )
+    }
     return result.state
   }
 
@@ -1304,7 +1545,7 @@ export function advanceWeedGoblinsFreeTextMidpointCheck(state, style) {
   })
 
   if (result.state.status === 'completed') return result.state
-  return enterGoblinKingScene(result.state)
+  return enterHighlandCamp(result.state)
 }
 
 export function playWeedGoblinsActions(initialState, actions) {

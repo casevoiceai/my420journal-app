@@ -15,21 +15,27 @@ const AUTOMATIC_GUIDANCE = Object.freeze({
   'session-zero-look': 'Pick one of the descriptions or type your own. The message box works the same way it will during the adventure.',
   'choose-route': 'From here on, the replies are suggested moves, not limits. You can type or speak another idea. If a roll is needed, I will tell you the DC and what you need on the die before you roll.',
   'goblin-encounter': 'You can tap a suggested move, type your own, or tap an underlined story detail to inspect it. The world is meant to be poked at.',
-  midpoint: 'Some choices need a roll and some do not. Earlier choices can also create allies or make the next problem easier. Help is here if you get stuck.',
+  midpoint: 'Some choices need a roll and some do not. You can keep Nib safe, use him as bait, take the highland charm, read the trail-runes, or move on.',
+  'highland-camp': 'Highland Camp is a social puzzle as much as a physical one. Grubbin, Old Tatter, and the picture tribute ledger each expose a different part of what the King is doing.',
+  'stash-latch': 'The carved-face latch is a real obstacle. You can read it, force it, use Mana, or use the highland charm if you brought it.',
   'goblin-king': 'This is a confrontation, not necessarily a fight. Your class, Mana, and earlier choices can all give you different ways through it.',
 })
 
 const LEVEL_ONE = Object.freeze({
   'choose-route': 'Rattlebridge gives you more than one workable way across. Think about whether your traveler is better at Strength, Defense, or spending Mana for a safer attempt.',
   'goblin-encounter': 'The goblin is blocking progress, but that does not mean your only useful verb is hit. Strength, patience, distraction, talking, and Mana can all be legitimate approaches.',
-  midpoint: 'There are several kinds of leverage here. Nib, the tribute token, the trail-runes, and simply moving on do not pay off in the same way.',
+  midpoint: 'There are several kinds of leverage here. Nib, the highland charm, the trail-runes, and simply moving on do not pay off in the same way.',
+  'highland-camp': 'The picture tribute ledger can expose or protect the tribute arrangement. Grubbin knows the shipments. Old Tatter knows the black-root seal.',
+  'stash-latch': 'The carved faces are a lock, not decoration. Use your better stat, spend Mana for advantage, or use the highland charm if you have it.',
   'goblin-king': 'You do not have to solve the Goblin King like a combat encounter. Look at what you are good at and remember what happened before you reached this room.',
 })
 
 const LEVEL_TWO = Object.freeze({
   'choose-route': 'Quiet Crossing uses Defense. Direct Crossing uses Strength. The Mana crossing gives advantage. If you forgot your numbers, hold the E beside my name.',
   'goblin-encounter': 'Strike uses Strength. Outlasting, bluffing, or distracting usually leans on Defense. The Mana option rolls with advantage when you can afford it.',
-  midpoint: 'Helping Nib requires no roll and makes an ally. The tribute token and trail-runes can change the pressure at the Goblin King. Reading the runes costs Mana.',
+  midpoint: 'Keeping Nib safe requires no roll and makes an ally. Using Nib as bait creates immediate leverage but no ally. The highland charm and trail-runes can make later problems easier.',
+  'highland-camp': 'Expose or protect the tribute arrangement with a Defense check. Asking Grubbin or Old Tatter requires no roll and still moves you toward the Stash Hall.',
+  'stash-latch': 'Reading the latch uses Defense. Forcing it uses Strength. The Mana option costs 1 Mana and gives advantage. The highland charm opens it without a roll.',
   'goblin-king': 'Overpower uses Strength. Outlast uses Defense. The spell option costs Mana and gives advantage. If Nib became your ally, a no-roll bargain may also be available.',
 })
 
@@ -102,6 +108,19 @@ function directAnswerForState(state) {
 
   if (state.sceneId === 'midpoint') {
     return 'If you want the cleanest path forward, help Nib. It requires no roll, makes Nib an ally, and can unlock a bargain when you reach the Goblin King.'
+  }
+
+  if (state.sceneId === 'highland-camp') {
+    return 'Ask Old Tatter about the black-root seal. It requires no roll, gives you the key Chapter 1 clue, and moves you to the Stash Hall.'
+  }
+
+  if (state.sceneId === 'stash-latch') {
+    if (state.flags?.hasHighlandCharm) {
+      return 'Use the highland charm. It opens the carved-face latch without a roll.'
+    }
+    const best = strongestBuiltInCheck(state)
+    const bestLabel = best?.action?.label || 'the latch option that uses your stronger stat'
+    return `Use “${bestLabel}.” That is your strongest built-in chance with the resources you have right now.`
   }
 
   if (state.sceneId === 'goblin-king') {
