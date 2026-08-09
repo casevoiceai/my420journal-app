@@ -144,7 +144,7 @@ jobs:
             await help.click(); await help.click(); await help.click()
             const helpLabel = await help.getAttribute('aria-label')
             check(helpLabel?.includes('level 3'), `Help did not reach level 3: ${helpLabel}`)
-            const crest = page.locator('.weed-goblins-game__crest')
+            const crest = page.getByRole('button', { name: 'Hold for character details' })
             await crest.dispatchEvent('pointerdown')
             await page.waitForTimeout(650)
             await crest.dispatchEvent('pointerup')
