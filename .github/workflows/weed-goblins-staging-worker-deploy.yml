@@ -1,0 +1,45 @@
+name: Weed Goblins staging Worker deploy
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-staging-worker-deploy
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-24.04
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check out verified feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/weed-goblins-session-zero
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Require existing Cloudflare CI credentials
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "CLOUDFLARE_API_TOKEN_MISSING"
+            exit 41
+          fi
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "CLOUDFLARE_ACCOUNT_ID_MISSING"
+            exit 42
+          fi
+          echo "Cloudflare CI credentials are present."
+
+      - name: Confirm Cloudflare identity
+        working-directory: server/weed-goblins-narration-worker
+        run: npx wrangler@latest whoami
+
+      - name: Deploy staging Worker only
+        working-directory: server/weed-goblins-narration-worker
+        run: npx wrangler@latest deploy --env staging
