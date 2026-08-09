@@ -19,6 +19,10 @@ import {
   interpretWeedGoblinsFreeText,
   isWeedGoblinsFreeTextScene,
 } from './weedGoblinsFreeTextInterpreter.js'
+import {
+  composeWeedGoblinsContextualChoices,
+  isWeedGoblinsSuggestedChoice,
+} from './weedGoblinsChoices.js'
 
 function cleanText(value, maxLength = 500) {
   return typeof value === 'string'
@@ -140,7 +144,7 @@ export function createRollResultMessage(value, rolls = []) {
 }
 
 export function getWeedGoblinsQuickReplies(state) {
-  return getAvailableActions(state)
+  return composeWeedGoblinsContextualChoices(state, getAvailableActions(state))
 }
 
 export { isWeedGoblinsFreeTextScene, isWeedGoblinsSessionTextScene }
@@ -310,6 +314,23 @@ export function prepareWeedGoblinsChoiceTurn({ state, action } = {}) {
   })
 }
 
+export async function prepareWeedGoblinsQuickReplyTurn({
+  state,
+  action,
+  blockedRealNames = [],
+  generateNarration = generateNarrationFromHook,
+} = {}) {
+  if (isWeedGoblinsSuggestedChoice(action)) {
+    return prepareWeedGoblinsFreeTextTurn({
+      state,
+      playerAction: action.playerAction,
+      blockedRealNames,
+      generateNarration,
+    })
+  }
+  return prepareWeedGoblinsChoiceTurn({ state, action })
+}
+
 export function submitWeedGoblinsSessionText(state, value) {
   if (!isWeedGoblinsSessionTextScene(state)) {
     throw new Error(`Session text input is not available in scene ${state?.sceneId ?? '(missing)'}.`)
@@ -402,7 +423,7 @@ export async function prepareWeedGoblinsFreeTextTurn({
   })
   const requiresRoll = plan.style !== 'non-check'
   const checkPreview = requiresRoll
-    ? getWeedGoblinsActionCheckPreview(state, plan.actionId)
+    ? getWeedGoblinsActionCheckPreview(state, plan.actionId, plan.engineOptions || {})
     : null
   const setupMessage = requiresRoll
     ? appendCheckInstructions(generatedSetupMessage, checkPreview)
@@ -425,7 +446,7 @@ function advancePreparedPlan(before, plan) {
     return advanceWeedGoblinsFreeTextMidpointCheck(before, plan.style)
   }
   if (!plan.actionId) throw new Error('The interpreted player action has no engine path.')
-  return advanceWeedGoblinsRun(before, plan.actionId)
+  return advanceWeedGoblinsRun(before, plan.actionId, plan.engineOptions || {})
 }
 
 function resolvedCheckEvent(before, after) {

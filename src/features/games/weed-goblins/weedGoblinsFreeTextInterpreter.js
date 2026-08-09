@@ -1,6 +1,9 @@
+import { CHAPTER_ONE_ROOM_LIST } from './weedGoblinsRooms.js'
+
 const MAX_PLAYER_ACTION_LENGTH = 160
 
 export const FREE_TEXT_SCENES = Object.freeze([
+  'choose-route',
   'goblin-encounter',
   'midpoint',
   'goblin-king',
@@ -165,6 +168,12 @@ function interpretedActionFor(state, style, exactActionId = '') {
 
   if (style === 'non-check') return 'let the simple in-world action play out without a roll'
 
+  if (state.sceneId === 'choose-route') {
+    if (style === 'strength') return 'cross Rattlebridge with direct physical force'
+    if (style === 'mana') return 'use the available magic to find the safest crossing over Rattlebridge'
+    return 'cross Rattlebridge cautiously without setting off the alarm lines'
+  }
+
   if (state.sceneId === 'goblin-encounter') {
     if (style === 'strength') return 'press the goblin directly using the physical means available in the scene'
     if (style === 'mana') return 'use the magic or improvised cleverness available here to change the goblin encounter'
@@ -221,6 +230,22 @@ function actionForStyle(state, requestedStyle) {
   if (style === 'mana' && !hasAvailableMana(state, state.sceneId)) {
     style = 'defense'
     manaUnavailable = true
+  }
+
+  if (state.sceneId === 'choose-route') {
+    if (style === 'strength') {
+      return { kind: 'check', style, actionId: 'route:loud', manaUnavailable }
+    }
+    if (style === 'mana') {
+      return {
+        kind: 'check',
+        style,
+        actionId: 'route:quiet',
+        manaUnavailable,
+        engineOptions: Object.freeze({ useManaAdvantage: true }),
+      }
+    }
+    return { kind: 'check', style: 'defense', actionId: 'route:quiet', manaUnavailable }
   }
 
   if (state.sceneId === 'goblin-encounter') {
@@ -290,6 +315,7 @@ export function interpretWeedGoblinsFreeText(state, value, { blockedRealNames = 
     state.goblinName,
     state.stolenItem,
     state.fictionalLocationName,
+    ...CHAPTER_ONE_ROOM_LIST.map((room) => room.name),
   ].filter(Boolean)
   const setting = settingBreakFor(playerAction, blockedRealNames)
   const inputGuardrail = playerInputNeedsSafetyGuardrail(

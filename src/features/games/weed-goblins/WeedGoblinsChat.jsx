@@ -12,8 +12,8 @@ import {
   isWeedGoblinsFreeTextScene,
   isWeedGoblinsSessionTextScene,
   narrateWeedGoblinsResolvedTurn,
-  prepareWeedGoblinsChoiceTurn,
   prepareWeedGoblinsFreeTextTurn,
+  prepareWeedGoblinsQuickReplyTurn,
   resolveWeedGoblinsPreparedMechanics,
   resolveWeedGoblinsPreparedTurn,
   resolveWeedGoblinsTransitionWithStaticFallback,
@@ -255,7 +255,11 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     setChoices([])
 
     try {
-      const prepared = prepareWeedGoblinsChoiceTurn({ state: baseState, action })
+      const prepared = await prepareWeedGoblinsQuickReplyTurn({
+        state: baseState,
+        action,
+        blockedRealNames,
+      })
       const optimisticMessages = [...baseMessages, prepared.outgoingMessage]
       setDraft('')
       setMessages(optimisticMessages)
