@@ -1,0 +1,182 @@
+name: Human GM Chapter 1 Playtest Deploy
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-human-playtest-1-3-20260809
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_STAGING_PROXY_SECRET }}
+      PLAYTEST_URL: https://my420journal-wg-playtest-1-3.casevoice-ai.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-human-playtest-1-3-20260809
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Verify source base
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
+
+      - name: Apply Human GM candidate in runner
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f'missing expected source for {label}')
+              return text.replace(old, new, 1)
+
+          engine_path = Path('src/features/games/weed-goblins/weedGoblinsEngine.js')
+          engine = engine_path.read_text()
+          engine = replace_once(engine, '''export const SESSION_ZERO_WELCOME = Object.freeze([\n  "The road gives out right here, where the Highlands start. One boot's already sunk in the mud.",\n  "But first, I need to know who's walking into that story. Every traveler who comes up this road carries a name, a look, a kind, and a way of meeting trouble. Let's settle those now.",\n])''', '''export const SESSION_ZERO_WELCOME = Object.freeze([\n  "Hey. I'm Eliza. I'm running this one. If you've never played a game like this before, you're fine. You don't need to know the rules yet. I'll tell you what matters when it matters.",\n  "For now, picture a road disappearing into wet grass at the bottom of a mountain. Cold wind off the ridge. Mud where the road used to be. Before I put somebody there, what's your name?",\n])''', 'welcome')
+          engine = replace_once(engine, "const SESSION_RACE_QUESTION =\n  'One more thing before the road takes you anywhere. What are you?'", "const SESSION_RACE_QUESTION =\n  'A little farther up the trail, somebody is going to spot you before you spot them. When they do, what are they looking at?'", 'race')
+          engine = replace_once(engine, "const SESSION_WEAPON_QUESTION =\n  'And what do you carry?'", "const SESSION_WEAPON_QUESTION =\n  'And what are you carrying when things get unpleasant?'", 'weapon')
+          engine = replace_once(engine, "const SESSION_CLASS_QUESTION =\n  'How do you handle yourself when the road turns ugly?'", "const SESSION_CLASS_QUESTION =\n  \"When the road turns ugly, what's your first instinct? Follow the trail, hold your ground, or trust the strange answer nobody else sees?\"", 'class')
+          engine = replace_once(engine, "const SESSION_PRONOUN_QUESTION =\n  \"Last bit of bookkeeping. What do I call you, when I'm not using your name?\"", "const SESSION_PRONOUN_QUESTION =\n  \"Quick table thing before I start putting words in anybody's mouth. What pronouns should I use for your character?\"", 'pronouns')
+          engine = replace_once(engine, "const SESSION_LOOK_QUESTION =\n  'Paint yourself for me.'", "const SESSION_LOOK_QUESTION =\n  \"Last thing. Give me one detail I'd notice if you walked into the room right now. Pick one below, or make up your own.\"", 'look')
+
+          old_name_pair = '''        `${playerName}. Written down.`,\n        SESSION_RACE_QUESTION,'''
+          new_name_pair = '''        `${playerName}. All right. ${SESSION_RACE_QUESTION}`,'''
+          if engine.count(old_name_pair) != 2:
+              raise SystemExit(f'expected two name blocks, found {engine.count(old_name_pair)}')
+          engine = engine.replace(old_name_pair, new_name_pair)
+          engine = replace_once(engine, "      `${background.name}. ${background.flavor}${traitText}`,", "      `${background.flavor}${traitText}`,", 'background response')
+
+          finalize_pattern = re.compile(r"function finalizeSessionZero\(state, playerLook, actionId\) \{.*?\n\}\n\nexport function isWeedGoblinsSessionTextScene", re.S)
+          finalize_replacement = '''function finalizeSessionZero(state, playerLook, actionId) {\n  const returningLine = normalizeText(state.returningLine)\n  const playerName = normalizeText(state.playerName) || 'you'\n  const narration = [\n    ...state.narration,\n    `All right. Now I've got ${playerName}.`,\n    `Three hours ago, a goblin crew stole ${state.stolenItem} from you. Not misplaced. Stole. You chased them north until the road died under your boots.`,\n    `Their tracks end at Rattlebridge. Beyond it, the Highlands climb toward the King's Stash Hall, where stolen goods disappear. That's where you're headed.`,\n    'One bottle cap on the bridge gives a tiny click. From the fog on the far side, somebody whispers, much too loudly, "Did you hear a person?"',\n    `Two obvious ways across: slow and quiet, or fast enough that the alarms don't get a vote. If you've got a third idea, say it. What do you do?`,\n  ]\n  if (returningLine) narration.push(returningLine)\n  return cloneState(state, {\n    playerLook, returningLine: null, sceneId: SCENES.route,\n    flags: { sessionZeroComplete: true },\n    history: [...state.history, { type: 'session-choice', sceneId: SCENES.sessionLook, actionId, playerLook }],\n    narration,\n  })\n}\n\nexport function isWeedGoblinsSessionTextScene'''
+          engine, count = finalize_pattern.subn(finalize_replacement, engine, count=1)
+          if count != 1: raise SystemExit('finalize replacement failed')
+          engine = replace_once(engine, "    return [{ id: 'session:continue', label: 'Continue' }]", "    return [{ id: 'session:continue', label: 'Start with your name' }]", 'start label')
+          engine_path.write_text(engine)
+
+          controller_path = Path('src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js')
+          controller = controller_path.read_text()
+          controller, count = re.subn(r"function checkInstructionText\(preview\) \{.*?\n\}\n\nfunction choiceIntentForSetup", '''function checkInstructionText(preview) {\n  if (!preview?.requiresRoll) return ''\n  const statLabel = preview.stat === 'strength' ? 'Strength' : 'Defense'\n  if (preview.advantage) {\n    return `Okay, that's risky. ${statLabel} check, DC ${preview.dc}. You're spending ${preview.manaCost} Mana, so roll two D20s and keep the higher. With +${preview.statBonus}, ${preview.requiredDie} or better on either die gets you there.`\n  }\n  return `Okay, that's risky. ${statLabel} check, DC ${preview.dc}. You've got +${preview.statBonus}, so ${preview.requiredDie} or better on the die gets you there.`\n}\n\nfunction choiceIntentForSetup''', controller, count=1, flags=re.S)
+          if count != 1: raise SystemExit('check instruction replacement failed')
+          controller, count = re.subn(r"function createChoiceCheckSetupMessage\(state, action, preview\) \{.*?\n\}", '''function createChoiceCheckSetupMessage(state, action, preview) {\n  return createIncomingChatMessage(checkInstructionText(preview), { source: 'engine-check-setup', kind: 'check-setup' })\n}''', controller, count=1, flags=re.S)
+          if count != 1: raise SystemExit('choice setup replacement failed')
+          controller, count = re.subn(r"function contextualFallback\(hook, plan\) \{.*?\n\}", '''function contextualFallback(hook) {\n  return hook.fallbackText\n}''', controller, count=1, flags=re.S)
+          if count != 1: raise SystemExit('contextual fallback replacement failed')
+          controller_path.write_text(controller)
+
+          help_path = Path('src/features/games/weed-goblins/weedGoblinsHelpChapterOne.js')
+          help_text = help_path.read_text()
+          help_text, count = re.subn(r"const AUTOMATIC_GUIDANCE = Object\.freeze\(\{.*?\n\}\)\n\nconst LEVEL_ONE", "const AUTOMATIC_GUIDANCE = Object.freeze({})\n\nconst LEVEL_ONE", help_text, count=1, flags=re.S)
+          if count != 1: raise SystemExit('automatic guidance replacement failed')
+          help_path.write_text(help_text)
+
+          worker_path = Path('server/weed-goblins-narration-worker/legacyChapterOne.js')
+          worker = worker_path.read_text()
+          insertion = '''HUMAN TABLE RHYTHM\n- You are taking one conversational turn at an actual table. You are not composing a polished fantasy paragraph.\n- The player's most recent action is the causal center of the beat. Answer it before adding atmosphere.\n- Internally follow this rhythm: specific player action -> one concrete change -> one world or NPC reaction when useful -> stop and leave the next decision open.\n- The player must regularly cause the next sentence to exist. Do not narrate past the point where they should get control back.\n- Vary cadence like speech. A fragment, a short sentence, or one line of NPC dialogue can be more human than a balanced paragraph.\n- Do not wrap a beat in a moral, summary, lesson, or rhetorical flourish. Do not explain what the moment means after the player has already seen it.\n- At most one joke, quirky image, or strange detail per beat. Often use none. Sincere danger and curiosity are allowed to stay sincere.\n- Avoid generated-prose habits: ornamental metaphors, stacked sensory adjectives, symmetrical three-part lists, "you find yourself", repeated "as you" openings, "a testament to", "the air is thick with", or generic observations about determination, tension, possibility, fate, or the journey.\n- Never say "I resolve", "I process", "I interpret", or otherwise describe the narration machinery.\n- A friendly GM can briefly say "Okay," "Right," or use the character's name when reacting, but do not turn those into a repeated tic.\n\nFIRST-TIME PLAYER\n- Do not front-load rules. The static Session Zero conversation introduces the player and the theft.\n- Teach a mechanic only when it first becomes relevant. The deterministic chat layer handles exact DC, stat, and roll instruction immediately before a roll. Do not repeat those numbers in narration.\n- When the player hesitates or chooses an unexpected idea, make the fiction understandable before making it clever.\n\n'''
+          marker = 'GM FIRST'
+          if marker not in worker: raise SystemExit('GM FIRST marker missing')
+          worker = worker.replace(marker, insertion + marker, 1)
+          worker = worker.replace('- Write one or two focused sentences on that line. Never exceed 300 characters, and scene-intro/choice-presentation must not exceed 240.', '- Write one to three short spoken-feeling sentences on that line. Never exceed 300 characters, and scene-intro/choice-presentation must not exceed 240. Sentence length should vary naturally.', 1)
+          worker = worker.replace('- Do not make every sentence a punchline. Let sincere danger, curiosity, and character moments breathe.', '- Do not make every sentence a punchline. Let sincere danger, curiosity, and character moments breathe. One odd detail is enough; do not stack jokes to demonstrate tone.', 1)
+          worker_path.write_text(worker)
+
+          print('HUMAN_GM_CANDIDATE_APPLIED')
+          PY
+          git diff --check
+
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+          rm -f dist/_redirects
+
+      - name: Deploy Chapter 1 prompt to staging Worker only
+        working-directory: server/weed-goblins-narration-worker
+        run: npx wrangler@latest deploy --env staging
+
+      - name: Set playtest host secret
+        shell: bash
+        run: printf '%s' "$STAGING_PROXY_SECRET" | npx wrangler@latest secret put WEED_GOBLINS_PROXY_SECRET --config .playtest/host/wrangler.jsonc
+
+      - name: Deploy playtest host
+        run: npx wrangler@latest deploy --config .playtest/host/wrangler.jsonc
+
+      - name: Verify live Human GM flow in Chromium
+        shell: bash
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+          mkdir -p .validation
+          cat > .validation/human-gm.mjs <<'EOF'
+          import { chromium } from 'playwright'
+          const base = process.env.PLAYTEST_URL
+          const check = (condition, message) => { if (!condition) throw new Error(message) }
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+            await page.goto(base + '/', { waitUntil: 'networkidle' })
+            await page.getByRole('button', { name: /Chapter 1/ }).click()
+            await page.waitForURL('**/games/weed-goblins')
+            await page.getByText(/Hey\. I'm Eliza\. I'm running this one/i).waitFor({ timeout: 15000 })
+            await page.getByText(/picture a road disappearing into wet grass/i).waitFor()
+            let body = await page.locator('body').innerText()
+            check(!body.includes('This plays like texting'), 'old tutorial present')
+            check(!body.includes("Here's how we play"), 'front-loaded rules present')
+            const bubbles = await page.locator('.weed-goblins-game__message--incoming').count()
+            check(bubbles <= 2, `too many opening GM bubbles: ${bubbles}`)
+
+            await page.getByRole('button', { name: 'Start with your name' }).click()
+            const composer = page.locator('.weed-goblins-game__composer input')
+            await composer.fill('Fenna')
+            await page.locator('.weed-goblins-game__send-button').click()
+            await page.getByText(/Fenna\. All right\./i).waitFor()
+            await page.getByRole('button', { name: 'Human' }).click()
+            await page.getByRole('button', { name: 'Sword' }).click()
+            await page.getByRole('button', { name: 'Highland Tracker' }).click()
+            await page.getByRole('button', { name: 'They' }).click()
+            await page.locator('.weed-goblins-game__quick-reply').first().click()
+
+            await page.getByText(/Three hours ago, a goblin crew stole/i).waitFor()
+            await page.getByText(/Their tracks end at Rattlebridge/i).waitFor()
+            await page.getByText(/Did you hear a person/i).waitFor()
+            await page.getByText(/If you've got a third idea, say it/i).waitFor()
+            body = await page.locator('body').innerText()
+            check(body.includes("King's Stash Hall"), 'objective missing')
+            check(!/I resolve|written down|input received|This plays like texting/i.test(body), 'machine voice present')
+            await page.screenshot({ path: '.validation/human-gm-chapter1.png', fullPage: true })
+
+            await page.getByRole('button', { name: /Quiet Crossing/ }).click()
+            await page.getByText(/Okay, that's risky\. Defense check, DC 12/i).waitFor()
+            const roll = page.getByRole('button', { name: /ROLL D20/i })
+            await roll.waitFor()
+            await roll.click()
+            await page.waitForTimeout(1000)
+            body = await page.locator('body').innerText()
+            check(!/I resolve|I process|I interpret/i.test(body), 'machine voice after roll')
+            console.log('HUMAN_GM_LIVE_FLOW_PASS')
+          } finally {
+            await browser.close()
+          }
+          EOF
+          node .validation/human-gm.mjs
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: human-gm-chapter1-live
+          path: .validation/human-gm-chapter1.png
+          if-no-files-found: ignore
