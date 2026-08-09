@@ -1,0 +1,11 @@
+--- a/src/features/games/weed-goblins/weedGoblinsChapterTwoRuntime.js
++++ b/src/features/games/weed-goblins/weedGoblinsChapterTwoRuntime.js
+@@ -914,7 +914,7 @@
+   }
+ 
+   if (/\b(?:hello|hi|wave|look around|listen|ask|talk|speak|wait|watch)\b/i.test(playerAction)
+-    && !/\b(?:lie|trick|steal|force|break|fight|attack|run|escape|burn|flood)\b/i.test(playerAction)) {
++    && !/\b(?:lie|trick|steal|force|break|fight|attack|run|escape|burn|flood|balance|climb|crawl|sneak|follow|track|route|awning|above)\b/i.test(playerAction)) {
+     return Object.freeze({
+       kind: 'narrative',
+       actionId: 'chapter-two:free-text:narrative',
