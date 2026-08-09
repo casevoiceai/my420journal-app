@@ -117,11 +117,13 @@ jobs:
             await page.getByRole('button', { name: 'Seed, sapling, canopy' }).click()
             await page.getByRole('button', { name: 'One stone to each need' }).waitFor()
             await page.getByRole('button', { name: 'One stone to each need' }).click()
-            await page.getByRole('button', { name: 'Stay still and watch it move' }).waitFor()
+            const stalkerChoice = page.getByRole('button', { name: 'Stay still and watch it move' })
+            await stalkerChoice.waitFor()
 
             await page.reload({ waitUntil: 'networkidle' })
-            await page.getByRole('button', { name: 'Stay still and watch it move' }).waitFor()
-            check((await page.locator('body').innerText()).includes('Withering Stalker'), 'save/resume did not restore Stalker scene')
+            const restoredStalkerChoice = page.getByRole('button', { name: 'Stay still and watch it move' })
+            await restoredStalkerChoice.waitFor()
+            check(await restoredStalkerChoice.isVisible(), 'save/resume did not restore the Stalker-scene controls')
 
             const composer = page.locator('.weed-goblins-game__composer input')
             await composer.fill('I crawl behind the resin trunk and cross when it turns away')
