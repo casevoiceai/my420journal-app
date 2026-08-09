@@ -1,0 +1,2107 @@
+TAP version 13
+# Subtest: Chapter 2 worker keeps deterministic mechanics authoritative in the system prompt
+ok 1 - Chapter 2 worker keeps deterministic mechanics authoritative in the system prompt
+  ---
+  duration_ms: 1.381045
+  type: 'test'
+  ...
+# Subtest: Chapter 2 narration rejects unauthorized requests
+ok 2 - Chapter 2 narration rejects unauthorized requests
+  ---
+  duration_ms: 52.732038
+  type: 'test'
+  ...
+# Subtest: Chapter 2 narration rejects unsupported moments and non-Chapter-2 bodies
+ok 3 - Chapter 2 narration rejects unsupported moments and non-Chapter-2 bodies
+  ---
+  duration_ms: 6.768029
+  type: 'test'
+  ...
+# Subtest: Chapter 2 worker sends only normalized game context and uses the dedicated Hollow Market prompt
+ok 4 - Chapter 2 worker sends only normalized game context and uses the dedicated Hollow Market prompt
+  ---
+  duration_ms: 4.701154
+  type: 'test'
+  ...
+# Subtest: Chapter 2 free-text moments continue to use the existing per-source rate limiter
+ok 5 - Chapter 2 free-text moments continue to use the existing per-source rate limiter
+  ---
+  duration_ms: 3.756398
+  type: 'test'
+  ...
+# Subtest: rejects missing or wrong authorization before any forwarding
+ok 6 - rejects missing or wrong authorization before any forwarding
+  ---
+  duration_ms: 50.284032
+  type: 'test'
+  ...
+# Subtest: forwards only an authorized valid natural-one request to Anthropic
+ok 7 - forwards only an authorized valid natural-one request to Anthropic
+  ---
+  duration_ms: 5.516267
+  type: 'test'
+  ...
+# Subtest: accepts ordinary-failure with outcome failure and forwards the paired context
+ok 8 - accepts ordinary-failure with outcome failure and forwards the paired context
+  ---
+  duration_ms: 4.078057
+  type: 'test'
+  ...
+# Subtest: accepts a pre-roll player-action setup and preserves untrusted action context as data
+ok 9 - accepts a pre-roll player-action setup and preserves untrusted action context as data
+  ---
+  duration_ms: 9.508065
+  type: 'test'
+  ...
+# Subtest: uses a salted SHA-256 source key without retaining the raw IP
+ok 10 - uses a salted SHA-256 source key without retaining the raw IP
+  ---
+  duration_ms: 7.481219
+  type: 'test'
+  ...
+# Subtest: limits the two free-text moments to 30 combined calls per hour per source
+ok 11 - limits the two free-text moments to 30 combined calls per hour per source
+  ---
+  duration_ms: 78.234698
+  type: 'test'
+  ...
+# Subtest: starts a fresh free-text allowance after the one-hour window
+ok 12 - starts a fresh free-text allowance after the one-hour window
+  ---
+  duration_ms: 41.88432
+  type: 'test'
+  ...
+# Subtest: does not apply the free-text limiter to any other narration moment
+ok 13 - does not apply the free-text limiter to any other narration moment
+  ---
+  duration_ms: 1.141168
+  type: 'test'
+  ...
+# Subtest: enforces supported moment and outcome pairings before Anthropic forwarding
+ok 14 - enforces supported moment and outcome pairings before Anthropic forwarding
+  ---
+  duration_ms: 2.354232
+  type: 'test'
+  ...
+# Subtest: system prompt defines Eliza as a real GM with an engine boundary
+ok 15 - system prompt defines Eliza as a real GM with an engine boundary
+  ---
+  duration_ms: 0.644589
+  type: 'test'
+  ...
+# Subtest: system prompt locks the 7.25 weirdness rule without sacrificing clarity
+ok 16 - system prompt locks the 7.25 weirdness rule without sacrificing clarity
+  ---
+  duration_ms: 0.21482
+  type: 'test'
+  ...
+# Subtest: system prompt defines distinct goblin performance rules
+ok 17 - system prompt defines distinct goblin performance rules
+  ---
+  duration_ms: 0.115712
+  type: 'test'
+  ...
+# Subtest: system prompt keeps direct second-person Eliza voice
+ok 18 - system prompt keeps direct second-person Eliza voice
+  ---
+  duration_ms: 0.091756
+  type: 'test'
+  ...
+# Subtest: system prompt keeps safety privacy and outcome fidelity
+ok 19 - system prompt keeps safety privacy and outcome fidelity
+  ---
+  duration_ms: 0.10769
+  type: 'test'
+  ...
+# Subtest: system prompt keeps exact opening and scene contracts
+ok 20 - system prompt keeps exact opening and scene contracts
+  ---
+  duration_ms: 0.088141
+  type: 'test'
+  ...
+# Subtest: system prompt makes continuity and Goblin King climax mandatory
+ok 21 - system prompt makes continuity and Goblin King climax mandatory
+  ---
+  duration_ms: 0.082062
+  type: 'test'
+  ...
+# Subtest: accepts premise-statement with premise
+ok 22 - accepts premise-statement with premise
+  ---
+  duration_ms: 55.903386
+  type: 'test'
+  ...
+# Subtest: accepts action-success with success
+ok 23 - accepts action-success with success
+  ---
+  duration_ms: 3.304225
+  type: 'test'
+  ...
+# Subtest: accepts scene-intro with intro
+ok 24 - accepts scene-intro with intro
+  ---
+  duration_ms: 3.337145
+  type: 'test'
+  ...
+# Subtest: accepts midpoint-outcome with midpoint
+ok 25 - accepts midpoint-outcome with midpoint
+  ---
+  duration_ms: 2.594129
+  type: 'test'
+  ...
+# Subtest: accepts goblin-king-taunt with taunt
+ok 26 - accepts goblin-king-taunt with taunt
+  ---
+  duration_ms: 4.733853
+  type: 'test'
+  ...
+# Subtest: accepts player-action-attempt with attempt
+ok 27 - accepts player-action-attempt with attempt
+  ---
+  duration_ms: 5.756574
+  type: 'test'
+  ...
+# Subtest: accepts player-action-response with response
+ok 28 - accepts player-action-response with response
+  ---
+  duration_ms: 2.289296
+  type: 'test'
+  ...
+# Subtest: accepts run-ending with recovery
+ok 29 - accepts run-ending with recovery
+  ---
+  duration_ms: 1.955419
+  type: 'test'
+  ...
+# Subtest: accepts run-ending with bargain
+ok 30 - accepts run-ending with bargain
+  ---
+  duration_ms: 2.266902
+  type: 'test'
+  ...
+# Subtest: accepts run-ending with escape
+ok 31 - accepts run-ending with escape
+  ---
+  duration_ms: 2.871051
+  type: 'test'
+  ...
+# Subtest: rejects mismatched new pairs before Anthropic
+ok 32 - rejects mismatched new pairs before Anthropic
+  ---
+  duration_ms: 13.256391
+  type: 'test'
+  ...
+# Subtest: exports the exact story-beat outcome sets
+ok 33 - exports the exact story-beat outcome sets
+  ---
+  duration_ms: 1.187437
+  type: 'test'
+  ...
+# Subtest: system prompt defines one continuous one-shot contract for every moment
+ok 34 - system prompt defines one continuous one-shot contract for every moment
+  ---
+  duration_ms: 0.662826
+  type: 'test'
+  ...
+# Subtest: accepts a compliant first-attempt AI complication
+ok 35 - accepts a compliant first-attempt AI complication
+  ---
+  duration_ms: 38.534372
+  type: 'test'
+  ...
+# Subtest: retries once with a corrective note after validation catches banned patterns
+ok 36 - retries once with a corrective note after validation catches banned patterns
+  ---
+  duration_ms: 4.796967
+  type: 'test'
+  ...
+# Subtest: falls back to the existing static line when both AI drafts fail
+ok 37 - falls back to the existing static line when both AI drafts fail
+  ---
+  duration_ms: 1.802371
+  type: 'test'
+  ...
+# Subtest: blocks player-specific real names but permits the supplied fictionalized name
+ok 38 - blocks player-specific real names but permits the supplied fictionalized name
+  ---
+  duration_ms: 1.271041
+  type: 'test'
+  ...
+# Subtest: accepts a valid ordinary-failure response through the retry pipeline
+ok 39 - accepts a valid ordinary-failure response through the retry pipeline
+  ---
+  duration_ms: 1.1225
+  type: 'test'
+  ...
+# Subtest: ordinary-failure validation permits failure language but rejects success or a different ending
+ok 40 - ordinary-failure validation permits failure language but rejects success or a different ending
+  ---
+  duration_ms: 0.781873
+  type: 'test'
+  ...
+# Subtest: ordinary-failure retries once and uses its static failure line when both drafts change the outcome
+ok 41 - ordinary-failure retries once and uses its static failure line when both drafts change the outcome
+  ---
+  duration_ms: 1.457308
+  type: 'test'
+  ...
+# Subtest: highlands opening rejects thematic drift and retries with the canonical welcome and narrator identity
+ok 42 - highlands opening rejects thematic drift and retries with the canonical welcome and narrator identity
+  ---
+  duration_ms: 5.218524
+  type: 'test'
+  ...
+# Subtest: highlands opening rejects foundation-compliant narrator self-commentary
+ok 43 - highlands opening rejects foundation-compliant narrator self-commentary
+  ---
+  duration_ms: 0.635686
+  type: 'test'
+  ...
+# Subtest: highlands opening accepts the natural comma narrator form with concrete scene-setting
+ok 44 - highlands opening accepts the natural comma narrator form with concrete scene-setting
+  ---
+  duration_ms: 0.745249
+  type: 'test'
+  ...
+# Subtest: natural comma narrator form is not rejected as a foundation or identity error
+ok 45 - natural comma narrator form is not rejected as a foundation or identity error
+  ---
+  duration_ms: 0.338764
+  type: 'test'
+  ...
+# Subtest: canonical Chapter 1 content registry locks NPCs, puzzles, rewards, and branch values
+ok 46 - canonical Chapter 1 content registry locks NPCs, puzzles, rewards, and branch values
+  ---
+  duration_ms: 2.125743
+  type: 'test'
+  ...
+# Subtest: Cloudberry gives the explicit keep-Nib-safe versus use-Nib-as-bait branch
+ok 47 - Cloudberry gives the explicit keep-Nib-safe versus use-Nib-as-bait branch
+  ---
+  duration_ms: 3.021455
+  type: 'test'
+  ...
+# Subtest: Highland Camp contains the tribute branch and Old Tatter identifies the black-root seal
+ok 48 - Highland Camp contains the tribute branch and Old Tatter identifies the black-root seal
+  ---
+  duration_ms: 1.095359
+  type: 'test'
+  ...
+# Subtest: picture ledger expose/protect choices preserve the player branch regardless of roll outcome
+ok 49 - picture ledger expose/protect choices preserve the player branch regardless of roll outcome
+  ---
+  duration_ms: 1.805836
+  type: 'test'
+  ...
+# Subtest: the highland charm is a real reward that can open the carved-face latch without a roll
+ok 50 - the highland charm is a real reward that can open the carved-face latch without a roll
+  ---
+  duration_ms: 2.086724
+  type: 'test'
+  ...
+# Subtest: new gameplay scenes keep custom text and 4 to 5 visible replies
+ok 51 - new gameplay scenes keep custom text and 4 to 5 visible replies
+  ---
+  duration_ms: 10.932945
+  type: 'test'
+  ...
+# Subtest: Goblin King choices make spare versus humiliate explicit without changing the boss DC system
+ok 52 - Goblin King choices make spare versus humiliate explicit without changing the boss DC system
+  ---
+  duration_ms: 0.702685
+  type: 'test'
+  ...
+# Subtest: completed Chapter 1 summary carries rewards and branch state while exact ending text stays locked
+ok 53 - completed Chapter 1 summary carries rewards and branch state while exact ending text stays locked
+  ---
+  duration_ms: 1.665598
+  type: 'test'
+  ...
+# Subtest: narration context knows Highland Camp and the carved-face latch
+ok 54 - narration context knows Highland Camp and the carved-face latch
+  ---
+  duration_ms: 0.911346
+  type: 'test'
+  ...
+# Subtest: Chapter 2 foundation matches the canonical Hollow Market identity
+ok 55 - Chapter 2 foundation matches the canonical Hollow Market identity
+  ---
+  duration_ms: 0.86034
+  type: 'test'
+  ...
+# Subtest: Chapter 2 locks the four canonical market locations
+ok 56 - Chapter 2 locks the four canonical market locations
+  ---
+  duration_ms: 0.718829
+  type: 'test'
+  ...
+# Subtest: Chapter 2 locks its canonical NPCs and Root Collector threat
+ok 57 - Chapter 2 locks its canonical NPCs and Root Collector threat
+  ---
+  duration_ms: 0.158245
+  type: 'test'
+  ...
+# Subtest: Chapter 2 locks its two canonical puzzles
+ok 58 - Chapter 2 locks its two canonical puzzles
+  ---
+  duration_ms: 1.005957
+  type: 'test'
+  ...
+# Subtest: Chapter 2 preserves the canonical market-state branches and rewards
+ok 59 - Chapter 2 preserves the canonical market-state branches and rewards
+  ---
+  duration_ms: 0.365353
+  type: 'test'
+  ...
+# Subtest: Chapter 2 core beats stay investigation and commerce focused
+ok 60 - Chapter 2 core beats stay investigation and commerce focused
+  ---
+  duration_ms: 0.134871
+  type: 'test'
+  ...
+# Subtest: Chapter 2 automatic guidance teaches danger tiers, typing, and explicit D20 rolls
+ok 61 - Chapter 2 automatic guidance teaches danger tiers, typing, and explicit D20 rolls
+  ---
+  duration_ms: 2.058933
+  type: 'test'
+  ...
+# Subtest: third Chapter 2 Help gives the exact lantern solution without executing it
+ok 62 - third Chapter 2 Help gives the exact lantern solution without executing it
+  ---
+  duration_ms: 0.531721
+  type: 'test'
+  ...
+# Subtest: Help context resets when the Hollow Market obstacle changes
+ok 63 - Help context resets when the Hollow Market obstacle changes
+  ---
+  duration_ms: 2.98428
+  type: 'test'
+  ...
+# Subtest: four Chapter 1 runs do not expose Chapter 2 early
+ok 64 - four Chapter 1 runs do not expose Chapter 2 early
+  ---
+  duration_ms: 3.303104
+  type: 'test'
+  ...
+# Subtest: five completed Chapter 1 runs open Hollow Market Session Zero instead of replaying the Highlands premise
+ok 65 - five completed Chapter 1 runs open Hollow Market Session Zero instead of replaying the Highlands premise
+  ---
+  duration_ms: 1.5997
+  type: 'test'
+  ...
+# Subtest: completing Session Zero converts directly into the playable Lantern Mouth state
+ok 66 - completing Session Zero converts directly into the playable Lantern Mouth state
+  ---
+  duration_ms: 3.221082
+  type: 'test'
+  ...
+# Subtest: Session Zero to Chapter 2 transition produces Hollow Market opening narration
+ok 67 - Session Zero to Chapter 2 transition produces Hollow Market opening narration
+  ---
+  duration_ms: 1.85506
+  type: 'test'
+  ...
+# Subtest: Chapter 2 built-in checks retain explicit setup then Roll D20 before mechanics resolve
+ok 68 - Chapter 2 built-in checks retain explicit setup then Roll D20 before mechanics resolve
+  ---
+  duration_ms: 5.827219
+  type: 'test'
+  ...
+# Subtest: unexpected Chapter 2 free text is deterministically adjudicated without letting narration own mechanics
+not ok 69 - unexpected Chapter 2 free text is deterministically adjudicated without letting narration own mechanics
+  ---
+  duration_ms: 5.429858
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChapterTwoIntegration.test.js:123:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChapterTwoIntegration.test.js:131:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: Chapter 2 narration never transmits raw typed gameplay text to the narration service
+ok 70 - Chapter 2 narration never transmits raw typed gameplay text to the narration service
+  ---
+  duration_ms: 36.395785
+  type: 'test'
+  ...
+# Subtest: Chapter 2 narration validation rejects privacy/safety and output-contract violations
+ok 71 - Chapter 2 narration validation rejects privacy/safety and output-contract violations
+  ---
+  duration_ms: 0.654394
+  type: 'test'
+  ...
+# Subtest: Chapter 2 target Session Zero round-trips without collapsing back into Chapter 1
+ok 72 - Chapter 2 target Session Zero round-trips without collapsing back into Chapter 1
+  ---
+  duration_ms: 8.646709
+  type: 'test'
+  ...
+# Subtest: pending Chapter 2 D20 turn round-trips exact deterministic mechanics and Help state
+ok 73 - pending Chapter 2 D20 turn round-trips exact deterministic mechanics and Help state
+  ---
+  duration_ms: 6.041588
+  type: 'test'
+  ...
+# Subtest: completed Chapter 2 campaign state persists branches, rewards, Rootcoin and wound without duplicate inflation
+ok 74 - completed Chapter 2 campaign state persists branches, rewards, Rootcoin and wound without duplicate inflation
+  ---
+  duration_ms: 4.398814
+  type: 'test'
+  ...
+# Subtest: later Chapter 1 saves preserve the existing Chapter 2 campaign block
+ok 75 - later Chapter 1 saves preserve the existing Chapter 2 campaign block
+  ---
+  duration_ms: 1.659809
+  type: 'test'
+  ...
+# Subtest: local context exposes only safe enhanced Chapter 2 history to the next run
+ok 76 - local context exposes only safe enhanced Chapter 2 history to the next run
+  ---
+  duration_ms: 1.981068
+  type: 'test'
+  ...
+# Subtest: Chapter 2 maps danger tiers onto the locked 9/12/15/16 DC ladder
+ok 77 - Chapter 2 maps danger tiers onto the locked 9/12/15/16 DC ladder
+  ---
+  duration_ms: 1.519561
+  type: 'test'
+  ...
+# Subtest: approved product categories become fictional stall and counterfeit details only
+ok 78 - approved product categories become fictional stall and counterfeit details only
+  ---
+  duration_ms: 0.580383
+  type: 'test'
+  ...
+# Subtest: Hollow Market opens with four choices and the lantern puzzle does not roll
+ok 79 - Hollow Market opens with four choices and the lantern puzzle does not roll
+  ---
+  duration_ms: 2.325089
+  type: 'test'
+  ...
+# Subtest: entry still offers four contextual choices when no Rootcoin remains
+ok 80 - entry still offers four contextual choices when no Rootcoin remains
+  ---
+  duration_ms: 0.453945
+  type: 'test'
+  ...
+# Subtest: tribute investigation requires a merchant-side clue and the living receipt
+ok 81 - tribute investigation requires a merchant-side clue and the living receipt
+  ---
+  duration_ms: 1.880868
+  type: 'test'
+  ...
+# Subtest: natural 1 costs exactly two Trouble and remains nonfatal
+ok 82 - natural 1 costs exactly two Trouble and remains nonfatal
+  ---
+  duration_ms: 0.315089
+  type: 'test'
+  ...
+# Subtest: Mana action rolls with advantage and spends exactly one Mana
+ok 83 - Mana action rolls with advantage and spends exactly one Mana
+  ---
+  duration_ms: 0.760321
+  type: 'test'
+  ...
+# Subtest: ordinary Wither failure is failure-forward, Downed, and does not kill or end the run
+ok 84 - ordinary Wither failure is failure-forward, Downed, and does not kill or end the run
+  ---
+  duration_ms: 0.433995
+  type: 'test'
+  ...
+# Subtest: ledger branch ledger:keep-operational produces its canonical persistent market state
+ok 85 - ledger branch ledger:keep-operational produces its canonical persistent market state
+  ---
+  duration_ms: 1.025385
+  type: 'test'
+  ...
+# Subtest: ledger branch ledger:expose-tithe produces its canonical persistent market state
+ok 86 - ledger branch ledger:expose-tithe produces its canonical persistent market state
+  ---
+  duration_ms: 0.700272
+  type: 'test'
+  ...
+# Subtest: ledger branch ledger:burn-flood produces its canonical persistent market state
+ok 87 - ledger branch ledger:burn-flood produces its canonical persistent market state
+  ---
+  duration_ms: 0.450169
+  type: 'test'
+  ...
+# Subtest: ledger branch ledger:take-route produces its canonical persistent market state
+ok 88 - ledger branch ledger:take-route produces its canonical persistent market state
+  ---
+  duration_ms: 0.393065
+  type: 'test'
+  ...
+# Subtest: opens with scene, premise, and visible stakes before exposing background choices
+not ok 89 - opens with scene, premise, and visible stakes before exposing background choices
+  ---
+  duration_ms: 5.475126
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:39:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + []
+    - [
+    -   [
+    -     'scene-intro',
+    -     'highlands-opening'
+    -   ],
+    -   [
+    -     'premise-statement',
+    -     'premise-statement'
+    -   ],
+    -   [
+    -     'scene-intro',
+    -     'choice-presentation'
+    -   ]
+    - ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0:
+      0: 'scene-intro'
+      1: 'highlands-opening'
+    1:
+      0: 'premise-statement'
+      1: 'premise-statement'
+    2:
+      0: 'scene-intro'
+      1: 'choice-presentation'
+  actual:
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:46:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: adds a scene-transition beat with visible next-choice stakes after an outcome
+not ok 90 - adds a scene-transition beat with visible next-choice stakes after an outcome
+  ---
+  duration_ms: 0.563488
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:58:1'
+  failureType: 'testCodeFailure'
+  error: 'Choice (missing) is not available.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Module.selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js:264:24)
+    selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.js:154:29)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:66:22)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: free-text submit stages outgoing, setup, and roll trigger without advancing the engine
+not ok 91 - free-text submit stages outgoing, setup, and roll trigger without advancing the engine
+  ---
+  duration_ms: 0.742986
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:96:1'
+  failureType: 'testCodeFailure'
+  error: 'Choice (missing) is not available.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Module.selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js:264:24)
+    selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.js:154:29)
+    stateAtGoblin (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:89:32)
+    async TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:98:17)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: roll tap resolves mechanics before outcome narration and produces the five bubble sequence
+not ok 92 - roll tap resolves mechanics before outcome narration and produces the five bubble sequence
+  ---
+  duration_ms: 0.501156
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:122:1'
+  failureType: 'testCodeFailure'
+  error: 'Choice (missing) is not available.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Module.selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js:264:24)
+    selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.js:154:29)
+    stateAtGoblin (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:89:32)
+    async TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:125:17)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: free-text scenes keep every engine action available as a real game control
+not ok 93 - free-text scenes keep every engine action available as a real game control
+  ---
+  duration_ms: 0.475648
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:169:1'
+  failureType: 'testCodeFailure'
+  error: 'Choice (missing) is not available.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Module.selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js:264:24)
+    selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.js:154:29)
+    stateAtGoblin (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:89:32)
+    async TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:170:17)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a built-in action in a free-text scene resolves and advances the adventure
+not ok 94 - a built-in action in a free-text scene resolves and advances the adventure
+  ---
+  duration_ms: 0.495107
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:177:1'
+  failureType: 'testCodeFailure'
+  error: 'Choice (missing) is not available.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Module.selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js:264:24)
+    selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.js:154:29)
+    stateAtGoblin (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:89:32)
+    async TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:178:17)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: simple narrative beat stays in the same scene and consumes no roll
+not ok 95 - simple narrative beat stays in the same scene and consumes no roll
+  ---
+  duration_ms: 0.373736
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:194:1'
+  failureType: 'testCodeFailure'
+  error: 'Choice (missing) is not available.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Module.selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js:264:24)
+    selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.js:154:29)
+    stateAtGoblin (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:89:32)
+    async TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:195:17)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: non-check midpoint action proceeds without a roll step and still enters the Goblin King scene
+not ok 96 - non-check midpoint action proceeds without a roll step and still enters the Goblin King scene
+  ---
+  duration_ms: 0.356501
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:215:1'
+  failureType: 'testCodeFailure'
+  error: 'Choice (missing) is not available.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Module.selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js:264:24)
+    selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.js:154:29)
+    stateAtGoblin (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:89:32)
+    async TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:216:18)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: completed boss free-text check shows one final authoritative outcome bubble after the die
+not ok 97 - completed boss free-text check shows one final authoritative outcome bubble after the die
+  ---
+  duration_ms: 1.032686
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:246:1'
+  failureType: 'testCodeFailure'
+  error: 'Choice (missing) is not available.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Module.selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js:264:24)
+    selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.js:154:29)
+    stateAtGoblin (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:89:32)
+    async TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:249:15)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: fixed route checks retain their existing attached die behavior
+not ok 98 - fixed route checks retain their existing attached die behavior
+  ---
+  duration_ms: 1.937673
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:282:1'
+  failureType: 'testCodeFailure'
+  error: 'Choice (missing) is not available.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Module.selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js:264:24)
+    selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.js:154:29)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:289:32)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: passes the original ordinary-failure event into narration generation
+not ok 99 - passes the original ordinary-failure event into narration generation
+  ---
+  duration_ms: 0.478011
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:308:1'
+  failureType: 'testCodeFailure'
+  error: 'Choice (missing) is not available.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Module.selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js:264:24)
+    selectWeedGoblinsChatChoice (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.js:154:29)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:316:32)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: Windcut Trail and Rattlebridge expose their canonical clues
+ok 100 - Windcut Trail and Rattlebridge expose their canonical clues
+  ---
+  duration_ms: 3.956286
+  type: 'test'
+  ...
+# Subtest: Cloudberry Shelf exposes Nib, tripwire, highland charm, and runes
+ok 101 - Cloudberry Shelf exposes Nib, tripwire, highland charm, and runes
+  ---
+  duration_ms: 1.227225
+  type: 'test'
+  ...
+# Subtest: Highland Camp exposes Grubbin, Old Tatter, the picture ledger, and black-root seal
+ok 102 - Highland Camp exposes Grubbin, Old Tatter, the picture ledger, and black-root seal
+  ---
+  duration_ms: 0.835413
+  type: 'test'
+  ...
+# Subtest: Stash Hall threshold exposes the carved-face latch and exact stolen item
+ok 103 - Stash Hall threshold exposes the carved-face latch and exact stolen item
+  ---
+  duration_ms: 3.957157
+  type: 'test'
+  ...
+# Subtest: matcher still chooses longest non-overlapping phrases
+ok 104 - matcher still chooses longest non-overlapping phrases
+  ---
+  duration_ms: 0.696907
+  type: 'test'
+  ...
+# Subtest: actual gameplay scenes expose no more than five contextual reply choices
+ok 105 - actual gameplay scenes expose no more than five contextual reply choices
+  ---
+  duration_ms: 5.387595
+  type: 'test'
+  ...
+# Subtest: route choices mix authoritative engine choices with suggested custom actions
+ok 106 - route choices mix authoritative engine choices with suggested custom actions
+  ---
+  duration_ms: 1.304772
+  type: 'test'
+  ...
+# Subtest: custom input is open from the first real gameplay route scene
+ok 107 - custom input is open from the first real gameplay route scene
+  ---
+  duration_ms: 0.726601
+  type: 'test'
+  ...
+# Subtest: a suggested Mana route button becomes a real free-text check with advantage
+ok 108 - a suggested Mana route button becomes a real free-text check with advantage
+  ---
+  duration_ms: 10.087497
+  type: 'test'
+  ...
+# Subtest: typed physical route action maps to the existing direct crossing mechanics
+ok 109 - typed physical route action maps to the existing direct crossing mechanics
+  ---
+  duration_ms: 3.508469
+  type: 'test'
+  ...
+# Subtest: canonical room names in custom actions are treated as in-world terms
+ok 110 - canonical room names in custom actions are treated as in-world terms
+  ---
+  duration_ms: 0.686952
+  type: 'test'
+  ...
+# Subtest: uses the locked welcome as the foundation for concrete Highlands scene-setting
+not ok 111 - uses the locked welcome as the foundation for concrete Highlands scene-setting
+  ---
+  duration_ms: 2.609011
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:63:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. Your boot stops beside a fresh goblin footprint pressed deep into the mud of Windcut Trail. Somewhere above, the King's Stash Hall closes its doors."
+    - "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it."
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it."
+  actual: "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. Your boot stops beside a fresh goblin footprint pressed deep into the mud of Windcut Trail. Somewhere above, the King's Stash Hall closes its doors."
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:65:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: background hints are concrete start-of-road narrative moments
+not ok 112 - background hints are concrete start-of-road narrative moments
+  ---
+  duration_ms: 0.257984
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:68:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'flavor')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:69:35)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: plays one fixed-seed recovery run from start to finish
+not ok 113 - plays one fixed-seed recovery run from start to finish
+  ---
+  duration_ms: 1.151713
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:82:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'session-zero-welcome'
+    - 'choose-background'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'choose-background'
+  actual: 'session-zero-welcome'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:88:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: plays a full Chapter 1 natural-20 victory with Eliza
+not ok 114 - plays a full Chapter 1 natural-20 victory with Eliza
+  ---
+  duration_ms: 1.267145
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:105:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1556:12
+    Array.reduce (<anonymous>)
+    playWeedGoblinsActions (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1553:18)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:106:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: emits exactly one Goblin King taunt before boss actions are chosen
+not ok 115 - emits exactly one Goblin King taunt before boss actions are chosen
+  ---
+  duration_ms: 0.371383
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:122:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:129:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: reaches the bargain ending after a natural-1 complication
+not ok 116 - reaches the bargain ending after a natural-1 complication
+  ---
+  duration_ms: 0.278965
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:155:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1556:12
+    Array.reduce (<anonymous>)
+    playWeedGoblinsActions (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1553:18)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:156:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: spends the full Mana Pool through rolled checks and reaches recovery
+not ok 117 - spends the full Mana Pool through rolled checks and reaches recovery
+  ---
+  duration_ms: 0.37612
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:169:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:adept is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:171:27)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a Mana-assisted roll can still fail
+not ok 118 - a Mana-assisted roll can still fail
+  ---
+  duration_ms: 0.291033
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:187:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:adept is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:189:11)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: completes Chapter 1 after a Mana-assisted failure with Eliza
+not ok 119 - completes Chapter 1 after a Mana-assisted failure with Eliza
+  ---
+  duration_ms: 2.027677
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:207:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:adept is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1556:12
+    Array.reduce (<anonymous>)
+    playWeedGoblinsActions (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1553:18)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:208:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: a selected natural 1 always uses the non-fatal complication path
+not ok 120 - a selected natural 1 always uses the non-fatal complication path
+  ---
+  duration_ms: 0.686341
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:231:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:233:11)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: ordinary accumulated Trouble can still end the run in defeat
+not ok 121 - ordinary accumulated Trouble can still end the run in defeat
+  ---
+  duration_ms: 0.595135
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:251:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:adept is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1556:12
+    Array.reduce (<anonymous>)
+    playWeedGoblinsActions (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1553:18)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:252:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: the fixed adventure exposes all three endings through deterministic runs
+not ok 122 - the fixed adventure exposes all three endings through deterministic runs
+  ---
+  duration_ms: 0.447636
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:264:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1556:12
+    Array.reduce (<anonymous>)
+    playWeedGoblinsActions (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1553:18)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:266:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: same seed and choices produce the same run summary
+not ok 123 - same seed and choices produce the same run summary
+  ---
+  duration_ms: 0.205015
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:283:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1556:12
+    Array.reduce (<anonymous>)
+    playWeedGoblinsActions (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1553:18)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:284:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: Eliza references the latest prior run without reading storage
+not ok 124 - Eliza references the latest prior run without reading storage
+  ---
+  duration_ms: 0.468787
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:300:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /Last time you made a bargain with the Goblin King/. Input:
+    
+    "The road gives out right here, where the Highlands start. One boot's already sunk in the mud."
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: "The road gives out right here, where the Highlands start. One boot's already sunk in the mud."
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:306:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: reports normal narration tier at 0 prior runs
+not ok 125 - reports normal narration tier at 0 prior runs
+  ---
+  duration_ms: 0.201549
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:319:3'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1556:12
+    Array.reduce (<anonymous>)
+    playWeedGoblinsActions (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1553:18)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:322:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: reports normal narration tier at 4 prior runs
+not ok 126 - reports normal narration tier at 4 prior runs
+  ---
+  duration_ms: 0.132958
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:319:3'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1556:12
+    Array.reduce (<anonymous>)
+    playWeedGoblinsActions (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1553:18)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:322:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: reports experienced-callback-eligible narration tier at 5 prior runs
+not ok 127 - reports experienced-callback-eligible narration tier at 5 prior runs
+  ---
+  duration_ms: 0.193638
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:319:3'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1556:12
+    Array.reduce (<anonymous>)
+    playWeedGoblinsActions (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1553:18)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:322:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: reports experienced-callback-eligible narration tier at 9 prior runs
+not ok 128 - reports experienced-callback-eligible narration tier at 9 prior runs
+  ---
+  duration_ms: 0.135251
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:319:3'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1556:12
+    Array.reduce (<anonymous>)
+    playWeedGoblinsActions (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1553:18)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:322:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: reports fourth-wall-eligible narration tier at 10 prior runs
+not ok 129 - reports fourth-wall-eligible narration tier at 10 prior runs
+  ---
+  duration_ms: 0.135151
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:319:3'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1556:12
+    Array.reduce (<anonymous>)
+    playWeedGoblinsActions (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1553:18)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:322:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  ...
+# Subtest: built-in route choice stages the check without consuming its roll
+ok 130 - built-in route choice stages the check without consuming its roll
+  ---
+  duration_ms: 3.781405
+  type: 'test'
+  ...
+# Subtest: no-roll Session Zero choice still resolves immediately
+ok 131 - no-roll Session Zero choice still resolves immediately
+  ---
+  duration_ms: 0.415769
+  type: 'test'
+  ...
+# Subtest: Mana-assisted built-in choice explains advantage without changing its math
+ok 132 - Mana-assisted built-in choice explains advantage without changing its math
+  ---
+  duration_ms: 0.586543
+  type: 'test'
+  ...
+# Subtest: free-text check receives the same exact DC and modifier instructions
+ok 133 - free-text check receives the same exact DC and modifier instructions
+  ---
+  duration_ms: 5.325442
+  type: 'test'
+  ...
+# Subtest: ordinary physical action silently maps to the existing Strength path
+ok 134 - ordinary physical action silently maps to the existing Strength path
+  ---
+  duration_ms: 8.389271
+  type: 'test'
+  ...
+# Subtest: creative magical action silently maps to the existing Mana path
+ok 135 - creative magical action silently maps to the existing Mana path
+  ---
+  duration_ms: 3.385717
+  type: 'test'
+  ...
+# Subtest: creative clever action can silently map to Mana without naming magic
+ok 136 - creative clever action can silently map to Mana without naming magic
+  ---
+  duration_ms: 0.521536
+  type: 'test'
+  ...
+# Subtest: simple table gesture becomes a non-check narrative beat
+ok 137 - simple table gesture becomes a non-check narrative beat
+  ---
+  duration_ms: 0.537489
+  type: 'test'
+  ...
+# Subtest: vague action is interpreted and proceeds instead of asking the player to rephrase
+ok 138 - vague action is interpreted and proceeds instead of asking the player to rephrase
+  ---
+  duration_ms: 1.82161
+  type: 'test'
+  ...
+# Subtest: setting-breaking weapon is not blocked and becomes a playable in-world physical attempt
+ok 139 - setting-breaking weapon is not blocked and becomes a playable in-world physical attempt
+  ---
+  duration_ms: 0.61122
+  type: 'test'
+  ...
+# Subtest: out-of-world prompt manipulation is ignored but the playable turn continues
+ok 140 - out-of-world prompt manipulation is ignored but the playable turn continues
+  ---
+  duration_ms: 0.347147
+  type: 'test'
+  ...
+# Subtest: player-authored automatic outcome claim is ignored and still resolves through the engine
+ok 141 - player-authored automatic outcome claim is ignored and still resolves through the engine
+  ---
+  duration_ms: 0.259687
+  type: 'test'
+  ...
+# Subtest: unavailable magical resource falls back silently to a workable existing path
+ok 142 - unavailable magical resource falls back silently to a workable existing path
+  ---
+  duration_ms: 0.657668
+  type: 'test'
+  ...
+# Subtest: pre-roll setup accepts exact player wording without revealing a result
+ok 143 - pre-roll setup accepts exact player wording without revealing a result
+  ---
+  duration_ms: 11.488015
+  type: 'test'
+  ...
+# Subtest: pre-roll setup accepts a fictional name substituted for the generic goblin placeholder
+ok 144 - pre-roll setup accepts a fictional name substituted for the generic goblin placeholder
+  ---
+  duration_ms: 4.503841
+  type: 'test'
+  ...
+# Subtest: pre-roll setup rejects a resolved number before the player rolls
+ok 145 - pre-roll setup rejects a resolved number before the player rolls
+  ---
+  duration_ms: 0.756575
+  type: 'test'
+  ...
+# Subtest: pre-roll setup rejects exposure of the hidden stat mapping
+ok 146 - pre-roll setup rejects exposure of the hidden stat mapping
+  ---
+  duration_ms: 0.607564
+  type: 'test'
+  ...
+# Subtest: pre-roll setup rejects the confirmed live defense-check leak
+ok 147 - pre-roll setup rejects the confirmed live defense-check leak
+  ---
+  duration_ms: 0.377922
+  type: 'test'
+  ...
+# Subtest: pre-roll setup rejects a bare stat name even without the word check
+ok 148 - pre-roll setup rejects a bare stat name even without the word check
+  ---
+  duration_ms: 0.405313
+  type: 'test'
+  ...
+# Subtest: free-text outcome must preserve significant player wording while respecting engine success
+ok 149 - free-text outcome must preserve significant player wording while respecting engine success
+  ---
+  duration_ms: 0.547995
+  type: 'test'
+  ...
+# Subtest: generic-only player wording does not have to be echoed in a narrative response
+ok 150 - generic-only player wording does not have to be echoed in a narrative response
+  ---
+  duration_ms: 1.219134
+  type: 'test'
+  ...
+# Subtest: all non-choice narration moments allow up to 300 characters
+ok 151 - all non-choice narration moments allow up to 300 characters
+  ---
+  duration_ms: 0.933559
+  type: 'test'
+  ...
+# Subtest: player text cannot force a success into a failure outcome
+ok 152 - player text cannot force a success into a failure outcome
+  ---
+  duration_ms: 0.654063
+  type: 'test'
+  ...
+# Subtest: real-world proper name copied from player input is rejected from generated narration
+ok 153 - real-world proper name copied from player input is rejected from generated narration
+  ---
+  duration_ms: 0.454175
+  type: 'test'
+  ...
+# Subtest: automatic beginner guidance is enabled only for Chapters 1 and 2
+ok 154 - automatic beginner guidance is enabled only for Chapters 1 and 2
+  ---
+  duration_ms: 1.124473
+  type: 'test'
+  ...
+# Subtest: current Chapter 1 route guidance teaches replies, custom input, and explicit rolls
+ok 155 - current Chapter 1 route guidance teaches replies, custom input, and explicit rolls
+  ---
+  duration_ms: 2.907715
+  type: 'test'
+  ...
+# Subtest: help escalates from nudge to stronger hint to direct third-tap answer
+ok 156 - help escalates from nudge to stronger hint to direct third-tap answer
+  ---
+  duration_ms: 1.813528
+  type: 'test'
+  ...
+# Subtest: third Help tells rather than executes the solution
+ok 157 - third Help tells rather than executes the solution
+  ---
+  duration_ms: 0.552913
+  type: 'test'
+  ...
+# Subtest: help context changes when the obstacle changes so UI can reset escalation
+ok 158 - help context changes when the obstacle changes so UI can reset escalation
+  ---
+  duration_ms: 0.703016
+  type: 'test'
+  ...
+# Subtest: third Help gives a concrete current-stat answer on a route decision
+ok 159 - third Help gives a concrete current-stat answer on a route decision
+  ---
+  duration_ms: 1.044404
+  type: 'test'
+  ...
+# Subtest: character summary exposes only current authoritative character and room state
+ok 160 - character summary exposes only current authoritative character and room state
+  ---
+  duration_ms: 2.713297
+  type: 'test'
+  ...
+# Subtest: voice transcript appends to editable draft instead of replacing it
+ok 161 - voice transcript appends to editable draft instead of replacing it
+  ---
+  duration_ms: 0.217243
+  type: 'test'
+  ...
+# Subtest: voice transcript normalizes spoken whitespace and respects composer limit
+ok 162 - voice transcript normalizes spoken whitespace and respects composer limit
+  ---
+  duration_ms: 0.12821
+  type: 'test'
+  ...
+# Subtest: speech recognition capability detection accepts standard and webkit APIs
+ok 163 - speech recognition capability detection accepts standard and webkit APIs
+  ---
+  duration_ms: 0.162191
+  type: 'test'
+  ...
+# Subtest: fictional dispensary transform is stable and differentiates names
+ok 164 - fictional dispensary transform is stable and differentiates names
+  ---
+  duration_ms: 2.075798
+  type: 'test'
+  ...
+# Subtest: effect and terpene flavor transforms are deterministic and fall back cleanly
+ok 165 - effect and terpene flavor transforms are deterministic and fall back cleanly
+  ---
+  duration_ms: 0.704327
+  type: 'test'
+  ...
+# Subtest: caps products, categories, and fictional locations at the locked limits
+ok 166 - caps products, categories, and fictional locations at the locked limits
+  ---
+  duration_ms: 2.0907
+  type: 'test'
+  ...
+# Subtest: produces the valid empty snapshot when there are zero local entries
+ok 167 - produces the valid empty snapshot when there are zero local entries
+  ---
+  duration_ms: 1.181267
+  type: 'test'
+  ...
+# Subtest: never includes excluded raw-entry fields or raw dispensary names in the sanitized snapshot
+ok 168 - never includes excluded raw-entry fields or raw dispensary names in the sanitized snapshot
+  ---
+  duration_ms: 0.504411
+  type: 'test'
+  ...
+# Subtest: effect and terpene flavor use only structured inputs and enter validated narration context
+not ok 169 - effect and terpene flavor use only structured inputs and enter validated narration context
+  ---
+  duration_ms: 2.254714
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js:231:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js:270:11)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: raw dispensary name cannot reach engine state or narration request context
+not ok 170 - raw dispensary name cannot reach engine state or narration request context
+  ---
+  duration_ms: 0.716215
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js:319:1'
+  failureType: 'testCodeFailure'
+  error: 'Action background:hauler is not available in scene session-zero-welcome.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    advanceWeedGoblinsRun (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.js:1080:11)
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js:338:11)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: reads the actual localStore entries query shape and sanitized prior run key
+not ok 171 - reads the actual localStore entries query shape and sanitized prior run key
+  ---
+  duration_ms: 2.377847
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js:385:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        {
+    +     created_at: '2026-08-06T02:58:00-04:00',
+          ending: 'recovery',
+    +     notes: 'must not survive',
+          outcomeSummary: 'recovered the Northern Lights Field Reliquary'
+        }
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0:
+      ending: 'recovery'
+      outcomeSummary: 'recovered the Northern Lights Field Reliquary'
+  actual:
+    0:
+      outcomeSummary: 'recovered the Northern Lights Field Reliquary'
+      ending: 'recovery'
+      created_at: '2026-08-06T02:58:00-04:00'
+      notes: 'must not survive'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js:428:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: creates a scene-intro hook for the opening Highlands narration
+ok 172 - creates a scene-intro hook for the opening Highlands narration
+  ---
+  duration_ms: 2.786971
+  type: 'test'
+  ...
+# Subtest: creates a mandatory premise and visible opening-choice beat before buttons
+not ok 173 - creates a mandatory premise and visible opening-choice beat before buttons
+  ---
+  duration_ms: 1.455916
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsNarrationHooks.test.js:44:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /Highlands Hauler/. Input:
+    
+    'Highland Tracker favors Strength, Trail Warden favors Defense, and Fen Diviner carries the deepest Mana pool.'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'Highland Tracker favors Strength, Trail Warden favors Defense, and Fen Diviner carries the deepest Mana pool.'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsNarrationHooks.test.js:53:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: creates a causal transition with story history, visible stakes, and rising tension
+not ok 174 - creates a causal transition with story history, visible stakes, and rising tension
+  ---
+  duration_ms: 0.422218
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsNarrationHooks.test.js:57:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /Direct Ridge/. Input:
+    
+    'The Quiet Crossing crosses Rattlebridge using care and Defense; The Direct Crossing crosses it using Strength before the alarm lines can react.'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'The Quiet Crossing crosses Rattlebridge using care and Defense; The Direct Crossing crosses it using Strength before the alarm lines can react.'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsNarrationHooks.test.js:75:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: supplies concrete background and route anchors for later continuity
+ok 175 - supplies concrete background and route anchors for later continuity
+  ---
+  duration_ms: 0.273246
+  type: 'test'
+  ...
+# Subtest: maps background and midpoint choice narration to their dedicated moments
+ok 176 - maps background and midpoint choice narration to their dedicated moments
+  ---
+  duration_ms: 0.473124
+  type: 'test'
+  ...
+# Subtest: maps the pre-action Goblin King taunt to its dedicated moment
+ok 177 - maps the pre-action Goblin King taunt to its dedicated moment
+  ---
+  duration_ms: 0.302119
+  type: 'test'
+  ...
+# Subtest: maps check and ending events without changing deterministic lines
+ok 178 - maps check and ending events without changing deterministic lines
+  ---
+  duration_ms: 0.457691
+  type: 'test'
+  ...
+# Subtest: keeps a midpoint check under midpoint-outcome while natural 1 stays a complication
+ok 179 - keeps a midpoint check under midpoint-outcome while natural 1 stays a complication
+  ---
+  duration_ms: 0.394687
+  type: 'test'
+  ...
+# Subtest: validates a compliant premise-statement line
+ok 180 - validates a compliant premise-statement line
+  ---
+  duration_ms: 9.396689
+  type: 'test'
+  ...
+# Subtest: validates a compliant action-success line
+ok 181 - validates a compliant action-success line
+  ---
+  duration_ms: 3.385126
+  type: 'test'
+  ...
+# Subtest: validates a compliant scene-intro line
+ok 182 - validates a compliant scene-intro line
+  ---
+  duration_ms: 0.62557
+  type: 'test'
+  ...
+# Subtest: validates a compliant midpoint-outcome line
+ok 183 - validates a compliant midpoint-outcome line
+  ---
+  duration_ms: 0.545862
+  type: 'test'
+  ...
+# Subtest: validates a compliant goblin-king-taunt line
+ok 184 - validates a compliant goblin-king-taunt line
+  ---
+  duration_ms: 2.294523
+  type: 'test'
+  ...
+# Subtest: premise statement requires the thief, exact item, theft, and get-it-back objective
+ok 185 - premise statement requires the thief, exact item, theft, and get-it-back objective
+  ---
+  duration_ms: 1.212644
+  type: 'test'
+  ...
+# Subtest: premise theft accepts made-off-with and natural theft synonyms
+ok 186 - premise theft accepts made-off-with and natural theft synonyms
+  ---
+  duration_ms: 0.547234
+  type: 'test'
+  ...
+# Subtest: exact live made-off-with wording is recognized as theft
+ok 187 - exact live made-off-with wording is recognized as theft
+  ---
+  duration_ms: 0.218846
+  type: 'test'
+  ...
+# Subtest: choice presentation requires active first person and stays within 240 characters
+ok 188 - choice presentation requires active first person and stays within 240 characters
+  ---
+  duration_ms: 1.477798
+  type: 'test'
+  ...
+# Subtest: accepts all three locked Highlands opening narrator forms
+ok 189 - accepts all three locked Highlands opening narrator forms
+  ---
+  duration_ms: 1.764395
+  type: 'test'
+  ...
+# Subtest: uses a 240-character choice ceiling and a 300-character ceiling elsewhere
+ok 190 - uses a 240-character choice ceiling and a 300-character ceiling elsewhere
+  ---
+  duration_ms: 0.44403
+  type: 'test'
+  ...
+# Subtest: scene setting accepts one unlisted image and rejects boxed-text detail lists
+ok 191 - scene setting accepts one unlisted image and rejects boxed-text detail lists
+  ---
+  duration_ms: 0.276141
+  type: 'test'
+  ...
+# Subtest: scene transition uses one active observation and rejects repeated scene inventory
+ok 192 - scene transition uses one active observation and rejects repeated scene inventory
+  ---
+  duration_ms: 0.246326
+  type: 'test'
+  ...
+# Subtest: action success must begin in Eliza's active first-person voice
+ok 193 - action success must begin in Eliza's active first-person voice
+  ---
+  duration_ms: 0.888702
+  type: 'test'
+  ...
+# Subtest: continuity anchors reject a generic success and accept a real prior-story callback
+ok 194 - continuity anchors reject a generic success and accept a real prior-story callback
+  ---
+  duration_ms: 0.38322
+  type: 'test'
+  ...
+# Subtest: rejects narrator self-reflection outside the opening too
+ok 195 - rejects narrator self-reflection outside the opening too
+  ---
+  duration_ms: 0.178976
+  type: 'test'
+  ...
+# Subtest: rejects em dashes and en dashes from narration
+ok 196 - rejects em dashes and en dashes from narration
+  ---
+  duration_ms: 3.338646
+  type: 'test'
+  ...
+# Subtest: Goblin King taunt rejects outcome resolution before the confrontation action
+ok 197 - Goblin King taunt rejects outcome resolution before the confrontation action
+  ---
+  duration_ms: 1.145704
+  type: 'test'
+  ...
+# Subtest: Goblin King dialogue cannot satisfy the narrator first-person check by itself
+ok 198 - Goblin King dialogue cannot satisfy the narrator first-person check by itself
+  ---
+  duration_ms: 0.224574
+  type: 'test'
+  ...
+# Subtest: Goblin King taunt requires attributed villain dialogue
+ok 199 - Goblin King taunt requires attributed villain dialogue
+  ---
+  duration_ms: 0.205736
+  type: 'test'
+  ...
+# Subtest: midpoint help may recover forms without implying the recovery ending
+ok 200 - midpoint help may recover forms without implying the recovery ending
+  ---
+  duration_ms: 0.206087
+  type: 'test'
+  ...
+# Subtest: validates each exact run ending and rejects a line naming the wrong ending
+ok 201 - validates each exact run ending and rejects a line naming the wrong ending
+  ---
+  duration_ms: 0.556147
+  type: 'test'
+  ...
+# Subtest: accepts possession plus a homeward journey as a natural recovery ending
+ok 202 - accepts possession plus a homeward journey as a natural recovery ending
+  ---
+  duration_ms: 0.500484
+  type: 'test'
+  ...
+# Subtest: accepts natural escape endings that use empty hands and retained-item language
+ok 203 - accepts natural escape endings that use empty hands and retained-item language
+  ---
+  duration_ms: 1.513722
+  type: 'test'
+  ...
+# Subtest: recovery and bargain still reject the broadened escape-shaped language
+ok 204 - recovery and bargain still reject the broadened escape-shaped language
+  ---
+  duration_ms: 0.418763
+  type: 'test'
+  ...
+# Subtest: accepts exact live escape endings that leave the item out of reach
+ok 205 - accepts exact live escape endings that leave the item out of reach
+  ---
+  duration_ms: 0.439373
+  type: 'test'
+  ...
+# Subtest: recovery and bargain reject exact out-of-reach escape language
+ok 206 - recovery and bargain reject exact out-of-reach escape language
+  ---
+  duration_ms: 0.424982
+  type: 'test'
+  ...
+# Subtest: out-of-reach language alone does not turn an ordinary failure into an escape ending
+ok 207 - out-of-reach language alone does not turn an ordinary failure into an escape ending
+  ---
+  duration_ms: 0.191785
+  type: 'test'
+  ...
+# Subtest: retained-item language alone does not turn an ordinary failure into an escape ending
+ok 208 - retained-item language alone does not turn an ordinary failure into an escape ending
+  ---
+  duration_ms: 0.189232
+  type: 'test'
+  ...
+# Subtest: keeps success and specific endings forbidden outside their matching moments
+ok 209 - keeps success and specific endings forbidden outside their matching moments
+  ---
+  duration_ms: 0.403209
+  type: 'test'
+  ...
+# Subtest: rejects unsupported moment and outcome pairings in the validator
+ok 210 - rejects unsupported moment and outcome pairings in the validator
+  ---
+  duration_ms: 0.62531
+  type: 'test'
+  ...
+# Subtest: Goblin King taunt mismatch is rejected before the narration request is sent
+ok 211 - Goblin King taunt mismatch is rejected before the narration request is sent
+  ---
+  duration_ms: 1.077022
+  type: 'test'
+  ...
+# Subtest: generic story-beat hook retries once with the existing corrective pattern
+ok 212 - generic story-beat hook retries once with the existing corrective pattern
+  ---
+  duration_ms: 31.332282
+  type: 'test'
+  ...
+# Subtest: story-beat hook retries a generic success that omits supplied continuity anchors
+ok 213 - story-beat hook retries a generic success that omits supplied continuity anchors
+  ---
+  duration_ms: 2.247764
+  type: 'test'
+  ...
+# Subtest: run-ending hook uses the static line after two wrong endings
+ok 214 - run-ending hook uses the static line after two wrong endings
+  ---
+  duration_ms: 1.470037
+  type: 'test'
+  ...
+# Subtest: rejects an unapproved Origin before forwarding
+ok 215 - rejects an unapproved Origin before forwarding
+  ---
+  duration_ms: 26.668995
+  type: 'test'
+  ...
+# Subtest: accepts only the two locked production origins when Preview wiring is absent
+ok 216 - accepts only the two locked production origins when Preview wiring is absent
+  ---
+  duration_ms: 4.737769
+  type: 'test'
+  ...
+# Subtest: Preview-only host binding admits Pages preview subdomains without admitting unrelated origins
+ok 217 - Preview-only host binding admits Pages preview subdomains without admitting unrelated origins
+  ---
+  duration_ms: 1.600941
+  type: 'test'
+  ...
+# Subtest: passes a clean rate-limit response and Retry-After header through unchanged
+ok 218 - passes a clean rate-limit response and Retry-After header through unchanged
+  ---
+  duration_ms: 1.670715
+  type: 'test'
+  ...
+# Subtest: keeps Worker URL and secret server-side and returns generic connection errors
+ok 219 - keeps Worker URL and secret server-side and returns generic connection errors
+  ---
+  duration_ms: 1.463337
+  type: 'test'
+  ...
+# Subtest: active run round-trips engine state, transcript, choices, RNG, and Help locally
+ok 220 - active run round-trips engine state, transcript, choices, RNG, and Help locally
+  ---
+  duration_ms: 7.160432
+  type: 'test'
+  ...
+# Subtest: pending explicit D20 turn resumes before the roll and produces the same deterministic result
+ok 221 - pending explicit D20 turn resumes before the roll and produces the same deterministic result
+  ---
+  duration_ms: 4.39598
+  type: 'test'
+  ...
+# Subtest: completed or explicitly cleared runs do not remain resumable
+ok 222 - completed or explicitly cleared runs do not remain resumable
+  ---
+  duration_ms: 1.049992
+  type: 'test'
+  ...
+# Subtest: corrupt or wrong-version active data is ignored safely
+ok 223 - corrupt or wrong-version active data is ignored safely
+  ---
+  duration_ms: 0.240849
+  type: 'test'
+  ...
+# Subtest: completed Chapter 1 runs persist branch/reward campaign memory and deduplicate the same seed
+ok 224 - completed Chapter 1 runs persist branch/reward campaign memory and deduplicate the same seed
+  ---
+  duration_ms: 2.789069
+  type: 'test'
+  ...
+# Subtest: empty campaign state has no invented later-chapter mechanics
+ok 225 - empty campaign state has no invented later-chapter mechanics
+  ---
+  duration_ms: 0.206006
+  type: 'test'
+  ...
+# Subtest: formalizes Weed Goblins Chapter 1 and Chapter 2 without exposing Chapter 2 early
+ok 226 - formalizes Weed Goblins Chapter 1 and Chapter 2 without exposing Chapter 2 early
+  ---
+  duration_ms: 2.141736
+  type: 'test'
+  ...
+# Subtest: adds chapter and quest identity to both canonical adventures
+ok 227 - adds chapter and quest identity to both canonical adventures
+  ---
+  duration_ms: 0.338764
+  type: 'test'
+  ...
+# Subtest: saves chapter and quest metadata in the existing Weed Goblins history key
+ok 228 - saves chapter and quest metadata in the existing Weed Goblins history key
+  ---
+  duration_ms: 1.817234
+  type: 'test'
+  ...
+# Subtest: five Chapter 1 runs unlock Hollow Market as a genuine next chapter signal
+ok 229 - five Chapter 1 runs unlock Hollow Market as a genuine next chapter signal
+  ---
+  duration_ms: 0.709626
+  type: 'test'
+  ...
+# Subtest: once Hollow Market has a completed run it becomes the chapter actually being worked through
+ok 230 - once Hollow Market has a completed run it becomes the chapter actually being worked through
+  ---
+  duration_ms: 0.260748
+  type: 'test'
+  ...
+# Subtest: generic progression core keeps newly unlocked unplayed chapter distinct from current chapter
+ok 231 - generic progression core keeps newly unlocked unplayed chapter distinct from current chapter
+  ---
+  duration_ms: 0.30296
+  type: 'test'
+  ...
+# Subtest: generic progression core unlocks sequentially without another storage model
+ok 232 - generic progression core unlocks sequentially without another storage model
+  ---
+  duration_ms: 0.41026
+  type: 'test'
+  ...
+# Subtest: five materially different Chapter 1 replays complete through the real explicit-choice/D20 path
+ok 233 - five materially different Chapter 1 replays complete through the real explicit-choice/D20 path
+  ---
+  duration_ms: 10.758885
+  type: 'test'
+  ...
+# Subtest: the five replay profiles exercise materially different Chapter 1 decisions
+ok 234 - the five replay profiles exercise materially different Chapter 1 decisions
+  ---
+  duration_ms: 0.37602
+  type: 'test'
+  ...
+# Subtest: Chapter 1 room registry contains the five canonical locations in order
+ok 235 - Chapter 1 room registry contains the five canonical locations in order
+  ---
+  duration_ms: 1.798867
+  type: 'test'
+  ...
+# Subtest: a new run begins at Windcut Trail and only that room is visited
+ok 236 - a new run begins at Windcut Trail and only that room is visited
+  ---
+  duration_ms: 0.992256
+  type: 'test'
+  ...
+# Subtest: Rattlebridge is entered only after the explicit crossing roll resolves
+ok 237 - Rattlebridge is entered only after the explicit crossing roll resolves
+  ---
+  duration_ms: 4.11361
+  type: 'test'
+  ...
+# Subtest: the expanded Chapter 1 path visits Cloudberry Shelf, Highland Camp, then the Stash Hall
+ok 238 - the expanded Chapter 1 path visits Cloudberry Shelf, Highland Camp, then the Stash Hall
+  ---
+  duration_ms: 1.134728
+  type: 'test'
+  ...
+# WEED GOBLINS: SESSION 1 TEXT RUNNER
+# Seed: recovery-1
+# Personalization source: test local adapter
+# Products: Northern Lights, Blue Dream
+# Categories: Flower, Vape
+# Effect tags: Relaxed, Foggy, Calm, Heavy, Pain Relief
+# Terpenes: Beta Myrcene, Linalool, Limonene, Beta Caryophyllene
+# Fictional locations: The Copper Tribunal, The Crooked Galleries
+# Total local entry count: 5
+# Stolen item: the Northern Lights Field Reliquary
+# Fictional location: The Crooked Galleries
+# Narration tier: normal
+# Eliza: The road gives out right here, where the Highlands start. One boot's already sunk in the mud.
+# Eliza: But first, I need to know who's walking into that story. Every traveler who comes up this road carries a name, a look, a kind, and a way of meeting trouble. Let's settle those now.
+# === session-zero-welcome ===
+# STATUS: Strength 0 | Defense 0 | Mana 0/0 | Trouble 0/3 | Complications 0
+# 1. Continue
+# PLAYER: Continue
+# === session-zero-name ===
+# STATUS: Strength 0 | Defense 0 | Mana 0/0 | Trouble 0/3 | Complications 0
+# Enter a number from 1 to 0.
+# Enter a number from 1 to 0.
+# Enter a number from 1 to 0.
+# Enter a number from 1 to 0.
+# Subtest: completed run saves only the whitelisted summary fields
+not ok 239 - completed run saves only the whitelisted summary fields
+  ---
+  duration_ms: 3.648468
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsRunHistory.test.js:90:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        'adventureId',
+    +   'seed',
+        'gameId',
+        'chapterId',
+        'chapterNumber',
+        'chapterTitle',
+        'questId',
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'adventureId'
+    1: 'gameId'
+    2: 'chapterId'
+    3: 'chapterNumber'
+    4: 'chapterTitle'
+    5: 'questId'
+    6: 'questNumber'
+    7: 'questTitle'
+    8: 'backgroundId'
+    9: 'stolenItem'
+    10: 'routeId'
+    11: 'midpointChoice'
+    12: 'ending'
+    13: 'outcomeSummary'
+    14: 'trouble'
+    15: 'manaRemaining'
+    16: 'complicationCount'
+    17: 'narrationTier'
+    18: 'reason'
+  actual:
+    0: 'adventureId'
+    1: 'seed'
+    2: 'gameId'
+    3: 'chapterId'
+    4: 'chapterNumber'
+    5: 'chapterTitle'
+    6: 'questId'
+    7: 'questNumber'
+    8: 'questTitle'
+    9: 'backgroundId'
+    10: 'stolenItem'
+    11: 'routeId'
+    12: 'midpointChoice'
+    13: 'ending'
+    14: 'outcomeSummary'
+    15: 'trouble'
+    16: 'manaRemaining'
+    17: 'complicationCount'
+    18: 'narrationTier'
+    19: 'reason'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsRunHistory.test.js:112:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: saved history caps at 10 and drops the oldest run
+ok 240 - saved history caps at 10 and drops the oldest run
+  ---
+  duration_ms: 0.704358
+  type: 'test'
+  ...
+# Subtest: second local-adapter console run surfaces the first real saved outcome
+not ok 241 - second local-adapter console run surfaces the first real saved outcome
+  ---
+  duration_ms: 4.156874
+  type: 'test'
+  location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsRunHistory.test.js:160:1'
+  failureType: 'testCodeFailure'
+  error: 'Test input ended before the run was complete.'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    Object.question (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsRunHistory.test.js:66:37)
+    askForAction (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsConsoleStatic.js:242:37)
+    async runInteractiveWeedGoblins (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsConsoleStatic.js:281:24)
+    async TestContext.<anonymous> (file:///home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsRunHistory.test.js:167:20)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..241
+# tests 241
+# suites 0
+# pass 203
+# fail 38
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1144.525818
