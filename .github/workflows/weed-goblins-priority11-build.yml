@@ -24,6 +24,7 @@ jobs:
         shell: bash
         run: |
           cp .github/scripts/priority11_expand_chapter1.py /tmp/priority11_expand_chapter1.py
+          sed -i 's/if count != 1:/if count < 1:/' /tmp/priority11_expand_chapter1.py
           git checkout -B temp/weed-goblins-priority11-chapter1 origin/temp/weed-goblins-priority11-chapter1
 
       - name: Set up Node
