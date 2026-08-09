@@ -21,6 +21,12 @@ import {
 } from './weedGoblinsChatController.js'
 import { WEED_GOBLINS_NARRATOR_NAME } from './weedGoblinsEngine.js'
 import { findWeedGoblinsDiscoverableMatches } from './weedGoblinsDiscoverables.js'
+import { buildWeedGoblinsCharacterSummary } from './weedGoblinsCharacterSummary.js'
+import {
+  WEED_GOBLINS_COMPOSER_MAX_LENGTH,
+  appendWeedGoblinsVoiceTranscript,
+  getBrowserSpeechRecognition,
+} from './weedGoblinsVoiceInput.js'
 import './WeedGoblinsChat.css'
 
 function makeRunSeed() {
@@ -152,6 +158,14 @@ function StoryEntry({ message, onRoll, canRoll, busy, state, onOpenDiscoverable 
   )
 }
 
+function MicrophoneIcon() {
+  return (
+    <svg className="weed-goblins-game__voice-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Zm-6-4a6 6 0 0 0 12 0M12 16.5V21M9 21h6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function MessageComposer({
   id,
   value,
@@ -161,21 +175,35 @@ function MessageComposer({
   ariaLabel,
   disabled,
   submitDisabled,
+  voiceAvailable = false,
+  voiceDisabled = false,
+  listening = false,
+  onVoiceToggle = () => {},
 }) {
   return (
     <form className="weed-goblins-game__composer" onSubmit={onSubmit}>
       <div className="weed-goblins-game__composer-shell">
+        <button
+          type="button"
+          className={`weed-goblins-game__voice-button${listening ? ' is-listening' : ''}`}
+          onClick={onVoiceToggle}
+          aria-label={listening ? 'Stop voice input' : 'Start voice input'}
+          title={voiceAvailable ? 'Voice to text' : 'Voice input is not available in this browser'}
+          disabled={!voiceAvailable || voiceDisabled}
+        >
+          <MicrophoneIcon />
+        </button>
         <input
           id={id}
           aria-label={ariaLabel}
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          maxLength={160}
+          maxLength={WEED_GOBLINS_COMPOSER_MAX_LENGTH}
           disabled={disabled}
           autoComplete="off"
         />
-        <button type="submit" aria-label="Send message" disabled={submitDisabled}>
+        <button className="weed-goblins-game__send-button" type="submit" aria-label="Send message" disabled={submitDisabled}>
           <span aria-hidden="true">↑</span>
         </button>
       </div>
@@ -196,9 +224,13 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   const [fatalError, setFatalError] = useState('')
   const [actionError, setActionError] = useState('')
   const [activeDiscoverable, setActiveDiscoverable] = useState(null)
+  const [characterSheetOpen, setCharacterSheetOpen] = useState(false)
+  const [listening, setListening] = useState(false)
   const [runNumber, setRunNumber] = useState(0)
   const storyRef = useRef(null)
   const endRef = useRef(null)
+  const crestHoldTimerRef = useRef(null)
+  const speechRecognitionRef = useRef(null)
   const hasStartedScrollingRef = useRef(false)
   const resolvedSeed = useMemo(
     () => seed ? `${seed}:${runNumber}` : makeRunSeed(),
@@ -208,6 +240,12 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   const sessionTextOpen = isWeedGoblinsSessionTextScene(state)
   const canType = freeTextOpen && !pendingTurn && !busy && state?.status !== 'completed'
   const canSessionType = sessionTextOpen && !pendingTurn && !busy && state?.status !== 'completed'
+  const SpeechRecognition = useMemo(
+    () => typeof window !== 'undefined' ? getBrowserSpeechRecognition(window) : null,
+    [],
+  )
+  const characterSummary = useMemo(() => buildWeedGoblinsCharacterSummary(state), [state])
+  const voiceInputEnabled = canType || canSessionType
 
   useEffect(() => {
     let cancelled = false
@@ -249,6 +287,11 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
       cancelled = true
     }
   }, [resolvedSeed])
+
+  useEffect(() => () => {
+    if (crestHoldTimerRef.current) clearTimeout(crestHoldTimerRef.current)
+    if (speechRecognitionRef.current?.abort) speechRecognitionRef.current.abort()
+  }, [])
 
   useEffect(() => {
     if (!hasStartedScrollingRef.current && messages.length > 0) {
@@ -467,6 +510,70 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     }
   }
 
+  function clearCrestHold() {
+    if (!crestHoldTimerRef.current) return
+    clearTimeout(crestHoldTimerRef.current)
+    crestHoldTimerRef.current = null
+  }
+
+  function beginCrestHold() {
+    if (!state || crestHoldTimerRef.current) return
+    crestHoldTimerRef.current = setTimeout(() => {
+      crestHoldTimerRef.current = null
+      setCharacterSheetOpen(true)
+    }, 550)
+  }
+
+  function handleCrestKeyDown(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    beginCrestHold()
+  }
+
+  function handleCrestKeyUp(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    clearCrestHold()
+  }
+
+  function toggleVoiceInput() {
+    if (!SpeechRecognition || !voiceInputEnabled) return
+    if (listening && speechRecognitionRef.current?.stop) {
+      speechRecognitionRef.current.stop()
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'en-US'
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results || [])
+        .map((result) => result?.[0]?.transcript || '')
+        .join(' ')
+      setDraft((current) => appendWeedGoblinsVoiceTranscript(current, transcript))
+    }
+    recognition.onerror = () => {
+      setListening(false)
+      setActionError('Voice input stopped. You can keep typing.')
+    }
+    recognition.onend = () => {
+      speechRecognitionRef.current = null
+      setListening(false)
+    }
+
+    try {
+      speechRecognitionRef.current = recognition
+      recognition.start()
+      setListening(true)
+    } catch {
+      speechRecognitionRef.current = null
+      setListening(false)
+      setActionError('Voice input could not start. You can keep typing.')
+    }
+  }
+
   function restartRun() {
     setState(null)
     setMessages([])
@@ -476,6 +583,10 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     setFatalError('')
     setActionError('')
     setActiveDiscoverable(null)
+    setCharacterSheetOpen(false)
+    if (speechRecognitionRef.current?.abort) speechRecognitionRef.current.abort()
+    speechRecognitionRef.current = null
+    setListening(false)
     setLoading(true)
     hasStartedScrollingRef.current = false
     setRunNumber((current) => current + 1)
@@ -499,7 +610,21 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
           <span aria-hidden="true">‹</span>
         </button>
         <div className="weed-goblins-game__contact">
-          <div className="weed-goblins-game__crest" aria-hidden="true">E</div>
+          <button
+            type="button"
+            className="weed-goblins-game__crest"
+            aria-label="Hold for character details"
+            onPointerDown={beginCrestHold}
+            onPointerUp={clearCrestHold}
+            onPointerCancel={clearCrestHold}
+            onPointerLeave={clearCrestHold}
+            onKeyDown={handleCrestKeyDown}
+            onKeyUp={handleCrestKeyUp}
+            onContextMenu={(event) => event.preventDefault()}
+            onClick={(event) => event.preventDefault()}
+          >
+            E
+          </button>
           <div className="weed-goblins-game__contact-copy">
             <h1>{WEED_GOBLINS_NARRATOR_NAME}</h1>
             <p>{busy ? 'typing…' : 'online'}</p>
@@ -546,6 +671,65 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
           <div ref={endRef} />
         </div>
       </section>
+
+      {characterSheetOpen && characterSummary && (
+        <div
+          className="weed-goblins-game__character-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setCharacterSheetOpen(false)
+          }}
+        >
+          <section
+            className="weed-goblins-game__character-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="weed-goblins-character-title"
+          >
+            <button
+              type="button"
+              className="weed-goblins-game__character-close"
+              onClick={() => setCharacterSheetOpen(false)}
+              aria-label="Close character details"
+            >
+              ×
+            </button>
+            <div className="weed-goblins-game__character-head">
+              <div className="weed-goblins-game__crest" aria-hidden="true">E</div>
+              <div>
+                <h2 id="weed-goblins-character-title">{characterSummary.name}</h2>
+                <p>{characterSummary.location || 'Goblin Highlands'}</p>
+              </div>
+            </div>
+            <div className="weed-goblins-game__character-grid">
+              <div className="weed-goblins-game__character-field"><span>Race</span><strong>{characterSummary.race}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Class</span><strong>{characterSummary.className}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Weapon</span><strong>{characterSummary.weapon}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Ability</span><strong>{characterSummary.ability || 'Not chosen yet'}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Strength</span><strong>{characterSummary.strength}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Defense</span><strong>{characterSummary.defense}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Mana</span><strong>{characterSummary.mana}/{characterSummary.maxMana}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Trouble</span><strong>{characterSummary.trouble}/3</strong></div>
+            </div>
+            {characterSummary.pronoun && (
+              <div className="weed-goblins-game__character-look">
+                <span>Pronouns</span>
+                <p>{characterSummary.pronoun}</p>
+              </div>
+            )}
+            {characterSummary.look && (
+              <div className="weed-goblins-game__character-look">
+                <span>Appearance</span>
+                <p>{characterSummary.look}</p>
+              </div>
+            )}
+            <div className="weed-goblins-game__character-objective">
+              <span>Current objective</span>
+              <p>{characterSummary.objective}</p>
+            </div>
+          </section>
+        </div>
+      )}
 
       {activeDiscoverable && (
         <div
@@ -627,6 +811,10 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
                       : 'Describe yourself to Eliza'}
                     disabled={!canSessionType}
                     submitDisabled={!canSessionType || (state?.sceneId === 'session-zero-look' && !draft.trim())}
+                    voiceAvailable={Boolean(SpeechRecognition)}
+                    voiceDisabled={!canSessionType}
+                    listening={listening}
+                    onVoiceToggle={toggleVoiceInput}
                   />
                 ) : freeTextOpen && !pendingTurn ? (
                   <MessageComposer
@@ -638,6 +826,10 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
                     ariaLabel="Message Eliza another action"
                     disabled={!canType}
                     submitDisabled={!canType || !draft.trim()}
+                    voiceAvailable={Boolean(SpeechRecognition)}
+                    voiceDisabled={!canType}
+                    listening={listening}
+                    onVoiceToggle={toggleVoiceInput}
                   />
                 ) : (
                   <MessageComposer
@@ -649,6 +841,10 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
                     ariaLabel="Message input unavailable"
                     disabled
                     submitDisabled
+                    voiceAvailable={Boolean(SpeechRecognition)}
+                    voiceDisabled
+                    listening={false}
+                    onVoiceToggle={toggleVoiceInput}
                   />
                 )}
               </>

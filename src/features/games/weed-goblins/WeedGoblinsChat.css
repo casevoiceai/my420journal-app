@@ -623,3 +623,184 @@
   background: #245fc5;
   outline: none;
 }
+
+.weed-goblins-game__crest {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.weed-goblins-game__crest:focus-visible {
+  outline: 2px solid #8aa0bf;
+  outline-offset: 2px;
+}
+
+.weed-goblins-game__composer-shell {
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+}
+
+.weed-goblins-game__composer .weed-goblins-game__voice-button {
+  background: #eef0f3;
+  color: #5c626a;
+}
+
+.weed-goblins-game__composer .weed-goblins-game__voice-button:hover:not(:disabled),
+.weed-goblins-game__composer .weed-goblins-game__voice-button:focus-visible {
+  background: #e2e5e9;
+}
+
+.weed-goblins-game__composer .weed-goblins-game__voice-button.is-listening {
+  background: #dde7f8;
+  color: #245fc5;
+}
+
+.weed-goblins-game__voice-icon {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
+
+.weed-goblins-game__character-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9700;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  background: rgba(18, 20, 24, 0.28);
+}
+
+.weed-goblins-game__character-sheet {
+  position: relative;
+  width: min(100%, 440px);
+  max-height: 78dvh;
+  overflow-y: auto;
+  padding: 18px 18px calc(20px + env(safe-area-inset-bottom));
+  border: 1px solid #d9dce1;
+  border-bottom: 0;
+  border-radius: 22px 22px 0 0;
+  background: #ffffff;
+  color: #202226;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.16);
+}
+
+.weed-goblins-game__character-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 36px;
+  margin-bottom: 14px;
+}
+
+.weed-goblins-game__character-head .weed-goblins-game__crest {
+  cursor: default;
+}
+
+.weed-goblins-game__character-head h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.weed-goblins-game__character-head p {
+  margin: 3px 0 0;
+  color: #777b81;
+  font-size: 12px;
+}
+
+.weed-goblins-game__character-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f0f1f3;
+  color: #555a61;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.weed-goblins-game__character-close:hover,
+.weed-goblins-game__character-close:focus-visible {
+  background: #e4e6e9;
+  outline: none;
+}
+
+.weed-goblins-game__character-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.weed-goblins-game__character-field {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: #f4f5f7;
+}
+
+.weed-goblins-game__character-field span {
+  display: block;
+  margin-bottom: 3px;
+  color: #7a7e85;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.weed-goblins-game__character-field strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #292c31;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.weed-goblins-game__character-objective,
+.weed-goblins-game__character-look {
+  margin-top: 10px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: #f7f8fa;
+}
+
+.weed-goblins-game__character-objective span,
+.weed-goblins-game__character-look span {
+  display: block;
+  margin-bottom: 4px;
+  color: #7a7e85;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.weed-goblins-game__character-objective p,
+.weed-goblins-game__character-look p {
+  margin: 0;
+  color: #42464c;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@media (min-width: 620px) {
+  .weed-goblins-game__character-overlay {
+    align-items: center;
+  }
+
+  .weed-goblins-game__character-sheet {
+    border-bottom: 1px solid #d9dce1;
+    border-radius: 22px;
+    padding-bottom: 20px;
+  }
+}
