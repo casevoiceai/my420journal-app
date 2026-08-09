@@ -1,13 +1,14 @@
-import { CHAPTER_TWO_LOCATIONS } from './weedGoblinsChapterTwo.js'
-import { buildWeedGoblinsCharacterSummary as buildChapterOneSummary } from './weedGoblinsCharacterSummaryChapterOne.js'
+import { getCurrentWeedGoblinsRoom } from './weedGoblinsRooms.js'
 
 function clean(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
 export function buildWeedGoblinsCharacterSummary(state) {
-  if (state?.chapterNumber !== 2) return buildChapterOneSummary(state)
-  const room = Object.values(CHAPTER_TWO_LOCATIONS).find((candidate) => candidate.id === state.currentRoomId)
+  if (!state || typeof state !== 'object') return null
+  const room = getCurrentWeedGoblinsRoom(state)
+  const stolenItem = clean(state.stolenItem)
+
   return Object.freeze({
     name: clean(state.playerName) || 'Unnamed traveler',
     race: clean(state.playerRace) || 'Not chosen yet',
@@ -21,9 +22,9 @@ export function buildWeedGoblinsCharacterSummary(state) {
     mana: Number(state.stats?.manaPool) || 0,
     maxMana: Number(state.stats?.maxMana) || 0,
     trouble: Number(state.trouble) || 0,
-    rootcoin: Number(state.rootcoin) || 0,
-    wound: clean(state.wound) || 'None',
     location: room?.name || '',
-    objective: 'Trace the Cultivator’s tithe through the Hollow Market and leave with the Harvest Ledger trail to the Withered Grove.',
+    objective: stolenItem
+      ? `Take ${stolenItem} back from the Goblin King.`
+      : 'Prepare for the Goblin Highlands.',
   })
 }
