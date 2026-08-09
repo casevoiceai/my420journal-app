@@ -25,6 +25,11 @@ jobs:
         with:
           node-version: 22
 
+      - name: Set Git identity
+        run: |
+          git config user.name 'casevoiceai'
+          git config user.email 'casevoice.ai@gmail.com'
+
       - name: Cherry-pick verified two-file code commit
         run: git cherry-pick 1e00730b8a625ebd99b9e95fed85f6c39105e949
 
