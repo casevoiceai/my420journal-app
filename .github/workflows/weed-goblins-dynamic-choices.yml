@@ -1,0 +1,140 @@
+name: Weed Goblins dynamic choices
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-dynamic-choices-build
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out choice candidate
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-dynamic-choices
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply dynamic choice packet
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def patch(path, replacements):
+              p = Path(path)
+              text = p.read_text()
+              for old, new in replacements:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{path}: expected one match, found {count}: {old[:90]!r}')
+                  text = text.replace(old, new, 1)
+              p.write_text(text)
+
+          patch('src/features/games/weed-goblins/weedGoblinsFreeTextInterpreter.js', [
+              (
+                  "const MAX_PLAYER_ACTION_LENGTH = 160\n",
+                  """import { CHAPTER_ONE_ROOM_LIST } from './weedGoblinsRooms.js'\n\nconst MAX_PLAYER_ACTION_LENGTH = 160\n""",
+              ),
+              (
+                  """export const FREE_TEXT_SCENES = Object.freeze([\n  'goblin-encounter',\n  'midpoint',\n  'goblin-king',\n])\n""",
+                  """export const FREE_TEXT_SCENES = Object.freeze([\n  'choose-route',\n  'goblin-encounter',\n  'midpoint',\n  'goblin-king',\n])\n""",
+              ),
+              (
+                  """  if (state.sceneId === 'goblin-encounter') {\n""",
+                  """  if (state.sceneId === 'choose-route') {\n    if (style === 'strength') return 'cross Rattlebridge with direct physical force'\n    if (style === 'mana') return 'use the available magic to find the safest crossing over Rattlebridge'\n    return 'cross Rattlebridge cautiously without setting off the alarm lines'\n  }\n\n  if (state.sceneId === 'goblin-encounter') {\n""",
+              ),
+              (
+                  """  if (state.sceneId === 'goblin-encounter') {\n    if (style === 'strength') return { kind: 'check', style, actionId: 'goblin:strike', manaUnavailable }\n""",
+                  """  if (state.sceneId === 'choose-route') {\n    if (style === 'strength') {\n      return { kind: 'check', style, actionId: 'route:loud', manaUnavailable }\n    }\n    if (style === 'mana') {\n      return {\n        kind: 'check',\n        style,\n        actionId: 'route:quiet',\n        manaUnavailable,\n        engineOptions: Object.freeze({ useManaAdvantage: true }),\n      }\n    }\n    return { kind: 'check', style: 'defense', actionId: 'route:quiet', manaUnavailable }\n  }\n\n  if (state.sceneId === 'goblin-encounter') {\n    if (style === 'strength') return { kind: 'check', style, actionId: 'goblin:strike', manaUnavailable }\n""",
+              ),
+              (
+                  """  const allowedFictionalNames = [\n    state.goblinName,\n    state.stolenItem,\n    state.fictionalLocationName,\n  ].filter(Boolean)\n""",
+                  """  const allowedFictionalNames = [\n    state.goblinName,\n    state.stolenItem,\n    state.fictionalLocationName,\n    ...CHAPTER_ONE_ROOM_LIST.map((room) => room.name),\n  ].filter(Boolean)\n""",
+              ),
+          ])
+
+          patch('src/features/games/weed-goblins/weedGoblinsChatController.js', [
+              (
+                  """import {\n  buildPlayerActionResponseFallback,\n  buildPlayerActionSetupFallback,\n  interpretWeedGoblinsFreeText,\n  isWeedGoblinsFreeTextScene,\n} from './weedGoblinsFreeTextInterpreter.js'\n""",
+                  """import {\n  buildPlayerActionResponseFallback,\n  buildPlayerActionSetupFallback,\n  interpretWeedGoblinsFreeText,\n  isWeedGoblinsFreeTextScene,\n} from './weedGoblinsFreeTextInterpreter.js'\nimport {\n  composeWeedGoblinsContextualChoices,\n  isWeedGoblinsSuggestedChoice,\n} from './weedGoblinsChoices.js'\n""",
+              ),
+              (
+                  """export function getWeedGoblinsQuickReplies(state) {\n  return getAvailableActions(state)\n}\n""",
+                  """export function getWeedGoblinsQuickReplies(state) {\n  return composeWeedGoblinsContextualChoices(state, getAvailableActions(state))\n}\n""",
+              ),
+              (
+                  """export function submitWeedGoblinsSessionText(state, value) {\n""",
+                  """export async function prepareWeedGoblinsQuickReplyTurn({\n  state,\n  action,\n  blockedRealNames = [],\n  generateNarration = generateNarrationFromHook,\n} = {}) {\n  if (isWeedGoblinsSuggestedChoice(action)) {\n    return prepareWeedGoblinsFreeTextTurn({\n      state,\n      playerAction: action.playerAction,\n      blockedRealNames,\n      generateNarration,\n    })\n  }\n  return prepareWeedGoblinsChoiceTurn({ state, action })\n}\n\nexport function submitWeedGoblinsSessionText(state, value) {\n""",
+              ),
+              (
+                  """  const checkPreview = requiresRoll\n    ? getWeedGoblinsActionCheckPreview(state, plan.actionId)\n    : null\n""",
+                  """  const checkPreview = requiresRoll\n    ? getWeedGoblinsActionCheckPreview(state, plan.actionId, plan.engineOptions || {})\n    : null\n""",
+              ),
+              (
+                  """  if (!plan.actionId) throw new Error('The interpreted player action has no engine path.')\n  return advanceWeedGoblinsRun(before, plan.actionId)\n""",
+                  """  if (!plan.actionId) throw new Error('The interpreted player action has no engine path.')\n  return advanceWeedGoblinsRun(before, plan.actionId, plan.engineOptions || {})\n""",
+              ),
+          ])
+
+          patch('src/features/games/weed-goblins/WeedGoblinsChat.jsx', [
+              (
+                  """  narrateWeedGoblinsResolvedTurn,\n  prepareWeedGoblinsChoiceTurn,\n  prepareWeedGoblinsFreeTextTurn,\n""",
+                  """  narrateWeedGoblinsResolvedTurn,\n  prepareWeedGoblinsFreeTextTurn,\n  prepareWeedGoblinsQuickReplyTurn,\n""",
+              ),
+              (
+                  """      const prepared = prepareWeedGoblinsChoiceTurn({ state: baseState, action })\n""",
+                  """      const prepared = await prepareWeedGoblinsQuickReplyTurn({\n        state: baseState,\n        action,\n        blockedRealNames,\n      })\n""",
+              ),
+          ])
+          PY
+
+      - name: Verify exact packet scope
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          git diff --check origin/feature/weed-goblins-session-zero
+          mapfile -t changed < <(git diff --name-only origin/feature/weed-goblins-session-zero | sort)
+          expected=(
+            "src/features/games/weed-goblins/WeedGoblinsChat.jsx"
+            "src/features/games/weed-goblins/weedGoblinsChatController.js"
+            "src/features/games/weed-goblins/weedGoblinsChoices.js"
+            "src/features/games/weed-goblins/weedGoblinsDynamicChoices.test.js"
+            "src/features/games/weed-goblins/weedGoblinsFreeTextInterpreter.js"
+          )
+          printf 'Changed files:\n'
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq "${#expected[@]}"
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run targeted gameplay tests
+        run: node --test src/features/games/weed-goblins/weedGoblinsDynamicChoices.test.js src/features/games/weed-goblins/weedGoblinsRooms.test.js src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit verified choice candidate
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/games/weed-goblins/WeedGoblinsChat.jsx \
+            src/features/games/weed-goblins/weedGoblinsChatController.js \
+            src/features/games/weed-goblins/weedGoblinsChoices.js \
+            src/features/games/weed-goblins/weedGoblinsDynamicChoices.test.js \
+            src/features/games/weed-goblins/weedGoblinsFreeTextInterpreter.js
+          git commit -m "Add dynamic Weed Goblins gameplay choices"
+          git push origin HEAD:temp/weed-goblins-dynamic-choices
