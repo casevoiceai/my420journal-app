@@ -1,0 +1,105 @@
+name: Temporary Chapter 2 Staging Preview
+
+on:
+  push:
+    branches:
+      - temp/ch2-validation-20260809
+    paths:
+      - '.github/workflows/ch2-staging-preview.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/weed-goblins-session-zero
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Check Cloudflare credentials without exposing them
+        id: creds
+        shell: bash
+        run: |
+          token=no; account=no
+          [ -n "$CLOUDFLARE_API_TOKEN" ] && token=yes
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && account=yes
+          echo "token=${token}" >> "$GITHUB_OUTPUT"
+          echo "account=${account}" >> "$GITHUB_OUTPUT"
+          echo "CLOUDFLARE_API_TOKEN_PRESENT=${token}"
+          echo "CLOUDFLARE_ACCOUNT_ID_PRESENT=${account}"
+
+      - name: Install and build exact feature head
+        if: steps.creds.outputs.token == 'yes' && steps.creds.outputs.account == 'yes'
+        run: |
+          npm ci
+          test "$(git rev-parse HEAD)" = "a048339cd8e59a91dad0cfb3a2acdc1524421623"
+          npm run build
+
+      - name: Verify Pages project and create preview-only deployment
+        if: steps.creds.outputs.token == 'yes' && steps.creds.outputs.account == 'yes'
+        shell: bash
+        run: |
+          mkdir -p /tmp/ch2-staging
+          npx wrangler pages project list 2>&1 | tee /tmp/ch2-staging/projects.txt
+          grep -q 'my420journal-app' /tmp/ch2-staging/projects.txt
+          npx wrangler pages deploy dist \
+            --project-name my420journal-app \
+            --branch feature/weed-goblins-session-zero \
+            --commit-hash a048339cd8e59a91dad0cfb3a2acdc1524421623 \
+            --commit-dirty=false 2>&1 | tee /tmp/ch2-staging/deploy.txt
+
+      - name: Probe preview and Chapter 2 narration
+        if: steps.creds.outputs.token == 'yes' && steps.creds.outputs.account == 'yes'
+        shell: bash
+        run: |
+          mkdir -p /tmp/ch2-staging
+          preview_host='feature-weed-goblins-session-zero.my420journal-app.pages.dev'
+          for i in $(seq 1 20); do
+            status=$(curl -L -sS --connect-timeout 10 --max-time 30 -o /tmp/ch2-staging/preview.html -w '%{http_code}' "https://${preview_host}/games/weed-goblins")
+            [ "$status" = 200 ] && break
+            sleep 3
+          done
+          echo "PREVIEW_GET_STATUS=${status}" | tee /tmp/ch2-staging/result.txt
+          api_status=$(curl -sS --connect-timeout 10 --max-time 90 -o /tmp/ch2-staging/api.txt -w '%{http_code}' \
+            -X POST "https://${preview_host}/api/weed-goblins-narration" \
+            -H "Origin: https://${preview_host}" \
+            -H 'Content-Type: application/json' \
+            --data '{"chapterNumber":2,"moment":"scene-intro","outcome":"intro","sceneId":"hollow-market:lantern-order","authoritativeText":"Three smokeless lanterns wait beneath the root bridge.","storySoFar":"You have reached Lantern Mouth.","marketState":"operational","wound":"None"}')
+          echo "PREVIEW_NARRATION_STATUS=${api_status}" | tee -a /tmp/ch2-staging/result.txt
+          echo '--- narration body ---'
+          cat /tmp/ch2-staging/api.txt
+          test "$status" = 200
+          test "$api_status" = 200
+
+      - name: Record staging result on temp branch
+        if: always()
+        shell: bash
+        run: |
+          git fetch origin temp/ch2-validation-20260809
+          git checkout -B temp/ch2-validation-20260809 origin/temp/ch2-validation-20260809
+          mkdir -p .validation
+          {
+            echo "Cloudflare credential availability"
+            echo "API token present: ${{ steps.creds.outputs.token }}"
+            echo "Account ID present: ${{ steps.creds.outputs.account }}"
+            if [ -f /tmp/ch2-staging/result.txt ]; then cat /tmp/ch2-staging/result.txt; fi
+          } > .validation/staging-preview-result.txt
+          cp /tmp/ch2-staging/api.txt .validation/staging-preview-narration.txt 2>/dev/null || true
+          cp /tmp/ch2-staging/deploy.txt .validation/staging-preview-deploy.txt 2>/dev/null || true
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .validation/staging-preview-*.txt
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Record temporary staging preview validation [skip ci]'
+          git push origin HEAD:temp/ch2-validation-20260809
