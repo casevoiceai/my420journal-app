@@ -1,0 +1,261 @@
+name: Weed Goblins explicit roll cycle
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-explicit-roll-cycle-build
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out candidate branch
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-explicit-roll-cycle
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply explicit roll-cycle packet
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}')
+              p.write_text(text.replace(old, new, 1))
+
+          engine = 'src/features/games/weed-goblins/weedGoblinsEngine.js'
+          replace_once(
+              engine,
+              """function optionalManaCost(options) {\n  return options.useManaAdvantage === true || options.useManaReroll === true ? 1 : 0\n}\n\nexport function getAvailableActions(state) {\n""",
+              """function optionalManaCost(options) {\n  return options.useManaAdvantage === true || options.useManaReroll === true ? 1 : 0\n}\n\nfunction noRollPreview() {\n  return Object.freeze({\n    requiresRoll: false,\n    stat: null,\n    dc: null,\n    statBonus: 0,\n    requiredDie: null,\n    manaCost: 0,\n    advantage: false,\n  })\n}\n\nfunction checkPreview(state, { stat, dc, manaCost = 0 }) {\n  const statBonus = Number(state?.stats?.[stat]) || 0\n  return Object.freeze({\n    requiresRoll: true,\n    stat,\n    dc,\n    statBonus,\n    requiredDie: Math.min(20, Math.max(2, dc - statBonus)),\n    manaCost,\n    advantage: manaCost > 0,\n  })\n}\n\nfunction bossCheckDc(state) {\n  return Math.max(\n    DIFFICULTY.easy,\n    DIFFICULTY.goblinKing + state.flags.bossDcModifier,\n  )\n}\n\nexport function getWeedGoblinsActionCheckPreview(state, actionId, options = {}) {\n  if (!state || typeof state !== 'object') throw new Error('A run state is required.')\n  const id = String(actionId ?? '')\n\n  if (id.startsWith('session:') || id.startsWith('background:')) return noRollPreview()\n\n  if (state.sceneId === SCENES.route) {\n    const routeId = id.split(':')[1]\n    const route = state.adventure.routes[routeId]\n    if (!route) return noRollPreview()\n    return checkPreview(state, {\n      stat: route.stat,\n      dc: route.dc,\n      manaCost: optionalManaCost(options),\n    })\n  }\n\n  if (state.sceneId === SCENES.goblin) {\n    if (id === 'goblin:channel') {\n      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: 1 })\n    }\n    if (id === 'goblin:strike') {\n      return checkPreview(state, {\n        stat: 'strength',\n        dc: DIFFICULTY.standard,\n        manaCost: optionalManaCost(options),\n      })\n    }\n    if (id === 'goblin:guard') {\n      return checkPreview(state, {\n        stat: 'defense',\n        dc: DIFFICULTY.standard,\n        manaCost: optionalManaCost(options),\n      })\n    }\n    return noRollPreview()\n  }\n\n  if (state.sceneId === SCENES.midpoint) {\n    if (id === 'midpoint:help' || id === 'midpoint:skip') return noRollPreview()\n    if (id === 'midpoint:read-runes') {\n      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: 1 })\n    }\n    if (id === 'midpoint:take-token') {\n      return checkPreview(state, {\n        stat: 'defense',\n        dc: DIFFICULTY.easy,\n        manaCost: optionalManaCost(options),\n      })\n    }\n    if (id.startsWith('free-text:midpoint:')) {\n      const style = id.slice('free-text:midpoint:'.length)\n      const manaCost = style === 'mana' ? 1 : 0\n      const stat = style === 'strength' ? 'strength' : 'defense'\n      return checkPreview(state, { stat, dc: DIFFICULTY.standard, manaCost })\n    }\n    return noRollPreview()\n  }\n\n  if (state.sceneId === SCENES.boss) {\n    if (id === 'boss:bargain') return noRollPreview()\n    const dc = bossCheckDc(state)\n    if (id === 'boss:spell') {\n      return checkPreview(state, { stat: 'defense', dc, manaCost: 2 })\n    }\n    if (id === 'boss:overpower') {\n      return checkPreview(state, {\n        stat: 'strength',\n        dc,\n        manaCost: optionalManaCost(options),\n      })\n    }\n    if (id === 'boss:outlast') {\n      return checkPreview(state, {\n        stat: 'defense',\n        dc,\n        manaCost: optionalManaCost(options),\n      })\n    }\n  }\n\n  return noRollPreview()\n}\n\nexport function getAvailableActions(state) {\n""",
+          )
+
+          replace_once(
+              engine,
+              """    const dc = Math.max(\n      DIFFICULTY.easy,\n      DIFFICULTY.goblinKing + state.flags.bossDcModifier,\n    )\n""",
+              """    const dc = bossCheckDc(state)\n""",
+          )
+
+          controller = 'src/features/games/weed-goblins/weedGoblinsChatController.js'
+          replace_once(
+              controller,
+              """  createWeedGoblinsRun,\n  getAvailableActions,\n  isWeedGoblinsSessionTextScene,\n""",
+              """  createWeedGoblinsRun,\n  getAvailableActions,\n  getWeedGoblinsActionCheckPreview,\n  isWeedGoblinsSessionTextScene,\n""",
+          )
+
+          replace_once(
+              controller,
+              """export function createRollTriggerMessage() {\n""",
+              """function checkInstructionText(preview) {\n  if (!preview?.requiresRoll) return ''\n  const statLabel = preview.stat === 'strength' ? 'Strength' : 'Defense'\n  const diePhrase = preview.advantage ? 'on either die' : 'on the die'\n  const advantageText = preview.advantage\n    ? `You're spending ${preview.manaCost} Mana, so you roll with advantage. `\n    : ''\n  return `${advantageText}This is DC ${preview.dc}. Your ${statLabel} is +${preview.statBonus}, so you need ${preview.requiredDie} or better ${diePhrase}. Roll it.`\n}\n\nfunction choiceIntentForSetup(state, action) {\n  if (action.id === 'route:quiet') return 'cross Rattlebridge quietly without setting off the bottle-cap alarms'\n  if (action.id === 'route:loud') return 'cross Rattlebridge directly before the alarm lines can react'\n  if (action.id === 'goblin:strike') return `force your way past ${state.goblinName}`\n  if (action.id === 'goblin:guard') return `hold your ground and outlast ${state.goblinName}`\n  if (action.id === 'goblin:channel') return `confuse ${state.goblinName} with the magic available to you`\n  if (action.id === 'midpoint:take-token') return 'take the unattended tribute token without waking the bell'\n  if (action.id === 'midpoint:read-runes') return 'read the old trail-runes at Cloudberry Shelf before moving on'\n  if (action.id === 'boss:overpower') return `take ${state.stolenItem} back by overpowering the Goblin King`\n  if (action.id === 'boss:outlast') return `outlast the Goblin King long enough to break his control of the room`\n  if (action.id === 'boss:spell') return `use your Mana to turn the confrontation with the Goblin King`\n  return `carry out ${action.label}`\n}\n\nfunction createChoiceCheckSetupMessage(state, action, preview) {\n  const intent = choiceIntentForSetup(state, action)\n  return createIncomingChatMessage(\n    `You're trying to ${intent}. ${checkInstructionText(preview)}`,\n    { source: 'engine-check-setup', kind: 'check-setup' },\n  )\n}\n\nfunction appendCheckInstructions(setupMessage, preview) {\n  const instructions = checkInstructionText(preview)\n  if (!instructions) return setupMessage\n  return createIncomingChatMessage(\n    `${setupMessage?.text || ''} ${instructions}`,\n    { source: setupMessage?.source || 'engine-check-setup', kind: 'check-setup' },\n  )\n}\n\nexport function createRollTriggerMessage() {\n""",
+          )
+
+          replace_once(
+              controller,
+              """export function createRollResultMessage(value) {\n  const die = resolvedDieValue(value)\n  if (die === null) throw new Error('A resolved D20 value is required.')\n  return Object.freeze({\n    direction: 'incoming',\n    kind: 'roll-result',\n    text: '',\n    die,\n    source: 'engine-roll',\n  })\n}\n""",
+              """export function createRollResultMessage(value, rolls = []) {\n  const die = resolvedDieValue(value)\n  if (die === null) throw new Error('A resolved D20 value is required.')\n  const safeRolls = Array.isArray(rolls)\n    ? rolls.map(resolvedDieValue).filter((roll) => roll !== null)\n    : []\n  return Object.freeze({\n    direction: 'incoming',\n    kind: 'roll-result',\n    text: '',\n    die,\n    rolls: Object.freeze(safeRolls.length > 0 ? safeRolls : [die]),\n    source: 'engine-roll',\n  })\n}\n""",
+          )
+
+          replace_once(
+              controller,
+              """export function submitWeedGoblinsSessionText(state, value) {\n""",
+              """export function prepareWeedGoblinsChoiceTurn({ state, action } = {}) {\n  if (!state) throw new Error('A Weed Goblins run state is required.')\n  const available = getAvailableActions(state)\n  const selected = available.find((candidate) => candidate.id === action?.id)\n  if (!selected) throw new Error(`Choice ${action?.id ?? '(missing)'} is not available.`)\n\n  const before = state\n  const checkPreview = getWeedGoblinsActionCheckPreview(state, selected.id)\n  const outgoingMessage = createOutgoingChoiceMessage(selected)\n\n  if (!checkPreview.requiresRoll) {\n    return Object.freeze({\n      before,\n      after: advanceWeedGoblinsRun(state, selected.id),\n      plan: null,\n      checkPreview,\n      requiresRoll: false,\n      outgoingMessage,\n      setupMessage: null,\n      rollTriggerMessage: null,\n    })\n  }\n\n  const intent = choiceIntentForSetup(state, selected)\n  const plan = Object.freeze({\n    kind: 'built-in-choice',\n    style: checkPreview.manaCost > 0 ? 'mana' : checkPreview.stat,\n    actionId: selected.id,\n    playerAction: selected.label,\n    narrationPlayerAction: selected.label,\n    interpretedAction: intent,\n    settingGuardrail: false,\n    settingCategory: '',\n    inputGuardrail: false,\n    manaUnavailable: false,\n  })\n\n  return Object.freeze({\n    before,\n    plan,\n    checkPreview,\n    requiresRoll: true,\n    outgoingMessage,\n    setupMessage: createChoiceCheckSetupMessage(state, selected, checkPreview),\n    rollTriggerMessage: createRollTriggerMessage(),\n  })\n}\n\nexport function submitWeedGoblinsSessionText(state, value) {\n""",
+          )
+
+          replace_once(
+              controller,
+              """  const hook = attemptHookForPlan(state, plan)\n  const setupMessage = await generatedMessageForHook({\n    hook,\n    state,\n    blockedRealNames,\n    generateNarration,\n    die: null,\n  })\n  const requiresRoll = plan.style !== 'non-check'\n\n  return Object.freeze({\n    before: state,\n    plan,\n    requiresRoll,\n    outgoingMessage: createOutgoingTextMessage(plan.playerAction),\n    setupMessage,\n    rollTriggerMessage: requiresRoll ? createRollTriggerMessage() : null,\n  })\n""",
+              """  const hook = attemptHookForPlan(state, plan)\n  const generatedSetupMessage = await generatedMessageForHook({\n    hook,\n    state,\n    blockedRealNames,\n    generateNarration,\n    die: null,\n  })\n  const requiresRoll = plan.style !== 'non-check'\n  const checkPreview = requiresRoll\n    ? getWeedGoblinsActionCheckPreview(state, plan.actionId)\n    : null\n  const setupMessage = requiresRoll\n    ? appendCheckInstructions(generatedSetupMessage, checkPreview)\n    : generatedSetupMessage\n\n  return Object.freeze({\n    before: state,\n    plan,\n    checkPreview,\n    requiresRoll,\n    outgoingMessage: createOutgoingTextMessage(plan.playerAction),\n    setupMessage,\n    rollTriggerMessage: requiresRoll ? createRollTriggerMessage() : null,\n  })\n""",
+          )
+
+          replace_once(
+              controller,
+              """    throw new Error('A prepared Weed Goblins free-text turn is required.')\n""",
+              """    throw new Error('A prepared Weed Goblins turn is required.')\n""",
+          )
+
+          replace_once(
+              controller,
+              """    rollResultMessage: checkEvent ? createRollResultMessage(checkEvent.roll) : null,\n""",
+              """    rollResultMessage: checkEvent\n      ? createRollResultMessage(checkEvent.roll, checkEvent.rolls)\n      : null,\n""",
+          )
+
+          replace_once(
+              controller,
+              """  if (mechanics.after.status === 'completed') {\n    const endingHook = getNarrationHooksForTransition(mechanics.before, mechanics.after)\n      .find((hook) => hook.moment === 'run-ending')\n    if (!endingHook) return []\n    const message = await generatedMessageForHook({\n      hook: hookWithPlayerContext(endingHook, preparedTurn.plan, mechanics.after),\n      state: mechanics.after,\n      blockedRealNames,\n      generateNarration,\n      die: null,\n    })\n    return message ? [message] : []\n  }\n\n  return resolveWeedGoblinsTransitionMessages({\n    before: mechanics.before,\n    after: mechanics.after,\n    blockedRealNames,\n    generateNarration,\n    playerActionPlan: preparedTurn.plan,\n    suppressDice: true,\n    suppressManaAccounting: true,\n  })\n""",
+              """  const playerActionPlan = preparedTurn.plan.kind === 'built-in-choice'\n    ? null\n    : preparedTurn.plan\n\n  if (mechanics.after.status === 'completed') {\n    const endingHook = getNarrationHooksForTransition(mechanics.before, mechanics.after)\n      .find((hook) => hook.moment === 'run-ending')\n    if (!endingHook) return []\n    const message = await generatedMessageForHook({\n      hook: hookWithPlayerContext(endingHook, playerActionPlan, mechanics.after),\n      state: mechanics.after,\n      blockedRealNames,\n      generateNarration,\n      die: null,\n    })\n    return message ? [message] : []\n  }\n\n  return resolveWeedGoblinsTransitionMessages({\n    before: mechanics.before,\n    after: mechanics.after,\n    blockedRealNames,\n    generateNarration,\n    playerActionPlan,\n    suppressDice: true,\n    suppressManaAccounting: true,\n  })\n""",
+          )
+
+          jsx = 'src/features/games/weed-goblins/WeedGoblinsChat.jsx'
+          replace_once(
+              jsx,
+              """  narrateWeedGoblinsResolvedTurn,\n  prepareWeedGoblinsFreeTextTurn,\n""",
+              """  narrateWeedGoblinsResolvedTurn,\n  prepareWeedGoblinsChoiceTurn,\n  prepareWeedGoblinsFreeTextTurn,\n""",
+          )
+          replace_once(
+              jsx,
+              """  resolveWeedGoblinsTransitionWithStaticFallback,\n  selectWeedGoblinsChatChoice,\n  submitWeedGoblinsSessionText,\n""",
+              """  resolveWeedGoblinsTransitionWithStaticFallback,\n  submitWeedGoblinsSessionText,\n""",
+          )
+
+          old_handle = """  async function handleChoice(action) {\n    if (!state || busy || pendingTurn || state.status === 'completed') return\n    const baseState = state\n    const baseMessages = messages\n    setActionError('')\n    setBusy(true)\n    setChoices([])\n\n    try {\n      const transition = selectWeedGoblinsChatChoice(baseState, action)\n      const optimisticMessages = [...baseMessages, transition.outgoingMessage]\n      setState(transition.after)\n      setMessages(optimisticMessages)\n      setDraft('')\n      const incomingMessages = await resolveWeedGoblinsTransitionWithStaticFallback({\n        before: transition.before,\n        after: transition.after,\n        blockedRealNames,\n      })\n      setMessages([...optimisticMessages, ...incomingMessages])\n      setChoices(getWeedGoblinsQuickReplies(transition.after))\n      await saveCompletedRun(transition.after)\n    } catch {\n      setState(baseState)\n      setMessages(baseMessages)\n      setChoices(getWeedGoblinsQuickReplies(baseState))\n      setActionError('That move did not resolve. Choose it again.')\n    } finally {\n      setBusy(false)\n    }\n  }\n"""
+          new_handle = """  async function handleChoice(action) {\n    if (!state || busy || pendingTurn || state.status === 'completed') return\n    const baseState = state\n    const baseMessages = messages\n    setActionError('')\n    setBusy(true)\n    setChoices([])\n\n    try {\n      const prepared = prepareWeedGoblinsChoiceTurn({ state: baseState, action })\n      const optimisticMessages = [...baseMessages, prepared.outgoingMessage]\n      setDraft('')\n      setMessages(optimisticMessages)\n\n      if (prepared.requiresRoll) {\n        const stagedMessages = [\n          ...optimisticMessages,\n          prepared.setupMessage,\n          prepared.rollTriggerMessage,\n        ].filter(Boolean)\n        setState(baseState)\n        setMessages(stagedMessages)\n        setPendingTurn(prepared)\n        return\n      }\n\n      setState(prepared.after)\n      const incomingMessages = await resolveWeedGoblinsTransitionWithStaticFallback({\n        before: prepared.before,\n        after: prepared.after,\n        blockedRealNames,\n      })\n      setMessages([...optimisticMessages, ...incomingMessages])\n      setChoices(getWeedGoblinsQuickReplies(prepared.after))\n      await saveCompletedRun(prepared.after)\n    } catch {\n      setState(baseState)\n      setMessages(baseMessages)\n      setChoices(getWeedGoblinsQuickReplies(baseState))\n      setActionError('That move did not resolve. Choose it again.')\n    } finally {\n      setBusy(false)\n    }\n  }\n"""
+          replace_once(jsx, old_handle, new_handle)
+          PY
+
+          cat > src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js <<'EOF'
+          import test from 'node:test'
+          import assert from 'node:assert/strict'
+
+          import {
+            advanceWeedGoblinsRun,
+            advanceWeedGoblinsSessionText,
+            createWeedGoblinsRun,
+            getAvailableActions,
+            getWeedGoblinsActionCheckPreview,
+          } from './weedGoblinsEngine.js'
+          import {
+            prepareWeedGoblinsChoiceTurn,
+            prepareWeedGoblinsFreeTextTurn,
+            resolveWeedGoblinsPreparedMechanics,
+          } from './weedGoblinsChatController.js'
+
+          function stateAtRoute(seed = 'explicit-roll-cycle') {
+            let state = createWeedGoblinsRun({ seed })
+            state = advanceWeedGoblinsRun(state, 'session:continue')
+            state = advanceWeedGoblinsSessionText(state, 'Corvin Ashwell')
+            state = advanceWeedGoblinsRun(state, 'session:race:human')
+            state = advanceWeedGoblinsRun(state, 'session:weapon:sword')
+            state = advanceWeedGoblinsRun(state, 'background:tracker')
+            state = advanceWeedGoblinsRun(state, 'session:pronoun:they')
+            state = advanceWeedGoblinsRun(state, 'session:look:tall-weathered')
+            assert.equal(state.sceneId, 'choose-route')
+            return state
+          }
+
+          function stateAtGoblin(seed = 'explicit-roll-cycle-goblin') {
+            return advanceWeedGoblinsRun(stateAtRoute(seed), 'route:quiet')
+          }
+
+          test('built-in route choice stages the check without consuming its roll', () => {
+            const state = stateAtRoute()
+            const action = getAvailableActions(state).find((candidate) => candidate.id === 'route:quiet')
+            const rngBefore = state.rngState
+            const prepared = prepareWeedGoblinsChoiceTurn({ state, action })
+
+            assert.equal(prepared.requiresRoll, true)
+            assert.equal(prepared.before.sceneId, 'choose-route')
+            assert.equal(prepared.before.rngState, rngBefore)
+            assert.match(prepared.setupMessage.text, /DC 12/)
+            assert.match(prepared.setupMessage.text, /Defense is \+1/)
+            assert.match(prepared.setupMessage.text, /11 or better on the die/)
+            assert.equal(prepared.rollTriggerMessage.kind, 'roll-trigger')
+
+            const mechanics = resolveWeedGoblinsPreparedMechanics({ preparedTurn: prepared })
+            assert.equal(mechanics.after.sceneId, 'goblin-encounter')
+            assert.equal(mechanics.checkEvent.dc, 12)
+            assert.equal(mechanics.checkEvent.stat, 'defense')
+            assert.notEqual(mechanics.after.rngState, rngBefore)
+          })
+
+          test('no-roll Session Zero choice still resolves immediately', () => {
+            const state = createWeedGoblinsRun({ seed: 'no-roll-session' })
+            const action = getAvailableActions(state)[0]
+            const prepared = prepareWeedGoblinsChoiceTurn({ state, action })
+
+            assert.equal(prepared.requiresRoll, false)
+            assert.equal(prepared.after.sceneId, 'session-zero-name')
+            assert.equal(prepared.setupMessage, null)
+            assert.equal(prepared.rollTriggerMessage, null)
+          })
+
+          test('Mana-assisted built-in choice explains advantage without changing its math', () => {
+            const state = stateAtGoblin('mana-preview')
+            const action = getAvailableActions(state).find((candidate) => candidate.id === 'goblin:channel')
+            const preview = getWeedGoblinsActionCheckPreview(state, action.id)
+            const prepared = prepareWeedGoblinsChoiceTurn({ state, action })
+
+            assert.equal(preview.dc, 12)
+            assert.equal(preview.stat, 'defense')
+            assert.equal(preview.manaCost, 1)
+            assert.equal(preview.advantage, true)
+            assert.equal(preview.requiredDie, 11)
+            assert.match(prepared.setupMessage.text, /spending 1 Mana/)
+            assert.match(prepared.setupMessage.text, /roll with advantage/)
+            assert.match(prepared.setupMessage.text, /11 or better on either die/)
+          })
+
+          test('free-text check receives the same exact DC and modifier instructions', async () => {
+            const state = stateAtGoblin('free-text-preview')
+            const prepared = await prepareWeedGoblinsFreeTextTurn({
+              state,
+              playerAction: 'I shove the goblin aside',
+              generateNarration: async ({ hook }) => ({
+                text: hook.fallbackText,
+                source: 'test-fallback',
+              }),
+            })
+
+            assert.equal(prepared.requiresRoll, true)
+            assert.equal(prepared.checkPreview.dc, 12)
+            assert.equal(prepared.checkPreview.stat, 'strength')
+            assert.equal(prepared.checkPreview.statBonus, 3)
+            assert.equal(prepared.checkPreview.requiredDie, 9)
+            assert.match(prepared.setupMessage.text, /DC 12/)
+            assert.match(prepared.setupMessage.text, /Strength is \+3/)
+            assert.match(prepared.setupMessage.text, /9 or better on the die/)
+          })
+          EOF
+
+      - name: Verify exact packet scope
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          git diff --check origin/feature/weed-goblins-session-zero...HEAD
+          mapfile -t changed < <(git diff --name-only origin/feature/weed-goblins-session-zero | sort)
+          expected=(
+            "src/features/games/weed-goblins/WeedGoblinsChat.jsx"
+            "src/features/games/weed-goblins/weedGoblinsChatController.js"
+            "src/features/games/weed-goblins/weedGoblinsEngine.js"
+            "src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js"
+          )
+          printf 'Changed files:\n'
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq "${#expected[@]}"
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run explicit roll-cycle tests
+        run: node --test src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit verified candidate
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/games/weed-goblins/WeedGoblinsChat.jsx \
+            src/features/games/weed-goblins/weedGoblinsChatController.js \
+            src/features/games/weed-goblins/weedGoblinsEngine.js \
+            src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js
+          git commit -m "Stage all Weed Goblins checks before rolling"
+          git push origin HEAD:temp/weed-goblins-explicit-roll-cycle
