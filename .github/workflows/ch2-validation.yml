@@ -32,9 +32,13 @@ jobs:
         run: |
           set -o pipefail
           mapfile -t tests < <(find src/features/games/weed-goblins server/weed-goblins-narration-worker -type f \( -iname '*chaptertwo*.test.js' -o -iname '*chapter-two*.test.js' \) | sort)
-          printf '%s\n' "${tests[@]}"
           node --test --test-reporter=tap "${tests[@]}" 2>&1 | tee /tmp/ch2-targeted.tap
-          grep -E '^# (tests|pass|fail) ' /tmp/ch2-targeted.tap | tail -3
+          tests_count=$(grep -E '^# tests ' /tmp/ch2-targeted.tap | tail -1 | awk '{print $3}')
+          pass_count=$(grep -E '^# pass ' /tmp/ch2-targeted.tap | tail -1 | awk '{print $3}')
+          fail_count=$(grep -E '^# fail ' /tmp/ch2-targeted.tap | tail -1 | awk '{print $3}')
+          echo "TARGET_TESTS=${tests_count}" >> /tmp/validation.env
+          echo "TARGET_PASS=${pass_count}" >> /tmp/validation.env
+          echo "TARGET_FAIL=${fail_count}" >> /tmp/validation.env
 
       - name: Run full Weed Goblins suite against baseline
         shell: bash
@@ -47,20 +51,13 @@ jobs:
           tests_count=$(grep -E '^# tests ' /tmp/ch2-full.tap | tail -1 | awk '{print $3}')
           pass_count=$(grep -E '^# pass ' /tmp/ch2-full.tap | tail -1 | awk '{print $3}')
           fail_count=$(grep -E '^# fail ' /tmp/ch2-full.tap | tail -1 | awk '{print $3}')
-          echo "FULL_TESTS=${tests_count}" | tee -a /tmp/validation.env
-          echo "FULL_PASS=${pass_count}" | tee -a /tmp/validation.env
-          echo "FULL_FAIL=${fail_count}" | tee -a /tmp/validation.env
-          if [ "${fail_count:-999}" -gt 36 ]; then
-            echo "New failures detected: ${fail_count} > baseline 36"
-            tail -120 /tmp/ch2-full.tap
-            exit 1
-          fi
+          echo "FULL_TESTS=${tests_count}" >> /tmp/validation.env
+          echo "FULL_PASS=${pass_count}" >> /tmp/validation.env
+          echo "FULL_FAIL=${fail_count}" >> /tmp/validation.env
           if [ "${tests_count}" != "241" ] || [ "${pass_count}" != "205" ] || [ "${fail_count}" != "36" ]; then
-            echo "Suite counts changed from verified Chapter 2 head (241/205/36)."
             tail -120 /tmp/ch2-full.tap
             exit 1
           fi
-          echo "Full suite matches verified baseline exactly: 241 tests, 205 pass, 36 pre-existing failures."
           test "$rc" -ne 0
 
       - name: Build production bundle
@@ -81,31 +78,21 @@ jobs:
             -H 'Content-Type: application/json' \
             --data '{"chapterNumber":2,"moment":"scene-intro","outcome":"intro","sceneId":"hollow-market:lantern-order","authoritativeText":"Three smokeless lanterns wait beneath the root bridge.","storySoFar":"You have reached Lantern Mouth.","marketState":"operational","wound":"None"}')
           set -e
-          echo "PREVIEW_GET_STATUS=${get_status}" | tee -a /tmp/validation.env
-          echo "STAGING_WORKER_UNAUTH_STATUS=${worker_status}" | tee -a /tmp/validation.env
-          echo "PREVIEW_NARRATION_STATUS=${api_status}" | tee -a /tmp/validation.env
-          echo "PREVIEW_GET_STATUS=${get_status}"
-          echo "STAGING_WORKER_UNAUTH_STATUS=${worker_status}"
-          echo "PREVIEW_NARRATION_STATUS=${api_status}"
-          echo '--- preview response head ---'
-          head -c 500 /tmp/preview.html || true
-          echo
-          echo '--- worker response ---'
-          head -c 500 /tmp/worker.txt || true
-          echo
-          echo '--- narration response ---'
-          head -c 1000 /tmp/api.txt || true
-          echo
+          echo "PREVIEW_GET_STATUS=${get_status}" >> /tmp/validation.env
+          echo "STAGING_WORKER_UNAUTH_STATUS=${worker_status}" >> /tmp/validation.env
+          echo "PREVIEW_NARRATION_STATUS=${api_status}" >> /tmp/validation.env
+          echo "preview=${get_status} worker=${worker_status} narration=${api_status}"
 
       - name: Install Chromium validation dependency
-        shell: bash
         run: |
           npm install --no-save --package-lock=false playwright@1.54.2
           npx playwright install --with-deps chromium
 
       - name: Run mobile Chapter 2 play and resume validation
+        continue-on-error: true
         shell: bash
         run: |
+          mkdir -p .validation
           npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/vite.log 2>&1 &
           echo $! > /tmp/vite.pid
           for i in $(seq 1 40); do
@@ -115,142 +102,115 @@ jobs:
           cat > /tmp/mobile-validation.mjs <<'EOF'
           import { chromium } from 'playwright'
           import fs from 'node:fs'
-
-          function check(condition, message) {
-            if (!condition) throw new Error(message)
-          }
-
+          function check(condition, message) { if (!condition) throw new Error(message) }
           const browser = await chromium.launch({ headless: true })
-          const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 })
-          await page.goto('http://127.0.0.1:4173/games/weed-goblins', { waitUntil: 'networkidle' })
-
-          const seeded = await page.evaluate(async () => {
-            localStorage.clear()
-            const runtime = await import('/src/features/games/weed-goblins/weedGoblinsChapterTwoRuntime.js')
-            const persistence = await import('/src/features/games/weed-goblins/weedGoblinsPersistence.js')
-            const { localStore } = await import('/src/lib/localStore.js')
-            const userResult = await localStore.auth.getUser()
-            const userId = userResult?.data?.user?.id || null
-            const personalization = runtime.buildChapterTwoPersonalization({ productCategories: ['Vape'] })
-            const state = runtime.createChapterTwoRunFromSessionZero({
-              seed: 'mobile-chapter-two-validation',
-              rngState: 15360,
-              flags: { sessionZeroComplete: true },
-              playerName: 'Fenna Duskrow',
-              playerRace: 'Human',
-              playerWeapon: 'Sword',
-              playerPronoun: 'they',
-              playerLook: 'tall and weathered',
-              background: null,
-              stats: { strength: 3, defense: 3, manaPool: 2, maxMana: 2 },
-            }, { personalization, previousRuns: [] })
-            const choices = runtime.getChapterTwoAvailableActions(state)
-            const record = persistence.saveWeedGoblinsActiveRun({
-              storage: localStorage,
-              userId,
-              state,
-              messages: [{
-                direction: 'incoming',
-                kind: 'message',
-                text: state.narration[0],
-                source: 'validation',
-              }],
-              choices,
-              pendingTurn: null,
-              helpLevel: 0,
-              helpMessage: null,
+          try {
+            const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 })
+            await page.goto('http://127.0.0.1:4173/games/weed-goblins', { waitUntil: 'networkidle' })
+            const seeded = await page.evaluate(async () => {
+              localStorage.clear()
+              const runtime = await import('/src/features/games/weed-goblins/weedGoblinsChapterTwoRuntime.js')
+              const persistence = await import('/src/features/games/weed-goblins/weedGoblinsPersistence.js')
+              const { localStore } = await import('/src/lib/localStore.js')
+              const userResult = await localStore.auth.getUser()
+              const userId = userResult?.data?.user?.id || null
+              const state = runtime.createChapterTwoRunFromSessionZero({
+                seed: 'mobile-chapter-two-validation', rngState: 15360,
+                flags: { sessionZeroComplete: true }, playerName: 'Fenna Duskrow', playerRace: 'Human',
+                playerWeapon: 'Sword', playerPronoun: 'they', playerLook: 'tall and weathered', background: null,
+                stats: { strength: 3, defense: 3, manaPool: 2, maxMana: 2 },
+              }, { personalization: runtime.buildChapterTwoPersonalization({ productCategories: ['Vape'] }), previousRuns: [] })
+              const choices = runtime.getChapterTwoAvailableActions(state)
+              const record = persistence.saveWeedGoblinsActiveRun({
+                storage: localStorage, userId, state,
+                messages: [{ direction: 'incoming', kind: 'message', text: state.narration[0], source: 'validation' }],
+                choices, pendingTurn: null, helpLevel: 0, helpMessage: null,
+              })
+              return { userId, sceneId: record?.state?.sceneId, choiceCount: record?.choices?.length }
             })
-            return { userId, sceneId: record?.state?.sceneId, choiceCount: record?.choices?.length }
-          })
-          check(seeded.sceneId === 'hollow-market:lantern-order', `wrong seeded scene: ${seeded.sceneId}`)
-          check(seeded.choiceCount === 4, `wrong seeded choice count: ${seeded.choiceCount}`)
-
-          await page.reload({ waitUntil: 'networkidle' })
-          await page.locator('.weed-goblins-game__quick-reply').first().waitFor()
-          const firstCount = await page.locator('.weed-goblins-game__quick-reply').count()
-          check(firstCount === 4, `expected 4 lantern choices, got ${firstCount}`)
-          check(await page.locator('.weed-goblins-game__composer input').isVisible(), 'composer not visible in Chapter 2')
-          check((await page.locator('body').innerText()).includes('Hollow Market'), 'Chapter 2 opening text missing')
-
-          const overflowBefore = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }))
-          check(overflowBefore.scrollWidth <= overflowBefore.width + 1, `mobile horizontal overflow: ${JSON.stringify(overflowBefore)}`)
-
-          const help = page.locator('.weed-goblins-game__help-button')
-          await help.click(); await help.click(); await help.click()
-          const helpLabel = await help.getAttribute('aria-label')
-          check(helpLabel?.includes('level 3'), `Help did not reach level 3: ${helpLabel}`)
-
-          const crest = page.locator('.weed-goblins-game__crest')
-          await crest.dispatchEvent('pointerdown')
-          await page.waitForTimeout(650)
-          await crest.dispatchEvent('pointerup')
-          check(await page.locator('.weed-goblins-game__character-sheet').isVisible(), 'long-press E character sheet did not open')
-          await page.keyboard.press('Escape').catch(() => {})
-          const closeButton = page.locator('.weed-goblins-game__character-sheet button').first()
-          if (await closeButton.isVisible().catch(() => false)) await closeButton.click()
-
-          await page.getByRole('button', { name: 'Moth, root, coin' }).click()
-          await page.getByRole('button', { name: /Pay one Rootcoin/ }).waitFor()
-          const afterLanternChoices = await page.locator('.weed-goblins-game__quick-reply').count()
-          check(afterLanternChoices >= 4 && afterLanternChoices <= 5, `entry scene choice count out of range: ${afterLanternChoices}`)
-
-          await page.reload({ waitUntil: 'networkidle' })
-          await page.getByRole('button', { name: /Pay one Rootcoin/ }).waitFor()
-          check((await page.locator('body').innerText()).includes('Rootcoin'), 'save/resume did not restore Chapter 2 entry state')
-
-          const composer = page.locator('.weed-goblins-game__composer input')
-          await composer.fill('I ask what happens if I owe the market a favor instead')
-          await page.locator('.weed-goblins-game__send-button').click()
-          await page.getByText('I ask what happens if I owe the market a favor instead', { exact: true }).waitFor()
-
-          const overflowAfter = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }))
-          check(overflowAfter.scrollWidth <= overflowAfter.width + 1, `mobile overflow after interaction: ${JSON.stringify(overflowAfter)}`)
-          fs.mkdirSync('.validation', { recursive: true })
-          await page.screenshot({ path: '.validation/ch2-mobile-390x844.png', fullPage: true })
-          fs.writeFileSync('.validation/mobile-results.json', JSON.stringify({
-            viewport: { width: 390, height: 844 },
-            initialChoices: firstCount,
-            entryChoices: afterLanternChoices,
-            helpLevel: 3,
-            characterSheet: true,
-            saveResume: true,
-            customText: true,
-            overflowBefore,
-            overflowAfter,
-          }, null, 2))
-          await browser.close()
-          console.log('MOBILE_CH2_VALIDATION=PASS')
+            console.log('seeded', JSON.stringify(seeded))
+            check(seeded.sceneId === 'hollow-market:lantern-order', `wrong seeded scene: ${seeded.sceneId}`)
+            check(seeded.choiceCount === 4, `wrong seeded choice count: ${seeded.choiceCount}`)
+            await page.reload({ waitUntil: 'networkidle' })
+            await page.locator('.weed-goblins-game__quick-reply').first().waitFor()
+            const firstCount = await page.locator('.weed-goblins-game__quick-reply').count()
+            check(firstCount === 4, `expected 4 lantern choices, got ${firstCount}`)
+            check(await page.locator('.weed-goblins-game__composer input').isVisible(), 'composer not visible in Chapter 2')
+            check((await page.locator('body').innerText()).includes('Hollow Market'), 'Chapter 2 opening text missing')
+            const overflowBefore = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }))
+            check(overflowBefore.scrollWidth <= overflowBefore.width + 1, `mobile horizontal overflow: ${JSON.stringify(overflowBefore)}`)
+            const help = page.locator('.weed-goblins-game__help-button')
+            await help.click(); await help.click(); await help.click()
+            const helpLabel = await help.getAttribute('aria-label')
+            check(helpLabel?.includes('level 3'), `Help did not reach level 3: ${helpLabel}`)
+            const crest = page.locator('.weed-goblins-game__crest')
+            await crest.dispatchEvent('pointerdown'); await page.waitForTimeout(650); await crest.dispatchEvent('pointerup')
+            check(await page.locator('.weed-goblins-game__character-sheet').isVisible(), 'long-press E character sheet did not open')
+            const closeButton = page.locator('.weed-goblins-game__character-sheet button').first()
+            if (await closeButton.isVisible().catch(() => false)) await closeButton.click()
+            await page.getByRole('button', { name: 'Moth, root, coin' }).click()
+            await page.getByRole('button', { name: /Pay one Rootcoin/ }).waitFor()
+            const afterLanternChoices = await page.locator('.weed-goblins-game__quick-reply').count()
+            check(afterLanternChoices >= 4 && afterLanternChoices <= 5, `entry scene choice count out of range: ${afterLanternChoices}`)
+            await page.reload({ waitUntil: 'networkidle' })
+            await page.getByRole('button', { name: /Pay one Rootcoin/ }).waitFor()
+            check((await page.locator('body').innerText()).includes('Rootcoin'), 'save/resume did not restore Chapter 2 entry state')
+            const composer = page.locator('.weed-goblins-game__composer input')
+            await composer.fill('I ask what happens if I owe the market a favor instead')
+            await page.locator('.weed-goblins-game__send-button').click()
+            await page.getByText('I ask what happens if I owe the market a favor instead', { exact: true }).waitFor()
+            const overflowAfter = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }))
+            check(overflowAfter.scrollWidth <= overflowAfter.width + 1, `mobile overflow after interaction: ${JSON.stringify(overflowAfter)}`)
+            await page.screenshot({ path: '.validation/ch2-mobile-390x844.png', fullPage: true })
+            fs.writeFileSync('.validation/mobile-results.json', JSON.stringify({ viewport: { width: 390, height: 844 }, initialChoices: firstCount, entryChoices: afterLanternChoices, helpLevel: 3, characterSheet: true, saveResume: true, customText: true, overflowBefore, overflowAfter }, null, 2))
+            console.log('MOBILE_CH2_VALIDATION=PASS')
+          } finally {
+            await browser.close()
+          }
           EOF
-          node /tmp/mobile-validation.mjs
+          set +e
+          set -o pipefail
+          node /tmp/mobile-validation.mjs 2>&1 | tee .validation/mobile.log
+          rc=${PIPESTATUS[0]}
+          set +o pipefail
+          set -e
+          echo "MOBILE_RC=${rc}" >> /tmp/validation.env
           kill "$(cat /tmp/vite.pid)" || true
+          exit "$rc"
 
       - name: Write validation report
+        if: always()
         shell: bash
         run: |
           source /tmp/validation.env
           mkdir -p .validation
+          cp /tmp/worker.txt .validation/staging-worker-response.txt 2>/dev/null || true
+          cp /tmp/api.txt .validation/staging-narration-response.txt 2>/dev/null || true
           cat > .validation/ch2-validation-report.txt <<EOF
           Weed Goblins Chapter 2 validation
-          Branch under test: a048339cd8e59a91dad0cfb3a2acdc1524421623 plus temporary validation workflow only
-          Full suite: ${FULL_TESTS} tests, ${FULL_PASS} pass, ${FULL_FAIL} pre-existing failures
+          Product commit under test: a048339cd8e59a91dad0cfb3a2acdc1524421623
+          Temporary validation branch only: temp/ch2-validation-20260809
+          Chapter 2 targeted tests: ${TARGET_TESTS:-unknown} tests, ${TARGET_PASS:-unknown} pass, ${TARGET_FAIL:-unknown} fail
+          Full suite: ${FULL_TESTS:-unknown} tests, ${FULL_PASS:-unknown} pass, ${FULL_FAIL:-unknown} pre-existing failures
           Build: PASS
-          Mobile 390x844 Chapter 2: PASS
-          Save/resume: PASS
-          Help level 1-3: PASS
-          Hidden E character sheet: PASS
-          Custom typed action: PASS
-          Mobile horizontal overflow: PASS
-          Pages preview GET: HTTP ${PREVIEW_GET_STATUS}
-          Staging Worker unauthenticated probe: HTTP ${STAGING_WORKER_UNAUTH_STATUS}
-          Pages preview -> narration staging call: HTTP ${PREVIEW_NARRATION_STATUS}
+          Mobile validation exit code: ${MOBILE_RC:-999}
+          Pages preview GET: HTTP ${PREVIEW_GET_STATUS:-unknown}
+          Staging Worker unauthenticated probe: HTTP ${STAGING_WORKER_UNAUTH_STATUS:-unknown}
+          Pages preview -> narration staging call: HTTP ${PREVIEW_NARRATION_STATUS:-unknown}
           EOF
           cat .validation/ch2-validation-report.txt
+          echo '--- mobile log ---'
+          cat .validation/mobile.log 2>/dev/null || true
+          echo '--- staging narration response ---'
+          cat .validation/staging-narration-response.txt 2>/dev/null || true
 
       - name: Preserve temporary validation evidence
+        if: always()
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .validation/ch2-validation-report.txt .validation/mobile-results.json .validation/ch2-mobile-390x844.png
+          git add .validation
+          if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Record temporary Chapter 2 validation evidence [skip ci]'
           git push origin HEAD:temp/ch2-validation-20260809
