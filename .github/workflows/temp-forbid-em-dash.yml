@@ -1,0 +1,61 @@
+name: Weed Goblins No Em Dash Contract
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-narration-voice-audit-20260809
+    paths:
+      - .github/workflows/temp-forbid-em-dash.yml
+      - .github/scripts/forbid_em_dash_everywhere.py
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-narration-voice-audit-20260809
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify protected feature branch and engine
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
+          test "$(git hash-object src/features/games/weed-goblins/weedGoblinsEngine.js)" = "02b3bdc10a32687fed81e230525b418567645b6a"
+      - name: Apply hard no em dash rule
+        run: python .github/scripts/forbid_em_dash_everywhere.py
+      - name: Verify rule
+        shell: bash
+        run: |
+          grep -F 'Never use an em dash or en dash.' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'const BANNED_DASH_SIGNAL = /[\u2013\u2014]/' src/features/games/weed-goblins/weedGoblinsNarrationValidation.js
+      - name: Run focused narration suite
+        shell: bash
+        run: |
+          node --test \
+            server/weed-goblins-narration-worker/voice-audit.test.js \
+            server/weed-goblins-narration-worker/index.test.js \
+            server/weed-goblins-narration-worker/story-beats.test.js \
+            src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
+      - name: Build
+        run: npm run build
+      - name: Commit final narration rule
+        shell: bash
+        run: |
+          git config user.name 'casevoiceai'
+          git config user.email 'casevoice.ai@gmail.com'
+          git add \
+            server/weed-goblins-narration-worker/legacyChapterOne.js \
+            server/weed-goblins-narration-worker/voice-audit.test.js \
+            src/features/games/weed-goblins/weedGoblinsNarrationValidation.js
+          git commit -m 'Forbid em dashes in Eliza narration'
+          git push origin HEAD:temp/weed-goblins-narration-voice-audit-20260809
