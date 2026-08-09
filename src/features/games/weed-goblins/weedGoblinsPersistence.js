@@ -1,22 +1,30 @@
-import * as legacy from './weedGoblinsPersistenceChapterOne.js'
-import { BACKGROUNDS, FIXED_TEST_ADVENTURE } from './weedGoblinsEngine.js'
+import * as prior from './weedGoblinsPersistenceThroughChapterTwo.js'
+import { BACKGROUNDS } from './weedGoblinsEngine.js'
+import { CHAPTER_TWO_REWARDS } from './weedGoblinsChapterTwo.js'
 import {
-  CHAPTER_TWO,
-  CHAPTER_TWO_LOCATIONS,
-  CHAPTER_TWO_REWARDS,
-} from './weedGoblinsChapterTwo.js'
-import { CHAPTER_TWO_WOUNDS } from './weedGoblinsChapterTwoRuntime.js'
+  CHAPTER_THREE,
+  CHAPTER_THREE_GROVE_STATES,
+  CHAPTER_THREE_LOCATIONS,
+  CHAPTER_THREE_REWARDS,
+} from './weedGoblinsChapterThree.js'
+import { CHAPTER_THREE_WOUNDS } from './weedGoblinsChapterThreeRuntime.js'
 
-export const WEED_GOBLINS_ACTIVE_RUN_STORAGE_PREFIX = legacy.WEED_GOBLINS_ACTIVE_RUN_STORAGE_PREFIX
-export const WEED_GOBLINS_ACTIVE_RUN_VERSION = legacy.WEED_GOBLINS_ACTIVE_RUN_VERSION
-export const CHAPTER_TWO_ACTIVE_RUN_VERSION = 2
+export const WEED_GOBLINS_ACTIVE_RUN_STORAGE_PREFIX = prior.WEED_GOBLINS_ACTIVE_RUN_STORAGE_PREFIX
+export const WEED_GOBLINS_ACTIVE_RUN_VERSION = prior.WEED_GOBLINS_ACTIVE_RUN_VERSION
+export const CHAPTER_TWO_ACTIVE_RUN_VERSION = prior.CHAPTER_TWO_ACTIVE_RUN_VERSION
+export const CHAPTER_THREE_ACTIVE_RUN_VERSION = 3
 
 const MAX_MESSAGES = 300
 const MAX_HISTORY_EVENTS = 300
 const MAX_NARRATION_LINES = 300
 const MAX_RECORD_BYTES = 300_000
-const CHAPTER_TWO_LOCATION_IDS = new Set(Object.values(CHAPTER_TWO_LOCATIONS).map((room) => room.id))
-const CHAPTER_TWO_REWARD_VALUES = new Set(Object.values(CHAPTER_TWO_REWARDS))
+const CHAPTER_THREE_LOCATION_IDS = new Set(Object.values(CHAPTER_THREE_LOCATIONS).map((room) => room.id))
+const CHAPTER_THREE_REWARD_VALUES = new Set(Object.values(CHAPTER_THREE_REWARDS))
+const INHERITABLE_REWARD_VALUES = new Set([
+  ...Object.values(CHAPTER_TWO_REWARDS),
+  ...Object.values(CHAPTER_THREE_REWARDS),
+])
+const VALID_GROVE_STATES = new Set(CHAPTER_THREE_GROVE_STATES)
 
 function cleanText(value, maxLength = 500) {
   return typeof value === 'string'
@@ -40,17 +48,28 @@ function safeJsonClone(value, maxBytes = 100_000) {
   }
 }
 
-function isChapterTwoState(state) {
-  return Number(state?.chapterNumber) === 2 || state?.adventureId === CHAPTER_TWO.adventureId
+function isChapterThreeState(state) {
+  return Number(state?.chapterNumber) === 3 || state?.adventureId === CHAPTER_THREE.adventureId
 }
 
-function isChapterTwoTargetSession(state) {
-  return Number(state?.targetChapterNumber) === 2 && state?.adventureId === FIXED_TEST_ADVENTURE.id
+function isChapterThreeTargetSession(state) {
+  return Number(state?.targetChapterNumber) === 3 && !isChapterThreeState(state)
 }
 
-function sanitizeRoomState(roomState, allowedRoomIds) {
+function stripChapterThreeTargetTags(state) {
+  if (!state || typeof state !== 'object') return state
+  const {
+    targetChapterNumber,
+    chapterThreePersonalization,
+    chapterThreePreviousRuns,
+    ...base
+  } = state
+  return base
+}
+
+function sanitizeRoomState(roomState) {
   const safe = {}
-  for (const roomId of allowedRoomIds) {
+  for (const roomId of CHAPTER_THREE_LOCATION_IDS) {
     const visit = roomState?.[roomId]
     safe[roomId] = {
       roomId,
@@ -85,58 +104,7 @@ function sanitizeHistory(history) {
 
 function sanitizeNarration(narration) {
   if (!Array.isArray(narration)) return []
-  return narration
-    .slice(-MAX_NARRATION_LINES)
-    .map((line) => cleanText(line, 600))
-    .filter(Boolean)
-}
-
-function sanitizeChapterTwoPersonalization(value = {}) {
-  return {
-    recognizedStall: cleanText(value.recognizedStall, 120) || 'sealed field-goods stall',
-    counterfeitItem: cleanText(value.counterfeitItem, 120) || 'counterfeit field parcel',
-  }
-}
-
-function sanitizeChapterTwoPreviousRuns(value) {
-  if (!Array.isArray(value)) return []
-  return value.slice(-10).map((run) => {
-    if (!run || typeof run !== 'object' || Array.isArray(run)) return null
-    const safe = {
-      adventureId: cleanText(run.adventureId, 100),
-      seed: cleanText(run.seed, 200),
-      ending: cleanText(run.ending, 80),
-      outcomeSummary: cleanText(run.outcomeSummary, 240),
-      rootcoinRemaining: safeInteger(run.rootcoinRemaining, { min: 0, max: 99 }) ?? 0,
-      wound: CHAPTER_TWO_WOUNDS.includes(run.wound) ? run.wound : 'None',
-      chapterTwoRewards: Array.isArray(run.chapterTwoRewards)
-        ? [...new Set(run.chapterTwoRewards.map((reward) => cleanText(reward, 100)).filter((reward) => CHAPTER_TWO_REWARD_VALUES.has(reward)))]
-        : [],
-    }
-    return safe.adventureId ? safe : null
-  }).filter(Boolean)
-}
-
-function sanitizeChapterTwoStateFields(state) {
-  const chapter = state?.chapterTwo && typeof state.chapterTwo === 'object' ? state.chapterTwo : {}
-  return {
-    lanternSolved: chapter.lanternSolved === true,
-    lanternAttempts: safeInteger(chapter.lanternAttempts, { min: 0, max: 1000 }) ?? 0,
-    entryPrice: cleanText(chapter.entryPrice, 40) || null,
-    favorOwed: chapter.favorOwed === true,
-    recognizedStall: cleanText(chapter.recognizedStall, 120) || 'sealed field-goods stall',
-    counterfeitItem: cleanText(chapter.counterfeitItem, 120) || 'counterfeit field parcel',
-    merchantClues: Array.isArray(chapter.merchantClues)
-      ? [...new Set(chapter.merchantClues.map((value) => cleanText(value, 80)).filter(Boolean))].slice(0, 4)
-      : [],
-    receiptClue: chapter.receiptClue === true,
-    ledgerResolution: cleanText(chapter.ledgerResolution, 100) || null,
-    ledgerRearrangements: safeInteger(chapter.ledgerRearrangements, { min: 0, max: 1000 }) ?? 0,
-    collectorOutcome: cleanText(chapter.collectorOutcome, 100) || null,
-    ledgerDisposition: cleanText(chapter.ledgerDisposition, 100) || null,
-    marketState: cleanText(chapter.marketState, 80) || 'operational',
-    wardenSettlement: cleanText(chapter.wardenSettlement, 100) || null,
-  }
+  return narration.slice(-MAX_NARRATION_LINES).map((line) => cleanText(line, 600)).filter(Boolean)
 }
 
 function sanitizeEffects(effects = {}) {
@@ -150,106 +118,124 @@ function sanitizeEffects(effects = {}) {
   }
 }
 
-function sanitizeV2ActiveState(state) {
-  if (!state || typeof state !== 'object' || Array.isArray(state) || state.status !== 'active') return null
-  if (!isChapterTwoState(state) && !isChapterTwoTargetSession(state)) return null
+function sanitizeInventory(inventory) {
+  if (!Array.isArray(inventory)) return []
+  return [...new Set(
+    inventory
+      .map((value) => cleanText(value, 100))
+      .filter((value) => INHERITABLE_REWARD_VALUES.has(value)),
+  )]
+}
 
-  const isTargetSession = isChapterTwoTargetSession(state)
+function sanitizeChapterThreeFields(value = {}) {
+  const chapter = value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+  const groveState = cleanText(chapter.groveState, 60)
+  return {
+    memorySensation: cleanText(chapter.memorySensation, 160),
+    falseCureKnown: chapter.falseCureKnown === true,
+    bramblekinHeard: chapter.bramblekinHeard === true,
+    corlaHeard: chapter.corlaHeard === true,
+    kipWarningHeeded: chapter.kipWarningHeeded === true,
+    memoryRingsSolved: chapter.memoryRingsSolved === true,
+    memoryRingAttempts: safeInteger(chapter.memoryRingAttempts, { min: 0, max: 1000 }) ?? 0,
+    nightlyDrawScheduleKnown: chapter.nightlyDrawScheduleKnown === true,
+    waterStonesBalanced: chapter.waterStonesBalanced === true,
+    waterStoneAttempts: safeInteger(chapter.waterStoneAttempts, { min: 0, max: 1000 }) ?? 0,
+    stalkerBlindSpotKnown: chapter.stalkerBlindSpotKnown === true,
+    stalkerOutcome: cleanText(chapter.stalkerOutcome, 100) || null,
+    nurseryOutcome: cleanText(chapter.nurseryOutcome, 100) || null,
+    siphonPrepared: chapter.siphonPrepared === true,
+    nightlyDrawOutcome: cleanText(chapter.nightlyDrawOutcome, 100) || null,
+    groveState: VALID_GROVE_STATES.has(groveState) ? groveState : null,
+    majorTruth: cleanText(chapter.majorTruth, 240) || null,
+    rememberedConsequence: cleanText(chapter.rememberedConsequence, 300) || null,
+    bramblekinAllied: chapter.bramblekinAllied === true,
+  }
+}
+
+function sanitizeChapterThreePreviousRuns(value) {
+  if (!Array.isArray(value)) return []
+  return value.slice(-10).map((run) => {
+    if (!run || typeof run !== 'object' || Array.isArray(run)) return null
+    const safe = {
+      adventureId: cleanText(run.adventureId, 100),
+      seed: cleanText(run.seed, 200),
+      ending: cleanText(run.ending, 100),
+      outcomeSummary: cleanText(run.outcomeSummary, 300),
+      rootcoinRemaining: safeInteger(run.rootcoinRemaining, { min: 0, max: 99 }) ?? 0,
+      chapterTwoRewards: Array.isArray(run.chapterTwoRewards)
+        ? [...new Set(run.chapterTwoRewards.map((reward) => cleanText(reward, 100)).filter((reward) => INHERITABLE_REWARD_VALUES.has(reward)))]
+        : [],
+      chapterThreeRewards: Array.isArray(run.chapterThreeRewards)
+        ? [...new Set(run.chapterThreeRewards.map((reward) => cleanText(reward, 100)).filter((reward) => CHAPTER_THREE_REWARD_VALUES.has(reward)))]
+        : [],
+    }
+    return safe.adventureId ? safe : null
+  }).filter(Boolean)
+}
+
+function sanitizeChapterThreeTargetPersonalization(value = {}) {
+  return {
+    memorySensation: cleanText(value?.memorySensation, 160),
+  }
+}
+
+function sanitizeChapterThreeActiveState(state) {
+  if (!state || typeof state !== 'object' || Array.isArray(state) || state.status !== 'active') return null
+  if (!isChapterThreeState(state)) return null
   const sceneId = cleanText(state.sceneId, 100)
   const currentRoomId = cleanText(state.currentRoomId, 100)
   const seed = cleanText(state.seed, 200)
   const rngState = safeInteger(state.rngState, { min: 0, max: 0xffffffff })
-  if (!sceneId || !currentRoomId || !seed || rngState === null) return null
-
-  if (!isTargetSession && !CHAPTER_TWO_LOCATION_IDS.has(currentRoomId)) return null
-
+  if (!sceneId || !CHAPTER_THREE_LOCATION_IDS.has(currentRoomId) || !seed || rngState === null) return null
   const flags = state.flags && typeof state.flags === 'object' ? state.flags : {}
-  const base = {
-    version: CHAPTER_TWO_ACTIVE_RUN_VERSION,
-    adventureId: isTargetSession ? FIXED_TEST_ADVENTURE.id : CHAPTER_TWO.adventureId,
-    adventure: isTargetSession ? FIXED_TEST_ADVENTURE : CHAPTER_TWO,
+  return {
+    version: CHAPTER_THREE_ACTIVE_RUN_VERSION,
+    chapterNumber: 3,
+    adventureId: CHAPTER_THREE.adventureId,
+    adventure: CHAPTER_THREE,
     seed,
     rngState,
     status: 'active',
     sceneId,
     currentRoomId,
-    roomState: isTargetSession
-      ? safeJsonClone(state.roomState, 10_000) || {}
-      : sanitizeRoomState(state.roomState, CHAPTER_TWO_LOCATION_IDS),
+    roomState: sanitizeRoomState(state.roomState),
     playerName: cleanText(state.playerName, 160) || null,
     playerRace: cleanText(state.playerRace, 80) || null,
     playerWeapon: cleanText(state.playerWeapon, 80) || null,
     playerPronoun: cleanText(state.playerPronoun, 40) || null,
     playerLook: cleanText(state.playerLook, 160) || null,
-    returningLine: cleanText(state.returningLine, 300) || null,
     background: sanitizeBackground(state.background),
     stats: sanitizeStats(state.stats),
     trouble: safeInteger(state.trouble, { min: 0, max: 3 }) ?? 0,
     complicationCount: safeInteger(state.complicationCount, { min: 0, max: 1000 }) ?? 0,
     priorCompletedRunCount: safeInteger(state.priorCompletedRunCount, { min: 0, max: 100000 }) ?? 0,
     narrationTier: cleanText(state.narrationTier, 60) || 'normal',
+    rootcoin: safeInteger(state.rootcoin, { min: 0, max: 99 }) ?? 0,
+    wound: CHAPTER_THREE_WOUNDS.includes(state.wound) ? state.wound : 'None',
+    inventory: sanitizeInventory(state.inventory),
+    effects: sanitizeEffects(state.effects),
     flags: {
       sessionZeroComplete: flags.sessionZeroComplete === true,
       nameSuggestionsVisible: flags.nameSuggestionsVisible === true,
     },
+    chapterThree: sanitizeChapterThreeFields(state.chapterThree),
     ending: null,
     runSummary: null,
     history: sanitizeHistory(state.history),
     narration: sanitizeNarration(state.narration),
   }
-
-  if (isTargetSession) {
-    return {
-      ...base,
-      targetChapterNumber: 2,
-      chapterTwoPersonalization: sanitizeChapterTwoPersonalization(state.chapterTwoPersonalization),
-      chapterTwoPreviousRuns: sanitizeChapterTwoPreviousRuns(state.chapterTwoPreviousRuns),
-      stolenItem: cleanText(state.stolenItem, 200),
-      goblinName: cleanText(state.goblinName, 120),
-      fictionalLocationName: cleanText(state.fictionalLocationName, 160) || null,
-      characterTraitFlavor: cleanText(state.characterTraitFlavor, 300),
-      environmentThemeFlavor: cleanText(state.environmentThemeFlavor, 300),
-      flags: {
-        ...base.flags,
-        routeId: cleanText(flags.routeId, 40) || null,
-        midpointChoice: cleanText(flags.midpointChoice, 60) || null,
-        goblinAlly: flags.goblinAlly === true,
-        goblinFavor: flags.goblinFavor === true,
-        hasHighlandCharm: flags.hasHighlandCharm === true,
-        blackRootSealKnown: flags.blackRootSealKnown === true,
-        nibTreatment: cleanText(flags.nibTreatment, 40) || null,
-        tributeArrangement: cleanText(flags.tributeArrangement, 40) || null,
-        kingTreatment: cleanText(flags.kingTreatment, 40) || null,
-        latchOutcome: cleanText(flags.latchOutcome, 60) || null,
-        bossDcModifier: Number.isFinite(Number(flags.bossDcModifier)) ? Math.trunc(Number(flags.bossDcModifier)) : 0,
-      },
-    }
-  }
-
-  return {
-    ...base,
-    chapterNumber: 2,
-    rootcoin: safeInteger(state.rootcoin, { min: 0, max: 99 }) ?? 0,
-    wound: CHAPTER_TWO_WOUNDS.includes(state.wound) ? state.wound : 'None',
-    inventory: Array.isArray(state.inventory)
-      ? [...new Set(state.inventory.map((reward) => cleanText(reward, 100)).filter((reward) => CHAPTER_TWO_REWARD_VALUES.has(reward)))]
-      : [],
-    effects: sanitizeEffects(state.effects),
-    chapterTwo: sanitizeChapterTwoStateFields(state),
-  }
 }
 
 function sanitizeMessage(message) {
   if (!message || typeof message !== 'object' || Array.isArray(message)) return null
-  const direction = message.direction === 'outgoing' ? 'outgoing' : 'incoming'
-  const kind = cleanText(message.kind, 40) || 'message'
   const die = safeInteger(message.die, { min: 1, max: 20 })
   const rolls = Array.isArray(message.rolls)
     ? message.rolls.map((roll) => safeInteger(roll, { min: 1, max: 20 })).filter(Boolean).slice(0, 2)
     : []
   return {
-    direction,
-    kind,
+    direction: message.direction === 'outgoing' ? 'outgoing' : 'incoming',
+    kind: cleanText(message.kind, 40) || 'message',
     text: cleanText(message.text, 1000),
     actionId: cleanText(message.actionId, 120) || undefined,
     die,
@@ -309,7 +295,23 @@ function sanitizeHelpMessage(helpMessage) {
   }
 }
 
-function createV2ActiveRunRecord({
+function createChapterThreeTargetRecord(session = {}) {
+  const baseState = stripChapterThreeTargetTags(session.state)
+  const baseRecord = prior.createWeedGoblinsActiveRunRecord({ ...session, state: baseState })
+  if (!baseRecord?.state) return null
+  return {
+    ...baseRecord,
+    version: CHAPTER_THREE_ACTIVE_RUN_VERSION,
+    state: {
+      ...baseRecord.state,
+      targetChapterNumber: 3,
+      chapterThreePersonalization: sanitizeChapterThreeTargetPersonalization(session.state?.chapterThreePersonalization),
+      chapterThreePreviousRuns: sanitizeChapterThreePreviousRuns(session.state?.chapterThreePreviousRuns),
+    },
+  }
+}
+
+function createChapterThreeActiveRecord({
   state,
   messages = [],
   choices = [],
@@ -317,11 +319,11 @@ function createV2ActiveRunRecord({
   helpLevel = 0,
   helpMessage = null,
 } = {}) {
-  const safeState = sanitizeV2ActiveState(state)
+  const safeState = sanitizeChapterThreeActiveState(state)
   if (!safeState) return null
   const safePendingTurn = sanitizePendingTurn(pendingTurn, safeState)
   return {
-    version: CHAPTER_TWO_ACTIVE_RUN_VERSION,
+    version: CHAPTER_THREE_ACTIVE_RUN_VERSION,
     state: safeState,
     messages: sanitizeMessages(messages),
     choices: safePendingTurn ? [] : sanitizeChoices(choices),
@@ -332,19 +334,19 @@ function createV2ActiveRunRecord({
 }
 
 export function weedGoblinsActiveRunStorageKey(userId) {
-  return legacy.weedGoblinsActiveRunStorageKey(userId)
+  return prior.weedGoblinsActiveRunStorageKey(userId)
 }
 
 export function sanitizeWeedGoblinsActiveState(state) {
-  if (isChapterTwoState(state) || isChapterTwoTargetSession(state)) return sanitizeV2ActiveState(state)
-  return legacy.sanitizeWeedGoblinsActiveState(state)
+  if (isChapterThreeState(state)) return sanitizeChapterThreeActiveState(state)
+  if (isChapterThreeTargetSession(state)) return createChapterThreeTargetRecord({ state })?.state || null
+  return prior.sanitizeWeedGoblinsActiveState(state)
 }
 
 export function createWeedGoblinsActiveRunRecord(session = {}) {
-  if (isChapterTwoState(session.state) || isChapterTwoTargetSession(session.state)) {
-    return createV2ActiveRunRecord(session)
-  }
-  return legacy.createWeedGoblinsActiveRunRecord(session)
+  if (isChapterThreeState(session.state)) return createChapterThreeActiveRecord(session)
+  if (isChapterThreeTargetSession(session.state)) return createChapterThreeTargetRecord(session)
+  return prior.createWeedGoblinsActiveRunRecord(session)
 }
 
 export function saveWeedGoblinsActiveRun({
@@ -352,8 +354,8 @@ export function saveWeedGoblinsActiveRun({
   userId = null,
   ...session
 } = {}) {
-  if (!isChapterTwoState(session.state) && !isChapterTwoTargetSession(session.state)) {
-    return legacy.saveWeedGoblinsActiveRun({ storage, userId, ...session })
+  if (!isChapterThreeState(session.state) && !isChapterThreeTargetSession(session.state)) {
+    return prior.saveWeedGoblinsActiveRun({ storage, userId, ...session })
   }
   if (!storage || typeof storage.setItem !== 'function') return null
   const key = weedGoblinsActiveRunStorageKey(userId)
@@ -361,7 +363,7 @@ export function saveWeedGoblinsActiveRun({
     if (typeof storage.removeItem === 'function') storage.removeItem(key)
     return null
   }
-  const record = createV2ActiveRunRecord(session)
+  const record = createWeedGoblinsActiveRunRecord(session)
   if (!record) return null
   const serialized = JSON.stringify(record)
   if (serialized.length > MAX_RECORD_BYTES) return null
@@ -383,12 +385,14 @@ export function readWeedGoblinsActiveRun({
   } catch {
     return null
   }
-  if (parsed?.version === CHAPTER_TWO_ACTIVE_RUN_VERSION) {
-    return createV2ActiveRunRecord(parsed)
+  if (parsed?.version !== CHAPTER_THREE_ACTIVE_RUN_VERSION) {
+    return prior.readWeedGoblinsActiveRun({ storage, userId })
   }
-  return legacy.readWeedGoblinsActiveRun({ storage, userId })
+  if (isChapterThreeTargetSession(parsed.state)) return createChapterThreeTargetRecord(parsed)
+  if (isChapterThreeState(parsed.state)) return createChapterThreeActiveRecord(parsed)
+  return null
 }
 
 export function clearWeedGoblinsActiveRun(options = {}) {
-  return legacy.clearWeedGoblinsActiveRun(options)
+  return prior.clearWeedGoblinsActiveRun(options)
 }
