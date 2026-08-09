@@ -49,8 +49,8 @@ jobs:
                   """export const FREE_TEXT_SCENES = Object.freeze([\n  'choose-route',\n  'goblin-encounter',\n  'midpoint',\n  'goblin-king',\n])\n""",
               ),
               (
-                  """  if (state.sceneId === 'goblin-encounter') {\n""",
-                  """  if (state.sceneId === 'choose-route') {\n    if (style === 'strength') return 'cross Rattlebridge with direct physical force'\n    if (style === 'mana') return 'use the available magic to find the safest crossing over Rattlebridge'\n    return 'cross Rattlebridge cautiously without setting off the alarm lines'\n  }\n\n  if (state.sceneId === 'goblin-encounter') {\n""",
+                  """  if (style === 'non-check') return 'let the simple in-world action play out without a roll'\n\n  if (state.sceneId === 'goblin-encounter') {\n""",
+                  """  if (style === 'non-check') return 'let the simple in-world action play out without a roll'\n\n  if (state.sceneId === 'choose-route') {\n    if (style === 'strength') return 'cross Rattlebridge with direct physical force'\n    if (style === 'mana') return 'use the available magic to find the safest crossing over Rattlebridge'\n    return 'cross Rattlebridge cautiously without setting off the alarm lines'\n  }\n\n  if (state.sceneId === 'goblin-encounter') {\n""",
               ),
               (
                   """  if (state.sceneId === 'goblin-encounter') {\n    if (style === 'strength') return { kind: 'check', style, actionId: 'goblin:strike', manaUnavailable }\n""",
