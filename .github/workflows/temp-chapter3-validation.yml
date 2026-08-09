@@ -35,5 +35,42 @@ jobs:
             src/features/games/weed-goblins/weedGoblinsChapterTwoRuntime.test.js \
             server/weed-goblins-narration-worker/chapterThree.test.js \
             server/weed-goblins-narration-worker/chapterTwo.test.js
+      - name: Compare complete Weed Goblins suite to exact feature baseline
+        shell: bash
+        run: |
+          set -uo pipefail
+          git worktree add --detach /tmp/wg-baseline a048339cd8e59a91dad0cfb3a2acdc1524421623
+          ln -s "$GITHUB_WORKSPACE/node_modules" /tmp/wg-baseline/node_modules
+
+          set +e
+          (
+            cd /tmp/wg-baseline
+            node --test src/features/games/weed-goblins/*.test.js server/weed-goblins-narration-worker/*.test.js
+          ) > /tmp/baseline.tap 2>&1
+          baseline_status=$?
+          node --test src/features/games/weed-goblins/*.test.js server/weed-goblins-narration-worker/*.test.js > /tmp/candidate.tap 2>&1
+          candidate_status=$?
+          set -e
+
+          echo 'BASELINE SUMMARY'
+          grep -E '^# (tests|pass|fail|cancelled|skipped|todo) ' /tmp/baseline.tap | tail -n 6
+          echo 'CANDIDATE SUMMARY'
+          grep -E '^# (tests|pass|fail|cancelled|skipped|todo) ' /tmp/candidate.tap | tail -n 6
+
+          grep '^not ok ' /tmp/baseline.tap | sed -E 's/^not ok [0-9]+ - //' | sort > /tmp/baseline-failures.txt || true
+          grep '^not ok ' /tmp/candidate.tap | sed -E 's/^not ok [0-9]+ - //' | sort > /tmp/candidate-failures.txt || true
+
+          echo 'BASELINE FAILURES'
+          cat /tmp/baseline-failures.txt
+          echo 'CANDIDATE FAILURES'
+          cat /tmp/candidate-failures.txt
+
+          baseline_fail=$(grep -E '^# fail ' /tmp/baseline.tap | tail -1 | awk '{print $3}')
+          candidate_fail=$(grep -E '^# fail ' /tmp/candidate.tap | tail -1 | awk '{print $3}')
+          test "$baseline_status" -ne 0
+          test "$candidate_status" -ne 0
+          test "$baseline_fail" = 36
+          test "$candidate_fail" = 36
+          diff -u /tmp/baseline-failures.txt /tmp/candidate-failures.txt
       - name: Production build
         run: npm run build
