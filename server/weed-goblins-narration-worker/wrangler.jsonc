@@ -21,5 +21,24 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1
+  },
+  "env": {
+    "staging": {
+      "workers_dev": true,
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "FREE_TEXT_RATE_LIMITER",
+            "class_name": "WeedGoblinsFreeTextRateLimiter"
+          }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["WeedGoblinsFreeTextRateLimiter"]
+        }
+      ]
+    }
   }
 }
