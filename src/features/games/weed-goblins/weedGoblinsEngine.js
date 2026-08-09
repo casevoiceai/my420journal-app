@@ -1,3 +1,9 @@
+import {
+  CHAPTER_ONE_ROOMS,
+  createWeedGoblinsRoomState,
+  visitWeedGoblinsRoom,
+} from './weedGoblinsRooms.js'
+
 export const WEED_GOBLINS_NARRATOR_NAME = 'Eliza'
 
 export const WEED_GOBLINS_INTRODUCTION =
@@ -473,9 +479,21 @@ function appendEvent(state, event, narrationLine) {
   })
 }
 
+function enterRoom(state, roomId) {
+  if (state.currentRoomId === roomId) return state
+  return cloneState(state, {
+    currentRoomId: roomId,
+    roomState: visitWeedGoblinsRoom(state.roomState, roomId),
+  })
+}
+
 function enterGoblinKingScene(state) {
-  return appendEvent(
+  const inStashHall = enterRoom(
     cloneState(state, { sceneId: SCENES.boss }),
+    CHAPTER_ONE_ROOMS.kingsStashHall.id,
+  )
+  return appendEvent(
+    inStashHall,
     {
       type: 'taunt',
       sceneId: SCENES.boss,
@@ -699,6 +717,8 @@ export function createWeedGoblinsRun({
     rngState,
     status: 'active',
     sceneId: SCENES.sessionWelcome,
+    currentRoomId: CHAPTER_ONE_ROOMS.windcutTrail.id,
+    roomState: createWeedGoblinsRoomState(CHAPTER_ONE_ROOMS.windcutTrail.id),
     playerName: null,
     playerRace: null,
     playerWeapon: null,
@@ -1110,7 +1130,10 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       },
     )
     if (result.state.status === 'completed') return result.state
-    return cloneState(result.state, { sceneId: SCENES.goblin })
+    return enterRoom(
+      cloneState(result.state, { sceneId: SCENES.goblin }),
+      CHAPTER_ONE_ROOMS.rattlebridge.id,
+    )
   }
 
   if (state.sceneId === SCENES.goblin) {
@@ -1124,7 +1147,10 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
         failureText: `${state.goblinName} rejects the theory on procedural grounds and keeps the useful side of the path.`,
       })
       if (result.state.status === 'completed') return result.state
-      return cloneState(result.state, { sceneId: SCENES.midpoint })
+      return enterRoom(
+        cloneState(result.state, { sceneId: SCENES.midpoint }),
+        CHAPTER_ONE_ROOMS.cloudberryShelf.id,
+      )
     }
 
     const isStrike = actionId === 'goblin:strike'
@@ -1143,7 +1169,10 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       manaCost: optionalManaCost(options),
     })
     if (result.state.status === 'completed') return result.state
-    return cloneState(result.state, { sceneId: SCENES.midpoint })
+    return enterRoom(
+      cloneState(result.state, { sceneId: SCENES.midpoint }),
+      CHAPTER_ONE_ROOMS.cloudberryShelf.id,
+    )
   }
 
   if (state.sceneId === SCENES.midpoint) {
