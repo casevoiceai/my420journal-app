@@ -190,7 +190,7 @@ test('five materially different Chapter 1 replays complete through the real expl
     assert.equal(profile.predicate(state), true, profile.name)
     assert.equal(state.sceneId, 'ending')
     assert.ok(visitedAllChapterOneRooms(state), `${profile.name} did not visit all five rooms`)
-    assert.equal(state.runSummary.chapterNumber, 1)
+    assert.equal(state.runSummary.adventureId, 'goblin-highlands-session-1')
     assert.ok(state.runSummary.chapterOneRewards.includes('black-root seal'))
     assert.ok(state.narration.at(-1).includes(state.stolenItem))
   }
