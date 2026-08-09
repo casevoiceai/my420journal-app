@@ -22,6 +22,28 @@ test('prompt locks messenger bubble structure and controlled fragments', () => {
   assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Do not optimize for concision\. Optimize for immersion\./)
 })
 
+test('prompt varies sentence completeness without undoing coherent bubble chunking', () => {
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /roughly one sentence in four or five may break grammatical completeness/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /highest tension, the sharpest visual detail, the sudden realization, or the dry punch of the joke/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /This is a rhythm tool, not a content tool/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /single em dash when the spoken rhythm genuinely cuts off/)
+  assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Do not force a break just to hit a quota/)
+})
+
+test('validator permits a deliberate em-dash trail-off but still rejects an en dash', () => {
+  const emDash = validateGeneratedNarration(
+    'The bottle-cap line trembles once, then goes still. Something moved beneath the bridge—',
+    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },
+  )
+  assert.equal(emDash.valid, true, emDash.reasons.join('; '))
+
+  const enDash = validateGeneratedNarration(
+    'The bridge is quiet – too quiet to trust.',
+    { moment: 'scene-intro', outcome: 'intro', introKind: 'scene-transition' },
+  )
+  assert.ok(enDash.reasons.includes('uses an en dash'))
+})
+
 test('prompt limits hedge explanations and breaks the repeated triad cadence', () => {
   assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Use "as though" at most once in a scene/)
   assert.match(WEED_GOBLINS_SYSTEM_PROMPT, /Do not replace a cut hedge with "as if", "seemingly", "almost as if", or another phrase that performs the same explanatory job/)

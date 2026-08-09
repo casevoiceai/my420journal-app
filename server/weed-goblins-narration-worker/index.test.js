@@ -430,6 +430,8 @@ test('system prompt requires varied human cadence and sensory grounding', () => 
     'Write like someone improvising coherently out loud',
     'One GM turn is one coherent messenger bubble, usually two to five sentences',
     'Fragments are punctuation for dramatic effect, not the default structure.',
+    'roughly one sentence in four or five may break grammatical completeness',
+    'This is a rhythm tool, not a content tool.',
     'Do not open narration with "I watch"',
     'two or more connected physical details',
     'sound, smell, temperature, weather on skin, footing, texture, weight, distance, posture, object behavior, and NPC behavior',
