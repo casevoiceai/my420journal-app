@@ -428,8 +428,8 @@ test('system prompt keeps goblins distinct and motivated', () => {
 test('system prompt requires varied human cadence and sensory grounding', () => {
   for (const required of [
     'Write like someone improvising coherently out loud',
-    'A turn may be one to four sentences depending on the moment.',
-    'A brief fragment is allowed when it sounds natural',
+    'One GM turn is one coherent messenger bubble, usually two to five sentences',
+    'Fragments are punctuation for dramatic effect, not the default structure.',
     'Do not open narration with "I watch"',
     'two or more connected physical details',
     'sound, smell, temperature, weather on skin, footing, texture, weight, distance, posture, object behavior, and NPC behavior',
