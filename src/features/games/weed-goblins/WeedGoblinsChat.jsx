@@ -20,6 +20,7 @@ import {
   submitWeedGoblinsSessionText,
 } from './weedGoblinsChatController.js'
 import { WEED_GOBLINS_NARRATOR_NAME } from './weedGoblinsEngine.js'
+import { findWeedGoblinsDiscoverableMatches } from './weedGoblinsDiscoverables.js'
 import './WeedGoblinsChat.css'
 
 function makeRunSeed() {
@@ -72,7 +73,31 @@ function TypingIndicator({ label = 'Eliza is typing' }) {
   )
 }
 
-function StoryEntry({ message, onRoll, canRoll, busy }) {
+function HighlightedMessageText({ text, state, onOpenDiscoverable }) {
+  const matches = findWeedGoblinsDiscoverableMatches(text, state)
+  if (matches.length === 0) return text
+
+  const parts = []
+  let cursor = 0
+  for (const match of matches) {
+    if (match.start > cursor) parts.push(text.slice(cursor, match.start))
+    parts.push(
+      <button
+        key={`${match.discoverable.id}-${match.start}`}
+        type="button"
+        className="weed-goblins-game__discoverable"
+        onClick={() => onOpenDiscoverable(match.discoverable)}
+      >
+        {match.text}
+      </button>,
+    )
+    cursor = match.end
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor))
+  return parts
+}
+
+function StoryEntry({ message, onRoll, canRoll, busy, state, onOpenDiscoverable }) {
   if (message.kind === 'roll-trigger') {
     return (
       <div className="weed-goblins-game__roll-row">
@@ -110,7 +135,13 @@ function StoryEntry({ message, onRoll, canRoll, busy }) {
   return (
     <div className="weed-goblins-game__message-row is-incoming">
       <article className="weed-goblins-game__message-bubble is-eliza">
-        <p>{message.text}</p>
+        <p>
+          <HighlightedMessageText
+            text={message.text}
+            state={state}
+            onOpenDiscoverable={onOpenDiscoverable}
+          />
+        </p>
         {message.die !== null && message.die !== undefined && (
           <span className="weed-goblins-game__inline-die" aria-label={`D20 result ${message.die}`}>
             <D20Icon value={message.die} size={30} />
@@ -164,6 +195,7 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   const [busy, setBusy] = useState(false)
   const [fatalError, setFatalError] = useState('')
   const [actionError, setActionError] = useState('')
+  const [activeDiscoverable, setActiveDiscoverable] = useState(null)
   const [runNumber, setRunNumber] = useState(0)
   const storyRef = useRef(null)
   const endRef = useRef(null)
@@ -335,10 +367,9 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     }
   }
 
-  async function handleTextSubmit(event) {
-    event?.preventDefault()
-    const text = draft.trim()
-    if (!state || !canType || !text) return
+  async function handleFreeTextAction(text, { restoreDraftOnError = true } = {}) {
+    const actionText = String(text ?? '').trim()
+    if (!state || !canType || !actionText) return
     setActionError('')
     setBusy(true)
     setChoices([])
@@ -346,7 +377,7 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     try {
       const prepared = await prepareWeedGoblinsFreeTextTurn({
         state,
-        playerAction: text,
+        playerAction: actionText,
         blockedRealNames,
       })
       const stagedMessages = [
@@ -368,12 +399,41 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
         await applyResolvedPreparedTurn(resolution, stagedMessages)
       }
     } catch {
-      setDraft(text)
+      if (restoreDraftOnError) setDraft(actionText)
       setChoices(getWeedGoblinsQuickReplies(state))
       setActionError('That custom move could not be resolved. Edit it or choose an action below.')
     } finally {
       setBusy(false)
     }
+  }
+
+  async function handleTextSubmit(event) {
+    event?.preventDefault()
+    await handleFreeTextAction(draft)
+  }
+
+  async function handleDiscoverableAction(action) {
+    if (!action || busy || pendingTurn) return
+    setActiveDiscoverable(null)
+    if (action.kind === 'engine') {
+      const available = getWeedGoblinsQuickReplies(state)
+      const choice = available.find((candidate) => candidate.id === action.id)
+        || { id: action.id, label: action.label }
+      await handleChoice(choice)
+      return
+    }
+    if (action.kind === 'free-text') {
+      await handleFreeTextAction(action.playerAction, { restoreDraftOnError: false })
+    }
+  }
+
+  function discoverableActionAvailable(action) {
+    if (!action || busy || pendingTurn) return false
+    if (action.kind === 'free-text') return canType
+    if (action.kind === 'engine') {
+      return getWeedGoblinsQuickReplies(state).some((choice) => choice.id === action.id)
+    }
+    return false
   }
 
   async function handleRoll() {
@@ -415,6 +475,7 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     setPendingTurn(null)
     setFatalError('')
     setActionError('')
+    setActiveDiscoverable(null)
     setLoading(true)
     hasStartedScrollingRef.current = false
     setRunNumber((current) => current + 1)
@@ -471,6 +532,8 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
               onRoll={handleRoll}
               canRoll={Boolean(pendingTurn) && message.kind === 'roll-trigger' && index === messages.length - 1}
               busy={busy}
+              state={state}
+              onOpenDiscoverable={setActiveDiscoverable}
             />
           ))}
           {busy && !loading && (
@@ -483,6 +546,43 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
           <div ref={endRef} />
         </div>
       </section>
+
+      {activeDiscoverable && (
+        <div
+          className="weed-goblins-game__discoverable-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setActiveDiscoverable(null)
+          }}
+        >
+          <section
+            className="weed-goblins-game__discoverable-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="weed-goblins-discoverable-title"
+          >
+            <button
+              type="button"
+              className="weed-goblins-game__discoverable-close"
+              onClick={() => setActiveDiscoverable(null)}
+              aria-label="Close information"
+            >
+              ×
+            </button>
+            <h2 id="weed-goblins-discoverable-title">{activeDiscoverable.title}</h2>
+            <p>{activeDiscoverable.body}</p>
+            {activeDiscoverable.action && discoverableActionAvailable(activeDiscoverable.action) && (
+              <button
+                type="button"
+                className="weed-goblins-game__discoverable-action"
+                onClick={() => handleDiscoverableAction(activeDiscoverable.action)}
+              >
+                {activeDiscoverable.action.label}
+              </button>
+            )}
+          </section>
+        </div>
+      )}
 
       {!loading && !fatalError && (
         <footer className="weed-goblins-game__controls">
