@@ -2,415 +2,415 @@ TAP version 13
 # Subtest: Chapter 2 worker keeps deterministic mechanics authoritative in the system prompt
 ok 1 - Chapter 2 worker keeps deterministic mechanics authoritative in the system prompt
   ---
-  duration_ms: 1.381045
+  duration_ms: 1.520676
   type: 'test'
   ...
 # Subtest: Chapter 2 narration rejects unauthorized requests
 ok 2 - Chapter 2 narration rejects unauthorized requests
   ---
-  duration_ms: 52.732038
+  duration_ms: 77.642593
   type: 'test'
   ...
 # Subtest: Chapter 2 narration rejects unsupported moments and non-Chapter-2 bodies
 ok 3 - Chapter 2 narration rejects unsupported moments and non-Chapter-2 bodies
   ---
-  duration_ms: 6.768029
+  duration_ms: 5.714507
   type: 'test'
   ...
 # Subtest: Chapter 2 worker sends only normalized game context and uses the dedicated Hollow Market prompt
 ok 4 - Chapter 2 worker sends only normalized game context and uses the dedicated Hollow Market prompt
   ---
-  duration_ms: 4.701154
+  duration_ms: 3.456851
   type: 'test'
   ...
 # Subtest: Chapter 2 free-text moments continue to use the existing per-source rate limiter
 ok 5 - Chapter 2 free-text moments continue to use the existing per-source rate limiter
   ---
-  duration_ms: 3.756398
+  duration_ms: 5.339726
   type: 'test'
   ...
 # Subtest: rejects missing or wrong authorization before any forwarding
 ok 6 - rejects missing or wrong authorization before any forwarding
   ---
-  duration_ms: 50.284032
+  duration_ms: 48.101749
   type: 'test'
   ...
 # Subtest: forwards only an authorized valid natural-one request to Anthropic
 ok 7 - forwards only an authorized valid natural-one request to Anthropic
   ---
-  duration_ms: 5.516267
+  duration_ms: 7.763213
   type: 'test'
   ...
 # Subtest: accepts ordinary-failure with outcome failure and forwards the paired context
 ok 8 - accepts ordinary-failure with outcome failure and forwards the paired context
   ---
-  duration_ms: 4.078057
+  duration_ms: 5.1388
   type: 'test'
   ...
 # Subtest: accepts a pre-roll player-action setup and preserves untrusted action context as data
 ok 9 - accepts a pre-roll player-action setup and preserves untrusted action context as data
   ---
-  duration_ms: 9.508065
+  duration_ms: 8.849236
   type: 'test'
   ...
 # Subtest: uses a salted SHA-256 source key without retaining the raw IP
 ok 10 - uses a salted SHA-256 source key without retaining the raw IP
   ---
-  duration_ms: 7.481219
+  duration_ms: 3.417107
   type: 'test'
   ...
 # Subtest: limits the two free-text moments to 30 combined calls per hour per source
 ok 11 - limits the two free-text moments to 30 combined calls per hour per source
   ---
-  duration_ms: 78.234698
+  duration_ms: 82.790492
   type: 'test'
   ...
 # Subtest: starts a fresh free-text allowance after the one-hour window
 ok 12 - starts a fresh free-text allowance after the one-hour window
   ---
-  duration_ms: 41.88432
+  duration_ms: 65.656698
   type: 'test'
   ...
 # Subtest: does not apply the free-text limiter to any other narration moment
 ok 13 - does not apply the free-text limiter to any other narration moment
   ---
-  duration_ms: 1.141168
+  duration_ms: 1.918621
   type: 'test'
   ...
 # Subtest: enforces supported moment and outcome pairings before Anthropic forwarding
 ok 14 - enforces supported moment and outcome pairings before Anthropic forwarding
   ---
-  duration_ms: 2.354232
+  duration_ms: 2.776177
   type: 'test'
   ...
 # Subtest: system prompt defines Eliza as a real GM with an engine boundary
 ok 15 - system prompt defines Eliza as a real GM with an engine boundary
   ---
-  duration_ms: 0.644589
+  duration_ms: 0.80112
   type: 'test'
   ...
 # Subtest: system prompt locks the 7.25 weirdness rule without sacrificing clarity
 ok 16 - system prompt locks the 7.25 weirdness rule without sacrificing clarity
   ---
-  duration_ms: 0.21482
+  duration_ms: 0.219732
   type: 'test'
   ...
 # Subtest: system prompt defines distinct goblin performance rules
 ok 17 - system prompt defines distinct goblin performance rules
   ---
-  duration_ms: 0.115712
+  duration_ms: 0.131025
   type: 'test'
   ...
 # Subtest: system prompt keeps direct second-person Eliza voice
 ok 18 - system prompt keeps direct second-person Eliza voice
   ---
-  duration_ms: 0.091756
+  duration_ms: 0.105498
   type: 'test'
   ...
 # Subtest: system prompt keeps safety privacy and outcome fidelity
 ok 19 - system prompt keeps safety privacy and outcome fidelity
   ---
-  duration_ms: 0.10769
+  duration_ms: 0.110016
   type: 'test'
   ...
 # Subtest: system prompt keeps exact opening and scene contracts
 ok 20 - system prompt keeps exact opening and scene contracts
   ---
-  duration_ms: 0.088141
+  duration_ms: 0.162434
   type: 'test'
   ...
 # Subtest: system prompt makes continuity and Goblin King climax mandatory
 ok 21 - system prompt makes continuity and Goblin King climax mandatory
   ---
-  duration_ms: 0.082062
+  duration_ms: 0.118592
   type: 'test'
   ...
 # Subtest: accepts premise-statement with premise
 ok 22 - accepts premise-statement with premise
   ---
-  duration_ms: 55.903386
+  duration_ms: 83.337339
   type: 'test'
   ...
 # Subtest: accepts action-success with success
 ok 23 - accepts action-success with success
   ---
-  duration_ms: 3.304225
+  duration_ms: 2.995415
   type: 'test'
   ...
 # Subtest: accepts scene-intro with intro
 ok 24 - accepts scene-intro with intro
   ---
-  duration_ms: 3.337145
+  duration_ms: 3.41893
   type: 'test'
   ...
 # Subtest: accepts midpoint-outcome with midpoint
 ok 25 - accepts midpoint-outcome with midpoint
   ---
-  duration_ms: 2.594129
+  duration_ms: 4.072754
   type: 'test'
   ...
 # Subtest: accepts goblin-king-taunt with taunt
 ok 26 - accepts goblin-king-taunt with taunt
   ---
-  duration_ms: 4.733853
+  duration_ms: 4.602346
   type: 'test'
   ...
 # Subtest: accepts player-action-attempt with attempt
 ok 27 - accepts player-action-attempt with attempt
   ---
-  duration_ms: 5.756574
+  duration_ms: 5.820887
   type: 'test'
   ...
 # Subtest: accepts player-action-response with response
 ok 28 - accepts player-action-response with response
   ---
-  duration_ms: 2.289296
+  duration_ms: 3.110032
   type: 'test'
   ...
 # Subtest: accepts run-ending with recovery
 ok 29 - accepts run-ending with recovery
   ---
-  duration_ms: 1.955419
+  duration_ms: 3.865216
   type: 'test'
   ...
 # Subtest: accepts run-ending with bargain
 ok 30 - accepts run-ending with bargain
   ---
-  duration_ms: 2.266902
+  duration_ms: 4.106637
   type: 'test'
   ...
 # Subtest: accepts run-ending with escape
 ok 31 - accepts run-ending with escape
   ---
-  duration_ms: 2.871051
+  duration_ms: 2.233942
   type: 'test'
   ...
 # Subtest: rejects mismatched new pairs before Anthropic
 ok 32 - rejects mismatched new pairs before Anthropic
   ---
-  duration_ms: 13.256391
+  duration_ms: 12.51115
   type: 'test'
   ...
 # Subtest: exports the exact story-beat outcome sets
 ok 33 - exports the exact story-beat outcome sets
   ---
-  duration_ms: 1.187437
+  duration_ms: 1.023686
   type: 'test'
   ...
 # Subtest: system prompt defines one continuous one-shot contract for every moment
 ok 34 - system prompt defines one continuous one-shot contract for every moment
   ---
-  duration_ms: 0.662826
+  duration_ms: 0.303208
   type: 'test'
   ...
 # Subtest: accepts a compliant first-attempt AI complication
 ok 35 - accepts a compliant first-attempt AI complication
   ---
-  duration_ms: 38.534372
+  duration_ms: 39.172359
   type: 'test'
   ...
 # Subtest: retries once with a corrective note after validation catches banned patterns
 ok 36 - retries once with a corrective note after validation catches banned patterns
   ---
-  duration_ms: 4.796967
+  duration_ms: 4.808592
   type: 'test'
   ...
 # Subtest: falls back to the existing static line when both AI drafts fail
 ok 37 - falls back to the existing static line when both AI drafts fail
   ---
-  duration_ms: 1.802371
+  duration_ms: 1.782106
   type: 'test'
   ...
 # Subtest: blocks player-specific real names but permits the supplied fictionalized name
 ok 38 - blocks player-specific real names but permits the supplied fictionalized name
   ---
-  duration_ms: 1.271041
+  duration_ms: 1.258256
   type: 'test'
   ...
 # Subtest: accepts a valid ordinary-failure response through the retry pipeline
 ok 39 - accepts a valid ordinary-failure response through the retry pipeline
   ---
-  duration_ms: 1.1225
+  duration_ms: 1.106461
   type: 'test'
   ...
 # Subtest: ordinary-failure validation permits failure language but rejects success or a different ending
 ok 40 - ordinary-failure validation permits failure language but rejects success or a different ending
   ---
-  duration_ms: 0.781873
+  duration_ms: 0.754312
   type: 'test'
   ...
 # Subtest: ordinary-failure retries once and uses its static failure line when both drafts change the outcome
 ok 41 - ordinary-failure retries once and uses its static failure line when both drafts change the outcome
   ---
-  duration_ms: 1.457308
+  duration_ms: 1.651441
   type: 'test'
   ...
 # Subtest: highlands opening rejects thematic drift and retries with the canonical welcome and narrator identity
 ok 42 - highlands opening rejects thematic drift and retries with the canonical welcome and narrator identity
   ---
-  duration_ms: 5.218524
+  duration_ms: 5.080431
   type: 'test'
   ...
 # Subtest: highlands opening rejects foundation-compliant narrator self-commentary
 ok 43 - highlands opening rejects foundation-compliant narrator self-commentary
   ---
-  duration_ms: 0.635686
+  duration_ms: 0.675955
   type: 'test'
   ...
 # Subtest: highlands opening accepts the natural comma narrator form with concrete scene-setting
 ok 44 - highlands opening accepts the natural comma narrator form with concrete scene-setting
   ---
-  duration_ms: 0.745249
+  duration_ms: 0.741838
   type: 'test'
   ...
 # Subtest: natural comma narrator form is not rejected as a foundation or identity error
 ok 45 - natural comma narrator form is not rejected as a foundation or identity error
   ---
-  duration_ms: 0.338764
+  duration_ms: 0.307305
   type: 'test'
   ...
 # Subtest: canonical Chapter 1 content registry locks NPCs, puzzles, rewards, and branch values
 ok 46 - canonical Chapter 1 content registry locks NPCs, puzzles, rewards, and branch values
   ---
-  duration_ms: 2.125743
+  duration_ms: 2.216098
   type: 'test'
   ...
 # Subtest: Cloudberry gives the explicit keep-Nib-safe versus use-Nib-as-bait branch
 ok 47 - Cloudberry gives the explicit keep-Nib-safe versus use-Nib-as-bait branch
   ---
-  duration_ms: 3.021455
+  duration_ms: 6.872946
   type: 'test'
   ...
 # Subtest: Highland Camp contains the tribute branch and Old Tatter identifies the black-root seal
 ok 48 - Highland Camp contains the tribute branch and Old Tatter identifies the black-root seal
   ---
-  duration_ms: 1.095359
+  duration_ms: 1.309141
   type: 'test'
   ...
 # Subtest: picture ledger expose/protect choices preserve the player branch regardless of roll outcome
 ok 49 - picture ledger expose/protect choices preserve the player branch regardless of roll outcome
   ---
-  duration_ms: 1.805836
+  duration_ms: 3.169523
   type: 'test'
   ...
 # Subtest: the highland charm is a real reward that can open the carved-face latch without a roll
 ok 50 - the highland charm is a real reward that can open the carved-face latch without a roll
   ---
-  duration_ms: 2.086724
+  duration_ms: 1.585188
   type: 'test'
   ...
 # Subtest: new gameplay scenes keep custom text and 4 to 5 visible replies
 ok 51 - new gameplay scenes keep custom text and 4 to 5 visible replies
   ---
-  duration_ms: 10.932945
+  duration_ms: 12.68696
   type: 'test'
   ...
 # Subtest: Goblin King choices make spare versus humiliate explicit without changing the boss DC system
 ok 52 - Goblin King choices make spare versus humiliate explicit without changing the boss DC system
   ---
-  duration_ms: 0.702685
+  duration_ms: 0.689852
   type: 'test'
   ...
 # Subtest: completed Chapter 1 summary carries rewards and branch state while exact ending text stays locked
 ok 53 - completed Chapter 1 summary carries rewards and branch state while exact ending text stays locked
   ---
-  duration_ms: 1.665598
+  duration_ms: 1.953236
   type: 'test'
   ...
 # Subtest: narration context knows Highland Camp and the carved-face latch
 ok 54 - narration context knows Highland Camp and the carved-face latch
   ---
-  duration_ms: 0.911346
+  duration_ms: 1.000413
   type: 'test'
   ...
 # Subtest: Chapter 2 foundation matches the canonical Hollow Market identity
 ok 55 - Chapter 2 foundation matches the canonical Hollow Market identity
   ---
-  duration_ms: 0.86034
+  duration_ms: 1.42066
   type: 'test'
   ...
 # Subtest: Chapter 2 locks the four canonical market locations
 ok 56 - Chapter 2 locks the four canonical market locations
   ---
-  duration_ms: 0.718829
+  duration_ms: 1.03604
   type: 'test'
   ...
 # Subtest: Chapter 2 locks its canonical NPCs and Root Collector threat
 ok 57 - Chapter 2 locks its canonical NPCs and Root Collector threat
   ---
-  duration_ms: 0.158245
+  duration_ms: 0.274384
   type: 'test'
   ...
 # Subtest: Chapter 2 locks its two canonical puzzles
 ok 58 - Chapter 2 locks its two canonical puzzles
   ---
-  duration_ms: 1.005957
+  duration_ms: 1.649307
   type: 'test'
   ...
 # Subtest: Chapter 2 preserves the canonical market-state branches and rewards
 ok 59 - Chapter 2 preserves the canonical market-state branches and rewards
   ---
-  duration_ms: 0.365353
+  duration_ms: 0.490699
   type: 'test'
   ...
 # Subtest: Chapter 2 core beats stay investigation and commerce focused
 ok 60 - Chapter 2 core beats stay investigation and commerce focused
   ---
-  duration_ms: 0.134871
+  duration_ms: 0.225923
   type: 'test'
   ...
 # Subtest: Chapter 2 automatic guidance teaches danger tiers, typing, and explicit D20 rolls
 ok 61 - Chapter 2 automatic guidance teaches danger tiers, typing, and explicit D20 rolls
   ---
-  duration_ms: 2.058933
+  duration_ms: 3.063986
   type: 'test'
   ...
 # Subtest: third Chapter 2 Help gives the exact lantern solution without executing it
 ok 62 - third Chapter 2 Help gives the exact lantern solution without executing it
   ---
-  duration_ms: 0.531721
+  duration_ms: 1.763372
   type: 'test'
   ...
 # Subtest: Help context resets when the Hollow Market obstacle changes
 ok 63 - Help context resets when the Hollow Market obstacle changes
   ---
-  duration_ms: 2.98428
+  duration_ms: 1.047211
   type: 'test'
   ...
 # Subtest: four Chapter 1 runs do not expose Chapter 2 early
 ok 64 - four Chapter 1 runs do not expose Chapter 2 early
   ---
-  duration_ms: 3.303104
+  duration_ms: 5.073988
   type: 'test'
   ...
 # Subtest: five completed Chapter 1 runs open Hollow Market Session Zero instead of replaying the Highlands premise
 ok 65 - five completed Chapter 1 runs open Hollow Market Session Zero instead of replaying the Highlands premise
   ---
-  duration_ms: 1.5997
+  duration_ms: 1.197051
   type: 'test'
   ...
 # Subtest: completing Session Zero converts directly into the playable Lantern Mouth state
 ok 66 - completing Session Zero converts directly into the playable Lantern Mouth state
   ---
-  duration_ms: 3.221082
+  duration_ms: 3.794373
   type: 'test'
   ...
 # Subtest: Session Zero to Chapter 2 transition produces Hollow Market opening narration
 ok 67 - Session Zero to Chapter 2 transition produces Hollow Market opening narration
   ---
-  duration_ms: 1.85506
+  duration_ms: 2.392919
   type: 'test'
   ...
 # Subtest: Chapter 2 built-in checks retain explicit setup then Roll D20 before mechanics resolve
 ok 68 - Chapter 2 built-in checks retain explicit setup then Roll D20 before mechanics resolve
   ---
-  duration_ms: 5.827219
+  duration_ms: 3.23689
   type: 'test'
   ...
 # Subtest: unexpected Chapter 2 free text is deterministically adjudicated without letting narration own mechanics
 not ok 69 - unexpected Chapter 2 free text is deterministically adjudicated without letting narration own mechanics
   ---
-  duration_ms: 5.429858
+  duration_ms: 2.712547
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChapterTwoIntegration.test.js:123:1'
   failureType: 'testCodeFailure'
@@ -432,121 +432,121 @@ not ok 69 - unexpected Chapter 2 free text is deterministically adjudicated with
 # Subtest: Chapter 2 narration never transmits raw typed gameplay text to the narration service
 ok 70 - Chapter 2 narration never transmits raw typed gameplay text to the narration service
   ---
-  duration_ms: 36.395785
+  duration_ms: 47.773901
   type: 'test'
   ...
 # Subtest: Chapter 2 narration validation rejects privacy/safety and output-contract violations
 ok 71 - Chapter 2 narration validation rejects privacy/safety and output-contract violations
   ---
-  duration_ms: 0.654394
+  duration_ms: 0.901808
   type: 'test'
   ...
 # Subtest: Chapter 2 target Session Zero round-trips without collapsing back into Chapter 1
 ok 72 - Chapter 2 target Session Zero round-trips without collapsing back into Chapter 1
   ---
-  duration_ms: 8.646709
+  duration_ms: 7.738076
   type: 'test'
   ...
 # Subtest: pending Chapter 2 D20 turn round-trips exact deterministic mechanics and Help state
 ok 73 - pending Chapter 2 D20 turn round-trips exact deterministic mechanics and Help state
   ---
-  duration_ms: 6.041588
+  duration_ms: 6.753943
   type: 'test'
   ...
 # Subtest: completed Chapter 2 campaign state persists branches, rewards, Rootcoin and wound without duplicate inflation
 ok 74 - completed Chapter 2 campaign state persists branches, rewards, Rootcoin and wound without duplicate inflation
   ---
-  duration_ms: 4.398814
+  duration_ms: 4.714545
   type: 'test'
   ...
 # Subtest: later Chapter 1 saves preserve the existing Chapter 2 campaign block
 ok 75 - later Chapter 1 saves preserve the existing Chapter 2 campaign block
   ---
-  duration_ms: 1.659809
+  duration_ms: 1.176091
   type: 'test'
   ...
 # Subtest: local context exposes only safe enhanced Chapter 2 history to the next run
 ok 76 - local context exposes only safe enhanced Chapter 2 history to the next run
   ---
-  duration_ms: 1.981068
+  duration_ms: 1.61292
   type: 'test'
   ...
 # Subtest: Chapter 2 maps danger tiers onto the locked 9/12/15/16 DC ladder
 ok 77 - Chapter 2 maps danger tiers onto the locked 9/12/15/16 DC ladder
   ---
-  duration_ms: 1.519561
+  duration_ms: 2.315425
   type: 'test'
   ...
 # Subtest: approved product categories become fictional stall and counterfeit details only
 ok 78 - approved product categories become fictional stall and counterfeit details only
   ---
-  duration_ms: 0.580383
+  duration_ms: 1.690305
   type: 'test'
   ...
 # Subtest: Hollow Market opens with four choices and the lantern puzzle does not roll
 ok 79 - Hollow Market opens with four choices and the lantern puzzle does not roll
   ---
-  duration_ms: 2.325089
+  duration_ms: 1.593183
   type: 'test'
   ...
 # Subtest: entry still offers four contextual choices when no Rootcoin remains
 ok 80 - entry still offers four contextual choices when no Rootcoin remains
   ---
-  duration_ms: 0.453945
+  duration_ms: 0.557344
   type: 'test'
   ...
 # Subtest: tribute investigation requires a merchant-side clue and the living receipt
 ok 81 - tribute investigation requires a merchant-side clue and the living receipt
   ---
-  duration_ms: 1.880868
+  duration_ms: 1.480812
   type: 'test'
   ...
 # Subtest: natural 1 costs exactly two Trouble and remains nonfatal
 ok 82 - natural 1 costs exactly two Trouble and remains nonfatal
   ---
-  duration_ms: 0.315089
+  duration_ms: 0.481171
   type: 'test'
   ...
 # Subtest: Mana action rolls with advantage and spends exactly one Mana
 ok 83 - Mana action rolls with advantage and spends exactly one Mana
   ---
-  duration_ms: 0.760321
+  duration_ms: 1.017745
   type: 'test'
   ...
 # Subtest: ordinary Wither failure is failure-forward, Downed, and does not kill or end the run
 ok 84 - ordinary Wither failure is failure-forward, Downed, and does not kill or end the run
   ---
-  duration_ms: 0.433995
+  duration_ms: 0.633055
   type: 'test'
   ...
 # Subtest: ledger branch ledger:keep-operational produces its canonical persistent market state
 ok 85 - ledger branch ledger:keep-operational produces its canonical persistent market state
   ---
-  duration_ms: 1.025385
+  duration_ms: 1.63984
   type: 'test'
   ...
 # Subtest: ledger branch ledger:expose-tithe produces its canonical persistent market state
 ok 86 - ledger branch ledger:expose-tithe produces its canonical persistent market state
   ---
-  duration_ms: 0.700272
+  duration_ms: 1.179578
   type: 'test'
   ...
 # Subtest: ledger branch ledger:burn-flood produces its canonical persistent market state
 ok 87 - ledger branch ledger:burn-flood produces its canonical persistent market state
   ---
-  duration_ms: 0.450169
+  duration_ms: 0.737311
   type: 'test'
   ...
 # Subtest: ledger branch ledger:take-route produces its canonical persistent market state
 ok 88 - ledger branch ledger:take-route produces its canonical persistent market state
   ---
-  duration_ms: 0.393065
+  duration_ms: 1.738785
   type: 'test'
   ...
 # Subtest: opens with scene, premise, and visible stakes before exposing background choices
 not ok 89 - opens with scene, premise, and visible stakes before exposing background choices
   ---
-  duration_ms: 5.475126
+  duration_ms: 5.672719
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:39:1'
   failureType: 'testCodeFailure'
@@ -592,7 +592,7 @@ not ok 89 - opens with scene, premise, and visible stakes before exposing backgr
 # Subtest: adds a scene-transition beat with visible next-choice stakes after an outcome
 not ok 90 - adds a scene-transition beat with visible next-choice stakes after an outcome
   ---
-  duration_ms: 0.563488
+  duration_ms: 0.663182
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:58:1'
   failureType: 'testCodeFailure'
@@ -608,7 +608,7 @@ not ok 90 - adds a scene-transition beat with visible next-choice stakes after a
 # Subtest: free-text submit stages outgoing, setup, and roll trigger without advancing the engine
 not ok 91 - free-text submit stages outgoing, setup, and roll trigger without advancing the engine
   ---
-  duration_ms: 0.742986
+  duration_ms: 0.54485
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:96:1'
   failureType: 'testCodeFailure'
@@ -625,7 +625,7 @@ not ok 91 - free-text submit stages outgoing, setup, and roll trigger without ad
 # Subtest: roll tap resolves mechanics before outcome narration and produces the five bubble sequence
 not ok 92 - roll tap resolves mechanics before outcome narration and produces the five bubble sequence
   ---
-  duration_ms: 0.501156
+  duration_ms: 0.51802
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:122:1'
   failureType: 'testCodeFailure'
@@ -642,7 +642,7 @@ not ok 92 - roll tap resolves mechanics before outcome narration and produces th
 # Subtest: free-text scenes keep every engine action available as a real game control
 not ok 93 - free-text scenes keep every engine action available as a real game control
   ---
-  duration_ms: 0.475648
+  duration_ms: 0.585406
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:169:1'
   failureType: 'testCodeFailure'
@@ -659,7 +659,7 @@ not ok 93 - free-text scenes keep every engine action available as a real game c
 # Subtest: a built-in action in a free-text scene resolves and advances the adventure
 not ok 94 - a built-in action in a free-text scene resolves and advances the adventure
   ---
-  duration_ms: 0.495107
+  duration_ms: 0.52868
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:177:1'
   failureType: 'testCodeFailure'
@@ -676,7 +676,7 @@ not ok 94 - a built-in action in a free-text scene resolves and advances the adv
 # Subtest: simple narrative beat stays in the same scene and consumes no roll
 not ok 95 - simple narrative beat stays in the same scene and consumes no roll
   ---
-  duration_ms: 0.373736
+  duration_ms: 0.436498
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:194:1'
   failureType: 'testCodeFailure'
@@ -693,7 +693,7 @@ not ok 95 - simple narrative beat stays in the same scene and consumes no roll
 # Subtest: non-check midpoint action proceeds without a roll step and still enters the Goblin King scene
 not ok 96 - non-check midpoint action proceeds without a roll step and still enters the Goblin King scene
   ---
-  duration_ms: 0.356501
+  duration_ms: 0.408244
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:215:1'
   failureType: 'testCodeFailure'
@@ -710,7 +710,7 @@ not ok 96 - non-check midpoint action proceeds without a roll step and still ent
 # Subtest: completed boss free-text check shows one final authoritative outcome bubble after the die
 not ok 97 - completed boss free-text check shows one final authoritative outcome bubble after the die
   ---
-  duration_ms: 1.032686
+  duration_ms: 0.967702
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:246:1'
   failureType: 'testCodeFailure'
@@ -727,7 +727,7 @@ not ok 97 - completed boss free-text check shows one final authoritative outcome
 # Subtest: fixed route checks retain their existing attached die behavior
 not ok 98 - fixed route checks retain their existing attached die behavior
   ---
-  duration_ms: 1.937673
+  duration_ms: 2.506622
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:282:1'
   failureType: 'testCodeFailure'
@@ -743,7 +743,7 @@ not ok 98 - fixed route checks retain their existing attached die behavior
 # Subtest: passes the original ordinary-failure event into narration generation
 not ok 99 - passes the original ordinary-failure event into narration generation
   ---
-  duration_ms: 0.478011
+  duration_ms: 0.519823
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsChatController.test.js:308:1'
   failureType: 'testCodeFailure'
@@ -759,73 +759,73 @@ not ok 99 - passes the original ordinary-failure event into narration generation
 # Subtest: Windcut Trail and Rattlebridge expose their canonical clues
 ok 100 - Windcut Trail and Rattlebridge expose their canonical clues
   ---
-  duration_ms: 3.956286
+  duration_ms: 4.158314
   type: 'test'
   ...
 # Subtest: Cloudberry Shelf exposes Nib, tripwire, highland charm, and runes
 ok 101 - Cloudberry Shelf exposes Nib, tripwire, highland charm, and runes
   ---
-  duration_ms: 1.227225
+  duration_ms: 1.273394
   type: 'test'
   ...
 # Subtest: Highland Camp exposes Grubbin, Old Tatter, the picture ledger, and black-root seal
 ok 102 - Highland Camp exposes Grubbin, Old Tatter, the picture ledger, and black-root seal
   ---
-  duration_ms: 0.835413
+  duration_ms: 0.88129
   type: 'test'
   ...
 # Subtest: Stash Hall threshold exposes the carved-face latch and exact stolen item
 ok 103 - Stash Hall threshold exposes the carved-face latch and exact stolen item
   ---
-  duration_ms: 3.957157
+  duration_ms: 7.053805
   type: 'test'
   ...
 # Subtest: matcher still chooses longest non-overlapping phrases
 ok 104 - matcher still chooses longest non-overlapping phrases
   ---
-  duration_ms: 0.696907
+  duration_ms: 0.695041
   type: 'test'
   ...
 # Subtest: actual gameplay scenes expose no more than five contextual reply choices
 ok 105 - actual gameplay scenes expose no more than five contextual reply choices
   ---
-  duration_ms: 5.387595
+  duration_ms: 6.115929
   type: 'test'
   ...
 # Subtest: route choices mix authoritative engine choices with suggested custom actions
 ok 106 - route choices mix authoritative engine choices with suggested custom actions
   ---
-  duration_ms: 1.304772
+  duration_ms: 1.482626
   type: 'test'
   ...
 # Subtest: custom input is open from the first real gameplay route scene
 ok 107 - custom input is open from the first real gameplay route scene
   ---
-  duration_ms: 0.726601
+  duration_ms: 0.731639
   type: 'test'
   ...
 # Subtest: a suggested Mana route button becomes a real free-text check with advantage
 ok 108 - a suggested Mana route button becomes a real free-text check with advantage
   ---
-  duration_ms: 10.087497
+  duration_ms: 9.702135
   type: 'test'
   ...
 # Subtest: typed physical route action maps to the existing direct crossing mechanics
 ok 109 - typed physical route action maps to the existing direct crossing mechanics
   ---
-  duration_ms: 3.508469
+  duration_ms: 3.529798
   type: 'test'
   ...
 # Subtest: canonical room names in custom actions are treated as in-world terms
 ok 110 - canonical room names in custom actions are treated as in-world terms
   ---
-  duration_ms: 0.686952
+  duration_ms: 0.683519
   type: 'test'
   ...
 # Subtest: uses the locked welcome as the foundation for concrete Highlands scene-setting
 not ok 111 - uses the locked welcome as the foundation for concrete Highlands scene-setting
   ---
-  duration_ms: 2.609011
+  duration_ms: 2.833474
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:63:1'
   failureType: 'testCodeFailure'
@@ -851,7 +851,7 @@ not ok 111 - uses the locked welcome as the foundation for concrete Highlands sc
 # Subtest: background hints are concrete start-of-road narrative moments
 not ok 112 - background hints are concrete start-of-road narrative moments
   ---
-  duration_ms: 0.257984
+  duration_ms: 0.221435
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:68:1'
   failureType: 'testCodeFailure'
@@ -870,7 +870,7 @@ not ok 112 - background hints are concrete start-of-road narrative moments
 # Subtest: plays one fixed-seed recovery run from start to finish
 not ok 113 - plays one fixed-seed recovery run from start to finish
   ---
-  duration_ms: 1.151713
+  duration_ms: 1.157006
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:82:1'
   failureType: 'testCodeFailure'
@@ -898,7 +898,7 @@ not ok 113 - plays one fixed-seed recovery run from start to finish
 # Subtest: plays a full Chapter 1 natural-20 victory with Eliza
 not ok 114 - plays a full Chapter 1 natural-20 victory with Eliza
   ---
-  duration_ms: 1.267145
+  duration_ms: 1.504196
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:105:1'
   failureType: 'testCodeFailure'
@@ -919,7 +919,7 @@ not ok 114 - plays a full Chapter 1 natural-20 victory with Eliza
 # Subtest: emits exactly one Goblin King taunt before boss actions are chosen
 not ok 115 - emits exactly one Goblin King taunt before boss actions are chosen
   ---
-  duration_ms: 0.371383
+  duration_ms: 0.41668
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:122:1'
   failureType: 'testCodeFailure'
@@ -938,7 +938,7 @@ not ok 115 - emits exactly one Goblin King taunt before boss actions are chosen
 # Subtest: reaches the bargain ending after a natural-1 complication
 not ok 116 - reaches the bargain ending after a natural-1 complication
   ---
-  duration_ms: 0.278965
+  duration_ms: 0.475209
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:155:1'
   failureType: 'testCodeFailure'
@@ -959,7 +959,7 @@ not ok 116 - reaches the bargain ending after a natural-1 complication
 # Subtest: spends the full Mana Pool through rolled checks and reaches recovery
 not ok 117 - spends the full Mana Pool through rolled checks and reaches recovery
   ---
-  duration_ms: 0.37612
+  duration_ms: 0.518882
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:169:1'
   failureType: 'testCodeFailure'
@@ -978,7 +978,7 @@ not ok 117 - spends the full Mana Pool through rolled checks and reaches recover
 # Subtest: a Mana-assisted roll can still fail
 not ok 118 - a Mana-assisted roll can still fail
   ---
-  duration_ms: 0.291033
+  duration_ms: 0.305672
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:187:1'
   failureType: 'testCodeFailure'
@@ -997,7 +997,7 @@ not ok 118 - a Mana-assisted roll can still fail
 # Subtest: completes Chapter 1 after a Mana-assisted failure with Eliza
 not ok 119 - completes Chapter 1 after a Mana-assisted failure with Eliza
   ---
-  duration_ms: 2.027677
+  duration_ms: 0.738532
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:207:1'
   failureType: 'testCodeFailure'
@@ -1018,7 +1018,7 @@ not ok 119 - completes Chapter 1 after a Mana-assisted failure with Eliza
 # Subtest: a selected natural 1 always uses the non-fatal complication path
 not ok 120 - a selected natural 1 always uses the non-fatal complication path
   ---
-  duration_ms: 0.686341
+  duration_ms: 2.76712
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:231:1'
   failureType: 'testCodeFailure'
@@ -1037,7 +1037,7 @@ not ok 120 - a selected natural 1 always uses the non-fatal complication path
 # Subtest: ordinary accumulated Trouble can still end the run in defeat
 not ok 121 - ordinary accumulated Trouble can still end the run in defeat
   ---
-  duration_ms: 0.595135
+  duration_ms: 0.52893
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:251:1'
   failureType: 'testCodeFailure'
@@ -1058,7 +1058,7 @@ not ok 121 - ordinary accumulated Trouble can still end the run in defeat
 # Subtest: the fixed adventure exposes all three endings through deterministic runs
 not ok 122 - the fixed adventure exposes all three endings through deterministic runs
   ---
-  duration_ms: 0.447636
+  duration_ms: 0.308698
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:264:1'
   failureType: 'testCodeFailure'
@@ -1079,7 +1079,7 @@ not ok 122 - the fixed adventure exposes all three endings through deterministic
 # Subtest: same seed and choices produce the same run summary
 not ok 123 - same seed and choices produce the same run summary
   ---
-  duration_ms: 0.205015
+  duration_ms: 0.212247
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:283:1'
   failureType: 'testCodeFailure'
@@ -1100,7 +1100,7 @@ not ok 123 - same seed and choices produce the same run summary
 # Subtest: Eliza references the latest prior run without reading storage
 not ok 124 - Eliza references the latest prior run without reading storage
   ---
-  duration_ms: 0.468787
+  duration_ms: 0.439212
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:300:1'
   failureType: 'testCodeFailure'
@@ -1126,7 +1126,7 @@ not ok 124 - Eliza references the latest prior run without reading storage
 # Subtest: reports normal narration tier at 0 prior runs
 not ok 125 - reports normal narration tier at 0 prior runs
   ---
-  duration_ms: 0.201549
+  duration_ms: 0.191679
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:319:3'
   failureType: 'testCodeFailure'
@@ -1147,7 +1147,7 @@ not ok 125 - reports normal narration tier at 0 prior runs
 # Subtest: reports normal narration tier at 4 prior runs
 not ok 126 - reports normal narration tier at 4 prior runs
   ---
-  duration_ms: 0.132958
+  duration_ms: 0.126767
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:319:3'
   failureType: 'testCodeFailure'
@@ -1168,7 +1168,7 @@ not ok 126 - reports normal narration tier at 4 prior runs
 # Subtest: reports experienced-callback-eligible narration tier at 5 prior runs
 not ok 127 - reports experienced-callback-eligible narration tier at 5 prior runs
   ---
-  duration_ms: 0.193638
+  duration_ms: 2.075846
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:319:3'
   failureType: 'testCodeFailure'
@@ -1189,7 +1189,7 @@ not ok 127 - reports experienced-callback-eligible narration tier at 5 prior run
 # Subtest: reports experienced-callback-eligible narration tier at 9 prior runs
 not ok 128 - reports experienced-callback-eligible narration tier at 9 prior runs
   ---
-  duration_ms: 0.135251
+  duration_ms: 0.182441
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:319:3'
   failureType: 'testCodeFailure'
@@ -1210,7 +1210,7 @@ not ok 128 - reports experienced-callback-eligible narration tier at 9 prior run
 # Subtest: reports fourth-wall-eligible narration tier at 10 prior runs
 not ok 129 - reports fourth-wall-eligible narration tier at 10 prior runs
   ---
-  duration_ms: 0.135151
+  duration_ms: 0.117731
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsEngine.test.js:319:3'
   failureType: 'testCodeFailure'
@@ -1231,241 +1231,241 @@ not ok 129 - reports fourth-wall-eligible narration tier at 10 prior runs
 # Subtest: built-in route choice stages the check without consuming its roll
 ok 130 - built-in route choice stages the check without consuming its roll
   ---
-  duration_ms: 3.781405
+  duration_ms: 5.122209
   type: 'test'
   ...
 # Subtest: no-roll Session Zero choice still resolves immediately
 ok 131 - no-roll Session Zero choice still resolves immediately
   ---
-  duration_ms: 0.415769
+  duration_ms: 0.418844
   type: 'test'
   ...
 # Subtest: Mana-assisted built-in choice explains advantage without changing its math
 ok 132 - Mana-assisted built-in choice explains advantage without changing its math
   ---
-  duration_ms: 0.586543
+  duration_ms: 0.753351
   type: 'test'
   ...
 # Subtest: free-text check receives the same exact DC and modifier instructions
 ok 133 - free-text check receives the same exact DC and modifier instructions
   ---
-  duration_ms: 5.325442
+  duration_ms: 7.589387
   type: 'test'
   ...
 # Subtest: ordinary physical action silently maps to the existing Strength path
 ok 134 - ordinary physical action silently maps to the existing Strength path
   ---
-  duration_ms: 8.389271
+  duration_ms: 8.632911
   type: 'test'
   ...
 # Subtest: creative magical action silently maps to the existing Mana path
 ok 135 - creative magical action silently maps to the existing Mana path
   ---
-  duration_ms: 3.385717
+  duration_ms: 3.594038
   type: 'test'
   ...
 # Subtest: creative clever action can silently map to Mana without naming magic
 ok 136 - creative clever action can silently map to Mana without naming magic
   ---
-  duration_ms: 0.521536
+  duration_ms: 0.580456
   type: 'test'
   ...
 # Subtest: simple table gesture becomes a non-check narrative beat
 ok 137 - simple table gesture becomes a non-check narrative beat
   ---
-  duration_ms: 0.537489
+  duration_ms: 0.580417
   type: 'test'
   ...
 # Subtest: vague action is interpreted and proceeds instead of asking the player to rephrase
 ok 138 - vague action is interpreted and proceeds instead of asking the player to rephrase
   ---
-  duration_ms: 1.82161
+  duration_ms: 1.750927
   type: 'test'
   ...
 # Subtest: setting-breaking weapon is not blocked and becomes a playable in-world physical attempt
 ok 139 - setting-breaking weapon is not blocked and becomes a playable in-world physical attempt
   ---
-  duration_ms: 0.61122
+  duration_ms: 0.58756
   type: 'test'
   ...
 # Subtest: out-of-world prompt manipulation is ignored but the playable turn continues
 ok 140 - out-of-world prompt manipulation is ignored but the playable turn continues
   ---
-  duration_ms: 0.347147
+  duration_ms: 0.388868
   type: 'test'
   ...
 # Subtest: player-authored automatic outcome claim is ignored and still resolves through the engine
 ok 141 - player-authored automatic outcome claim is ignored and still resolves through the engine
   ---
-  duration_ms: 0.259687
+  duration_ms: 0.257452
   type: 'test'
   ...
 # Subtest: unavailable magical resource falls back silently to a workable existing path
 ok 142 - unavailable magical resource falls back silently to a workable existing path
   ---
-  duration_ms: 0.657668
+  duration_ms: 0.715218
   type: 'test'
   ...
 # Subtest: pre-roll setup accepts exact player wording without revealing a result
 ok 143 - pre-roll setup accepts exact player wording without revealing a result
   ---
-  duration_ms: 11.488015
+  duration_ms: 10.385692
   type: 'test'
   ...
 # Subtest: pre-roll setup accepts a fictional name substituted for the generic goblin placeholder
 ok 144 - pre-roll setup accepts a fictional name substituted for the generic goblin placeholder
   ---
-  duration_ms: 4.503841
+  duration_ms: 4.565146
   type: 'test'
   ...
 # Subtest: pre-roll setup rejects a resolved number before the player rolls
 ok 145 - pre-roll setup rejects a resolved number before the player rolls
   ---
-  duration_ms: 0.756575
+  duration_ms: 0.85471
   type: 'test'
   ...
 # Subtest: pre-roll setup rejects exposure of the hidden stat mapping
 ok 146 - pre-roll setup rejects exposure of the hidden stat mapping
   ---
-  duration_ms: 0.607564
+  duration_ms: 0.605964
   type: 'test'
   ...
 # Subtest: pre-roll setup rejects the confirmed live defense-check leak
 ok 147 - pre-roll setup rejects the confirmed live defense-check leak
   ---
-  duration_ms: 0.377922
+  duration_ms: 0.409176
   type: 'test'
   ...
 # Subtest: pre-roll setup rejects a bare stat name even without the word check
 ok 148 - pre-roll setup rejects a bare stat name even without the word check
   ---
-  duration_ms: 0.405313
+  duration_ms: 0.45395
   type: 'test'
   ...
 # Subtest: free-text outcome must preserve significant player wording while respecting engine success
 ok 149 - free-text outcome must preserve significant player wording while respecting engine success
   ---
-  duration_ms: 0.547995
+  duration_ms: 0.582029
   type: 'test'
   ...
 # Subtest: generic-only player wording does not have to be echoed in a narrative response
 ok 150 - generic-only player wording does not have to be echoed in a narrative response
   ---
-  duration_ms: 1.219134
+  duration_ms: 1.284104
   type: 'test'
   ...
 # Subtest: all non-choice narration moments allow up to 300 characters
 ok 151 - all non-choice narration moments allow up to 300 characters
   ---
-  duration_ms: 0.933559
+  duration_ms: 0.986947
   type: 'test'
   ...
 # Subtest: player text cannot force a success into a failure outcome
 ok 152 - player text cannot force a success into a failure outcome
   ---
-  duration_ms: 0.654063
+  duration_ms: 0.698317
   type: 'test'
   ...
 # Subtest: real-world proper name copied from player input is rejected from generated narration
 ok 153 - real-world proper name copied from player input is rejected from generated narration
   ---
-  duration_ms: 0.454175
+  duration_ms: 0.52382
   type: 'test'
   ...
 # Subtest: automatic beginner guidance is enabled only for Chapters 1 and 2
 ok 154 - automatic beginner guidance is enabled only for Chapters 1 and 2
   ---
-  duration_ms: 1.124473
+  duration_ms: 1.132741
   type: 'test'
   ...
 # Subtest: current Chapter 1 route guidance teaches replies, custom input, and explicit rolls
 ok 155 - current Chapter 1 route guidance teaches replies, custom input, and explicit rolls
   ---
-  duration_ms: 2.907715
+  duration_ms: 4.114883
   type: 'test'
   ...
 # Subtest: help escalates from nudge to stronger hint to direct third-tap answer
 ok 156 - help escalates from nudge to stronger hint to direct third-tap answer
   ---
-  duration_ms: 1.813528
+  duration_ms: 1.747842
   type: 'test'
   ...
 # Subtest: third Help tells rather than executes the solution
 ok 157 - third Help tells rather than executes the solution
   ---
-  duration_ms: 0.552913
+  duration_ms: 0.485308
   type: 'test'
   ...
 # Subtest: help context changes when the obstacle changes so UI can reset escalation
 ok 158 - help context changes when the obstacle changes so UI can reset escalation
   ---
-  duration_ms: 0.703016
+  duration_ms: 0.668762
   type: 'test'
   ...
 # Subtest: third Help gives a concrete current-stat answer on a route decision
 ok 159 - third Help gives a concrete current-stat answer on a route decision
   ---
-  duration_ms: 1.044404
+  duration_ms: 0.901348
   type: 'test'
   ...
 # Subtest: character summary exposes only current authoritative character and room state
 ok 160 - character summary exposes only current authoritative character and room state
   ---
-  duration_ms: 2.713297
+  duration_ms: 4.260057
   type: 'test'
   ...
 # Subtest: voice transcript appends to editable draft instead of replacing it
 ok 161 - voice transcript appends to editable draft instead of replacing it
   ---
-  duration_ms: 0.217243
+  duration_ms: 0.330978
   type: 'test'
   ...
 # Subtest: voice transcript normalizes spoken whitespace and respects composer limit
 ok 162 - voice transcript normalizes spoken whitespace and respects composer limit
   ---
-  duration_ms: 0.12821
+  duration_ms: 0.198691
   type: 'test'
   ...
 # Subtest: speech recognition capability detection accepts standard and webkit APIs
 ok 163 - speech recognition capability detection accepts standard and webkit APIs
   ---
-  duration_ms: 0.162191
+  duration_ms: 0.304326
   type: 'test'
   ...
 # Subtest: fictional dispensary transform is stable and differentiates names
 ok 164 - fictional dispensary transform is stable and differentiates names
   ---
-  duration_ms: 2.075798
+  duration_ms: 2.743965
   type: 'test'
   ...
 # Subtest: effect and terpene flavor transforms are deterministic and fall back cleanly
 ok 165 - effect and terpene flavor transforms are deterministic and fall back cleanly
   ---
-  duration_ms: 0.704327
+  duration_ms: 0.912498
   type: 'test'
   ...
 # Subtest: caps products, categories, and fictional locations at the locked limits
 ok 166 - caps products, categories, and fictional locations at the locked limits
   ---
-  duration_ms: 2.0907
+  duration_ms: 2.47944
   type: 'test'
   ...
 # Subtest: produces the valid empty snapshot when there are zero local entries
 ok 167 - produces the valid empty snapshot when there are zero local entries
   ---
-  duration_ms: 1.181267
+  duration_ms: 2.003877
   type: 'test'
   ...
 # Subtest: never includes excluded raw-entry fields or raw dispensary names in the sanitized snapshot
 ok 168 - never includes excluded raw-entry fields or raw dispensary names in the sanitized snapshot
   ---
-  duration_ms: 0.504411
+  duration_ms: 0.547377
   type: 'test'
   ...
 # Subtest: effect and terpene flavor use only structured inputs and enter validated narration context
 not ok 169 - effect and terpene flavor use only structured inputs and enter validated narration context
   ---
-  duration_ms: 2.254714
+  duration_ms: 2.355184
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js:231:1'
   failureType: 'testCodeFailure'
@@ -1484,7 +1484,7 @@ not ok 169 - effect and terpene flavor use only structured inputs and enter vali
 # Subtest: raw dispensary name cannot reach engine state or narration request context
 not ok 170 - raw dispensary name cannot reach engine state or narration request context
   ---
-  duration_ms: 0.716215
+  duration_ms: 0.785921
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js:319:1'
   failureType: 'testCodeFailure'
@@ -1503,7 +1503,7 @@ not ok 170 - raw dispensary name cannot reach engine state or narration request 
 # Subtest: reads the actual localStore entries query shape and sanitized prior run key
 not ok 171 - reads the actual localStore entries query shape and sanitized prior run key
   ---
-  duration_ms: 2.377847
+  duration_ms: 2.367375
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.test.js:385:1'
   failureType: 'testCodeFailure'
@@ -1541,13 +1541,13 @@ not ok 171 - reads the actual localStore entries query shape and sanitized prior
 # Subtest: creates a scene-intro hook for the opening Highlands narration
 ok 172 - creates a scene-intro hook for the opening Highlands narration
   ---
-  duration_ms: 2.786971
+  duration_ms: 3.53972
   type: 'test'
   ...
 # Subtest: creates a mandatory premise and visible opening-choice beat before buttons
 not ok 173 - creates a mandatory premise and visible opening-choice beat before buttons
   ---
-  duration_ms: 1.455916
+  duration_ms: 1.899593
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsNarrationHooks.test.js:44:1'
   failureType: 'testCodeFailure'
@@ -1573,7 +1573,7 @@ not ok 173 - creates a mandatory premise and visible opening-choice beat before 
 # Subtest: creates a causal transition with story history, visible stakes, and rising tension
 not ok 174 - creates a causal transition with story history, visible stakes, and rising tension
   ---
-  duration_ms: 0.422218
+  duration_ms: 0.548057
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsNarrationHooks.test.js:57:1'
   failureType: 'testCodeFailure'
@@ -1599,385 +1599,385 @@ not ok 174 - creates a causal transition with story history, visible stakes, and
 # Subtest: supplies concrete background and route anchors for later continuity
 ok 175 - supplies concrete background and route anchors for later continuity
   ---
-  duration_ms: 0.273246
+  duration_ms: 0.359002
   type: 'test'
   ...
 # Subtest: maps background and midpoint choice narration to their dedicated moments
 ok 176 - maps background and midpoint choice narration to their dedicated moments
   ---
-  duration_ms: 0.473124
+  duration_ms: 0.630146
   type: 'test'
   ...
 # Subtest: maps the pre-action Goblin King taunt to its dedicated moment
 ok 177 - maps the pre-action Goblin King taunt to its dedicated moment
   ---
-  duration_ms: 0.302119
+  duration_ms: 0.417233
   type: 'test'
   ...
 # Subtest: maps check and ending events without changing deterministic lines
 ok 178 - maps check and ending events without changing deterministic lines
   ---
-  duration_ms: 0.457691
+  duration_ms: 0.619459
   type: 'test'
   ...
 # Subtest: keeps a midpoint check under midpoint-outcome while natural 1 stays a complication
 ok 179 - keeps a midpoint check under midpoint-outcome while natural 1 stays a complication
   ---
-  duration_ms: 0.394687
+  duration_ms: 0.549389
   type: 'test'
   ...
 # Subtest: validates a compliant premise-statement line
 ok 180 - validates a compliant premise-statement line
   ---
-  duration_ms: 9.396689
+  duration_ms: 11.248254
   type: 'test'
   ...
 # Subtest: validates a compliant action-success line
 ok 181 - validates a compliant action-success line
   ---
-  duration_ms: 3.385126
+  duration_ms: 4.18494
   type: 'test'
   ...
 # Subtest: validates a compliant scene-intro line
 ok 182 - validates a compliant scene-intro line
   ---
-  duration_ms: 0.62557
+  duration_ms: 0.74757
   type: 'test'
   ...
 # Subtest: validates a compliant midpoint-outcome line
 ok 183 - validates a compliant midpoint-outcome line
   ---
-  duration_ms: 0.545862
+  duration_ms: 0.633762
   type: 'test'
   ...
 # Subtest: validates a compliant goblin-king-taunt line
 ok 184 - validates a compliant goblin-king-taunt line
   ---
-  duration_ms: 2.294523
+  duration_ms: 2.441251
   type: 'test'
   ...
 # Subtest: premise statement requires the thief, exact item, theft, and get-it-back objective
 ok 185 - premise statement requires the thief, exact item, theft, and get-it-back objective
   ---
-  duration_ms: 1.212644
+  duration_ms: 1.511556
   type: 'test'
   ...
 # Subtest: premise theft accepts made-off-with and natural theft synonyms
 ok 186 - premise theft accepts made-off-with and natural theft synonyms
   ---
-  duration_ms: 0.547234
+  duration_ms: 0.694788
   type: 'test'
   ...
 # Subtest: exact live made-off-with wording is recognized as theft
 ok 187 - exact live made-off-with wording is recognized as theft
   ---
-  duration_ms: 0.218846
+  duration_ms: 0.264965
   type: 'test'
   ...
 # Subtest: choice presentation requires active first person and stays within 240 characters
 ok 188 - choice presentation requires active first person and stays within 240 characters
   ---
-  duration_ms: 1.477798
+  duration_ms: 1.636401
   type: 'test'
   ...
 # Subtest: accepts all three locked Highlands opening narrator forms
 ok 189 - accepts all three locked Highlands opening narrator forms
   ---
-  duration_ms: 1.764395
+  duration_ms: 1.92941
   type: 'test'
   ...
 # Subtest: uses a 240-character choice ceiling and a 300-character ceiling elsewhere
 ok 190 - uses a 240-character choice ceiling and a 300-character ceiling elsewhere
   ---
-  duration_ms: 0.44403
+  duration_ms: 0.52373
   type: 'test'
   ...
 # Subtest: scene setting accepts one unlisted image and rejects boxed-text detail lists
 ok 191 - scene setting accepts one unlisted image and rejects boxed-text detail lists
   ---
-  duration_ms: 0.276141
+  duration_ms: 0.341655
   type: 'test'
   ...
 # Subtest: scene transition uses one active observation and rejects repeated scene inventory
 ok 192 - scene transition uses one active observation and rejects repeated scene inventory
   ---
-  duration_ms: 0.246326
+  duration_ms: 0.27488
   type: 'test'
   ...
 # Subtest: action success must begin in Eliza's active first-person voice
 ok 193 - action success must begin in Eliza's active first-person voice
   ---
-  duration_ms: 0.888702
+  duration_ms: 0.283223
   type: 'test'
   ...
 # Subtest: continuity anchors reject a generic success and accept a real prior-story callback
 ok 194 - continuity anchors reject a generic success and accept a real prior-story callback
   ---
-  duration_ms: 0.38322
+  duration_ms: 1.339196
   type: 'test'
   ...
 # Subtest: rejects narrator self-reflection outside the opening too
 ok 195 - rejects narrator self-reflection outside the opening too
   ---
-  duration_ms: 0.178976
+  duration_ms: 0.225433
   type: 'test'
   ...
 # Subtest: rejects em dashes and en dashes from narration
 ok 196 - rejects em dashes and en dashes from narration
   ---
-  duration_ms: 3.338646
+  duration_ms: 4.027714
   type: 'test'
   ...
 # Subtest: Goblin King taunt rejects outcome resolution before the confrontation action
 ok 197 - Goblin King taunt rejects outcome resolution before the confrontation action
   ---
-  duration_ms: 1.145704
+  duration_ms: 1.327879
   type: 'test'
   ...
 # Subtest: Goblin King dialogue cannot satisfy the narrator first-person check by itself
 ok 198 - Goblin King dialogue cannot satisfy the narrator first-person check by itself
   ---
-  duration_ms: 0.224574
+  duration_ms: 0.228327
   type: 'test'
   ...
 # Subtest: Goblin King taunt requires attributed villain dialogue
 ok 199 - Goblin King taunt requires attributed villain dialogue
   ---
-  duration_ms: 0.205736
+  duration_ms: 0.213664
   type: 'test'
   ...
 # Subtest: midpoint help may recover forms without implying the recovery ending
 ok 200 - midpoint help may recover forms without implying the recovery ending
   ---
-  duration_ms: 0.206087
+  duration_ms: 0.192721
   type: 'test'
   ...
 # Subtest: validates each exact run ending and rejects a line naming the wrong ending
 ok 201 - validates each exact run ending and rejects a line naming the wrong ending
   ---
-  duration_ms: 0.556147
+  duration_ms: 0.639121
   type: 'test'
   ...
 # Subtest: accepts possession plus a homeward journey as a natural recovery ending
 ok 202 - accepts possession plus a homeward journey as a natural recovery ending
   ---
-  duration_ms: 0.500484
+  duration_ms: 0.484729
   type: 'test'
   ...
 # Subtest: accepts natural escape endings that use empty hands and retained-item language
 ok 203 - accepts natural escape endings that use empty hands and retained-item language
   ---
-  duration_ms: 1.513722
+  duration_ms: 1.701854
   type: 'test'
   ...
 # Subtest: recovery and bargain still reject the broadened escape-shaped language
 ok 204 - recovery and bargain still reject the broadened escape-shaped language
   ---
-  duration_ms: 0.418763
+  duration_ms: 0.477898
   type: 'test'
   ...
 # Subtest: accepts exact live escape endings that leave the item out of reach
 ok 205 - accepts exact live escape endings that leave the item out of reach
   ---
-  duration_ms: 0.439373
+  duration_ms: 0.483437
   type: 'test'
   ...
 # Subtest: recovery and bargain reject exact out-of-reach escape language
 ok 206 - recovery and bargain reject exact out-of-reach escape language
   ---
-  duration_ms: 0.424982
+  duration_ms: 0.458548
   type: 'test'
   ...
 # Subtest: out-of-reach language alone does not turn an ordinary failure into an escape ending
 ok 207 - out-of-reach language alone does not turn an ordinary failure into an escape ending
   ---
-  duration_ms: 0.191785
+  duration_ms: 0.22979
   type: 'test'
   ...
 # Subtest: retained-item language alone does not turn an ordinary failure into an escape ending
 ok 208 - retained-item language alone does not turn an ordinary failure into an escape ending
   ---
-  duration_ms: 0.189232
+  duration_ms: 0.231242
   type: 'test'
   ...
 # Subtest: keeps success and specific endings forbidden outside their matching moments
 ok 209 - keeps success and specific endings forbidden outside their matching moments
   ---
-  duration_ms: 0.403209
+  duration_ms: 0.475785
   type: 'test'
   ...
 # Subtest: rejects unsupported moment and outcome pairings in the validator
 ok 210 - rejects unsupported moment and outcome pairings in the validator
   ---
-  duration_ms: 0.62531
+  duration_ms: 0.680024
   type: 'test'
   ...
 # Subtest: Goblin King taunt mismatch is rejected before the narration request is sent
 ok 211 - Goblin King taunt mismatch is rejected before the narration request is sent
   ---
-  duration_ms: 1.077022
+  duration_ms: 1.219588
   type: 'test'
   ...
 # Subtest: generic story-beat hook retries once with the existing corrective pattern
 ok 212 - generic story-beat hook retries once with the existing corrective pattern
   ---
-  duration_ms: 31.332282
+  duration_ms: 50.972135
   type: 'test'
   ...
 # Subtest: story-beat hook retries a generic success that omits supplied continuity anchors
 ok 213 - story-beat hook retries a generic success that omits supplied continuity anchors
   ---
-  duration_ms: 2.247764
+  duration_ms: 2.284055
   type: 'test'
   ...
 # Subtest: run-ending hook uses the static line after two wrong endings
 ok 214 - run-ending hook uses the static line after two wrong endings
   ---
-  duration_ms: 1.470037
+  duration_ms: 1.504545
   type: 'test'
   ...
 # Subtest: rejects an unapproved Origin before forwarding
 ok 215 - rejects an unapproved Origin before forwarding
   ---
-  duration_ms: 26.668995
+  duration_ms: 43.35891
   type: 'test'
   ...
 # Subtest: accepts only the two locked production origins when Preview wiring is absent
 ok 216 - accepts only the two locked production origins when Preview wiring is absent
   ---
-  duration_ms: 4.737769
+  duration_ms: 4.899328
   type: 'test'
   ...
 # Subtest: Preview-only host binding admits Pages preview subdomains without admitting unrelated origins
 ok 217 - Preview-only host binding admits Pages preview subdomains without admitting unrelated origins
   ---
-  duration_ms: 1.600941
+  duration_ms: 1.538849
   type: 'test'
   ...
 # Subtest: passes a clean rate-limit response and Retry-After header through unchanged
 ok 218 - passes a clean rate-limit response and Retry-After header through unchanged
   ---
-  duration_ms: 1.670715
+  duration_ms: 1.588376
   type: 'test'
   ...
 # Subtest: keeps Worker URL and secret server-side and returns generic connection errors
 ok 219 - keeps Worker URL and secret server-side and returns generic connection errors
   ---
-  duration_ms: 1.463337
+  duration_ms: 1.355241
   type: 'test'
   ...
 # Subtest: active run round-trips engine state, transcript, choices, RNG, and Help locally
 ok 220 - active run round-trips engine state, transcript, choices, RNG, and Help locally
   ---
-  duration_ms: 7.160432
+  duration_ms: 7.068192
   type: 'test'
   ...
 # Subtest: pending explicit D20 turn resumes before the roll and produces the same deterministic result
 ok 221 - pending explicit D20 turn resumes before the roll and produces the same deterministic result
   ---
-  duration_ms: 4.39598
+  duration_ms: 4.566827
   type: 'test'
   ...
 # Subtest: completed or explicitly cleared runs do not remain resumable
 ok 222 - completed or explicitly cleared runs do not remain resumable
   ---
-  duration_ms: 1.049992
+  duration_ms: 1.185395
   type: 'test'
   ...
 # Subtest: corrupt or wrong-version active data is ignored safely
 ok 223 - corrupt or wrong-version active data is ignored safely
   ---
-  duration_ms: 0.240849
+  duration_ms: 0.328134
   type: 'test'
   ...
 # Subtest: completed Chapter 1 runs persist branch/reward campaign memory and deduplicate the same seed
 ok 224 - completed Chapter 1 runs persist branch/reward campaign memory and deduplicate the same seed
   ---
-  duration_ms: 2.789069
+  duration_ms: 3.338985
   type: 'test'
   ...
 # Subtest: empty campaign state has no invented later-chapter mechanics
 ok 225 - empty campaign state has no invented later-chapter mechanics
   ---
-  duration_ms: 0.206006
+  duration_ms: 0.216309
   type: 'test'
   ...
 # Subtest: formalizes Weed Goblins Chapter 1 and Chapter 2 without exposing Chapter 2 early
 ok 226 - formalizes Weed Goblins Chapter 1 and Chapter 2 without exposing Chapter 2 early
   ---
-  duration_ms: 2.141736
+  duration_ms: 2.324358
   type: 'test'
   ...
 # Subtest: adds chapter and quest identity to both canonical adventures
 ok 227 - adds chapter and quest identity to both canonical adventures
   ---
-  duration_ms: 0.338764
+  duration_ms: 0.320712
   type: 'test'
   ...
 # Subtest: saves chapter and quest metadata in the existing Weed Goblins history key
 ok 228 - saves chapter and quest metadata in the existing Weed Goblins history key
   ---
-  duration_ms: 1.817234
+  duration_ms: 1.851918
   type: 'test'
   ...
 # Subtest: five Chapter 1 runs unlock Hollow Market as a genuine next chapter signal
 ok 229 - five Chapter 1 runs unlock Hollow Market as a genuine next chapter signal
   ---
-  duration_ms: 0.709626
+  duration_ms: 1.062753
   type: 'test'
   ...
 # Subtest: once Hollow Market has a completed run it becomes the chapter actually being worked through
 ok 230 - once Hollow Market has a completed run it becomes the chapter actually being worked through
   ---
-  duration_ms: 0.260748
+  duration_ms: 0.395058
   type: 'test'
   ...
 # Subtest: generic progression core keeps newly unlocked unplayed chapter distinct from current chapter
 ok 231 - generic progression core keeps newly unlocked unplayed chapter distinct from current chapter
   ---
-  duration_ms: 0.30296
+  duration_ms: 0.486371
   type: 'test'
   ...
 # Subtest: generic progression core unlocks sequentially without another storage model
 ok 232 - generic progression core unlocks sequentially without another storage model
   ---
-  duration_ms: 0.41026
+  duration_ms: 0.706826
   type: 'test'
   ...
 # Subtest: five materially different Chapter 1 replays complete through the real explicit-choice/D20 path
 ok 233 - five materially different Chapter 1 replays complete through the real explicit-choice/D20 path
   ---
-  duration_ms: 10.758885
+  duration_ms: 15.417029
   type: 'test'
   ...
 # Subtest: the five replay profiles exercise materially different Chapter 1 decisions
 ok 234 - the five replay profiles exercise materially different Chapter 1 decisions
   ---
-  duration_ms: 0.37602
+  duration_ms: 0.474092
   type: 'test'
   ...
 # Subtest: Chapter 1 room registry contains the five canonical locations in order
 ok 235 - Chapter 1 room registry contains the five canonical locations in order
   ---
-  duration_ms: 1.798867
+  duration_ms: 3.604392
   type: 'test'
   ...
 # Subtest: a new run begins at Windcut Trail and only that room is visited
 ok 236 - a new run begins at Windcut Trail and only that room is visited
   ---
-  duration_ms: 0.992256
+  duration_ms: 0.771958
   type: 'test'
   ...
 # Subtest: Rattlebridge is entered only after the explicit crossing roll resolves
 ok 237 - Rattlebridge is entered only after the explicit crossing roll resolves
   ---
-  duration_ms: 4.11361
+  duration_ms: 2.646933
   type: 'test'
   ...
 # Subtest: the expanded Chapter 1 path visits Cloudberry Shelf, Highland Camp, then the Stash Hall
 ok 238 - the expanded Chapter 1 path visits Cloudberry Shelf, Highland Camp, then the Stash Hall
   ---
-  duration_ms: 1.134728
+  duration_ms: 0.816378
   type: 'test'
   ...
 # WEED GOBLINS: SESSION 1 TEXT RUNNER
@@ -2007,7 +2007,7 @@ ok 238 - the expanded Chapter 1 path visits Cloudberry Shelf, Highland Camp, the
 # Subtest: completed run saves only the whitelisted summary fields
 not ok 239 - completed run saves only the whitelisted summary fields
   ---
-  duration_ms: 3.648468
+  duration_ms: 4.985773
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsRunHistory.test.js:90:1'
   failureType: 'testCodeFailure'
@@ -2076,13 +2076,13 @@ not ok 239 - completed run saves only the whitelisted summary fields
 # Subtest: saved history caps at 10 and drops the oldest run
 ok 240 - saved history caps at 10 and drops the oldest run
   ---
-  duration_ms: 0.704358
+  duration_ms: 1.014497
   type: 'test'
   ...
 # Subtest: second local-adapter console run surfaces the first real saved outcome
 not ok 241 - second local-adapter console run surfaces the first real saved outcome
   ---
-  duration_ms: 4.156874
+  duration_ms: 7.450781
   type: 'test'
   location: '/home/runner/work/my420journal-app/my420journal-app/src/features/games/weed-goblins/weedGoblinsRunHistory.test.js:160:1'
   failureType: 'testCodeFailure'
@@ -2104,4 +2104,4 @@ not ok 241 - second local-adapter console run surfaces the first real saved outc
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1144.525818
+# duration_ms 1386.475028
