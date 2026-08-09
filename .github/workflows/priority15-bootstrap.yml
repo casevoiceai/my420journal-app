@@ -99,7 +99,11 @@ jobs:
           fi
 
       - name: Build application
-        run: npm run build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          rm -rf dist
 
       - name: Verify protected engine and changed scope
         shell: bash
