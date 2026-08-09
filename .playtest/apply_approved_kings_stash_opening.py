@@ -43,4 +43,15 @@ if '\u2014' in approved_opening:
     raise SystemExit('forbidden punctuation present in approved opening')
 
 engine_path.write_text(engine)
+
+controller_path = Path('src/features/games/weed-goblins/weedGoblinsChatControllerChapterOne.js')
+controller = controller_path.read_text()
+old = "  const clean = cleanText(text)\n"
+new = "  const clean = cleanText(text, 1000)\n"
+if old not in controller:
+    raise SystemExit('incoming message length source not found')
+controller = controller.replace(old, new, 1)
+controller_path.write_text(controller)
+
 print('APPROVED_KINGS_STASH_OPENING_APPLIED')
+print('APPROVED_INCOMING_BUBBLE_LIMIT=1000')
