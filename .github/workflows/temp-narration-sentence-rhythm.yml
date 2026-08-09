@@ -1,0 +1,64 @@
+name: Weed Goblins Sentence Rhythm
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-narration-voice-audit-20260809
+    paths:
+      - .github/workflows/temp-narration-sentence-rhythm.yml
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-narration-voice-audit-20260809
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify feature branch and protected engine
+        shell: bash
+        run: |
+          git fetch origin feature/weed-goblins-session-zero
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
+          test "$(git hash-object src/features/games/weed-goblins/weedGoblinsEngine.js)" = "02b3bdc10a32687fed81e230525b418567645b6a"
+      - name: Apply sentence-rhythm changes only
+        run: python .github/scripts/apply_sentence_rhythm_breaks.py
+      - name: Confirm locked and new rhythm rules
+        shell: bash
+        run: |
+          grep -F 'One GM turn is one coherent messenger bubble' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'Never stack fragment after fragment' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'roughly one sentence in four or five may break grammatical completeness' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'This is a rhythm tool, not a content tool.' server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F 'single em dash when the spoken rhythm genuinely cuts off' server/weed-goblins-narration-worker/legacyChapterOne.js
+      - name: Run focused narration suite
+        shell: bash
+        run: |
+          node --test \
+            server/weed-goblins-narration-worker/voice-audit.test.js \
+            server/weed-goblins-narration-worker/index.test.js \
+            server/weed-goblins-narration-worker/story-beats.test.js \
+            src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
+      - name: Build
+        run: npm run build
+      - name: Commit sentence-rhythm contract
+        shell: bash
+        run: |
+          git config user.name 'casevoiceai'
+          git config user.email 'casevoice.ai@gmail.com'
+          git add \
+            server/weed-goblins-narration-worker/legacyChapterOne.js \
+            server/weed-goblins-narration-worker/voice-audit.test.js \
+            server/weed-goblins-narration-worker/index.test.js \
+            src/features/games/weed-goblins/weedGoblinsNarrationValidation.js
+          git commit -m 'Restore deliberate sentence breaks in Eliza narration'
+          git push origin HEAD:temp/weed-goblins-narration-voice-audit-20260809
