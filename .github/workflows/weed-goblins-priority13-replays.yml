@@ -1,0 +1,40 @@
+name: Weed Goblins Priority 13 replays
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-priority13-build
+    paths:
+      - .github/workflows/weed-goblins-priority13-replays.yml
+
+jobs:
+  verify-replays:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out replay branch
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-priority13-replays
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run five full Chapter 1 replays and core gameplay regression tests
+        run: >-
+          node --test
+          src/features/games/weed-goblins/weedGoblinsReplay.test.js
+          src/features/games/weed-goblins/weedGoblinsChapterOne.test.js
+          src/features/games/weed-goblins/weedGoblinsPersistence.test.js
+          src/features/games/weed-goblins/weedGoblinsRooms.test.js
+          src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js
+          src/features/games/weed-goblins/weedGoblinsDynamicChoices.test.js
+          src/features/games/weed-goblins/weedGoblinsHelp.test.js
+
+      - name: Build production bundle
+        run: npm run build
