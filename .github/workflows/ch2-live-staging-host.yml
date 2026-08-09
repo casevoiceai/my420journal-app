@@ -59,10 +59,17 @@ jobs:
         shell: bash
         run: |
           mkdir -p /tmp/ch2-live
-          app_status=$(curl -L -sS --connect-timeout 10 --max-time 45 \
-            -H 'Sec-Fetch-Mode: navigate' \
-            -o /tmp/ch2-live/app.html -w '%{http_code}' \
-            "$VALIDATION_URL/games/weed-goblins")
+          app_status=000
+          for i in $(seq 1 20); do
+            app_status=$(curl -L -sS --connect-timeout 10 --max-time 30 \
+              -H 'Sec-Fetch-Mode: navigate' \
+              -o /tmp/ch2-live/app.html -w '%{http_code}' \
+              "$VALIDATION_URL/games/weed-goblins" || true)
+            if [ "$app_status" = 200 ] && grep -qi '<html' /tmp/ch2-live/app.html; then
+              break
+            fi
+            sleep 2
+          done
           echo "APP_STATUS=$app_status"
           test "$app_status" = 200
           grep -qi '<html' /tmp/ch2-live/app.html
