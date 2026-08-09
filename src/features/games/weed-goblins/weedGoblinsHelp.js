@@ -29,7 +29,7 @@ const LEVEL_ONE = Object.freeze({
 const LEVEL_TWO = Object.freeze({
   'choose-route': 'Quiet Crossing uses Defense. Direct Crossing uses Strength. The Mana crossing gives advantage. If you forgot your numbers, hold the E beside my name.',
   'goblin-encounter': 'Strike uses Strength. Outlasting, bluffing, or distracting usually leans on Defense. The Mana option rolls with advantage when you can afford it.',
-  midpoint': 'Helping Nib requires no roll and makes an ally. The tribute token and trail-runes can change the pressure at the Goblin King. Reading the runes costs Mana.',
+  midpoint: 'Helping Nib requires no roll and makes an ally. The tribute token and trail-runes can change the pressure at the Goblin King. Reading the runes costs Mana.',
   'goblin-king': 'Overpower uses Strength. Outlast uses Defense. The spell option costs Mana and gives advantage. If Nib became your ally, a no-roll bargain may also be available.',
 })
 
