@@ -27,6 +27,12 @@ import {
   appendWeedGoblinsVoiceTranscript,
   getBrowserSpeechRecognition,
 } from './weedGoblinsVoiceInput.js'
+import {
+  getWeedGoblinsAutomaticGuidance,
+  getWeedGoblinsHelpContextKey,
+  getWeedGoblinsHelpResponse,
+} from './weedGoblinsHelp.js'
+import { weedGoblinsProgressionMetadata } from './weedGoblinsProgression.js'
 import './WeedGoblinsChat.css'
 
 function makeRunSeed() {
@@ -226,6 +232,8 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   const [activeDiscoverable, setActiveDiscoverable] = useState(null)
   const [characterSheetOpen, setCharacterSheetOpen] = useState(false)
   const [listening, setListening] = useState(false)
+  const [helpLevel, setHelpLevel] = useState(0)
+  const [helpMessage, setHelpMessage] = useState(null)
   const [runNumber, setRunNumber] = useState(0)
   const storyRef = useRef(null)
   const endRef = useRef(null)
@@ -246,6 +254,18 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   )
   const characterSummary = useMemo(() => buildWeedGoblinsCharacterSummary(state), [state])
   const voiceInputEnabled = canType || canSessionType
+  const chapterNumber = useMemo(
+    () => weedGoblinsProgressionMetadata(state?.adventureId)?.chapterNumber || 1,
+    [state?.adventureId],
+  )
+  const helpContextKey = useMemo(
+    () => getWeedGoblinsHelpContextKey(state, chapterNumber),
+    [state, chapterNumber],
+  )
+  const automaticGuidance = useMemo(
+    () => getWeedGoblinsAutomaticGuidance(state, chapterNumber),
+    [state, chapterNumber],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -292,6 +312,11 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     if (crestHoldTimerRef.current) clearTimeout(crestHoldTimerRef.current)
     if (speechRecognitionRef.current?.abort) speechRecognitionRef.current.abort()
   }, [])
+
+  useEffect(() => {
+    setHelpLevel(0)
+    setHelpMessage(null)
+  }, [helpContextKey])
 
   useEffect(() => {
     if (!hasStartedScrollingRef.current && messages.length > 0) {
@@ -574,6 +599,15 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     }
   }
 
+  function handleHelp() {
+    if (!state || state.status === 'completed' || busy) return
+    const nextLevel = Math.min(3, helpLevel + 1)
+    const response = getWeedGoblinsHelpResponse(state, nextLevel, chapterNumber)
+    if (!response) return
+    setHelpLevel(nextLevel)
+    setHelpMessage(response)
+  }
+
   function restartRun() {
     setState(null)
     setMessages([])
@@ -584,6 +618,8 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     setActionError('')
     setActiveDiscoverable(null)
     setCharacterSheetOpen(false)
+    setHelpLevel(0)
+    setHelpMessage(null)
     if (speechRecognitionRef.current?.abort) speechRecognitionRef.current.abort()
     speechRecognitionRef.current = null
     setListening(false)
@@ -661,6 +697,20 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
               onOpenDiscoverable={setActiveDiscoverable}
             />
           ))}
+          {!busy && automaticGuidance && !helpMessage && (
+            <div className="weed-goblins-game__message-row is-incoming">
+              <article className="weed-goblins-game__message-bubble is-eliza weed-goblins-game__guidance-bubble">
+                <p>{automaticGuidance}</p>
+              </article>
+            </div>
+          )}
+          {helpMessage && (
+            <div className="weed-goblins-game__message-row is-incoming">
+              <article className={`weed-goblins-game__message-bubble is-eliza weed-goblins-game__help-bubble${helpMessage.solvesObstacle ? ' is-solution' : ''}`}>
+                <p>{helpMessage.text}</p>
+              </article>
+            </div>
+          )}
           {busy && !loading && (
             <div className="weed-goblins-game__message-row is-incoming">
               <div className="weed-goblins-game__message-bubble is-eliza is-typing">
@@ -773,6 +823,20 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
           <div className="weed-goblins-game__controls-inner">
             {actionError && (
               <div className="weed-goblins-game__action-error" role="alert">{actionError}</div>
+            )}
+
+            {state?.status !== 'completed' && (
+              <div className="weed-goblins-game__help-row">
+                <button
+                  type="button"
+                  className="weed-goblins-game__help-button"
+                  onClick={handleHelp}
+                  disabled={busy}
+                  aria-label={`Help with current scene${helpLevel > 0 ? `, level ${helpLevel}` : ''}`}
+                >
+                  Help
+                </button>
+              </div>
             )}
 
             {state?.status === 'completed' ? (

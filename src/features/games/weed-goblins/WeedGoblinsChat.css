@@ -804,3 +804,47 @@
     padding-bottom: 20px;
   }
 }
+
+.weed-goblins-game__guidance-bubble {
+  background: #edf1f5;
+  color: #4d535b;
+  font-size: 13px;
+}
+
+.weed-goblins-game__help-bubble {
+  background: #eef0f3;
+}
+
+.weed-goblins-game__help-bubble.is-solution {
+  background: #f4f0e8;
+}
+
+.weed-goblins-game__help-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 2px 6px;
+}
+
+.weed-goblins-game__help-button {
+  min-height: 28px;
+  padding: 3px 9px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #73777e;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.weed-goblins-game__help-button:hover:not(:disabled),
+.weed-goblins-game__help-button:focus-visible {
+  background: #eef0f3;
+  color: #454a50;
+  outline: none;
+}
+
+.weed-goblins-game__help-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
