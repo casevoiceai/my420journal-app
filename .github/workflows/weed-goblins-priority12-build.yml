@@ -1,0 +1,72 @@
+name: Weed Goblins Priority 12 persistence
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-priority12-build
+    paths:
+      - .github/workflows/weed-goblins-priority12-build.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build-priority12:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out build branch
+        uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-priority12-build
+          fetch-depth: 0
+
+      - name: Preserve patch helper and switch to persistence branch
+        shell: bash
+        run: |
+          cp .github/scripts/priority12_persistence.py /tmp/priority12_persistence.py
+          git checkout -B temp/weed-goblins-priority12-persistence origin/temp/weed-goblins-priority12-persistence
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply persistence integration
+        run: python /tmp/priority12_persistence.py
+
+      - name: Verify patch scope
+        shell: bash
+        run: |
+          changed=$(git status --short | sed 's/^...//' | sort)
+          printf '%s\n' "$changed"
+          expected=$'src/features/games/weed-goblins/WeedGoblinsChat.jsx\nsrc/features/games/weed-goblins/weedGoblinsLocalDataAdapter.js'
+          if [ "$changed" != "$expected" ]; then
+            echo 'UNEXPECTED_SCOPE'
+            exit 61
+          fi
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run targeted persistence and gameplay tests
+        run: >-
+          node --test
+          src/features/games/weed-goblins/weedGoblinsPersistence.test.js
+          src/features/games/weed-goblins/weedGoblinsChapterOne.test.js
+          src/features/games/weed-goblins/weedGoblinsRooms.test.js
+          src/features/games/weed-goblins/weedGoblinsExplicitRollCycle.test.js
+          src/features/games/weed-goblins/weedGoblinsDynamicChoices.test.js
+          src/features/games/weed-goblins/weedGoblinsHelp.test.js
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit verified Priority 12 integration
+        shell: bash
+        run: |
+          git config user.name 'casevoiceai'
+          git config user.email 'casevoice.ai@gmail.com'
+          git add src/features/games/weed-goblins/WeedGoblinsChat.jsx \
+            src/features/games/weed-goblins/weedGoblinsLocalDataAdapter.js
+          git commit -m 'Persist active Weed Goblins runs and campaign state'
+          git push origin HEAD:temp/weed-goblins-priority12-persistence
