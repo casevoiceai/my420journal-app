@@ -5,7 +5,7 @@ function response(level, text, solvesObstacle = false) {
 }
 
 export function getChapterThreeAutomaticGuidance() {
-  return null
+  return ''
 }
 
 export function getChapterThreeHelpContextKey(state) {
