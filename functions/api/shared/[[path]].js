@@ -64,7 +64,9 @@ export async function onRequest({ request, env, params }) {
     }
   }
 
-  const proxySecret = String(env?.JOURNAL_SHARED_PROXY_SECRET ?? '').trim()
+  const proxySecret = String(
+    env?.JOURNAL_SHARED_PROXY_SECRET ?? env?.WEED_GOBLINS_PROXY_SECRET ?? '',
+  ).trim()
   if (!proxySecret) {
     return jsonResponse({ error: 'Shared signals proxy is not configured' }, 500)
   }
