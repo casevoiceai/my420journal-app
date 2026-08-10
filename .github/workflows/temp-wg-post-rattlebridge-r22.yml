@@ -1,0 +1,281 @@
+name: Weed Goblins Post Rattlebridge R22
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-human-playtest-1-3-20260809
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: weed-goblins-post-rattlebridge-r22
+  cancel-in-progress: true
+
+jobs:
+  verify-deploy-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PLAYTEST_URL: https://my420journal-wg-playtest-1-3.casevoice-ai.workers.dev/games/weed-goblins
+      EXPECTED_REVISION: post-rattlebridge-r22
+      SUCCESS_UUID: r21-0
+      FAILURE_UUID: r21-1
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-human-playtest-1-3-20260809
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Wait for same SHA R21 deployment attempt
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 180); do
+            state="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/330777129/runs?head_sha=$GITHUB_SHA&event=push&per_page=5" --jq '.workflow_runs[0] | [.status, (.conclusion // "")] | @tsv' 2>/dev/null || true)"
+            if [[ "$state" == $'completed\t'* ]]; then
+              echo "R21 finished: $state"
+              exit 0
+            fi
+            echo "Waiting for R21, attempt $attempt: ${state:-not-visible-yet}"
+            sleep 3
+          done
+          echo "Timed out waiting for R21" >&2
+          exit 1
+
+      - name: Verify protected feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feature/weed-goblins-session-zero
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero:src/features/games/weed-goblins/weedGoblinsEngine.js)" = "02b3bdc10a32687fed81e230525b418567645b6a"
+
+      - name: Apply private behavior build and gameplay fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .playtest/apply_human_gm_prose_v3.py
+          python .playtest/apply_approved_kings_stash_opening.py
+          git fetch origin temp/weed-goblins-narration-voice-audit-20260809
+          test "$(git rev-parse origin/temp/weed-goblins-narration-voice-audit-20260809)" = "c7f67befc2cf5175787d615ada1e3a1017294f48"
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/legacyChapterOne.js > server/weed-goblins-narration-worker/legacyChapterOne.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsNarrationValidation.js > src/features/games/weed-goblins/weedGoblinsNarrationValidation.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/voice-audit.test.js > server/weed-goblins-narration-worker/voice-audit.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/index.test.js > server/weed-goblins-narration-worker/index.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/story-beats.test.js > server/weed-goblins-narration-worker/story-beats.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsAiComplication.test.js > src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
+          python .playtest/apply_research_rules.py
+          python .playtest/apply_behavior_architecture.py
+          python .playtest/apply_behavior_architecture_compat.py
+          python .playtest/apply_post_rattlebridge_gameplay_fixes.py
+          python .playtest/apply_choice_restore_hardening.py
+          python .playtest/apply_restart_busy_hardening.py
+          git diff --check
+          grep -F "Choose differently" src/features/games/weed-goblins/WeedGoblinsChat.jsx
+          grep -F "setBusy(false)" src/features/games/weed-goblins/WeedGoblinsChat.jsx
+          grep -F "setChoices(restored.pendingTurn ? [] : getWeedGoblinsQuickReplies(restored.state))" src/features/games/weed-goblins/WeedGoblinsChat.jsx
+
+      - name: Run regression tests and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          node --test \
+            src/features/games/weed-goblins/weedGoblinsPostRattlebridge.test.js \
+            server/weed-goblins-narration-worker/behavior-architecture.test.js \
+            server/weed-goblins-narration-worker/voice-audit.test.js \
+            server/weed-goblins-narration-worker/index.test.js \
+            server/weed-goblins-narration-worker/story-beats.test.js \
+            src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('public/_headers')
+          text = path.read_text()
+          old = 'X-WG-Playtest-Revision: guidance-removed-r18'
+          new = 'X-WG-Playtest-Revision: post-rattlebridge-r22'
+          if old not in text:
+              raise SystemExit('old playtest revision marker missing')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          npm run build
+          rm -f dist/_redirects
+
+      - name: Deploy private playtest host only
+        run: npx wrangler@latest deploy --config .playtest/host/wrangler.jsonc
+
+      - name: Wait for exact live revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            headers="$(curl -sS -D - -o /tmp/wg-r22.html "$PLAYTEST_URL" || true)"
+            normalized="$(printf '%s' "$headers" | tr '[:upper:]' '[:lower:]' | tr -d '\r')"
+            if printf '%s' "$normalized" | grep -Fq "x-wg-playtest-revision: $EXPECTED_REVISION"; then
+              printf '%s\n' "$normalized" | grep -F "cache-control: no-store"
+              echo "LIVE_ROUTE_REVISION=$EXPECTED_REVISION"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Expected revision never appeared at exact game URL" >&2
+          exit 1
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Verify all four fixes in real browser
+        shell: bash
+        run: |
+          cat > wg-r22-live.mjs <<'EOF'
+          import { chromium } from 'playwright'
+
+          const url = process.env.PLAYTEST_URL
+          const expectedRevision = process.env.EXPECTED_REVISION
+          const successUuid = process.env.SUCCESS_UUID
+          const failureUuid = process.env.FAILURE_UUID
+          const check = (condition, message) => { if (!condition) throw new Error(message) }
+
+          async function waitEnabled(page, name) {
+            await page.waitForFunction((label) => {
+              const button = [...document.querySelectorAll('button')]
+                .find((candidate) => candidate.textContent.trim() === label)
+              return Boolean(button && !button.disabled)
+            }, name, { timeout: 30000 })
+          }
+
+          async function completeSessionZero(page) {
+            await waitEnabled(page, 'Continue')
+            await page.getByRole('button', { name: 'Continue' }).click()
+            const composer = page.locator('.weed-goblins-game__composer input')
+            await composer.waitFor()
+            await composer.fill('Fenna')
+            await page.locator('.weed-goblins-game__send-button').click()
+            await page.getByRole('button', { name: 'Human' }).click()
+            await page.getByRole('button', { name: 'Sword' }).click()
+            await page.getByRole('button', { name: 'Highland Tracker' }).click()
+            await page.getByRole('button', { name: 'They' }).click()
+            await page.locator('.weed-goblins-game__quick-reply').first().click()
+            await page.getByRole('button', { name: /Direct Crossing|Quiet Crossing/ }).first().waitFor()
+          }
+
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+            await context.addInitScript(({ successUuid, failureUuid }) => {
+              if (!sessionStorage.getItem('wg-r22-initialized')) {
+                localStorage.clear()
+                sessionStorage.setItem('wg-r22-initialized', '1')
+              }
+              if (!globalThis.__wgR22Seeds) globalThis.__wgR22Seeds = [successUuid, failureUuid]
+              Object.defineProperty(globalThis.crypto, 'randomUUID', {
+                configurable: true,
+                value: () => globalThis.__wgR22Seeds.shift() || `fallback-${Date.now()}`,
+              })
+            }, { successUuid, failureUuid })
+
+            const page = await context.newPage()
+            const response = await page.goto(url, { waitUntil: 'networkidle' })
+            check(response?.url() === url, `Wrong final URL: ${response?.url()}`)
+            check(response.headers()['x-wg-playtest-revision'] === expectedRevision, 'Wrong live revision')
+            await completeSessionZero(page)
+
+            await page.getByRole('button', { name: /Quiet Crossing/ }).click()
+            await page.getByText(/Defense check, DC 12;/i).waitFor()
+            await page.getByRole('button', { name: 'Choose differently' }).waitFor()
+            await page.getByRole('button', { name: 'Choose differently' }).click()
+            await page.getByRole('button', { name: /Quiet Crossing/ }).waitFor()
+            await page.getByRole('button', { name: /Direct Crossing/ }).waitFor()
+            check(await page.getByRole('button', { name: /ROLL D20/i }).count() === 0, 'Roll remained after reconsidering')
+            console.log('PRE_ROLL_RECONSIDER=PASS')
+
+            await page.getByRole('button', { name: /Direct Crossing/ }).click()
+            await page.getByRole('button', { name: /ROLL D20/i }).click()
+            const outlast = page.getByRole('button', { name: /Outlast / })
+            await outlast.waitFor({ timeout: 25000 })
+            await outlast.click()
+            await page.getByRole('button', { name: /ROLL D20/i }).click()
+            await page.getByRole('button', { name: /Keep Nib safe/i }).waitFor({ timeout: 25000 })
+            await page.getByRole('button', { name: /Keep Nib safe/i }).click()
+            await page.getByRole('button', { name: /Ask Old Tatter about the black-root seal/i }).waitFor({ timeout: 25000 })
+            await page.getByRole('button', { name: /Ask Old Tatter about the black-root seal/i }).click()
+            await page.getByRole('button', { name: /Read the carved faces and set the latch correctly/i }).waitFor({ timeout: 25000 })
+
+            for (const term of ['picture tribute ledger', 'Old Tatter', 'black-root seal']) {
+              check(await page.locator('.weed-goblins-game__discoverable', { hasText: term }).count() > 0, `Glossary term missing: ${term}`)
+            }
+            await page.locator('.weed-goblins-game__discoverable', { hasText: 'Old Tatter' }).last().click()
+            await page.getByRole('dialog').getByRole('heading', { name: 'Old Tatter' }).waitFor()
+            await page.getByRole('button', { name: 'Close information' }).click()
+            console.log('GLOSSARY_UNCHANGED=PASS')
+
+            const storageKey = await page.evaluate(() => Object.keys(localStorage).find((key) => key.includes('weed_goblins_active_run')) || '')
+            check(storageKey, 'Active run storage key missing')
+            await page.evaluate((key) => {
+              const record = JSON.parse(localStorage.getItem(key))
+              record.choices = [{ id: 'latch:stale-broken-option', label: 'Stale broken option' }]
+              localStorage.setItem(key, JSON.stringify(record))
+            }, storageKey)
+            await page.reload({ waitUntil: 'networkidle' })
+            check(await page.getByRole('button', { name: 'Stale broken option' }).count() === 0, 'Stale persisted choice was trusted')
+            await page.getByRole('button', { name: /Read the carved faces and set the latch correctly/i }).waitFor()
+            console.log('STALE_CHOICE_RECOMPUTE=PASS')
+
+            await page.getByRole('button', { name: /Read the carved faces and set the latch correctly/i }).click()
+            await page.getByText(/Defense check, DC 12;/i).last().waitFor()
+            await page.getByRole('button', { name: 'Choose differently' }).click()
+            await page.getByRole('button', { name: /Force the carved-face latch open/i }).click()
+            await page.getByText(/Strength check, DC 12;/i).last().waitFor()
+            check(await page.locator('.weed-goblins-game__action-error').count() === 0, 'Latch choice produced a visible resolution error')
+            console.log('LATCH_CHOICES=PASS')
+
+            await page.getByRole('button', { name: /ROLL D20/i }).click()
+            await page.getByRole('button', { name: /Invoke the goblin clerk as a witness/i }).waitFor({ timeout: 25000 })
+            await page.getByRole('button', { name: /Invoke the goblin clerk as a witness/i }).click()
+            await page.getByText('Run complete').waitFor({ timeout: 25000 })
+            await page.getByText(/Chapter 2: The Hollow Market is built but not unlocked yet/i).waitFor()
+            await page.getByRole('button', { name: 'Play Chapter 1 again' }).waitFor()
+            check(await page.getByRole('button', { name: 'Start another run' }).count() === 0, 'Generic ending button still present')
+            console.log('SUCCESS_END_STATE=PASS')
+
+            await page.getByRole('button', { name: 'Play Chapter 1 again' }).click()
+            await completeSessionZero(page)
+            await page.getByRole('button', { name: /Direct Crossing/ }).click()
+            await page.getByRole('button', { name: /ROLL D20/i }).click()
+            await page.getByRole('button', { name: /Outlast / }).waitFor({ timeout: 25000 })
+            await page.getByRole('button', { name: /Outlast / }).click()
+            await page.getByRole('button', { name: /ROLL D20/i }).click()
+            await page.getByRole('button', { name: /Take the unattended highland charm/i }).waitFor({ timeout: 25000 })
+            await page.getByRole('button', { name: /Take the unattended highland charm/i }).click()
+            await page.getByRole('button', { name: /ROLL D20/i }).click()
+            await page.getByText('This run failed').waitFor({ timeout: 25000 })
+            await page.getByText(/escaped the Highlands without recovering/i).waitFor()
+            await page.getByRole('button', { name: 'Play Chapter 1 again' }).waitFor()
+            console.log('FAILED_END_STATE=PASS')
+
+            check(page.url() === url, `Playthrough left exact URL: ${page.url()}`)
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+            check(!overflow, '390px horizontal overflow')
+            console.log(`LIVE_URL=${page.url()}`)
+            console.log(`LIVE_REVISION=${response.headers()['x-wg-playtest-revision']}`)
+            console.log('POST_RATTLEBRIDGE_R22_LIVE=PASS')
+          } finally {
+            await browser.close()
+          }
+          EOF
+          node wg-r22-live.mjs
