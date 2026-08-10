@@ -32,6 +32,12 @@ for path, state_label in [
     old = f'- The engine owns legal actions, DCs, Strength, Defense, Mana, D20 rolls, Trouble, wounds, Rootcoin, inventory, rewards, room transitions, {state_label}, and endings. Never alter them.'
     new = f'- The engine owns every mechanic and result. That includes legal actions, DCs, Strength, Defense, Mana, D20 rolls, Trouble, wounds, Rootcoin, inventory, rewards, room transitions, {state_label}, and endings. Never alter them.'
     text = replace_once(text, old, new, f'{path.name} engine authority compatibility anchor')
+    text = replace_once(
+        text,
+        '- Keep the current messenger chunking: exactly one narration line, one or two focused sentences, maximum 300 characters.',
+        '- Return one GM turn in the messenger bubble. Use the amount of spoken language the live moment needs. The 300-character limit is a hard transport ceiling, not a sentence quota and not a target.',
+        f'{path.name} rigid sentence quota',
+    )
     path.write_text(text)
 
 index_test_path = Path('server/weed-goblins-narration-worker/index.test.js')
@@ -86,3 +92,4 @@ for path in [
 
 print('BEHAVIOR_ARCHITECTURE_COMPAT_APPLIED')
 print('ACTUAL_PLAY_INDEX_TEST_UPDATED')
+print('RIGID_LATER_CHAPTER_SENTENCE_QUOTAS_REMOVED')
