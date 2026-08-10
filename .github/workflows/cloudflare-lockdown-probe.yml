@@ -6,26 +6,128 @@ on:
       - 'agent/cloudflare-deploy-2026-08-10'
 
 jobs:
-  probe:
+  deploy:
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      WEED_GOBLINS_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_PROXY_SECRET }}
-      JOURNAL_SHARED_PROXY_SECRET: ${{ secrets.JOURNAL_SHARED_PROXY_SECRET }}
-      JOURNAL_ACCESS_CODE: ${{ secrets.JOURNAL_ACCESS_CODE }}
     steps:
-      - name: Report secret presence only
+      - name: Write verified Anthropic Worker source
         shell: bash
         run: |
-          test -n "$WEED_GOBLINS_PROXY_SECRET" && echo 'WEED_GOBLINS_PROXY_SECRET=present' || echo 'WEED_GOBLINS_PROXY_SECRET=missing'
-          test -n "$JOURNAL_SHARED_PROXY_SECRET" && echo 'JOURNAL_SHARED_PROXY_SECRET=present' || echo 'JOURNAL_SHARED_PROXY_SECRET=missing'
-          test -n "$JOURNAL_ACCESS_CODE" && echo 'JOURNAL_ACCESS_CODE=present' || echo 'JOURNAL_ACCESS_CODE=missing'
-      - name: Confirm current Shared Journey D1 binding
+          cat > anthropic-worker.js <<'WORKER'
+          const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
+          const ANTHROPIC_VERSION = '2023-06-01';
+
+          const corsHeaders = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Max-Age': '86400',
+          };
+
+          function jsonResponse(body, status = 200) {
+            return new Response(JSON.stringify(body), {
+              status,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          async function digest(value) {
+            const bytes = new TextEncoder().encode(String(value ?? ''));
+            return new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+          }
+
+          function toHex(bytes) {
+            return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+          }
+
+          async function timingSafeEqual(left, right) {
+            const [leftDigest, rightDigest] = await Promise.all([digest(left), digest(right)]);
+            let mismatch = 0;
+            for (let index = 0; index < leftDigest.length; index += 1) {
+              mismatch |= leftDigest[index] ^ rightDigest[index];
+            }
+            return mismatch === 0;
+          }
+
+          async function isAuthorized(request, expectedVerifier) {
+            const verifier = String(expectedVerifier ?? '').trim().toLowerCase();
+            if (!/^[0-9a-f]{64}$/.test(verifier)) return false;
+            const authorization = request.headers.get('Authorization') || '';
+            if (!authorization.startsWith('Bearer ') || authorization.length <= 'Bearer '.length) return false;
+            const suppliedVerifier = toHex(await digest(authorization));
+            return timingSafeEqual(suppliedVerifier, verifier);
+          }
+
+          export default {
+            async fetch(request, env) {
+              if (request.method === 'OPTIONS') {
+                return new Response(null, { status: 204, headers: corsHeaders });
+              }
+              if (!(await isAuthorized(request, env.ANTHROPIC_PROXY_AUTH_SECRET))) {
+                return jsonResponse({ error: 'Unauthorized' }, 401);
+              }
+              if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
+              if (!env.ANTHROPIC_API_KEY) return jsonResponse({ error: 'Worker is missing ANTHROPIC_API_KEY' }, 500);
+              let body;
+              try { body = await request.text(); } catch { return jsonResponse({ error: 'Unable to read request body' }, 400); }
+              try {
+                const anthropicResponse = await fetch(ANTHROPIC_MESSAGES_URL, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': env.ANTHROPIC_API_KEY,
+                    'anthropic-version': ANTHROPIC_VERSION,
+                  },
+                  body,
+                });
+                const responseBody = await anthropicResponse.text();
+                return new Response(responseBody, {
+                  status: anthropicResponse.status,
+                  statusText: anthropicResponse.statusText,
+                  headers: {
+                    ...corsHeaders,
+                    'Content-Type': anthropicResponse.headers.get('Content-Type') || 'application/json',
+                  },
+                });
+              } catch (error) {
+                return jsonResponse({
+                  error: 'Unable to reach Anthropic API',
+                  detail: error instanceof Error ? error.message : 'Unknown error',
+                }, 502);
+              }
+            },
+          };
+          WORKER
+      - name: Set Anthropic bearer verifier as Worker secret
         shell: bash
         run: |
-          curl --fail-with-body --silent --show-error \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/my420journal-shared-worker/settings" \
+          curl --fail-with-body --silent --show-error -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/anthropic-proxy/secrets" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            | jq -e '.success and any(.result.bindings[]; .name == "DB" and .type == "d1" and .id == "72afe7f1-d3cb-4741-8d02-a1fedd728644")' >/dev/null
-          echo 'shared_d1_baseline=confirmed'
+            -H 'Content-Type: application/json' \
+            --data '{"name":"ANTHROPIC_PROXY_AUTH_SECRET","type":"secret_text","text":"8b50d1763aa72766edc2123f91cda7de896a508da6d4ae05d37c27581c6b3043"}' \
+            | jq -e '.success == true' >/dev/null
+          echo 'anthropic_proxy_auth_secret=confirmed'
+      - name: Upload Anthropic Worker code without replacing bindings
+        shell: bash
+        run: |
+          curl --fail-with-body --silent --show-error -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/anthropic-proxy/content" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -F 'metadata={"main_module":"worker.js"};type=application/json' \
+            -F 'worker.js=@anthropic-worker.js;type=application/javascript+module' \
+            | jq -e '.success == true' >/dev/null
+          echo 'anthropic_worker_code=deployed'
+      - name: Verify Anthropic Worker bindings and unauthenticated rejection
+        shell: bash
+        run: |
+          settings="$(curl --fail-with-body --silent --show-error \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/anthropic-proxy/settings" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")"
+          echo "$settings" | jq -e '.success and any(.result.bindings[]; .name == "ANTHROPIC_API_KEY" and .type == "secret_text") and any(.result.bindings[]; .name == "ANTHROPIC_PROXY_AUTH_SECRET" and .type == "secret_text")' >/dev/null
+          status="$(curl --silent --output /tmp/body --write-out '%{http_code}' -X POST https://anthropic-proxy.casevoice-ai.workers.dev -H 'Content-Type: application/json' --data '{}')"
+          test "$status" = '401'
+          jq -e '.error == "Unauthorized"' /tmp/body >/dev/null
+          echo 'anthropic_worker_lockdown=confirmed'
