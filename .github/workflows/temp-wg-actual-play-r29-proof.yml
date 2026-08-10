@@ -1,0 +1,147 @@
+name: Weed Goblins Actual Play R29 Proof
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-actual-play-register-20260810
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weed-goblins-actual-play-r29-proof
+  cancel-in-progress: true
+
+jobs:
+  browser-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PLAYTEST_URL: https://my420journal-wg-playtest-1-3.casevoice-ai.workers.dev/games/weed-goblins
+      EXPECTED_REVISION: actual-play-register-r29
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-actual-play-register-20260810
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify live revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            headers="$(curl -sS -D - -o /tmp/wg-r29-proof.html "$PLAYTEST_URL" || true)"
+            normalized="$(printf '%s' "$headers" | tr '[:upper:]' '[:lower:]' | tr -d '\r')"
+            if printf '%s' "$normalized" | grep -Fq "x-wg-playtest-revision: $EXPECTED_REVISION"; then
+              printf '%s\n' "$normalized" | grep -F "cache-control: no-store"
+              echo "LIVE_ROUTE_REVISION=$EXPECTED_REVISION"
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Prove actual-play opening and Rattlebridge live
+        shell: bash
+        run: |
+          cat > wg-r29-proof.mjs <<'EOF'
+          import { chromium } from 'playwright'
+
+          const url = process.env.PLAYTEST_URL
+          const check = (condition, message) => { if (!condition) throw new Error(message) }
+          const newOpeningOne = "Okay, so you've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you."
+          const newOpeningLast = "Before you catch up with them, what's your character's name, and are they human, dwarf, elf, or gnome?"
+          const oldOpeningOne = "By the time the road finally gives up, you've been climbing for a little over an hour. What remains of it dissolves beneath your boots into black mud and flattened grass, while a cold wind comes wandering down from the high country looking for every gap in your clothes. It finds them. The air smells of wet pine and distant woodsmoke, with something greener underneath, sharp and earthy. Above you, the Goblin Highlands appear and disappear through the moving cloud, one shoulder of black rock giving way to a roofline on the ridge before the mist takes it again."
+          const oldSelfIntro = "I'm Eliza. I'll be running everything from here, the goblins, the weather, whoever's dumb enough to get in your way. Tell me what you're trying to do and I'll tell you what happens."
+          const bridgeOne = "A little farther up, the trail runs straight into Rattlebridge. Calling it a bridge is generous. It's some planks, two ropes, and an absolutely unreasonable number of bottle caps tied along the rails as an alarm system. Somebody kept having ideas."
+          const bridgeTwo = "There's movement on the far side, tucked behind one of the posts. They haven't seen you yet. You can sneak across, just book it before the bottle caps start screaming, or try something else."
+
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+            await context.addInitScript(() => localStorage.clear())
+            const page = await context.newPage()
+
+            await page.goto(url, { waitUntil: 'networkidle' })
+            await page.getByText(newOpeningOne, { exact: true }).waitFor({ timeout: 30000 })
+            await page.getByText(newOpeningLast, { exact: true }).waitFor({ timeout: 30000 })
+            let body = await page.locator('body').innerText()
+            check(!body.includes(oldOpeningOne), 'old literary opening survived fresh load')
+            check(!body.includes(oldSelfIntro), 'old self introduction survived fresh load')
+            console.log('FRESH_ACTUAL_PLAY_OPENING=PASS')
+
+            const seeded = await page.evaluate(({ newOpeningOne, oldOpeningOne }) => {
+              const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index)).filter(Boolean)
+              let changed = 0
+              for (const key of keys) {
+                if (!key.includes('weed_goblins_active_run')) continue
+                const value = localStorage.getItem(key)
+                if (!value || !value.includes(newOpeningOne)) continue
+                localStorage.setItem(key, value.split(newOpeningOne).join(oldOpeningOne))
+                changed += 1
+              }
+              return changed
+            }, { newOpeningOne, oldOpeningOne })
+            check(seeded > 0, 'could not seed old saved opening')
+            await page.reload({ waitUntil: 'networkidle' })
+            await page.getByText(newOpeningOne, { exact: true }).waitFor({ timeout: 30000 })
+            body = await page.locator('body').innerText()
+            check(!body.includes(oldOpeningOne), 'old saved opening survived restore migration')
+            console.log('RESTORED_ACTUAL_PLAY_OPENING=PASS')
+
+            await page.getByRole('button', { name: 'Continue' }).click()
+            const composer = page.locator('.weed-goblins-game__composer input')
+            await composer.waitFor()
+            await composer.fill('Fenna')
+            await page.locator('.weed-goblins-game__send-button').click()
+            await page.getByRole('button', { name: 'Human' }).click()
+            await page.getByRole('button', { name: 'Sword' }).click()
+            await page.getByRole('button', { name: 'Highland Tracker' }).click()
+            await page.getByRole('button', { name: 'They' }).click()
+            await page.locator('.weed-goblins-game__quick-reply').first().click()
+
+            await page.getByText(bridgeOne, { exact: true }).waitFor({ timeout: 30000 })
+            await page.getByText(bridgeTwo, { exact: true }).waitFor({ timeout: 30000 })
+            body = await page.locator('body').innerText()
+            check(!body.includes('The goblin tracks carry on through Windcut Trail until the ground drops toward Rattlebridge'), 'old Rattlebridge prose survived')
+            console.log('RATTLEBRIDGE_ACTUAL_PLAY_STATIC=PASS')
+
+            await page.getByRole('button', { name: /Quiet Crossing/ }).click()
+            const rollButton = page.getByRole('button', { name: /ROLL D20/i })
+            await rollButton.waitFor({ timeout: 30000 })
+            const mechanicsText = await page.locator('.weed-goblins-game__message-row.is-incoming').allTextContents()
+            check(mechanicsText.some((text) => /check, DC 12;/i.test(text)), 'Rattlebridge DC 12 setup was not shown')
+
+            const narrationResponse = page.waitForResponse(
+              (response) => response.url().includes('/api/weed-goblins-narration') && response.status() === 200,
+              { timeout: 30000 },
+            )
+            await rollButton.click()
+            await narrationResponse
+            await page.waitForTimeout(400)
+
+            const incoming = await page.locator('.weed-goblins-game__message-row.is-incoming').allTextContents()
+            const joined = incoming.join(' ')
+            check(!/I'm Eliza|my name is Eliza|I'll be running the game/i.test(joined), 'self introduction appeared in live narration')
+            check(!joined.includes(oldSelfIntro), 'old self introduction appeared after live narration')
+            const dimensions = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            check(dimensions.width === dimensions.scroll, `horizontal overflow ${dimensions.width}/${dimensions.scroll}`)
+            console.log('RATTLEBRIDGE_LIVE_NARRATION_RESPONSE=PASS')
+            console.log(`MOBILE_WIDTH=${dimensions.width}/${dimensions.scroll}`)
+            console.log(`LIVE_URL=${page.url()}`)
+            console.log('ACTUAL_PLAY_R29_PROOF=PASS')
+          } finally {
+            await browser.close()
+          }
+          EOF
+          node wg-r29-proof.mjs
