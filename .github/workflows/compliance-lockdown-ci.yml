@@ -1,0 +1,36 @@
+name: Compliance Lockdown CI
+
+on:
+  push:
+    branches:
+      - 'agent/compliance-lockdown-2026-08-10'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build
+      - run: npm test
+      - name: Validate signed tester session
+        run: |
+          node --input-type=module <<'NODE'
+          const mod = await import('./server/private-testing-access.js')
+          const secret = 'ci-test-secret'
+          const cookie = await mod.buildPrivateTestingCookie(secret)
+          const header = cookie.split(';')[0]
+          if (!(await mod.isPrivateTestingSessionValid(header, secret))) {
+            throw new Error('Valid tester session was rejected')
+          }
+          if (await mod.isPrivateTestingSessionValid(header, 'wrong-secret')) {
+            throw new Error('Tester session accepted with the wrong secret')
+          }
+          if (!cookie.includes('HttpOnly') || !cookie.includes('Secure') || !cookie.includes('SameSite=Lax')) {
+            throw new Error('Required cookie security attributes are missing')
+          }
+          NODE
