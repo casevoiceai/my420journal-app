@@ -74,6 +74,7 @@ jobs:
             },
           };
           WORKER
+          printf '%s' '{"main_module":"worker.js"}' > metadata.json
       - name: Confirm Anthropic Worker secret exists
         shell: bash
         run: |
@@ -88,8 +89,8 @@ jobs:
           status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' -X PUT \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/anthropic-proxy/content" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H 'CF-WORKER-MAIN-MODULE-PART: worker.js' \
-            -F 'worker.js=@anthropic-worker.js;type=application/javascript+module')"
+            -F 'metadata=@metadata.json;type=application/json' \
+            -F 'worker.js=@anthropic-worker.js;filename=worker.js;type=application/javascript+module')"
           if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
             echo "cloudflare_status=$status"
             jq '{success, errors, messages}' "$response_file" || cat "$response_file"
