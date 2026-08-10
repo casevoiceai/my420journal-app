@@ -1,0 +1,152 @@
+name: Weed Goblins Zero Preamble Refresh Proof
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-zero-preamble-proof-20260810
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weed-goblins-zero-preamble-refresh-proof
+  cancel-in-progress: true
+
+jobs:
+  browser-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PLAYTEST_URL: https://my420journal-wg-playtest-1-3.casevoice-ai.workers.dev/games/weed-goblins
+      EXPECTED_REVISION: zero-preamble-r30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-zero-preamble-proof-20260810
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify live R30 revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          headers="$(curl -sS -D - -o /tmp/wg-r30-proof.html "$PLAYTEST_URL")"
+          normalized="$(printf '%s' "$headers" | tr '[:upper:]' '[:lower:]' | tr -d '\r')"
+          printf '%s\n' "$normalized" | grep -F "x-wg-playtest-revision: $EXPECTED_REVISION"
+          printf '%s\n' "$normalized" | grep -F "cache-control: no-store"
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Prove saved run survives ordinary refresh with zero preamble
+        shell: bash
+        run: |
+          mkdir -p browser-proof
+          cat > browser-proof/r30-no-clear-refresh.mjs <<'EOF'
+          import { chromium } from 'playwright'
+
+          const url = process.env.PLAYTEST_URL
+          const check = (condition, message) => { if (!condition) throw new Error(message) }
+          const oldFirst = "Okay, so you've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you."
+          const newFirst = "You've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you."
+          const oldQuestion = "Before you catch up with them, what's your character's name, and are they human, dwarf, elf, or gnome?"
+          const newQuestion = "What's your character's name, and are they human, dwarf, elf, or gnome?"
+          const regal = "There's a miserable little bell up there going clonk every so often. Very regal."
+
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+            const page = await context.newPage()
+            const errors = []
+            page.on('console', msg => { if (msg.type() === 'error') errors.push(`console:${msg.text()}`) })
+            page.on('pageerror', err => errors.push(`pageerror:${err.message}`))
+
+            // First real load. No localStorage.clear() and no storage reset hook.
+            await page.goto(url, { waitUntil: 'networkidle' })
+            let body = await page.locator('body').innerText()
+            check(body.includes(newFirst), 'live R30 first opening line missing before refresh')
+            check(body.includes(regal), 'approved Very regal narrative beat missing before refresh')
+            check(body.includes(newQuestion), 'exact zero-preamble character question missing before refresh')
+            check(!body.includes(oldFirst), 'Okay, so opening visible before refresh')
+            check(!body.includes(oldQuestion), 'Before you catch up bridge visible before refresh')
+
+            const beforeKeys = await page.evaluate(() => Object.keys(localStorage).sort())
+            const activeKeys = beforeKeys.filter(key => key.includes('weed_goblins_active_run'))
+            check(activeKeys.length === 1, `expected one active save, found ${activeKeys.length}`)
+
+            // Convert the existing active save to the exact prior R29 text. This preserves the save and key.
+            // It proves the deployed restore migration updates an already-saved run on ordinary refresh.
+            const seeded = await page.evaluate(({ oldFirst, newFirst, oldQuestion, newQuestion }) => {
+              let changed = 0
+              for (let index = 0; index < localStorage.length; index += 1) {
+                const key = localStorage.key(index)
+                if (!key || !key.includes('weed_goblins_active_run')) continue
+                const value = localStorage.getItem(key)
+                if (!value) continue
+                const prior = value.split(newFirst).join(oldFirst).split(newQuestion).join(oldQuestion)
+                if (prior !== value) {
+                  localStorage.setItem(key, prior)
+                  changed += 1
+                }
+              }
+              return changed
+            }, { oldFirst, newFirst, oldQuestion, newQuestion })
+            check(seeded === 1, `expected one saved run converted to R29 wording, changed ${seeded}`)
+
+            const seededKeys = await page.evaluate(() => Object.keys(localStorage).sort())
+            check(JSON.stringify(beforeKeys) === JSON.stringify(seededKeys), 'save key set changed while preparing prior-version saved content')
+
+            // Ordinary browser refresh, same context, same localStorage. No clearing and no new context.
+            await page.reload({ waitUntil: 'networkidle' })
+            body = await page.locator('body').innerText()
+
+            check(body.includes(newFirst), 'new first line missing after saved-run refresh')
+            check(body.includes(regal), 'Very regal narrative beat missing after saved-run refresh')
+            check(body.includes(newQuestion), 'exact character question missing after saved-run refresh')
+            check(!body.includes(oldFirst), 'old Okay, so opening survived saved-run refresh')
+            check(!body.includes(oldQuestion), 'old Before you catch up bridge survived saved-run refresh')
+            check(!/you don't need to know the rules|before we start/i.test(body), 'spoken onboarding preamble appeared after refresh')
+
+            const afterKeys = await page.evaluate(() => Object.keys(localStorage).sort())
+            check(JSON.stringify(beforeKeys) === JSON.stringify(afterKeys), 'saved-state key set changed across refresh')
+            check(afterKeys.some(key => key.includes('weed_goblins_active_run')), 'active save missing after refresh')
+
+            const savedValue = await page.evaluate(() => {
+              const key = Object.keys(localStorage).find(k => k.includes('weed_goblins_active_run'))
+              return key ? localStorage.getItem(key) || '' : ''
+            })
+            check(savedValue.includes(newFirst), 'persisted active save was not migrated to new first line')
+            check(savedValue.includes(newQuestion), 'persisted active save was not migrated to exact character question')
+            check(!savedValue.includes(oldFirst), 'persisted active save still contains old Okay, so line')
+            check(!savedValue.includes(oldQuestion), 'persisted active save still contains old bridge question')
+
+            const dimensions = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            check(dimensions.width === dimensions.scroll, `horizontal overflow ${dimensions.width}/${dimensions.scroll}`)
+            check(errors.length === 0, `browser errors: ${errors.join(' | ')}`)
+
+            await page.screenshot({ path: 'browser-proof/weed-goblins-r30-after-refresh.png', fullPage: true })
+            console.log('INITIAL_LIVE_ZERO_PREAMBLE=PASS')
+            console.log('BROWSER_REFRESH_NO_CLEAR=PASS')
+            console.log('R29_SAVE_MIGRATED_ON_REFRESH=PASS')
+            console.log('ZERO_PREAMBLE_VISIBLE_AFTER_REFRESH=PASS')
+            console.log('ACTIVE_SAVE_PRESERVED=PASS')
+            console.log(`MOBILE_WIDTH=${dimensions.width}/${dimensions.scroll}`)
+            console.log(`LIVE_URL=${page.url()}`)
+            console.log('SCREENSHOT=browser-proof/weed-goblins-r30-after-refresh.png')
+          } finally {
+            await browser.close()
+          }
+          EOF
+          node browser-proof/r30-no-clear-refresh.mjs
+
+      - name: Upload post-refresh screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: weed-goblins-r30-after-refresh
+          path: browser-proof/weed-goblins-r30-after-refresh.png
+          if-no-files-found: error
