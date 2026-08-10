@@ -1,4 +1,4 @@
-const SHARED_WORKER_BASE_URL = 'https://my420journal-shared-worker.casevoice-ai.workers.dev'
+const SHARED_API_BASE_URL = '/api/shared'
 
 async function readResponseBody(response) {
   const text = await response.text()
@@ -20,8 +20,9 @@ function failureMessage(response, body) {
 
 async function workerRequest(path, options = {}) {
   try {
-    const response = await fetch(`${SHARED_WORKER_BASE_URL}${path}`, {
+    const response = await fetch(`${SHARED_API_BASE_URL}${path}`, {
       ...options,
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
         ...(options.headers || {}),
