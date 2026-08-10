@@ -17,6 +17,10 @@ async function digest(value) {
   return new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
 }
 
+function toHex(bytes) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
 async function timingSafeEqual(left, right) {
   const [leftDigest, rightDigest] = await Promise.all([digest(left), digest(right)])
   let mismatch = 0
@@ -26,16 +30,15 @@ async function timingSafeEqual(left, right) {
   return mismatch === 0
 }
 
-async function isAuthorized(request, expectedSecret) {
-  const secret = String(expectedSecret ?? '').trim()
-  if (!secret) return false
+async function isAuthorized(request, expectedVerifier) {
+  const verifier = String(expectedVerifier ?? '').trim().toLowerCase()
+  if (!/^[0-9a-f]{64}$/.test(verifier)) return false
 
   const authorization = request.headers.get('Authorization') || ''
-  if (!authorization.startsWith('Bearer ')) return false
+  if (!authorization.startsWith('Bearer ') || authorization.length <= 'Bearer '.length) return false
 
-  const supplied = authorization.slice('Bearer '.length).trim()
-  if (!supplied) return false
-  return timingSafeEqual(supplied, secret)
+  const suppliedVerifier = toHex(await digest(authorization))
+  return timingSafeEqual(suppliedVerifier, verifier)
 }
 
 function normalizeProductKey(value = '') {
