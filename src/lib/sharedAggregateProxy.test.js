@@ -83,6 +83,35 @@ test('shared signals proxy forwards only the approved route with server-side aut
   }
 })
 
+test('shared signals proxy can reuse the existing server-only narration credential during secret migration', async () => {
+  const originalFetch = globalThis.fetch
+  let authorization
+  globalThis.fetch = async (_url, init) => {
+    authorization = init.headers.Authorization
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  try {
+    const response = await onRequest({
+      request: makeRequest('aggregates?product_key=test'),
+      env: {
+        JOURNAL_ACCESS_CODE: TEST_ACCESS_CODE,
+        WEED_GOBLINS_PROXY_SECRET: 'existing-server-only-secret',
+        SHARED_AGGREGATE_WORKER_URL: 'https://shared-worker.example.test',
+      },
+      params: { path: ['aggregates'] },
+    })
+
+    assert.equal(response.status, 200)
+    assert.equal(authorization, 'Bearer existing-server-only-secret')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 test('shared signals proxy does not expose the Worker admin purge route', async () => {
   const originalFetch = globalThis.fetch
   let fetchCalls = 0
