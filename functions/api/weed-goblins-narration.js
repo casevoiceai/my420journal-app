@@ -1,3 +1,5 @@
+import { isPrivateTestingSessionValid } from '../../server/private-testing-access.js'
+
 const ALLOWED_ORIGINS = new Set([
   'https://my420journal.app',
   'https://my420journal.com',
@@ -26,6 +28,15 @@ function byteLength(value) {
 }
 
 export async function onRequest({ request, env }) {
+  const accessCode = String(env?.JOURNAL_ACCESS_CODE ?? '').trim()
+  const hasTesterSession = accessCode
+    ? await isPrivateTestingSessionValid(request.headers.get('Cookie') || '', accessCode)
+    : false
+
+  if (!hasTesterSession) {
+    return jsonResponse({ error: 'Private testing access required' }, 401)
+  }
+
   const origin = request.headers.get('Origin') || ''
   if (!ALLOWED_ORIGINS.has(origin)) {
     return jsonResponse({ error: 'Origin not allowed' }, 403)
