@@ -98,18 +98,26 @@ controller_path.write_text(controller)
 
 help_path = Path('src/features/games/weed-goblins/weedGoblinsHelpChapterOne.js')
 help_text = help_path.read_text()
-replacements = {
-    "'session-zero-welcome': 'This plays like texting. Tap a reply to answer me; when a message box is open, you can type or use the microphone instead.'": "'session-zero-welcome': \"Whenever you're ready, we'll build your character and get onto the trail. If anything doesn't make sense, use Help and I'll walk you through it.\"",
-    "'session-zero-name': 'Type a name in the message box. If you want suggestions, ask for help instead of forcing yourself to invent one on command.'": "'session-zero-name': \"Give your character any name you like. If you want a few ideas, use Help and I'll give you some.\"",
-    "'session-zero-race': 'Choose a race by tapping one of the replies. This is character flavor, not a hidden test.'": "'session-zero-race': \"Pick whichever one fits the character you have in mind. There isn't a wrong answer here.\"",
-    "'session-zero-weapon': 'Pick the weapon you want your character to carry. It changes how some actions are described, not your core stats.'": "'session-zero-weapon': 'Choose what you want them carrying. This mostly changes how their actions look in the story.'",
-    "'choose-background': 'Your class sets Strength, Defense, and Mana. Hold the E beside my name if you want to see the detailed character information without leaving the conversation.'": "'choose-background': 'This one does affect Strength, Defense, and Mana. Hold the E beside my name if you want to see the numbers before you choose.'",
-    "'session-zero-pronoun': 'Choose a pronoun, or skip it. This only changes how the story refers to your character.'": "'session-zero-pronoun': 'Choose one or skip it. This just tells me how to refer to your character in the story.'",
-    "'session-zero-look': 'Pick one of the descriptions or type your own. The message box works the same way it will during the adventure.'": "'session-zero-look': 'Pick one of these descriptions or write your own.'",
-    "'choose-route': 'From here on, the replies are suggested moves, not limits. You can type or speak another idea. If a roll is needed, I will tell you the DC and what you need on the die before you roll.'": "'choose-route': \"We're in the adventure now. The blue replies are just a few obvious options. If you want to do something else, say it.\"",
-}
-for old, new in replacements.items():
-    help_text = replace_once(help_text, old, new, f'guidance: {old[:35]}')
+automatic_guidance_pattern = re.compile(
+    r"const AUTOMATIC_GUIDANCE = Object\.freeze\(\{.*?\n\}\)\n",
+    re.S,
+)
+help_text, guidance_count = automatic_guidance_pattern.subn(
+    'const AUTOMATIC_GUIDANCE = Object.freeze({})\n',
+    help_text,
+    count=1,
+)
+if guidance_count != 1:
+    raise SystemExit(f'expected one Chapter 1 automatic-guidance object, found {guidance_count}')
+for forbidden_guidance in [
+    "Whenever you're ready, we'll build your character and get onto the trail.",
+    'This plays like texting.',
+    'Tap a reply to answer me',
+    'The message box works the same way it will during the adventure.',
+    "We're in the adventure now.",
+]:
+    if forbidden_guidance in help_text:
+        raise SystemExit(f'automatic guidance survived Chapter 1 removal: {forbidden_guidance}')
 help_path.write_text(help_text)
 
 
