@@ -1,0 +1,121 @@
+name: Weed Goblins Eliza Intro R28 Proof
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-eliza-intro-static-copy-20260809
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PLAYTEST_URL: https://my420journal-wg-playtest-1-3.casevoice-ai.workers.dev/games/weed-goblins
+      EXPECTED_REVISION: eliza-intro-restore-r28
+      NEW_LINE_ONE: "I'm Eliza. I'll be running everything from here, the goblins, the weather, whoever's dumb enough to get in your way. Tell me what you're trying to do and I'll tell you what happens."
+      NEW_LINE_TWO: "Sometimes I'll toss out a couple of obvious moves so you're not staring at a blank box. Ignore them if you've got something better."
+      OLD_LINE_ONE: "I'm Eliza, and I'll be running the game. You tell me what your character tries; when a rule matters, I'll explain it right where it comes up."
+      OLD_LINE_TWO: "I'll usually put a few obvious choices in front of you so you're never left guessing what you can try, but they're suggestions, not limits. If you want something else, just say what you're doing."
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-eliza-intro-static-copy-20260809
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify exact live revision without deploying
+        shell: bash
+        run: |
+          set -euo pipefail
+          headers="$(curl -sS -D - -o /tmp/wg-r28-proof.html "$PLAYTEST_URL")"
+          normalized="$(printf '%s' "$headers" | tr '[:upper:]' '[:lower:]' | tr -d '\r')"
+          printf '%s\n' "$normalized" | grep -F "x-wg-playtest-revision: $EXPECTED_REVISION"
+          printf '%s\n' "$normalized" | grep -F "cache-control: no-store"
+          echo "LIVE_ROUTE_REVISION=$EXPECTED_REVISION"
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Prove existing stale save repairs and capture visible intro
+        shell: bash
+        run: |
+          mkdir -p playtest-artifacts
+          cat > wg-r28-proof.mjs <<'EOF'
+          import { chromium } from 'playwright'
+
+          const url = process.env.PLAYTEST_URL
+          const newOne = process.env.NEW_LINE_ONE
+          const newTwo = process.env.NEW_LINE_TWO
+          const oldOne = process.env.OLD_LINE_ONE
+          const oldTwo = process.env.OLD_LINE_TWO
+          const check = (condition, message) => { if (!condition) throw new Error(message) }
+
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const context = await browser.newContext({ viewport: { width: 1050, height: 923 } })
+            await context.addInitScript(() => localStorage.clear())
+            const page = await context.newPage()
+            const response = await page.goto(url, { waitUntil: 'networkidle' })
+            check(response?.url() === url, `Wrong final URL: ${response?.url()}`)
+
+            await page.getByRole('button', { name: 'Continue' }).waitFor({ timeout: 30000 })
+            await page.getByRole('button', { name: 'Continue' }).click()
+            await page.getByText(newOne, { exact: true }).waitFor({ timeout: 30000 })
+            await page.getByText(newTwo, { exact: true }).waitFor({ timeout: 30000 })
+
+            const replacements = await page.evaluate(({ newOne, newTwo, oldOne, oldTwo }) => {
+              let count = 0
+              const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index)).filter(Boolean)
+              for (const key of keys) {
+                if (!key.includes('weed_goblins_active_run')) continue
+                const value = localStorage.getItem(key)
+                if (!value) continue
+                const next = value.split(newOne).join(oldOne).split(newTwo).join(oldTwo)
+                if (next !== value) {
+                  localStorage.setItem(key, next)
+                  count += 1
+                }
+              }
+              return count
+            }, { newOne, newTwo, oldOne, oldTwo })
+            check(replacements > 0, 'Could not seed stale saved intro')
+
+            await page.reload({ waitUntil: 'networkidle' })
+            const lineOne = page.getByText(newOne, { exact: true })
+            const lineTwo = page.getByText(newTwo, { exact: true })
+            await lineOne.waitFor({ timeout: 30000 })
+            await lineTwo.waitFor({ timeout: 30000 })
+            const body = await page.locator('body').innerText()
+            check(!body.includes(oldOne), 'Old line one remained after restore')
+            check(!body.includes(oldTwo), 'Old line two remained after restore')
+
+            await lineOne.scrollIntoViewIfNeeded()
+            await page.waitForTimeout(250)
+            await page.screenshot({ path: 'playtest-artifacts/eliza-intro-restored-r28-visible.png', fullPage: false })
+
+            console.log('STALE_SAVE_SEEDED=PASS')
+            console.log('STALE_SAVE_INTRO_MIGRATION=PASS')
+            console.log('NEW_ELIZA_LINES_VISIBLE=PASS')
+            console.log(`LIVE_URL=${page.url()}`)
+            console.log('R28_PROOF_ONLY=PASS')
+          } finally {
+            await browser.close()
+          }
+          EOF
+          node wg-r28-proof.mjs
+
+      - name: Upload visible intro screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: weed-goblins-eliza-intro-r28-visible
+          path: playtest-artifacts/eliza-intro-restored-r28-visible.png
+          if-no-files-found: error
