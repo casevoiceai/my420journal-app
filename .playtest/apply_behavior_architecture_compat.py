@@ -38,6 +38,19 @@ for path, state_label in [
         '- Return one GM turn in the messenger bubble. Use the amount of spoken language the live moment needs. The 300-character limit is a hard transport ceiling, not a sentence quota and not a target.',
         f'{path.name} rigid sentence quota',
     )
+    if path.name == 'chapterThree.js':
+        text = replace_once(
+            text,
+            '- withered-grove: melancholy, quiet, uncanny. Let damaged life, exhausted care, and the wrongness beneath ordinary fieldwork set the rhythm.',
+            '- withered-grove: quieter and stranger, but still spoken and conversational. Show one practical wrong thing the player can react to, then keep moving.',
+            'Chapter 3 literary withered-grove posture',
+        )
+        text = replace_once(
+            text,
+            '- discovery: slower and stranger; let one revealing object, contradiction, root pattern, or image hold attention.',
+            '- discovery: let one odd or revealing thing land clearly, then keep moving.',
+            'Chapter 3 literary discovery posture',
+        )
     path.write_text(text)
 
 index_test_path = Path('server/weed-goblins-narration-worker/index.test.js')
@@ -89,7 +102,16 @@ for path in [
     text = path.read_text()
     if '\u2014' in text or '\u2013' in text:
         raise SystemExit(f'forbidden dash character present after compatibility patch: {path}')
+    for forbidden in [
+        'one or two focused sentences',
+        'patient, lush, curious',
+        'melancholy, quiet, uncanny',
+        'slower and stranger',
+    ]:
+        if forbidden in text:
+            raise SystemExit(f'conflicting literary register remains after compatibility patch in {path}: {forbidden}')
 
 print('BEHAVIOR_ARCHITECTURE_COMPAT_APPLIED')
 print('ACTUAL_PLAY_INDEX_TEST_UPDATED')
 print('RIGID_LATER_CHAPTER_SENTENCE_QUOTAS_REMOVED')
+print('LITERARY_POSTURE_CONFLICTS_REMOVED')
