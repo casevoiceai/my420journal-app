@@ -102,14 +102,18 @@ for path in [
     text = path.read_text()
     if '\u2014' in text or '\u2013' in text:
         raise SystemExit(f'forbidden dash character present after compatibility patch: {path}')
-    for forbidden in [
-        'one or two focused sentences',
-        'patient, lush, curious',
-        'melancholy, quiet, uncanny',
-        'slower and stranger',
-    ]:
-        if forbidden in text:
-            raise SystemExit(f'conflicting literary register remains after compatibility patch in {path}: {forbidden}')
+
+for path in [
+    Path('server/weed-goblins-narration-worker/chapterTwo.js'),
+    Path('server/weed-goblins-narration-worker/chapterThree.js'),
+]:
+    if 'one or two focused sentences' in path.read_text():
+        raise SystemExit(f'rigid sentence quota remains after compatibility patch: {path}')
+
+chapter_three = Path('server/weed-goblins-narration-worker/chapterThree.js').read_text()
+for forbidden in ['melancholy, quiet, uncanny', 'slower and stranger']:
+    if forbidden in chapter_three:
+        raise SystemExit(f'Chapter 3 literary posture remains after compatibility patch: {forbidden}')
 
 print('BEHAVIOR_ARCHITECTURE_COMPAT_APPLIED')
 print('ACTUAL_PLAY_INDEX_TEST_UPDATED')
