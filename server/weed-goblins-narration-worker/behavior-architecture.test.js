@@ -25,10 +25,10 @@ function assertArchitecture(prompt, names = []) {
     'REACT:',
     'OPEN:',
     'STOP:',
-    'Do not reflexively',
   ]) {
     assert.equal(prompt.includes(required), true, required)
   }
+  assert.match(prompt, /do not reflexively/i)
   for (const name of names) {
     assert.equal(prompt.includes(name), true, name)
   }
@@ -68,6 +68,7 @@ test('Chapter 2 prompt uses causal DNA for named market NPCs', () => {
   ])
   assert.match(CHAPTER_TWO_SYSTEM_PROMPT, /Root Collector is not a social NPC/)
   assert.match(CHAPTER_TWO_SYSTEM_PROMPT, /goblin-bureaucracy/)
+  assert.match(CHAPTER_TWO_SYSTEM_PROMPT, /engine owns every mechanic and result/i)
 })
 
 test('Chapter 3 prompt uses Withered Grove posture and named NPC causal DNA', () => {
@@ -78,6 +79,7 @@ test('Chapter 3 prompt uses Withered Grove posture and named NPC causal DNA', ()
     'ASHKA GREYROOT',
   ])
   assert.match(CHAPTER_THREE_SYSTEM_PROMPT, /withered-grove: melancholy, quiet, uncanny/)
+  assert.match(CHAPTER_THREE_SYSTEM_PROMPT, /engine owns every mechanic and result/i)
 })
 
 test('Chapter 1 scene posture selection is deterministic from authoritative state', () => {
