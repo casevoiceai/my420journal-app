@@ -2,23 +2,50 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { onRequest } from '../../../../functions/api/weed-goblins-narration.js'
+import { buildPrivateTestingCookie } from '../../../../server/private-testing-access.js'
 
+const TEST_ACCESS_CODE = 'journal-test-access-code'
 const env = {
+  JOURNAL_ACCESS_CODE: TEST_ACCESS_CODE,
   WEED_GOBLINS_NARRATION_WORKER_URL: 'https://private-worker.example.test',
   WEED_GOBLINS_PROXY_SECRET: 'private-shared-secret',
 }
+const testerCookie = (await buildPrivateTestingCookie(TEST_ACCESS_CODE)).split(';')[0]
 
-function makeRequest(origin = 'https://my420journal.app') {
+function makeRequest(origin = 'https://my420journal.app', { authorized = true } = {}) {
+  const headers = {
+    Origin: origin,
+    'Content-Type': 'application/json',
+    'CF-Connecting-IP': '203.0.113.42',
+  }
+  if (authorized) headers.Cookie = testerCookie
+
   return new Request('https://my420journal.app/api/weed-goblins-narration', {
     method: 'POST',
-    headers: {
-      Origin: origin,
-      'Content-Type': 'application/json',
-      'CF-Connecting-IP': '203.0.113.42',
-    },
+    headers,
     body: JSON.stringify({ moment: 'natural-one-complication' }),
   })
 }
+
+test('rejects a request without a valid tester session before forwarding', async () => {
+  const originalFetch = globalThis.fetch
+  let fetchCalls = 0
+  globalThis.fetch = async () => {
+    fetchCalls += 1
+    throw new Error('must not forward')
+  }
+  try {
+    const response = await onRequest({
+      request: makeRequest('https://my420journal.app', { authorized: false }),
+      env,
+    })
+    assert.equal(response.status, 401)
+    assert.equal(fetchCalls, 0)
+    assert.deepEqual(await response.json(), { error: 'Private testing access required' })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
 
 test('rejects an unapproved Origin before forwarding', async () => {
   const originalFetch = globalThis.fetch
