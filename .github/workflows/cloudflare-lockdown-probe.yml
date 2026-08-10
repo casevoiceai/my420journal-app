@@ -18,39 +18,28 @@ jobs:
           cat > anthropic-worker.js <<'WORKER'
           const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
           const ANTHROPIC_VERSION = '2023-06-01';
-
           const corsHeaders = {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization',
             'Access-Control-Max-Age': '86400',
           };
-
           function jsonResponse(body, status = 200) {
-            return new Response(JSON.stringify(body), {
-              status,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
+            return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
           }
-
           async function digest(value) {
             const bytes = new TextEncoder().encode(String(value ?? ''));
             return new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
           }
-
           function toHex(bytes) {
             return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
           }
-
           async function timingSafeEqual(left, right) {
             const [leftDigest, rightDigest] = await Promise.all([digest(left), digest(right)]);
             let mismatch = 0;
-            for (let index = 0; index < leftDigest.length; index += 1) {
-              mismatch |= leftDigest[index] ^ rightDigest[index];
-            }
+            for (let index = 0; index < leftDigest.length; index += 1) mismatch |= leftDigest[index] ^ rightDigest[index];
             return mismatch === 0;
           }
-
           async function isAuthorized(request, expectedVerifier) {
             const verifier = String(expectedVerifier ?? '').trim().toLowerCase();
             if (!/^[0-9a-f]{64}$/.test(verifier)) return false;
@@ -59,15 +48,10 @@ jobs:
             const suppliedVerifier = toHex(await digest(authorization));
             return timingSafeEqual(suppliedVerifier, verifier);
           }
-
           export default {
             async fetch(request, env) {
-              if (request.method === 'OPTIONS') {
-                return new Response(null, { status: 204, headers: corsHeaders });
-              }
-              if (!(await isAuthorized(request, env.ANTHROPIC_PROXY_AUTH_SECRET))) {
-                return jsonResponse({ error: 'Unauthorized' }, 401);
-              }
+              if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
+              if (!(await isAuthorized(request, env.ANTHROPIC_PROXY_AUTH_SECRET))) return jsonResponse({ error: 'Unauthorized' }, 401);
               if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
               if (!env.ANTHROPIC_API_KEY) return jsonResponse({ error: 'Worker is missing ANTHROPIC_API_KEY' }, 500);
               let body;
@@ -75,52 +59,45 @@ jobs:
               try {
                 const anthropicResponse = await fetch(ANTHROPIC_MESSAGES_URL, {
                   method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': env.ANTHROPIC_API_KEY,
-                    'anthropic-version': ANTHROPIC_VERSION,
-                  },
+                  headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': ANTHROPIC_VERSION },
                   body,
                 });
                 const responseBody = await anthropicResponse.text();
                 return new Response(responseBody, {
                   status: anthropicResponse.status,
                   statusText: anthropicResponse.statusText,
-                  headers: {
-                    ...corsHeaders,
-                    'Content-Type': anthropicResponse.headers.get('Content-Type') || 'application/json',
-                  },
+                  headers: { ...corsHeaders, 'Content-Type': anthropicResponse.headers.get('Content-Type') || 'application/json' },
                 });
               } catch (error) {
-                return jsonResponse({
-                  error: 'Unable to reach Anthropic API',
-                  detail: error instanceof Error ? error.message : 'Unknown error',
-                }, 502);
+                return jsonResponse({ error: 'Unable to reach Anthropic API', detail: error instanceof Error ? error.message : 'Unknown error' }, 502);
               }
             },
           };
           WORKER
-      - name: Set Anthropic bearer verifier as Worker secret
+      - name: Confirm Anthropic Worker secret exists
         shell: bash
         run: |
-          curl --fail-with-body --silent --show-error -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/anthropic-proxy/secrets" \
+          curl --fail-with-body --silent --show-error \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/anthropic-proxy/settings" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H 'Content-Type: application/json' \
-            --data '{"name":"ANTHROPIC_PROXY_AUTH_SECRET","type":"secret_text","text":"8b50d1763aa72766edc2123f91cda7de896a508da6d4ae05d37c27581c6b3043"}' \
-            | jq -e '.success == true' >/dev/null
-          echo 'anthropic_proxy_auth_secret=confirmed'
-      - name: Upload Anthropic Worker code without replacing bindings
+            | jq -e '.success and any(.result.bindings[]; .name == "ANTHROPIC_PROXY_AUTH_SECRET" and .type == "secret_text")' >/dev/null
+      - name: Code-only update of Anthropic Worker
         shell: bash
         run: |
-          curl --fail-with-body --silent --show-error -X PUT \
+          response_file=/tmp/cloudflare-response.json
+          status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' -X PUT \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/anthropic-proxy/content" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -F 'metadata={"main_module":"worker.js"};type=application/json' \
-            -F 'worker.js=@anthropic-worker.js;type=application/javascript+module' \
-            | jq -e '.success == true' >/dev/null
+            -H 'CF-WORKER-MAIN-MODULE-PART: worker.js' \
+            -F 'worker.js=@anthropic-worker.js;type=application/javascript+module')"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "cloudflare_status=$status"
+            jq '{success, errors, messages}' "$response_file" || cat "$response_file"
+            exit 1
+          fi
+          jq -e '.success == true' "$response_file" >/dev/null
           echo 'anthropic_worker_code=deployed'
-      - name: Verify Anthropic Worker bindings and unauthenticated rejection
+      - name: Verify Anthropic Worker lockdown
         shell: bash
         run: |
           settings="$(curl --fail-with-body --silent --show-error \
