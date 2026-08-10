@@ -1,0 +1,75 @@
+name: Weed Goblins Zero Preamble Diagnostic
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-zero-preamble-proof-20260810
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PLAYTEST_URL: https://my420journal-wg-playtest-1-3.casevoice-ai.workers.dev/games/weed-goblins
+      EXPECTED_REVISION: zero-preamble-r30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-zero-preamble-proof-20260810
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify live revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          headers="$(curl -sS -D - -o /tmp/wg.html "$PLAYTEST_URL")"
+          normalized="$(printf '%s' "$headers" | tr '[:upper:]' '[:lower:]' | tr -d '\r')"
+          printf '%s\n' "$normalized" | grep -F "x-wg-playtest-revision: $EXPECTED_REVISION"
+          printf '%s\n' "$normalized" | grep -F "cache-control: no-store"
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+      - name: Inspect first live browser state
+        shell: bash
+        run: |
+          mkdir -p browser-diagnostic
+          cat > browser-diagnostic/inspect.mjs <<'EOF'
+          import { chromium } from 'playwright'
+          const url = process.env.PLAYTEST_URL
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+            const page = await context.newPage()
+            const errors = []
+            page.on('console', msg => { if (msg.type() === 'error') errors.push(`console:${msg.text()}`) })
+            page.on('pageerror', err => errors.push(`pageerror:${err.message}`))
+            await page.goto(url, { waitUntil: 'networkidle' })
+            const body = await page.locator('body').innerText()
+            const buttons = await page.getByRole('button').allTextContents()
+            const links = await page.getByRole('link').allTextContents()
+            const storage = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))
+            console.log('BODY_START')
+            console.log(body.slice(0, 12000))
+            console.log('BODY_END')
+            console.log('BUTTONS=' + JSON.stringify(buttons))
+            console.log('LINKS=' + JSON.stringify(links))
+            console.log('LOCALSTORAGE_KEYS=' + JSON.stringify(Object.keys(storage).sort()))
+            console.log('BROWSER_ERRORS=' + JSON.stringify(errors))
+            await page.screenshot({ path: 'browser-diagnostic/initial-live.png', fullPage: true })
+          } finally {
+            await browser.close()
+          }
+          EOF
+          node browser-diagnostic/inspect.mjs
+      - name: Upload diagnostic screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: weed-goblins-r30-diagnostic
+          path: browser-diagnostic/initial-live.png
+          if-no-files-found: error
