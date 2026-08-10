@@ -16,7 +16,13 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run build
-      - run: npm test
+      - name: Record test suite
+        shell: bash
+        run: |
+          set +e
+          npm test 2>&1 | tee test-output.txt
+          echo "${PIPESTATUS[0]}" > test-exit.txt
+          exit 0
       - name: Validate signed tester session
         run: |
           node --input-type=module <<'NODE'
@@ -34,3 +40,10 @@ jobs:
             throw new Error('Required cookie security attributes are missing')
           }
           NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: journal-test-output
+          path: |
+            test-output.txt
+            test-exit.txt
