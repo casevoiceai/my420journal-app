@@ -210,6 +210,17 @@ chapter_one = replace_regex_once(
     'Chapter 1 posture injection',
 )
 
+# Remove the reflexive route handoff question from the private Session Zero overlay.
+engine_path = Path('src/features/games/weed-goblins/weedGoblinsEngine.js')
+engine = engine_path.read_text()
+engine = replace_once(
+    engine,
+    "    `You haven't been spotted yet. You can try to cross quietly, move fast before the alarm has time to matter, or try something else if you've got another idea. What do you want to do?`,",
+    "    `You haven't been spotted yet. You can try to cross quietly, move fast before the alarm has time to matter, or try something else if you've got another idea.`,",
+    'reflexive route handoff question',
+)
+engine_path.write_text(engine)
+
 chapter_one_path.write_text(chapter_one)
 
 
