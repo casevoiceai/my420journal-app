@@ -1,0 +1,182 @@
+name: Weed Goblins Restore Die R23
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-restore-die-fix-20260809
+
+permissions:
+  contents: read
+
+env:
+  PLAYTEST_URL: https://my420journal-wg-playtest-1-3.casevoice-ai.workers.dev/games/weed-goblins
+  EXPECTED_REVISION: restore-die-r23
+
+jobs:
+  verify-deploy-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-restore-die-fix-20260809
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Verify protected feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feature/weed-goblins-session-zero
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero:src/features/games/weed-goblins/weedGoblinsEngine.js)" = "02b3bdc10a32687fed81e230525b418567645b6a"
+
+      - name: Apply current private playtest build plus restore fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .playtest/apply_human_gm_prose_v3.py
+          python .playtest/apply_approved_kings_stash_opening.py
+          git fetch origin temp/weed-goblins-narration-voice-audit-20260809
+          test "$(git rev-parse origin/temp/weed-goblins-narration-voice-audit-20260809)" = "c7f67befc2cf5175787d615ada1e3a1017294f48"
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/legacyChapterOne.js > server/weed-goblins-narration-worker/legacyChapterOne.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsNarrationValidation.js > src/features/games/weed-goblins/weedGoblinsNarrationValidation.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/voice-audit.test.js > server/weed-goblins-narration-worker/voice-audit.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/index.test.js > server/weed-goblins-narration-worker/index.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/story-beats.test.js > server/weed-goblins-narration-worker/story-beats.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsAiComplication.test.js > src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
+          python .playtest/apply_research_rules.py
+          python .playtest/apply_behavior_architecture.py
+          python .playtest/apply_behavior_architecture_compat.py
+          python .playtest/apply_post_rattlebridge_gameplay_fixes.py
+          python .playtest/apply_choice_restore_hardening.py
+          python .playtest/apply_restart_busy_hardening.py
+          python .playtest/apply_restore_die_fix.py
+          git diff --check
+          grep -F "value === null || value === undefined || value === ''" src/features/games/weed-goblins/weedGoblinsPersistenceChapterOne.js
+          grep -F "kind !== 'roll-result' && rawDie === 1 ? null : rawDie" src/features/games/weed-goblins/weedGoblinsPersistenceChapterOne.js
+
+      - name: Run regression tests and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          node --test \
+            src/features/games/weed-goblins/weedGoblinsPersistenceDieRestore.test.js \
+            src/features/games/weed-goblins/weedGoblinsPostRattlebridge.test.js
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('public/_headers')
+          text = path.read_text()
+          old = 'X-WG-Playtest-Revision: guidance-removed-r18'
+          new = 'X-WG-Playtest-Revision: restore-die-r23'
+          if old not in text:
+              raise SystemExit('old playtest revision marker missing')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          npm run build
+          rm -f dist/_redirects
+
+      - name: Deploy private playtest host only
+        run: npx wrangler@latest deploy --config .playtest/host/wrangler.jsonc
+
+      - name: Wait for exact live revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            headers="$(curl -sS -D - -o /tmp/wg-r23.html "$PLAYTEST_URL" || true)"
+            normalized="$(printf '%s' "$headers" | tr '[:upper:]' '[:lower:]' | tr -d '\r')"
+            if printf '%s' "$normalized" | grep -Fq "x-wg-playtest-revision: $EXPECTED_REVISION"; then
+              printf '%s\n' "$normalized" | grep -F "cache-control: no-store"
+              echo "LIVE_ROUTE_REVISION=$EXPECTED_REVISION"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Expected revision never appeared at exact game URL" >&2
+          exit 1
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Verify false badges are repaired and real D20 still renders
+        shell: bash
+        run: |
+          cat > wg-r23-live.mjs <<'EOF'
+          import { chromium } from 'playwright'
+
+          const url = process.env.PLAYTEST_URL
+          const expectedRevision = process.env.EXPECTED_REVISION
+          const check = (condition, message) => { if (!condition) throw new Error(message) }
+
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const context = await browser.newContext({ viewport: { width: 1050, height: 923 } })
+            await context.addInitScript(() => {
+              if (!sessionStorage.getItem('wg-r23-initialized')) {
+                localStorage.clear()
+                sessionStorage.setItem('wg-r23-initialized', '1')
+              }
+            })
+            const page = await context.newPage()
+            const response = await page.goto(url, { waitUntil: 'networkidle' })
+            check(response?.url() === url, `Wrong final URL: ${response?.url()}`)
+            check(response.headers()['x-wg-playtest-revision'] === expectedRevision, 'Wrong live revision')
+            await page.getByRole('button', { name: 'Continue' }).waitFor({ timeout: 30000 })
+            check(await page.locator('.weed-goblins-game__inline-die').count() === 0, 'Fresh opening contains a false inline die')
+            console.log('FRESH_OPENING_FALSE_DICE=PASS')
+
+            const storageKey = await page.evaluate(() => Object.keys(localStorage).find((key) => key.includes('weed_goblins_active_run')) || '')
+            check(storageKey, 'Active run storage key missing')
+            await page.evaluate((key) => {
+              const record = JSON.parse(localStorage.getItem(key))
+              for (const message of record.messages || []) {
+                if (message.kind !== 'roll-result') message.die = 1
+              }
+              localStorage.setItem(key, JSON.stringify(record))
+            }, storageKey)
+            await page.reload({ waitUntil: 'networkidle' })
+            await page.getByRole('button', { name: 'Continue' }).waitFor({ timeout: 30000 })
+            check(await page.locator('.weed-goblins-game__inline-die').count() === 0, 'Corrupted saved narration still renders false D20 badges')
+            console.log('CORRUPTED_SAVE_SELF_REPAIRS=PASS')
+
+            await page.getByRole('button', { name: 'Continue' }).click()
+            const composer = page.locator('.weed-goblins-game__composer input')
+            await composer.waitFor()
+            await composer.fill('Fenna')
+            await page.locator('.weed-goblins-game__send-button').click()
+            await page.getByRole('button', { name: 'Human' }).click()
+            await page.getByRole('button', { name: 'Sword' }).click()
+            await page.getByRole('button', { name: 'Highland Tracker' }).click()
+            await page.getByRole('button', { name: 'They' }).click()
+            await page.locator('.weed-goblins-game__quick-reply').first().click()
+            await page.getByRole('button', { name: /Quiet Crossing/ }).waitFor({ timeout: 30000 })
+            await page.getByRole('button', { name: /Quiet Crossing/ }).click()
+            await page.getByRole('button', { name: /ROLL D20/i }).waitFor()
+            await page.getByRole('button', { name: /ROLL D20/i }).click()
+            await page.locator('.weed-goblins-game__roll-result').waitFor({ timeout: 30000 })
+            check(await page.locator('.weed-goblins-game__roll-result .weed-goblins-game__d20 text').count() === 1, 'Real D20 result number did not render')
+            check(await page.locator('.weed-goblins-game__inline-die').count() === 0, 'Narration regained false inline dice after a real roll')
+            console.log('REAL_D20_RESULT=PASS')
+
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+            check(!overflow, 'Desktop horizontal overflow')
+            console.log(`LIVE_URL=${page.url()}`)
+            console.log(`LIVE_REVISION=${response.headers()['x-wg-playtest-revision']}`)
+            console.log('RESTORE_DIE_R23_LIVE=PASS')
+          } finally {
+            await browser.close()
+          }
+          EOF
+          node wg-r23-live.mjs
