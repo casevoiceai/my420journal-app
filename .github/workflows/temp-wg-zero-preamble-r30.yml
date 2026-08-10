@@ -1,0 +1,229 @@
+name: Weed Goblins Zero Preamble R30
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-zero-preamble-20260810
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weed-goblins-zero-preamble-r30
+  cancel-in-progress: true
+
+jobs:
+  verify-deploy-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_STAGING_PROXY_SECRET }}
+      PLAYTEST_URL: https://my420journal-wg-playtest-1-3.casevoice-ai.workers.dev/games/weed-goblins
+      EXPECTED_REVISION: zero-preamble-r30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-zero-preamble-20260810
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Verify protected feature branch and private base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feature/weed-goblins-session-zero temp/weed-goblins-check-type-audit-20260809
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero:src/features/games/weed-goblins/weedGoblinsEngine.js)" = "02b3bdc10a32687fed81e230525b418567645b6a"
+          test "$(git rev-parse origin/temp/weed-goblins-check-type-audit-20260809)" = "a55728486eb2bc19191b9ad2c9618c19918d74f9"
+
+      - name: Rebuild private playtest stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .playtest/apply_human_gm_prose_v3.py
+          python .playtest/apply_approved_kings_stash_opening.py
+          git fetch origin temp/weed-goblins-narration-voice-audit-20260809
+          test "$(git rev-parse origin/temp/weed-goblins-narration-voice-audit-20260809)" = "c7f67befc2cf5175787d615ada1e3a1017294f48"
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/legacyChapterOne.js > server/weed-goblins-narration-worker/legacyChapterOne.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsNarrationValidation.js > src/features/games/weed-goblins/weedGoblinsNarrationValidation.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/voice-audit.test.js > server/weed-goblins-narration-worker/voice-audit.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/index.test.js > server/weed-goblins-narration-worker/index.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/story-beats.test.js > server/weed-goblins-narration-worker/story-beats.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsAiComplication.test.js > src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
+          python .playtest/apply_research_rules.py
+          python .playtest/apply_behavior_architecture.py
+          python .playtest/apply_behavior_architecture_compat.py
+          python .playtest/apply_post_rattlebridge_gameplay_fixes.py
+          python .playtest/apply_choice_restore_hardening.py
+          python .playtest/apply_restart_busy_hardening.py
+          python .playtest/apply_restore_die_fix.py
+          python .playtest/apply_check_type_audit_v2.py
+          python .playtest/apply_eliza_intro_restore_migration.py
+          python .playtest/apply_actual_play_register.py
+          python .playtest/apply_zero_preamble_r30.py
+          git diff --check
+
+      - name: Verify exact zero-preamble opening in effective engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'EOF'
+          import assert from 'node:assert/strict'
+          import { SESSION_ZERO_WELCOME } from './src/features/games/weed-goblins/weedGoblinsEngine.js'
+
+          const expectedFirst = "You've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you."
+          const expectedQuestion = "What's your character's name, and are they human, dwarf, elf, or gnome?"
+          assert.equal(SESSION_ZERO_WELCOME.length, 5)
+          assert.equal(SESSION_ZERO_WELCOME[0], expectedFirst)
+          assert.match(SESSION_ZERO_WELCOME[3], /Very regal\.$/)
+          assert.equal(SESSION_ZERO_WELCOME[4], expectedQuestion)
+          assert.equal(SESSION_ZERO_WELCOME.some((line) => /Okay, so|Before you catch up|before we start|you don't need to know the rules/i.test(line)), false)
+          console.log('EFFECTIVE_ENGINE_ZERO_PREAMBLE=PASS')
+          console.log(`EFFECTIVE_CHARACTER_QUESTION=${SESSION_ZERO_WELCOME[4]}`)
+          EOF
+
+      - name: Install, targeted tests, and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          node --test \
+            server/weed-goblins-narration-worker/index.test.js \
+            server/weed-goblins-narration-worker/story-beats.test.js \
+            src/features/games/weed-goblins/weedGoblinsAiComplication.test.js \
+            src/features/games/weed-goblins/weedGoblinsCheckTypeAudit.test.js \
+            src/features/games/weed-goblins/weedGoblinsPersistenceDieRestore.test.js \
+            src/features/games/weed-goblins/weedGoblinsPostRattlebridge.test.js
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          path = Path('public/_headers')
+          text = path.read_text()
+          text, count = re.subn(r'X-WG-Playtest-Revision: [^\n]+', 'X-WG-Playtest-Revision: zero-preamble-r30', text, count=1)
+          if count != 1:
+              raise SystemExit('playtest revision header missing')
+          path.write_text(text)
+          PY
+          npm run build
+          rm -f dist/_redirects
+
+      - name: Deploy narration Worker to staging only
+        working-directory: server/weed-goblins-narration-worker
+        run: npx wrangler@latest deploy --env staging
+
+      - name: Set private host secret
+        shell: bash
+        run: printf '%s' "$STAGING_PROXY_SECRET" | npx wrangler@latest secret put WEED_GOBLINS_PROXY_SECRET --config .playtest/host/wrangler.jsonc
+
+      - name: Deploy private playtest host only
+        run: npx wrangler@latest deploy --config .playtest/host/wrangler.jsonc
+
+      - name: Wait for exact live revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            headers="$(curl -sS -D - -o /tmp/wg-r30.html "$PLAYTEST_URL" || true)"
+            normalized="$(printf '%s' "$headers" | tr '[:upper:]' '[:lower:]' | tr -d '\r')"
+            if printf '%s' "$normalized" | grep -Fq "x-wg-playtest-revision: $EXPECTED_REVISION"; then
+              printf '%s\n' "$normalized" | grep -F "cache-control: no-store"
+              echo "LIVE_ROUTE_REVISION=$EXPECTED_REVISION"
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Real browser refresh proof without clearing saved state
+        shell: bash
+        run: |
+          mkdir -p browser-proof
+          cat > browser-proof/r30-refresh.mjs <<'EOF'
+          import { chromium } from 'playwright'
+
+          const url = process.env.PLAYTEST_URL
+          const check = (condition, message) => { if (!condition) throw new Error(message) }
+          const oldFirst = "Okay, so you've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you."
+          const newFirst = "You've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you."
+          const oldQuestion = "Before you catch up with them, what's your character's name, and are they human, dwarf, elf, or gnome?"
+          const newQuestion = "What's your character's name, and are they human, dwarf, elf, or gnome?"
+
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+            const page = await context.newPage()
+            await page.goto(url, { waitUntil: 'networkidle' })
+            await page.getByText(newQuestion, { exact: true }).waitFor({ timeout: 30000 })
+
+            const beforeKeys = await page.evaluate(() => Object.keys(localStorage).sort())
+            const activeKeys = beforeKeys.filter((key) => key.includes('weed_goblins_active_run'))
+            check(activeKeys.length > 0, 'no active Weed Goblins save was created')
+
+            const seeded = await page.evaluate(({ oldFirst, newFirst, oldQuestion, newQuestion }) => {
+              let changed = 0
+              for (let index = 0; index < localStorage.length; index += 1) {
+                const key = localStorage.key(index)
+                if (!key || !key.includes('weed_goblins_active_run')) continue
+                const value = localStorage.getItem(key)
+                if (!value) continue
+                const prior = value.split(newFirst).join(oldFirst).split(newQuestion).join(oldQuestion)
+                if (prior !== value) {
+                  localStorage.setItem(key, prior)
+                  changed += 1
+                }
+              }
+              return changed
+            }, { oldFirst, newFirst, oldQuestion, newQuestion })
+            check(seeded > 0, 'could not prepare an R29-format saved run for restore proof')
+
+            // Deliberate ordinary refresh. No localStorage.clear(), no new browser context.
+            await page.reload({ waitUntil: 'networkidle' })
+            await page.getByText(newFirst, { exact: true }).waitFor({ timeout: 30000 })
+            await page.getByText(newQuestion, { exact: true }).waitFor({ timeout: 30000 })
+
+            const body = await page.locator('body').innerText()
+            check(!body.includes(oldFirst), 'old Okay, so opening survived saved-run refresh')
+            check(!body.includes(oldQuestion), 'old Before you catch up bridge survived saved-run refresh')
+            check(!/you don't need to know the rules|before we start/i.test(body), 'spoken onboarding preamble appeared')
+
+            const afterKeys = await page.evaluate(() => Object.keys(localStorage).sort())
+            check(JSON.stringify(beforeKeys) === JSON.stringify(afterKeys), 'saved-state key set changed across refresh')
+            const storageStillHasActiveRun = await page.evaluate(() => Object.keys(localStorage).some((key) => key.includes('weed_goblins_active_run')))
+            check(storageStillHasActiveRun, 'active save missing after refresh')
+
+            const dimensions = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            check(dimensions.width === dimensions.scroll, `horizontal overflow ${dimensions.width}/${dimensions.scroll}`)
+
+            await page.screenshot({ path: 'browser-proof/weed-goblins-r30-after-refresh.png', fullPage: true })
+            console.log('BROWSER_REFRESH_NO_CLEAR=PASS')
+            console.log('R29_SAVE_MIGRATED_ON_REFRESH=PASS')
+            console.log('ZERO_PREAMBLE_VISIBLE=PASS')
+            console.log(`MOBILE_WIDTH=${dimensions.width}/${dimensions.scroll}`)
+            console.log(`LIVE_URL=${page.url()}`)
+            console.log('SCREENSHOT=browser-proof/weed-goblins-r30-after-refresh.png')
+          } finally {
+            await browser.close()
+          }
+          EOF
+          node browser-proof/r30-refresh.mjs
+
+      - name: Upload post-refresh screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weed-goblins-r30-after-refresh
+          path: browser-proof/weed-goblins-r30-after-refresh.png
+          if-no-files-found: error
