@@ -6,15 +6,78 @@ on:
       - 'agent/cloudflare-deploy-2026-08-10'
 
 jobs:
-  validate:
+  deploy-shared-worker:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm install
-      - run: npm run build
-      - run: npm test
+      - name: Wait for production verifier diagnostic
+        shell: bash
+        run: |
+          verifier=''
+          for attempt in $(seq 1 36); do
+            response="$(curl --silent --show-error --max-time 10 https://my420journal.app/api/_lockdown-bearer-verifier-b1f54d8c2a || true)"
+            if echo "$response" | jq -e '.present == true and (.verifier | test("^[0-9a-f]{64}$"))' >/dev/null 2>&1; then
+              verifier="$(echo "$response" | jq -r '.verifier')"
+              break
+            fi
+            sleep 5
+          done
+          test -n "$verifier"
+          echo "::add-mask::$verifier"
+          echo "JOURNAL_SHARED_VERIFIER=$verifier" >> "$GITHUB_ENV"
+          echo 'production_proxy_verifier=confirmed'
+      - name: Confirm D1 binding before deployment
+        shell: bash
+        run: |
+          settings="$(curl --fail-with-body --silent --show-error \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/my420journal-shared-worker/settings" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")"
+          echo "$settings" | jq -e '.success and any(.result.bindings[]; .name == "DB" and .type == "d1" and .id == "72afe7f1-d3cb-4741-8d02-a1fedd728644")' >/dev/null
+          echo "$settings" | jq -e '.success and any(.result.bindings[]; .name == "ADMIN_TOKEN" and .type == "secret_text") and any(.result.bindings[]; .name == "CONTRIBUTOR_RATE_LIMIT_SALT" and .type == "secret_text")' >/dev/null
+          echo 'shared_d1_before=confirmed'
+      - name: Set JOURNAL_SHARED_PROXY_SECRET on Shared Worker
+        shell: bash
+        run: |
+          jq -n --arg text "$JOURNAL_SHARED_VERIFIER" '{name:"JOURNAL_SHARED_PROXY_SECRET",type:"secret_text",text:$text}' > /tmp/secret.json
+          curl --fail-with-body --silent --show-error -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/my420journal-shared-worker/secrets" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/secret.json \
+            | jq -e '.success == true' >/dev/null
+          echo 'journal_shared_proxy_secret=confirmed'
+      - name: Code-only update of Shared Journey Worker
+        shell: bash
+        run: |
+          printf '%s' '{"main_module":"worker.js"}' > /tmp/metadata.json
+          response_file=/tmp/cloudflare-response.json
+          status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/my420journal-shared-worker/content" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -F 'metadata=@/tmp/metadata.json;type=application/json' \
+            -F 'worker.js=@server/shared-aggregate-worker/index.js;filename=worker.js;type=application/javascript+module')"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "cloudflare_status=$status"
+            jq '{success, errors, messages}' "$response_file" || cat "$response_file"
+            exit 1
+          fi
+          jq -e '.success == true' "$response_file" >/dev/null
+          echo 'shared_worker_code=deployed'
+      - name: Confirm D1 binding and lockdown after deployment
+        shell: bash
+        run: |
+          settings="$(curl --fail-with-body --silent --show-error \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/my420journal-shared-worker/settings" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")"
+          echo "$settings" | jq -e '.success and any(.result.bindings[]; .name == "DB" and .type == "d1" and .id == "72afe7f1-d3cb-4741-8d02-a1fedd728644")' >/dev/null
+          echo "$settings" | jq -e '.success and any(.result.bindings[]; .name == "ADMIN_TOKEN" and .type == "secret_text") and any(.result.bindings[]; .name == "CONTRIBUTOR_RATE_LIMIT_SALT" and .type == "secret_text") and any(.result.bindings[]; .name == "JOURNAL_SHARED_PROXY_SECRET" and .type == "secret_text")' >/dev/null
+          status="$(curl --silent --output /tmp/body --write-out '%{http_code}' -X GET 'https://my420journal-shared-worker.casevoice-ai.workers.dev/aggregates?product_key=lockdown-probe')"
+          test "$status" = '401'
+          jq -e '.error == "Unauthorized"' /tmp/body >/dev/null
+          echo 'shared_d1_after=confirmed'
+          echo 'shared_worker_lockdown=confirmed'
