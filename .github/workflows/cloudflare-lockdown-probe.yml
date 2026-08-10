@@ -12,24 +12,20 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - name: Read current Shared Journey remote bindings
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Confirm current Shared Journey D1 binding
         shell: bash
         run: |
           curl --fail-with-body --silent --show-error \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/my420journal-shared-worker/settings" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            | jq '{success, bindings: (.result.bindings // [] | map({name, type, namespace_id, id}))}'
-      - name: Read current anthropic-proxy remote bindings
+            | jq -e '.success and any(.result.bindings[]; .name == "DB" and .type == "d1" and .id == "72afe7f1-d3cb-4741-8d02-a1fedd728644")' >/dev/null
+          echo 'shared_d1_baseline=confirmed'
+      - name: List Pages secret names only
         shell: bash
         run: |
-          curl --fail-with-body --silent --show-error \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/anthropic-proxy/settings" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            | jq '{success, bindings: (.result.bindings // [] | map({name, type, namespace_id, id}))}'
-      - name: List Pages projects by name only
-        shell: bash
-        run: |
-          curl --fail-with-body --silent --show-error \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            | jq '{success, projects: (.result // [] | map({name, production_branch, subdomain}))}'
+          npx --yes wrangler@latest pages secret list --project-name my420journal-app \
+            | sed -E 's/(value|text)[^,}]*/\1=[REDACTED]/g'
