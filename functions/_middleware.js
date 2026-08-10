@@ -4,13 +4,11 @@ import {
   renderPrivateTestingGate,
 } from '../server/private-testing-access.js'
 
-const TEMP_LOCKDOWN_VERIFIER_PATH = '/api/_lockdown-bearer-verifier-7f4c9e2a'
-
 function gateHeaders(contentType) {
   return {
     'Content-Type': contentType,
     'Cache-Control': 'no-store, max-age=0',
-    'X-Robots-Tag': 'noindex, nofollow,noarchive',
+    'X-Robots-Tag': 'noindex, nofollow, noarchive',
     'X-Content-Type-Options': 'nosniff',
     'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
   }
@@ -40,7 +38,7 @@ export async function onRequest(context) {
   const { request, env } = context
   const url = new URL(request.url)
 
-  if (url.pathname === PRIVATE_TESTING_ACCESS_PATH || url.pathname === TEMP_LOCKDOWN_VERIFIER_PATH) {
+  if (url.pathname === PRIVATE_TESTING_ACCESS_PATH) {
     return context.next()
   }
 
