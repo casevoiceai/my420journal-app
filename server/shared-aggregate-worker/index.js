@@ -2,20 +2,40 @@ const PRODUCT_MINIMUM = 10
 const REGION_MINIMUM = 25
 const OPT_OUT_PURGE_DELAY_MS = 24 * 60 * 60 * 1000
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-}
-
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
-      ...CORS_HEADERS,
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
     },
   })
+}
+
+async function digest(value) {
+  const bytes = new TextEncoder().encode(String(value ?? ''))
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+}
+
+async function timingSafeEqual(left, right) {
+  const [leftDigest, rightDigest] = await Promise.all([digest(left), digest(right)])
+  let mismatch = 0
+  for (let index = 0; index < leftDigest.length; index += 1) {
+    mismatch |= leftDigest[index] ^ rightDigest[index]
+  }
+  return mismatch === 0
+}
+
+async function isAuthorized(request, expectedSecret) {
+  const secret = String(expectedSecret ?? '').trim()
+  if (!secret) return false
+
+  const authorization = request.headers.get('Authorization') || ''
+  if (!authorization.startsWith('Bearer ')) return false
+
+  const supplied = authorization.slice('Bearer '.length).trim()
+  if (!supplied) return false
+  return timingSafeEqual(supplied, secret)
 }
 
 function normalizeProductKey(value = '') {
@@ -270,7 +290,16 @@ async function purgeOptedOutContributors(env) {
 
 export default {
   async fetch(request, env) {
-    if (request.method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS })
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: { 'Cache-Control': 'no-store' },
+      })
+    }
+
+    if (!(await isAuthorized(request, env.JOURNAL_SHARED_PROXY_SECRET))) {
+      return json({ ok: false, error: 'Unauthorized' }, 401)
+    }
 
     if (!env.DB) return json({ ok: false, error: 'D1 binding DB is not configured' }, 500)
 
