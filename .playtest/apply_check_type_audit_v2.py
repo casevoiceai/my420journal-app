@@ -20,7 +20,7 @@ chapter_three = replace_once(
     'Chapter 3 custom resolution preview check type',
 )
 '''
-source, count = pattern.subn(replacement, source, count=1)
+source, count = pattern.subn(lambda _: replacement, source, count=1)
 if count != 1:
     raise SystemExit(f'Chapter 3 source patch replacement count was {count}')
 
