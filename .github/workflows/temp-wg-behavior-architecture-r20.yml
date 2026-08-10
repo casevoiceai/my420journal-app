@@ -1,0 +1,255 @@
+name: Eliza Behavior Architecture R20
+
+on:
+  push:
+    branches:
+      - temp/weed-goblins-human-playtest-1-3-20260809
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: weed-goblins-behavior-architecture-r20
+  cancel-in-progress: true
+
+jobs:
+  verify-deploy-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_STAGING_PROXY_SECRET }}
+      PLAYTEST_URL: https://my420journal-wg-playtest-1-3.casevoice-ai.workers.dev/games/weed-goblins
+      EXPECTED_REVISION: behavior-architecture-r20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/weed-goblins-human-playtest-1-3-20260809
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Wait for older same-SHA deploy workflows
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          wait_for_workflow() {
+            workflow_id="$1"
+            label="$2"
+            for attempt in $(seq 1 120); do
+              state="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_id/runs?head_sha=$GITHUB_SHA&event=push&per_page=5" --jq '.workflow_runs[0] | [.status, (.conclusion // "")] | @tsv' 2>/dev/null || true)"
+              if [[ "$state" == $'completed\t'* ]]; then
+                echo "$label finished: $state"
+                return 0
+              fi
+              echo "Waiting for $label, attempt $attempt: ${state:-not-visible-yet}"
+              sleep 3
+            done
+            echo "Timed out waiting for $label" >&2
+            return 1
+          }
+          wait_for_workflow 330677642 baseline
+          wait_for_workflow 330756007 older-architecture
+
+      - name: Verify protected feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feature/weed-goblins-session-zero
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero)" = "a9021d750698d2b9b211cf3227dca676fe1da11b"
+          test "$(git rev-parse origin/feature/weed-goblins-session-zero:src/features/games/weed-goblins/weedGoblinsEngine.js)" = "02b3bdc10a32687fed81e230525b418567645b6a"
+
+      - name: Build behavior architecture from protected baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .playtest/apply_human_gm_prose_v3.py
+          python .playtest/apply_approved_kings_stash_opening.py
+          git fetch origin temp/weed-goblins-narration-voice-audit-20260809
+          test "$(git rev-parse origin/temp/weed-goblins-narration-voice-audit-20260809)" = "c7f67befc2cf5175787d615ada1e3a1017294f48"
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/legacyChapterOne.js > server/weed-goblins-narration-worker/legacyChapterOne.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsNarrationValidation.js > src/features/games/weed-goblins/weedGoblinsNarrationValidation.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/voice-audit.test.js > server/weed-goblins-narration-worker/voice-audit.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/index.test.js > server/weed-goblins-narration-worker/index.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:server/weed-goblins-narration-worker/story-beats.test.js > server/weed-goblins-narration-worker/story-beats.test.js
+          git show origin/temp/weed-goblins-narration-voice-audit-20260809:src/features/games/weed-goblins/weedGoblinsAiComplication.test.js > src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
+          python .playtest/apply_research_rules.py
+          python .playtest/apply_behavior_architecture.py
+          python .playtest/apply_behavior_architecture_compat.py
+          git diff --check
+          grep -F "GM TURN LOOP" server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F "NPC CAUSAL DNA" server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F "BEHAVIORAL CONTRASTS" server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F "The Goblin King is loud, ceremonial, theatrical, and more frightened than he admits." server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -Fi "engine owns every mechanic and result" server/weed-goblins-narration-worker/chapterTwo.js
+          grep -Fi "engine owns every mechanic and result" server/weed-goblins-narration-worker/chapterThree.js
+          grep -F "selectChapterOneScenePosture" server/weed-goblins-narration-worker/legacyChapterOne.js
+          grep -F "selectChapterTwoScenePosture" server/weed-goblins-narration-worker/chapterTwo.js
+          grep -F "selectChapterThreeScenePosture" server/weed-goblins-narration-worker/chapterThree.js
+          ! grep -F "What do you want to do?" src/features/games/weed-goblins/weedGoblinsEngine.js
+          ! grep -P "[\x{2013}\x{2014}]" server/weed-goblins-narration-worker/legacyChapterOne.js
+          ! grep -P "[\x{2013}\x{2014}]" server/weed-goblins-narration-worker/chapterTwo.js
+          ! grep -P "[\x{2013}\x{2014}]" server/weed-goblins-narration-worker/chapterThree.js
+
+      - name: Run narration tests and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          node --test \
+            server/weed-goblins-narration-worker/behavior-architecture.test.js \
+            server/weed-goblins-narration-worker/voice-audit.test.js \
+            server/weed-goblins-narration-worker/index.test.js \
+            server/weed-goblins-narration-worker/story-beats.test.js \
+            server/weed-goblins-narration-worker/chapterTwo.test.js \
+            server/weed-goblins-narration-worker/chapterThree.test.js \
+            src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('public/_headers')
+          text = path.read_text()
+          old = 'X-WG-Playtest-Revision: guidance-removed-r18'
+          new = 'X-WG-Playtest-Revision: behavior-architecture-r20'
+          if old not in text:
+              raise SystemExit('old playtest revision marker missing')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          npm run build
+          rm -f dist/_redirects
+
+      - name: Deploy narration to staging only
+        working-directory: server/weed-goblins-narration-worker
+        run: npx wrangler@latest deploy --env staging
+
+      - name: Set private host secret
+        shell: bash
+        run: printf '%s' "$STAGING_PROXY_SECRET" | npx wrangler@latest secret put WEED_GOBLINS_PROXY_SECRET --config .playtest/host/wrangler.jsonc
+
+      - name: Deploy private playtest host
+        run: npx wrangler@latest deploy --config .playtest/host/wrangler.jsonc
+
+      - name: Wait for exact live revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            headers="$(curl -sS -D - -o /tmp/wg-r20.html "$PLAYTEST_URL" || true)"
+            normalized="$(printf '%s' "$headers" | tr '[:upper:]' '[:lower:]' | tr -d '\r')"
+            if printf '%s' "$normalized" | grep -Fq "x-wg-playtest-revision: $EXPECTED_REVISION"; then
+              printf '%s\n' "$normalized" | grep -F "cache-control: no-store"
+              echo "LIVE_ROUTE_REVISION=$EXPECTED_REVISION"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Expected revision never appeared at exact game URL" >&2
+          exit 1
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Verify full live sequence at exact URL
+        shell: bash
+        run: |
+          cat > /tmp/wg-r20-live.mjs <<'EOF'
+          import { chromium } from 'playwright'
+
+          const url = process.env.PLAYTEST_URL
+          const expectedRevision = process.env.EXPECTED_REVISION
+          const check = (condition, message) => { if (!condition) throw new Error(message) }
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+            const narrationStatuses = []
+            page.on('response', (response) => {
+              if (response.url().includes('/api/weed-goblins-narration')) narrationStatuses.push(response.status())
+            })
+
+            const response = await page.goto(url, { waitUntil: 'networkidle' })
+            check(response, 'No document response')
+            check(response.url() === url, `Wrong final URL: ${response.url()}`)
+            check(response.headers()['x-wg-playtest-revision'] === expectedRevision, 'Wrong revision header')
+            check((response.headers()['cache-control'] || '').includes('no-store'), 'Game route is cacheable')
+            await page.getByText(/By the time the road finally gives up/i).waitFor({ timeout: 15000 })
+
+            let body = await page.locator('body').innerText()
+            check(body.includes('Brass-Latched Research Case'), 'Research Case missing')
+            check(!body.includes('Carefully Labeled Moon Jar'), 'Moon Jar present')
+            check(!body.includes("use Help and I'll walk you through it"), 'Automatic tutorial guidance present')
+            check(await page.locator('.weed-goblins-game__guidance-bubble').count() === 0, 'Automatic guidance bubble present')
+            check(!/out of the story|back to the story|back to the Highlands|rules aside/i.test(body), 'Announced mode switch present')
+            check(!body.includes('\u2014') && !body.includes('\u2013'), 'Forbidden dash character present')
+
+            await page.getByRole('button', { name: 'Continue' }).click()
+            const composer = page.locator('.weed-goblins-game__composer input')
+            await composer.waitFor()
+            await composer.fill('Fenna')
+            await page.locator('.weed-goblins-game__send-button').click()
+            await page.getByRole('button', { name: 'Human' }).waitFor()
+            await page.getByRole('button', { name: 'Human' }).click()
+            await page.getByText(/Now give me the practical part:/i).waitFor()
+            await page.getByRole('button', { name: 'Sword' }).click()
+            await page.getByRole('button', { name: 'Highland Tracker' }).waitFor({ timeout: 10000 })
+            await page.getByRole('button', { name: 'Highland Tracker' }).click()
+            await page.getByText(/Last pass: what pronouns should I use/i).waitFor()
+            await page.getByRole('button', { name: 'They' }).click()
+            const lookChoice = page.locator('.weed-goblins-game__quick-reply').first()
+            await lookChoice.waitFor()
+            await lookChoice.click()
+
+            await page.getByText(/The goblin tracks carry on through Windcut Trail until the ground drops toward Rattlebridge/i).waitFor()
+            body = await page.locator('body').innerText()
+            check(!body.includes('What do you want to do?'), 'Reflexive route question present')
+            check(!body.includes('Fenna. All right.'), 'Name echo present')
+            check(!body.includes('Human. All right.'), 'Race echo present')
+            check(!body.includes('A sword. Okay.'), 'Weapon echo present')
+
+            await page.getByRole('button', { name: /Quiet Crossing/ }).click()
+            await page.getByText(/Defense check, DC 12;/i).waitFor()
+            body = await page.locator('body').innerText()
+            check(!/out of the story|back to the story|rules aside/i.test(body), 'Rules announcement present')
+            await page.getByRole('button', { name: /ROLL D20/i }).click()
+
+            const npcAction = page.getByRole('button', { name: /Outlast / })
+            await npcAction.waitFor({ timeout: 25000 })
+            await npcAction.click()
+            await page.getByText(/Defense check, DC 12;/i).last().waitFor()
+            await page.getByRole('button', { name: /ROLL D20/i }).click()
+            await page.getByRole('button', { name: /Keep Nib safe/i }).waitFor({ timeout: 25000 })
+
+            body = await page.locator('body').innerText()
+            check(!body.includes('\u2014') && !body.includes('\u2013'), 'Forbidden dash character present after interaction')
+            check(!/Great choice|I love that|Perfect\.?$/im.test(body), 'Automatic affirmation present')
+            check(await page.locator('.weed-goblins-game__guidance-bubble').count() === 0, 'Automatic guidance returned')
+            check(await page.locator('.weed-goblins-game__error').count() === 0, 'Visible game error present')
+            check(narrationStatuses.length > 0, 'No narration calls observed')
+            check(narrationStatuses.every((status) => status === 200), `Narration failure statuses: ${JSON.stringify(narrationStatuses)}`)
+            check(page.url() === url, `Playthrough left exact URL: ${page.url()}`)
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+            check(!overflow, '390px horizontal overflow')
+
+            console.log(`LIVE_URL=${page.url()}`)
+            console.log(`LIVE_REVISION=${response.headers()['x-wg-playtest-revision']}`)
+            console.log(`NARRATION_CALLS=${narrationStatuses.length}`)
+            console.log('OPENING=PASS')
+            console.log('CHARACTER_CREATION=PASS')
+            console.log('FIRST_RULE_CHECK=PASS')
+            console.log('FIRST_NPC_INTERACTION=PASS')
+            console.log('BEHAVIOR_ARCHITECTURE_R20_LIVE=PASS')
+          } finally {
+            await browser.close()
+          }
+          EOF
+          node /tmp/wg-r20-live.mjs
