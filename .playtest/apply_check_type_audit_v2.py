@@ -48,5 +48,22 @@ source = source.replace(
     1,
 )
 
+chapter_one_branch = re.compile(
+    r"    if chapter_label == 'Chapter 1':\n.*?\n    else:\n",
+    re.S,
+)
+chapter_one_replacement = '''    if chapter_label == 'Chapter 1':
+        old_adv = "    return `${statLabel} check, DC ${preview.dc}; you're spending ${preview.manaCost} Mana for advantage, so roll two D20s, keep the higher, and you need ${preview.requiredDie} or better on either die.`"
+        new_adv = "    const modifier = checkTypeLabel === statLabel ? `with +${preview.statBonus}` : `using your ${statLabel} +${preview.statBonus}`\\n    return `${checkTypeLabel} check, DC ${preview.dc}; you're spending ${preview.manaCost} Mana for advantage, so roll two D20s, keep the higher. ${modifier}, you need ${preview.requiredDie} or better on either die.`"
+        text = replace_once(text, old_adv, new_adv, 'Chapter 1 advantage check wording')
+        old_plain = "  return `${statLabel} check, DC ${preview.dc}; with +${preview.statBonus}, you need ${preview.requiredDie} or better on the die.`"
+        new_plain = "  const modifier = checkTypeLabel === statLabel ? `with +${preview.statBonus}` : `using your ${statLabel} +${preview.statBonus}`\\n  return `${checkTypeLabel} check, DC ${preview.dc}; ${modifier}, you need ${preview.requiredDie} or better on the die.`"
+        text = replace_once(text, old_plain, new_plain, 'Chapter 1 normal check wording')
+    else:
+'''
+source, count = chapter_one_branch.subn(lambda _: chapter_one_replacement, source, count=1)
+if count != 1:
+    raise SystemExit(f'Chapter 1 controller source patch replacement count was {count}')
+
 compiled = compile(source, str(source_path), 'exec')
 exec(compiled, {'__name__': '__main__'})
