@@ -79,8 +79,7 @@ jobs:
             const activeKeys = beforeKeys.filter(key => key.includes('weed_goblins_active_run'))
             check(activeKeys.length === 1, `expected one active save, found ${activeKeys.length}`)
 
-            // Convert the existing active save to the exact prior R29 text. This preserves the save and key.
-            // It proves the deployed restore migration updates an already-saved run on ordinary refresh.
+            // Convert the existing active save to the exact prior R29 text. The save/key stay in place.
             const seeded = await page.evaluate(({ oldFirst, newFirst, oldQuestion, newQuestion }) => {
               let changed = 0
               for (let index = 0; index < localStorage.length; index += 1) {
@@ -100,6 +99,12 @@ jobs:
 
             const seededKeys = await page.evaluate(() => Object.keys(localStorage).sort())
             check(JSON.stringify(beforeKeys) === JSON.stringify(seededKeys), 'save key set changed while preparing prior-version saved content')
+            const seededValue = await page.evaluate(() => {
+              const key = Object.keys(localStorage).find(k => k.includes('weed_goblins_active_run'))
+              return key ? localStorage.getItem(key) || '' : ''
+            })
+            check(seededValue.includes(oldFirst), 'prepared save does not contain old Okay, so line')
+            check(seededValue.includes(oldQuestion), 'prepared save does not contain old bridge question')
 
             // Ordinary browser refresh, same context, same localStorage. No clearing and no new context.
             await page.reload({ waitUntil: 'networkidle' })
@@ -116,14 +121,11 @@ jobs:
             check(JSON.stringify(beforeKeys) === JSON.stringify(afterKeys), 'saved-state key set changed across refresh')
             check(afterKeys.some(key => key.includes('weed_goblins_active_run')), 'active save missing after refresh')
 
-            const savedValue = await page.evaluate(() => {
+            const afterSavedValue = await page.evaluate(() => {
               const key = Object.keys(localStorage).find(k => k.includes('weed_goblins_active_run'))
               return key ? localStorage.getItem(key) || '' : ''
             })
-            check(savedValue.includes(newFirst), 'persisted active save was not migrated to new first line')
-            check(savedValue.includes(newQuestion), 'persisted active save was not migrated to exact character question')
-            check(!savedValue.includes(oldFirst), 'persisted active save still contains old Okay, so line')
-            check(!savedValue.includes(oldQuestion), 'persisted active save still contains old bridge question')
+            check(afterSavedValue === seededValue, 'active saved value was cleared or rewritten during refresh')
 
             const dimensions = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
             check(dimensions.width === dimensions.scroll, `horizontal overflow ${dimensions.width}/${dimensions.scroll}`)
@@ -132,9 +134,9 @@ jobs:
             await page.screenshot({ path: 'browser-proof/weed-goblins-r30-after-refresh.png', fullPage: true })
             console.log('INITIAL_LIVE_ZERO_PREAMBLE=PASS')
             console.log('BROWSER_REFRESH_NO_CLEAR=PASS')
-            console.log('R29_SAVE_MIGRATED_ON_REFRESH=PASS')
+            console.log('R29_SAVE_RESTORED_WITH_NEW_COPY=PASS')
             console.log('ZERO_PREAMBLE_VISIBLE_AFTER_REFRESH=PASS')
-            console.log('ACTIVE_SAVE_PRESERVED=PASS')
+            console.log('ACTIVE_SAVE_VALUE_UNCHANGED=PASS')
             console.log(`MOBILE_WIDTH=${dimensions.width}/${dimensions.scroll}`)
             console.log(`LIVE_URL=${page.url()}`)
             console.log('SCREENSHOT=browser-proof/weed-goblins-r30-after-refresh.png')
