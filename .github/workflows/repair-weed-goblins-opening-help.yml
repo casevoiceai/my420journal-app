@@ -33,34 +33,43 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
+          import re
 
           chapter_path = Path('src/features/games/weed-goblins/weedGoblinsChapterOne.js')
           chapter = chapter_path.read_text()
-          old_opening = '''export const SESSION_ZERO_WELCOME = Object.freeze([
-            'Welcome to the THC Trails.',
-            'A bell, or maybe just the idea of a bell, rings three times.',
-            'Half a beat later, it rings once more. Very regal.',
-            "What's your character's name, and are they human, dwarf, elf, or gnome?",
-          ])'''
-          new_opening = '''export const SESSION_ZERO_WELCOME = Object.freeze([
+          stale_opening = [
+              'Welcome to the THC Trails.',
+              'A bell, or maybe just the idea of a bell, rings three times.',
+              'Half a beat later, it rings once more. Very regal.',
+          ]
+          for line in stale_opening:
+              if line not in chapter:
+                  raise SystemExit(f'expected stale opening line missing: {line}')
+
+          windcut_pattern = re.compile(r"  windcutTrail: Object\.freeze\(\[.*?\n  \]\),", re.S)
+          windcut_before = windcut_pattern.search(chapter)
+          if not windcut_before:
+              raise SystemExit('Windcut investigation block missing before repair')
+          windcut_before = windcut_before.group(0)
+
+          approved_opening = '''export const SESSION_ZERO_WELCOME = Object.freeze([
             "You've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you.",
             "There are little bootprints all over the mud, a drag mark from the case, and one extremely clear goblin faceprint where somebody apparently lost an argument with the hill. They got back up. The faceprint did not.",
             "The theft itself was also a mess. While they were taking the case, two of them stopped to argue about whether this counted as theft or 'aggressive redistribution.' A third one produced a form. Nobody knew who was supposed to fill it out. Then they remembered they were escaping and ran.",
             "Now the tracks are heading straight toward the King's Stash Hall, which you can just make out up on the ridge whenever the fog gets out of the way. There's a miserable little bell up there going clonk every so often. Very regal.",
             "What's your character's name, and are they human, dwarf, elf, or gnome?",
           ])'''
-          if chapter.count(old_opening) != 1:
-              raise SystemExit('wrong Session Zero opening source count')
-          windcut = '''  windcutTrail: Object.freeze([
-            'Wet thyme smells sharp under your boots. A brass rivet from the Research Case is pressed into the mud beside a narrow drag groove.',
-            'A trail post points uphill toward Rattlebridge. Green waxed twine is caught under the rivet.',
-            'Above the rise, bottle caps begin to rattle.',
-          ]),'''
-          if chapter.count(windcut) != 1:
-              raise SystemExit('Windcut investigation block was not the expected untouched block')
-          chapter = chapter.replace(old_opening, new_opening, 1)
-          if chapter.count(windcut) != 1:
-              raise SystemExit('Windcut investigation block changed while repairing premise')
+          opening_pattern = re.compile(r"export const SESSION_ZERO_WELCOME = Object\.freeze\(\[.*?\n\]\)", re.S)
+          chapter, count = opening_pattern.subn(approved_opening, chapter, count=1)
+          if count != 1:
+              raise SystemExit(f'Session Zero opening replacement count was {count}')
+
+          windcut_after = windcut_pattern.search(chapter)
+          if not windcut_after or windcut_after.group(0) != windcut_before:
+              raise SystemExit('Windcut investigation block changed during premise repair')
+          for line in stale_opening:
+              if line in chapter:
+                  raise SystemExit(f'stale opening line survived: {line}')
           chapter_path.write_text(chapter)
 
           help_path = Path('src/features/games/weed-goblins/weedGoblinsHelpChapterOne.js')
@@ -70,14 +79,16 @@ jobs:
           if help_text.count(rejected) != 1:
               raise SystemExit('rejected session-zero-name Help line source count was not one')
           help_text = help_text.replace(rejected, replacement, 1)
-          old_level_one = """      text: LEVEL_ONE[state.sceneId]
+          old_fallback = """      text: LEVEL_ONE[state.sceneId]
                 || 'Start with what is physically in front of you. The visible replies are examples, and you can type another sensible action.',"""
-          new_level_one = """      text: LEVEL_ONE[state.sceneId]
+          new_fallback = """      text: LEVEL_ONE[state.sceneId]
                 || AUTOMATIC_GUIDANCE[state.sceneId]
                 || 'Start with what is physically in front of you. The visible replies are examples, and you can type another sensible action.',"""
-          if help_text.count(old_level_one) != 1:
+          if help_text.count(old_fallback) != 1:
               raise SystemExit('Level One Help fallback source count was not one')
-          help_text = help_text.replace(old_level_one, new_level_one, 1)
+          help_text = help_text.replace(old_fallback, new_fallback, 1)
+          if 'Type a name in the message box.' in help_text or 'forcing yourself to invent one on command' in help_text:
+              raise SystemExit('rejected UI-referencing Help copy remains')
           help_path.write_text(help_text)
 
           chat_path = Path('src/features/games/weed-goblins/WeedGoblinsChat.jsx')
@@ -105,74 +116,55 @@ jobs:
           if chat.count(automatic_render) != 1:
               raise SystemExit('automatic guidance render source count was not one')
           chat = chat.replace(automatic_render, '', 1)
-          if 'automaticGuidance' in chat or 'getWeedGoblinsAutomaticGuidance' in chat:
+          if 'automaticGuidance' in chat or 'getWeedGoblinsAutomaticGuidance' in chat or 'weed-goblins-game__guidance-bubble' in chat:
               raise SystemExit('automatic idle guidance remains in chat UI')
+          if 'onClick={handleHelp}' not in chat:
+              raise SystemExit('actual Help button handler is missing')
           chat_path.write_text(chat)
-
-          test_path = Path('src/features/games/weed-goblins/weedGoblinsChapterOneStatic.test.js')
-          tests = test_path.read_text()
-          import_marker = "import { createChapterTwoRunFromSessionZero } from './weedGoblinsChapterTwoRuntime.js'\n"
-          help_import = "import { getWeedGoblinsHelpResponse } from './weedGoblinsHelpChapterOne.js'\n"
-          if help_import not in tests:
-              if import_marker not in tests:
-                  raise SystemExit('test import insertion marker missing')
-              tests = tests.replace(import_marker, import_marker + help_import, 1)
-          regression = r'''
-
-test('approved premise stays before character creation and Windcut investigation stays after appearance', () => {
-  assert.deepEqual(SESSION_ZERO_WELCOME, [
-    "You've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you.",
-    "There are little bootprints all over the mud, a drag mark from the case, and one extremely clear goblin faceprint where somebody apparently lost an argument with the hill. They got back up. The faceprint did not.",
-    "The theft itself was also a mess. While they were taking the case, two of them stopped to argue about whether this counted as theft or 'aggressive redistribution.' A third one produced a form. Nobody knew who was supposed to fill it out. Then they remembered they were escaping and ran.",
-    "Now the tracks are heading straight toward the King's Stash Hall, which you can just make out up on the ridge whenever the fog gets out of the way. There's a miserable little bell up there going clonk every so often. Very regal.",
-    "What's your character's name, and are they human, dwarf, elf, or gnome?",
-  ])
-  const opening = createWeedGoblinsRun({ seed: 'approved-opening' })
-  assert.deepEqual(opening.narration, SESSION_ZERO_WELCOME)
-  assert.equal(opening.sceneId, 'session-zero-name')
-  const afterAppearance = finishCharacter('approved-windcut')
-  assert.equal(afterAppearance.sceneId, 'windcut-trail')
-  assert.deepEqual(afterAppearance.narration.slice(-CHAPTER_ONE_SCENE_TEXT.windcutTrail.length), CHAPTER_ONE_SCENE_TEXT.windcutTrail)
-})
-
-test('tutorial guidance is opt-in through Help and rejected UI copy cannot auto-surface', () => {
-  const state = createWeedGoblinsRun({ seed: 'help-opt-in' })
-  const response = getWeedGoblinsHelpResponse(state, 1, 1)
-  assert.equal(response.text, 'If you want name suggestions, I can give you a few.')
-  const chatSource = readFileSync(new URL('./WeedGoblinsChat.jsx', import.meta.url), 'utf8')
-  const helpSource = readFileSync(new URL('./weedGoblinsHelpChapterOne.js', import.meta.url), 'utf8')
-  assert.doesNotMatch(chatSource, /automaticGuidance|getWeedGoblinsAutomaticGuidance|guidance-bubble/)
-  assert.doesNotMatch(helpSource, /Type a name in the message box|forcing yourself to invent one on command/)
-  assert.match(helpSource, /AUTOMATIC_GUIDANCE\[state\.sceneId\]/)
-})
-'''
-          if "test('approved premise stays before character creation" not in tests:
-              tests += regression
-          test_path.write_text(tests)
-
-          forbidden = [
-              'Welcome to the THC Trails.',
-              'A bell, or maybe just the idea of a bell, rings three times.',
-              'Half a beat later, it rings once more. Very regal.',
-              'Type a name in the message box.',
-              'forcing yourself to invent one on command',
-          ]
-          combined = '\n'.join([
-              chapter_path.read_text(), help_path.read_text(), chat_path.read_text()
-          ])
-          for value in forbidden:
-              if value in combined:
-                  raise SystemExit(f'forbidden stale copy remains: {value}')
 
           print('APPROVED_R30_PREMISE_APPLIED=PASS')
           print('WINDCUT_INVESTIGATION_UNTOUCHED=PASS')
           print('HELP_COPY_NON_UI=PASS')
           print('AUTOMATIC_IDLE_GUIDANCE_REMOVED=PASS')
-          print('HELP_BUTTON_FALLBACK_WIRED=PASS')
+          print('HELP_BUTTON_REMAINS=PASS')
           PY
           git diff --check
 
-      - name: Run targeted regression and production build
+      - name: Verify exact static blocks before build
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'EOF'
+          import assert from 'node:assert/strict'
+          import { CHAPTER_ONE_SCENE_TEXT, SESSION_ZERO_WELCOME } from './src/features/games/weed-goblins/weedGoblinsChapterOne.js'
+          import { createWeedGoblinsRun } from './src/features/games/weed-goblins/weedGoblinsChapterOneStaticRuntime.js'
+          import { getWeedGoblinsHelpResponse } from './src/features/games/weed-goblins/weedGoblinsHelpChapterOne.js'
+          import { readFileSync } from 'node:fs'
+
+          const expected = [
+            "You've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you.",
+            "There are little bootprints all over the mud, a drag mark from the case, and one extremely clear goblin faceprint where somebody apparently lost an argument with the hill. They got back up. The faceprint did not.",
+            "The theft itself was also a mess. While they were taking the case, two of them stopped to argue about whether this counted as theft or 'aggressive redistribution.' A third one produced a form. Nobody knew who was supposed to fill it out. Then they remembered they were escaping and ran.",
+            "Now the tracks are heading straight toward the King's Stash Hall, which you can just make out up on the ridge whenever the fog gets out of the way. There's a miserable little bell up there going clonk every so often. Very regal.",
+            "What's your character's name, and are they human, dwarf, elf, or gnome?",
+          ]
+          assert.deepEqual(SESSION_ZERO_WELCOME, expected)
+          assert.deepEqual(createWeedGoblinsRun({ seed: 'live-repair-proof' }).narration, expected)
+          assert.deepEqual(CHAPTER_ONE_SCENE_TEXT.windcutTrail, [
+            'Wet thyme smells sharp under your boots. A brass rivet from the Research Case is pressed into the mud beside a narrow drag groove.',
+            'A trail post points uphill toward Rattlebridge. Green waxed twine is caught under the rivet.',
+            'Above the rise, bottle caps begin to rattle.',
+          ])
+          const openingState = createWeedGoblinsRun({ seed: 'help-proof' })
+          assert.equal(getWeedGoblinsHelpResponse(openingState, 1, 1).text, 'If you want name suggestions, I can give you a few.')
+          const chat = readFileSync('./src/features/games/weed-goblins/WeedGoblinsChat.jsx', 'utf8')
+          assert.doesNotMatch(chat, /automaticGuidance|getWeedGoblinsAutomaticGuidance|guidance-bubble/)
+          console.log('EXACT_APPROVED_PREMISE_BLOCK=PASS')
+          console.log('DISTINCT_WINDCUT_BLOCK=PASS')
+          console.log('HELP_OPT_IN_SOURCE=PASS')
+          EOF
+
+      - name: Run Chapter 1 static tests and production build
         shell: bash
         run: |
           set -euo pipefail
@@ -189,15 +181,14 @@ test('tutorial guidance is opt-in through Help and rejected UI copy cannot auto-
           git add \
             src/features/games/weed-goblins/weedGoblinsChapterOne.js \
             src/features/games/weed-goblins/weedGoblinsHelpChapterOne.js \
-            src/features/games/weed-goblins/WeedGoblinsChat.jsx \
-            src/features/games/weed-goblins/weedGoblinsChapterOneStatic.test.js
+            src/features/games/weed-goblins/WeedGoblinsChat.jsx
           git commit -m 'Restore approved Weed Goblins opening and opt-in Help'
           FIX_COMMIT="$(git rev-parse HEAD)"
           echo "FIX_COMMIT=$FIX_COMMIT" >> "$GITHUB_ENV"
           git push origin feature/weed-goblins-session-zero
           echo "VALIDATED_FIX_COMMIT=$FIX_COMMIT"
 
-      - name: Deploy validated build to a preview-only Pages deployment
+      - name: Deploy validated build to preview-only Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -226,16 +217,16 @@ test('tutorial guidance is opt-in through Help and rejected UI copy cannot auto-
           echo 'Could not resolve preview deployment for validated fix commit.' >&2
           exit 1
 
-      - name: Repoint private access-gated Worker to validated preview
+      - name: Repoint private access-gated Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/worker.mjs <<EOF
-          const ORIGIN = '${PAGES_ORIGIN}'
-          const ACCESS_CODE_SHA256 = '${ACCESS_CODE_SHA256}'
+          cat > /tmp/worker.mjs <<'EOF'
+          const ORIGIN = '__PAGES_ORIGIN__'
+          const ACCESS_CODE_SHA256 = '8078d896eb8691b5c1cbb29289e450b19162cc7bb0e453ab4040f2d5952c8651'
           const COOKIE_NAME = 'wg_private_playtest'
 
           function toHex(bytes) {
@@ -270,7 +261,7 @@ test('tutorial guidance is opt-in through Help and rejected UI copy cannot auto-
             const upstream = await fetch(new Request(upstreamUrl, { method: request.method, headers, body: ['GET', 'HEAD'].includes(request.method) ? undefined : request.body, redirect: 'manual' }))
             const responseHeaders = new Headers(upstream.headers)
             responseHeaders.set('Cache-Control', 'no-store')
-            responseHeaders.set('X-Robots-Tag', 'noindex, nofollow,noarchive')
+            responseHeaders.set('X-Robots-Tag', 'noindex, nofollow, noarchive')
             responseHeaders.set('Referrer-Policy', 'no-referrer')
             const location = responseHeaders.get('Location')
             if (location && location.startsWith(ORIGIN)) responseHeaders.set('Location', location.slice(ORIGIN.length) || '/')
@@ -293,6 +284,15 @@ test('tutorial guidance is opt-in through Help and rejected UI copy cannot auto-
             },
           }
           EOF
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          path = Path('/tmp/worker.mjs')
+          text = path.read_text()
+          if text.count('__PAGES_ORIGIN__') != 1:
+              raise SystemExit('Worker origin placeholder count was not one')
+          path.write_text(text.replace('__PAGES_ORIGIN__', os.environ['PAGES_ORIGIN']))
+          PY
           printf '%s' '{"main_module":"worker.mjs","compatibility_date":"2026-08-10"}' > /tmp/metadata.json
           response="$(curl --fail-with-body --silent --show-error -X PUT \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest" \
@@ -394,16 +394,13 @@ test('tutorial guidance is opt-in through Help and rejected UI copy cannot auto-
           if-no-files-found: error
 
       - name: Remove temporary repair workflow
-        if: always()
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f .github/workflows/repair-weed-goblins-opening-help.yml ]; then
-            git pull --rebase origin feature/weed-goblins-session-zero
-            rm .github/workflows/repair-weed-goblins-opening-help.yml
-            git config user.name casevoiceai
-            git config user.email casevoice.ai@gmail.com
-            git add -A
-            git commit -m 'Remove temporary Weed Goblins repair workflow' || true
-            git push origin feature/weed-goblins-session-zero
-          fi
+          git pull --rebase origin feature/weed-goblins-session-zero
+          rm .github/workflows/repair-weed-goblins-opening-help.yml
+          git config user.name casevoiceai
+          git config user.email casevoice.ai@gmail.com
+          git add -A
+          git commit -m 'Remove temporary Weed Goblins repair workflow'
+          git push origin feature/weed-goblins-session-zero
