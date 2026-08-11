@@ -28,7 +28,6 @@ import {
   getBrowserSpeechRecognition,
 } from './weedGoblinsVoiceInput.js'
 import {
-  getWeedGoblinsAutomaticGuidance,
   getWeedGoblinsHelpContextKey,
   getWeedGoblinsHelpResponse,
 } from './weedGoblinsHelp.js'
@@ -287,10 +286,6 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   )
   const helpContextKey = useMemo(
     () => getWeedGoblinsHelpContextKey(state, chapterNumber),
-    [state, chapterNumber],
-  )
-  const automaticGuidance = useMemo(
-    () => getWeedGoblinsAutomaticGuidance(state, chapterNumber),
     [state, chapterNumber],
   )
 
@@ -820,13 +815,6 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
               onOpenDiscoverable={setActiveDiscoverable}
             />
           ))}
-          {!busy && automaticGuidance && !helpMessage && (
-            <div className="weed-goblins-game__message-row is-incoming">
-              <article className="weed-goblins-game__message-bubble is-eliza weed-goblins-game__guidance-bubble">
-                <p>{automaticGuidance}</p>
-              </article>
-            </div>
-          )}
           {helpMessage && (
             <div className="weed-goblins-game__message-row is-incoming">
               <article className={`weed-goblins-game__message-bubble is-eliza weed-goblins-game__help-bubble${helpMessage.solvesObstacle ? ' is-solution' : ''}`}>

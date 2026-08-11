@@ -7,7 +7,7 @@ const TUTORIAL_MAX_CHAPTER = 2
 
 const AUTOMATIC_GUIDANCE = Object.freeze({
   'session-zero-welcome': 'This plays like texting. Tap a reply to answer me; when a message box is open, you can type or use the microphone instead.',
-  'session-zero-name': 'Type a name in the message box. If you want suggestions, ask for help instead of forcing yourself to invent one on command.',
+  'session-zero-name': 'If you want name suggestions, I can give you a few.',
   'session-zero-race': 'Choose a race by tapping one of the replies. This is character flavor, not a hidden test.',
   'session-zero-weapon': 'Pick the weapon you want your character to carry. It changes how some actions are described, not your core stats.',
   'choose-background': 'Your class sets Strength, Defense, and Mana. Hold the E beside my name if you want to see the detailed character information without leaving the conversation.',
@@ -155,6 +155,7 @@ export function getWeedGoblinsHelpResponse(state, requestedLevel, chapterNumber 
       level,
       contextKey,
       text: LEVEL_ONE[state.sceneId]
+        || AUTOMATIC_GUIDANCE[state.sceneId]
         || 'Start with what is physically in front of you. The visible replies are examples, and you can type another sensible action.',
       solvesObstacle: false,
     })
