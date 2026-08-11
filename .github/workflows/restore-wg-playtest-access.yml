@@ -1,0 +1,98 @@
+name: Restore Weed Goblins Playtest Access Gate
+
+on:
+  push:
+    branches:
+      - feature/weed-goblins-session-zero
+
+permissions:
+  contents: write
+
+jobs:
+  restore-and-proof:
+    if: github.event.head_commit.message == 'Restore Weed Goblins playtest access gate'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      PLAYTEST_URL: https://weed-goblins-playtest.casevoice-ai.workers.dev/games/weed-goblins
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/weed-goblins-session-zero
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Verify restored access-code hash and fixed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "6373e44782bc67116a0dfc83b3d8352461f0dd7c904b160c1e237a362c3ceaf5" .github/wg-gateway-restore.mjs
+          grep -q "You've been chasing five goblins uphill for about an hour" src/features/games/weed-goblins/weedGoblinsChapterOne.js
+          grep -q "If you want name suggestions, I can give you a few." src/features/games/weed-goblins/weedGoblinsHelpChapterOne.js
+          ! grep -q "getWeedGoblinsAutomaticGuidance" src/features/games/weed-goblins/WeedGoblinsChat.jsx
+          echo 'EXISTING_PLAYTEST_CODE_HASH_RESTORED=PASS'
+          echo 'FIXED_GAME_SOURCE_STILL_PRESENT=PASS'
+
+      - name: Deploy corrected private gateway
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler@latest deploy .github/wg-gateway-restore.mjs --name weed-goblins-playtest --compatibility-date 2026-08-10 --message 'Restore existing Weed Goblins playtest code'
+
+      - name: Rotate private session secret
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          secret="$(openssl rand -hex 32)"
+          echo "::add-mask::$secret"
+          echo "PLAYTEST_SESSION_SECRET=$secret" >> "$GITHUB_ENV"
+          printf '%s' "$secret" | npx wrangler@latest secret put SESSION_SECRET --name weed-goblins-playtest
+
+      - name: Verify private gate and pinned authenticated app
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            gate="$(curl --silent --show-error --max-time 10 "$PLAYTEST_URL" || true)"
+            app="$(curl --silent --show-error --max-time 10 -H "Cookie: wg_private_playtest=${PLAYTEST_SESSION_SECRET}" "$PLAYTEST_URL" || true)"
+            if printf '%s' "$gate" | grep -q 'Private Weed Goblins Playtest' && printf '%s' "$app" | grep -q '<div id="root"></div>'; then
+              echo 'PRIVATE_GATE_AND_AUTHENTICATED_APP=PASS'
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1
+
+      - name: Install live-browser proof tooling
+        run: |
+          npm ci
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Re-screenshot final live opening
+        run: node .github/wg-gateway-live-proof.mjs
+
+      - name: Upload final screenshot proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: weed-goblins-final-opening-proof
+          path: weed-goblins-opening-final.png
+          if-no-files-found: error
+
+      - name: Remove temporary gate-repair tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --rebase origin feature/weed-goblins-session-zero
+          git rm .github/wg-gateway-restore.mjs .github/wg-gateway-live-proof.mjs .github/workflows/restore-wg-playtest-access.yml
+          git config user.name casevoiceai
+          git config user.email casevoice.ai@gmail.com
+          git commit -m 'Remove temporary playtest access-gate tooling'
+          git push origin feature/weed-goblins-session-zero
