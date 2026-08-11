@@ -38,6 +38,7 @@ function safePreviousRuns(previousRuns = []) {
     seed: typeof run?.seed === 'string' ? run.seed : '',
     ending: typeof run?.ending === 'string' ? run.ending : '',
     outcomeSummary: typeof run?.outcomeSummary === 'string' ? run.outcomeSummary : '',
+    stolenItemStatus: typeof run?.stolenItemStatus === 'string' ? run.stolenItemStatus : '',
     rootcoinRemaining: Number.isInteger(Number(run?.rootcoinRemaining))
       ? Math.max(0, Math.min(99, Number(run.rootcoinRemaining)))
       : undefined,
@@ -71,7 +72,7 @@ function preserveTargetTags(before, after) {
 
 function maybeEnterChapterTwo(state) {
   if (!isChapterTwoSessionZero(state)) return state
-  if (!state.flags?.sessionZeroComplete || state.sceneId !== 'choose-route') return state
+  if (!state.flags?.sessionZeroComplete || state.sceneId !== 'windcut-trail') return state
   return createChapterTwoRunFromSessionZero(state, {
     previousRuns: state.chapterTwoPreviousRuns || [],
     personalization: state.chapterTwoPersonalization,

@@ -6,7 +6,7 @@ import { CHAPTER_ONE_ROOM_LIST } from './weedGoblinsRooms.js'
 
 export const WEED_GOBLINS_ACTIVE_RUN_STORAGE_PREFIX =
   'my420journal_local_v1:weed_goblins_active_run'
-export const WEED_GOBLINS_ACTIVE_RUN_VERSION = 1
+export const WEED_GOBLINS_ACTIVE_RUN_VERSION = 2
 
 const MAX_MESSAGES = 300
 const MAX_HISTORY_EVENTS = 300
@@ -72,6 +72,7 @@ function sanitizeFlags(flags = {}) {
       : 0,
     sessionZeroComplete: flags.sessionZeroComplete === true,
     nameSuggestionsVisible: flags.nameSuggestionsVisible === true,
+    voluntarilySurrendered: flags.voluntarilySurrendered === true,
   }
 }
 
@@ -139,6 +140,8 @@ export function sanitizeWeedGoblinsActiveState(state) {
     priorCompletedRunCount: safeInteger(state.priorCompletedRunCount, { min: 0, max: 100000 }) ?? 0,
     narrationTier: cleanText(state.narrationTier, 60) || 'normal',
     stolenItem: cleanText(state.stolenItem, 200),
+    stolenItemStatus: cleanText(state.stolenItemStatus, 60) || null,
+    chapterOne: safeJsonClone(state.chapterOne, 50_000) || {},
     goblinName: cleanText(state.goblinName, 120),
     fictionalLocationName: cleanText(state.fictionalLocationName, 160) || null,
     characterTraitFlavor: cleanText(state.characterTraitFlavor, 300),

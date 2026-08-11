@@ -149,6 +149,7 @@ const RUN_SUMMARY_FIELDS = Object.freeze([
   'questTitle',
   'backgroundId',
   'stolenItem',
+  'stolenItemStatus',
   'routeId',
   'midpointChoice',
   'ending',

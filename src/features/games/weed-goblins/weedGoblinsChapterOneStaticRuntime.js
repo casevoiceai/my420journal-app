@@ -168,9 +168,9 @@ function checkConfig(state, actionId) {
     'latch:read-face': { stat: 'defense', tierId: 'bloom' },
     'latch:force': { stat: 'strength', tierId: 'bloom' },
     'latch:channel': { stat: 'defense', tierId: 'bloom', manaCost: 1 },
-    'boss:outlast': { stat: 'defense', tierId: 'wither', dcOverride: Math.max(DIFFICULTY.easy, DIFFICULTY.goblinKing + state.flags.bossDcModifier) },
-    'boss:overpower': { stat: 'strength', tierId: 'wither', dcOverride: Math.max(DIFFICULTY.easy, DIFFICULTY.goblinKing + state.flags.bossDcModifier) },
-    'boss:spell': { stat: 'defense', tierId: 'wither', manaCost: 2, dcOverride: Math.max(DIFFICULTY.easy, DIFFICULTY.goblinKing + state.flags.bossDcModifier) },
+    'boss:outlast': { stat: 'defense', tierId: 'harvest', dcOverride: Math.max(DIFFICULTY.easy, DIFFICULTY.goblinKing + state.flags.bossDcModifier) },
+    'boss:overpower': { stat: 'strength', tierId: 'harvest', dcOverride: Math.max(DIFFICULTY.easy, DIFFICULTY.goblinKing + state.flags.bossDcModifier) },
+    'boss:spell': { stat: 'defense', tierId: 'harvest', manaCost: 2, dcOverride: Math.max(DIFFICULTY.easy, DIFFICULTY.goblinKing + state.flags.bossDcModifier) },
     'court:break-line': { stat: 'strength', tierId: 'wither' },
     'court:hold-room': { stat: 'defense', tierId: 'wither' },
   }
@@ -321,13 +321,15 @@ function resolveCheck(state, actionId) {
   const success = sharedResult.roll === 20 || sharedResult.roll + working.stats[config.stat] >= dc
   const naturalOne = sharedResult.naturalOne
   const outcome = naturalOne ? 'naturalOne' : success ? 'success' : 'failure'
+  const narrationKey = actionId === 'sneak:title-deputy' || actionId === 'sneak:title-duke' ? 'sneak:title' : actionId
+  const narrationOutcome = naturalOne && !CHAPTER_ONE_ACTION_OUTCOMES[narrationKey]?.naturalOne ? 'failure' : outcome
   const trouble = success ? working.trouble : troubleAfterFailure(working, naturalOne)
   let next = cloneState(working, {
     trouble,
     complicationCount: working.complicationCount + (naturalOne ? 1 : 0),
   })
-  next = addOutcome(next, actionId === 'sneak:title-deputy' || actionId === 'sneak:title-duke' ? 'sneak:title' : actionId, outcome, {
-    type: 'check', stat: config.stat, dc, dangerTier: config.tierId, rolls, roll: sharedResult.roll,
+  next = addOutcome(next, narrationKey, narrationOutcome, {
+    stat: config.stat, dc, dangerTier: config.tierId, rolls, roll: sharedResult.roll,
     total: sharedResult.roll + working.stats[config.stat], success, naturalOne, advantage: (config.manaCost || 0) > 0, manaCost: config.manaCost || 0,
   })
   const checkEvent = {

@@ -204,6 +204,14 @@ function latestChapterTwoRun(previousRuns = []) {
   return null
 }
 
+function latestChapterOneRun(previousRuns = []) {
+  if (!Array.isArray(previousRuns)) return null
+  for (let index = previousRuns.length - 1; index >= 0; index -= 1) {
+    if (previousRuns[index]?.adventureId === 'goblin-highlands-session-1') return previousRuns[index]
+  }
+  return null
+}
+
 function inheritedInventory(previousRuns = []) {
   const rewards = []
   for (const run of previousRuns) {
@@ -273,6 +281,7 @@ export function createChapterTwoRunFromSessionZero(sessionState, {
       nameSuggestionsVisible: false,
     },
     chapterTwo: {
+      chapterOneStolenItemStatus: cleanText(latestChapterOneRun(previousRuns)?.stolenItemStatus, 60) || null,
       lanternSolved: false,
       lanternAttempts: 0,
       entryPrice: null,

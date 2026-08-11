@@ -3,36 +3,22 @@ import {
   createWeedGoblinsRoomState,
   visitWeedGoblinsRoom,
 } from './weedGoblinsRooms.js'
-import { CHAPTER_ONE_REWARDS } from './weedGoblinsChapterOne.js'
+import { CHAPTER_ONE_REWARDS, CHAPTER_ONE_SCENE_TEXT, SESSION_ZERO_QUESTIONS, SESSION_ZERO_WELCOME as STATIC_SESSION_ZERO_WELCOME } from './weedGoblinsChapterOne.js'
 
 export const WEED_GOBLINS_NARRATOR_NAME = 'Eliza'
 
-export const WEED_GOBLINS_INTRODUCTION =
-  "Welcome to the Goblin Highlands. I'll be your narrator. I'm Eliza. Your boot stops beside a fresh goblin footprint pressed deep into the mud of Windcut Trail. Somewhere above, the King's Stash Hall closes its doors."
+export const WEED_GOBLINS_INTRODUCTION = CHAPTER_ONE_SCENE_TEXT.windcutTrail[0]
 
 export const WEED_GOBLINS_RETURNING_LINE =
   "You've been to the Goblin Highlands before. Last time you [outcome]. I'm curious whether you'll make the same choices."
 
+export const SESSION_ZERO_WELCOME = STATIC_SESSION_ZERO_WELCOME
 
-export const SESSION_ZERO_WELCOME = Object.freeze([
-  "The road gives out right here, where the Highlands start. One boot's already sunk in the mud.",
-  "But first, I need to know who's walking into that story. Every traveler who comes up this road carries a name, a look, a kind, and a way of meeting trouble. Let's settle those now.",
-])
-
-const SESSION_RACE_QUESTION =
-  'One more thing before the road takes you anywhere. What are you?'
-
-const SESSION_WEAPON_QUESTION =
-  'And what do you carry?'
-
-const SESSION_CLASS_QUESTION =
-  'How do you handle yourself when the road turns ugly?'
-
-const SESSION_PRONOUN_QUESTION =
-  "Last bit of bookkeeping. What do I call you, when I'm not using your name?"
-
-const SESSION_LOOK_QUESTION =
-  'Paint yourself for me.'
+const SESSION_RACE_QUESTION = 'Human, dwarf, elf, or gnome?'
+const SESSION_WEAPON_QUESTION = SESSION_ZERO_QUESTIONS.weapon
+const SESSION_CLASS_QUESTION = SESSION_ZERO_QUESTIONS.background
+const SESSION_PRONOUN_QUESTION = SESSION_ZERO_QUESTIONS.pronoun
+const SESSION_LOOK_QUESTION = SESSION_ZERO_QUESTIONS.look
 
 export const PLAYER_NAME_SUGGESTIONS = Object.freeze([
   'Fenna Duskrow',
@@ -315,11 +301,7 @@ function weaponFlavorSentence(weapon) {
 
 function finalizeSessionZero(state, playerLook, actionId) {
   const returningLine = normalizeText(state.returningLine)
-  const narration = [
-    ...state.narration,
-    "Everything I need. Windcut Trail won\'t wait for the rest.",
-    WEED_GOBLINS_INTRODUCTION,
-  ]
+  const narration = [...state.narration, WEED_GOBLINS_INTRODUCTION]
   if (returningLine) narration.push(returningLine)
 
   return cloneState(state, {
