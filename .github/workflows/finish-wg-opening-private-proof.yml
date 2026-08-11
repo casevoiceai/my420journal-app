@@ -35,7 +35,7 @@ jobs:
           git merge-base --is-ancestor "$FIX_COMMIT" HEAD
           node .github/verify-wg-opening-source.mjs
 
-      - name: Wait for immutable Cloudflare Pages preview
+      - name: Confirm immutable Cloudflare Pages preview
         shell: bash
         run: |
           set -euo pipefail
@@ -47,36 +47,34 @@ jobs:
             fi
             sleep 3
           done
-          echo 'Validated immutable Pages preview never became reachable.' >&2
           exit 1
 
-      - name: Upload private gateway Worker
+      - name: Deploy private gateway Worker with Wrangler
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          printf '%s' '{"main_module":"worker.mjs","compatibility_date":"2026-08-10"}' > /tmp/metadata.json
-          response="$(curl --fail-with-body --silent --show-error -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -F 'metadata=@/tmp/metadata.json;type=application/json' -F 'worker.mjs=@.github/weed-goblins-private-gateway.mjs;type=application/javascript+module')"
-          printf '%s' "$response" | jq -e '.success == true' >/dev/null
+        run: npx wrangler@latest deploy .github/weed-goblins-private-gateway.mjs --name weed-goblins-playtest --compatibility-date 2026-08-10 --message 'Approved Weed Goblins opening private playtest' --yes
 
-      - name: Set exact preview origin and rotate private session secret
+      - name: Set exact immutable preview origin
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          origin_payload="$(jq -nc --arg value "$PAGES_ORIGIN" '{name:"PAGES_ORIGIN",text:$value,type:"secret_text"}')"
-          response="$(curl --fail-with-body --silent --show-error -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest/secrets" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data "$origin_payload")"
-          printf '%s' "$response" | jq -e '.success == true' >/dev/null
+          printf '%s' "$PAGES_ORIGIN" | npx wrangler@latest secret put PAGES_ORIGIN --name weed-goblins-playtest
+
+      - name: Rotate private session secret
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
           secret="$(openssl rand -hex 32)"
           echo "::add-mask::$secret"
           echo "PLAYTEST_SESSION_SECRET=$secret" >> "$GITHUB_ENV"
-          session_payload="$(jq -nc --arg value "$secret" '{name:"SESSION_SECRET",text:$value,type:"secret_text"}')"
-          response="$(curl --fail-with-body --silent --show-error -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest/secrets" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data "$session_payload")"
-          printf '%s' "$response" | jq -e '.success == true' >/dev/null
+          printf '%s' "$secret" | npx wrangler@latest secret put SESSION_SECRET --name weed-goblins-playtest
 
       - name: Verify private gate and authenticated proxy
         shell: bash
