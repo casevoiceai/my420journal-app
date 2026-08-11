@@ -15,7 +15,6 @@ jobs:
     timeout-minutes: 45
     env:
       PLAYTEST_URL: https://weed-goblins-playtest.casevoice-ai.workers.dev/games/weed-goblins
-      ACCESS_CODE_SHA256: 8078d896eb8691b5c1cbb29289e450b19162cc7bb0e453ab4040f2d5952c8651
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,150 +26,23 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Apply exact approved opening and opt-in Help repair
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          import re
+      - name: Apply exact approved source repair
+        run: python .github/repair-wg-opening-help.py
 
-          chapter_path = Path('src/features/games/weed-goblins/weedGoblinsChapterOne.js')
-          chapter = chapter_path.read_text()
-          stale_opening = [
-              'Welcome to the THC Trails.',
-              'A bell, or maybe just the idea of a bell, rings three times.',
-              'Half a beat later, it rings once more. Very regal.',
-          ]
-          for line in stale_opening:
-              if line not in chapter:
-                  raise SystemExit(f'expected stale opening line missing: {line}')
+      - name: Verify source and unchanged Windcut block
+        run: node .github/verify-wg-opening-source.mjs
 
-          windcut_pattern = re.compile(r"  windcutTrail: Object\.freeze\(\[.*?\n  \]\),", re.S)
-          windcut_before = windcut_pattern.search(chapter)
-          if not windcut_before:
-              raise SystemExit('Windcut investigation block missing before repair')
-          windcut_before = windcut_before.group(0)
+      - name: Check diff
+        run: git diff --check
 
-          approved_opening = '''export const SESSION_ZERO_WELCOME = Object.freeze([
-            "You've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you.",
-            "There are little bootprints all over the mud, a drag mark from the case, and one extremely clear goblin faceprint where somebody apparently lost an argument with the hill. They got back up. The faceprint did not.",
-            "The theft itself was also a mess. While they were taking the case, two of them stopped to argue about whether this counted as theft or 'aggressive redistribution.' A third one produced a form. Nobody knew who was supposed to fill it out. Then they remembered they were escaping and ran.",
-            "Now the tracks are heading straight toward the King's Stash Hall, which you can just make out up on the ridge whenever the fog gets out of the way. There's a miserable little bell up there going clonk every so often. Very regal.",
-            "What's your character's name, and are they human, dwarf, elf, or gnome?",
-          ])'''
-          opening_pattern = re.compile(r"export const SESSION_ZERO_WELCOME = Object\.freeze\(\[.*?\n\]\)", re.S)
-          chapter, count = opening_pattern.subn(approved_opening, chapter, count=1)
-          if count != 1:
-              raise SystemExit(f'Session Zero opening replacement count was {count}')
+      - name: Install dependencies
+        run: npm ci
 
-          windcut_after = windcut_pattern.search(chapter)
-          if not windcut_after or windcut_after.group(0) != windcut_before:
-              raise SystemExit('Windcut investigation block changed during premise repair')
-          for line in stale_opening:
-              if line in chapter:
-                  raise SystemExit(f'stale opening line survived: {line}')
-          chapter_path.write_text(chapter)
+      - name: Run Chapter 1 static tests
+        run: node --test src/features/games/weed-goblins/weedGoblinsChapterOneStatic.test.js
 
-          help_path = Path('src/features/games/weed-goblins/weedGoblinsHelpChapterOne.js')
-          help_text = help_path.read_text()
-          rejected = "  'session-zero-name': 'Type a name in the message box. If you want suggestions, ask for help instead of forcing yourself to invent one on command.',"
-          replacement = "  'session-zero-name': 'If you want name suggestions, I can give you a few.',"
-          if help_text.count(rejected) != 1:
-              raise SystemExit('rejected session-zero-name Help line source count was not one')
-          help_text = help_text.replace(rejected, replacement, 1)
-          old_fallback = """      text: LEVEL_ONE[state.sceneId]
-                || 'Start with what is physically in front of you. The visible replies are examples, and you can type another sensible action.',"""
-          new_fallback = """      text: LEVEL_ONE[state.sceneId]
-                || AUTOMATIC_GUIDANCE[state.sceneId]
-                || 'Start with what is physically in front of you. The visible replies are examples, and you can type another sensible action.',"""
-          if help_text.count(old_fallback) != 1:
-              raise SystemExit('Level One Help fallback source count was not one')
-          help_text = help_text.replace(old_fallback, new_fallback, 1)
-          if 'Type a name in the message box.' in help_text or 'forcing yourself to invent one on command' in help_text:
-              raise SystemExit('rejected UI-referencing Help copy remains')
-          help_path.write_text(help_text)
-
-          chat_path = Path('src/features/games/weed-goblins/WeedGoblinsChat.jsx')
-          chat = chat_path.read_text()
-          automatic_import = '  getWeedGoblinsAutomaticGuidance,\n'
-          if chat.count(automatic_import) != 1:
-              raise SystemExit('automatic guidance import source count was not one')
-          chat = chat.replace(automatic_import, '', 1)
-          automatic_memo = """  const automaticGuidance = useMemo(
-            () => getWeedGoblinsAutomaticGuidance(state, chapterNumber),
-            [state, chapterNumber],
-          )
-"""
-          if chat.count(automatic_memo) != 1:
-              raise SystemExit('automatic guidance memo source count was not one')
-          chat = chat.replace(automatic_memo, '', 1)
-          automatic_render = """          {!busy && automaticGuidance && !helpMessage && (
-            <div className=\"weed-goblins-game__message-row is-incoming\">
-              <article className=\"weed-goblins-game__message-bubble is-eliza weed-goblins-game__guidance-bubble\">
-                <p>{automaticGuidance}</p>
-              </article>
-            </div>
-          )}
-"""
-          if chat.count(automatic_render) != 1:
-              raise SystemExit('automatic guidance render source count was not one')
-          chat = chat.replace(automatic_render, '', 1)
-          if 'automaticGuidance' in chat or 'getWeedGoblinsAutomaticGuidance' in chat or 'weed-goblins-game__guidance-bubble' in chat:
-              raise SystemExit('automatic idle guidance remains in chat UI')
-          if 'onClick={handleHelp}' not in chat:
-              raise SystemExit('actual Help button handler is missing')
-          chat_path.write_text(chat)
-
-          print('APPROVED_R30_PREMISE_APPLIED=PASS')
-          print('WINDCUT_INVESTIGATION_UNTOUCHED=PASS')
-          print('HELP_COPY_NON_UI=PASS')
-          print('AUTOMATIC_IDLE_GUIDANCE_REMOVED=PASS')
-          print('HELP_BUTTON_REMAINS=PASS')
-          PY
-          git diff --check
-
-      - name: Verify exact static blocks before build
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --input-type=module <<'EOF'
-          import assert from 'node:assert/strict'
-          import { CHAPTER_ONE_SCENE_TEXT, SESSION_ZERO_WELCOME } from './src/features/games/weed-goblins/weedGoblinsChapterOne.js'
-          import { createWeedGoblinsRun } from './src/features/games/weed-goblins/weedGoblinsChapterOneStaticRuntime.js'
-          import { getWeedGoblinsHelpResponse } from './src/features/games/weed-goblins/weedGoblinsHelpChapterOne.js'
-          import { readFileSync } from 'node:fs'
-
-          const expected = [
-            "You've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you.",
-            "There are little bootprints all over the mud, a drag mark from the case, and one extremely clear goblin faceprint where somebody apparently lost an argument with the hill. They got back up. The faceprint did not.",
-            "The theft itself was also a mess. While they were taking the case, two of them stopped to argue about whether this counted as theft or 'aggressive redistribution.' A third one produced a form. Nobody knew who was supposed to fill it out. Then they remembered they were escaping and ran.",
-            "Now the tracks are heading straight toward the King's Stash Hall, which you can just make out up on the ridge whenever the fog gets out of the way. There's a miserable little bell up there going clonk every so often. Very regal.",
-            "What's your character's name, and are they human, dwarf, elf, or gnome?",
-          ]
-          assert.deepEqual(SESSION_ZERO_WELCOME, expected)
-          assert.deepEqual(createWeedGoblinsRun({ seed: 'live-repair-proof' }).narration, expected)
-          assert.deepEqual(CHAPTER_ONE_SCENE_TEXT.windcutTrail, [
-            'Wet thyme smells sharp under your boots. A brass rivet from the Research Case is pressed into the mud beside a narrow drag groove.',
-            'A trail post points uphill toward Rattlebridge. Green waxed twine is caught under the rivet.',
-            'Above the rise, bottle caps begin to rattle.',
-          ])
-          const openingState = createWeedGoblinsRun({ seed: 'help-proof' })
-          assert.equal(getWeedGoblinsHelpResponse(openingState, 1, 1).text, 'If you want name suggestions, I can give you a few.')
-          const chat = readFileSync('./src/features/games/weed-goblins/WeedGoblinsChat.jsx', 'utf8')
-          assert.doesNotMatch(chat, /automaticGuidance|getWeedGoblinsAutomaticGuidance|guidance-bubble/)
-          console.log('EXACT_APPROVED_PREMISE_BLOCK=PASS')
-          console.log('DISTINCT_WINDCUT_BLOCK=PASS')
-          console.log('HELP_OPT_IN_SOURCE=PASS')
-          EOF
-
-      - name: Run Chapter 1 static tests and production build
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm ci
-          node --test src/features/games/weed-goblins/weedGoblinsChapterOneStatic.test.js
-          npm run build
+      - name: Build production bundle
+        run: npm run build
 
       - name: Commit validated source repair
         shell: bash
@@ -178,34 +50,23 @@ jobs:
           set -euo pipefail
           git config user.name casevoiceai
           git config user.email casevoice.ai@gmail.com
-          git add \
-            src/features/games/weed-goblins/weedGoblinsChapterOne.js \
-            src/features/games/weed-goblins/weedGoblinsHelpChapterOne.js \
-            src/features/games/weed-goblins/WeedGoblinsChat.jsx
+          git add src/features/games/weed-goblins/weedGoblinsChapterOne.js src/features/games/weed-goblins/weedGoblinsHelpChapterOne.js src/features/games/weed-goblins/WeedGoblinsChat.jsx
           git commit -m 'Restore approved Weed Goblins opening and opt-in Help'
           FIX_COMMIT="$(git rev-parse HEAD)"
           echo "FIX_COMMIT=$FIX_COMMIT" >> "$GITHUB_ENV"
           git push origin feature/weed-goblins-session-zero
           echo "VALIDATED_FIX_COMMIT=$FIX_COMMIT"
 
-      - name: Deploy validated build to preview-only Pages
+      - name: Deploy validated bundle to preview-only Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          npx wrangler@latest pages deploy dist \
-            --project-name=my420journal-app \
-            --branch=feature/weed-goblins-session-zero \
-            --commit-hash="$FIX_COMMIT" \
-            --commit-message='Restore approved Weed Goblins opening and opt-in Help' \
-            --commit-dirty=false
-
+          npx wrangler@latest pages deploy dist --project-name=my420journal-app --branch=feature/weed-goblins-session-zero --commit-hash="$FIX_COMMIT" --commit-message='Restore approved Weed Goblins opening and opt-in Help' --commit-dirty=false
           for attempt in $(seq 1 30); do
-            response="$(curl --fail-with-body --silent --show-error \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/my420journal-app/deployments")"
+            response="$(curl --fail-with-body --silent --show-error -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/my420journal-app/deployments")"
             origin="$(printf '%s' "$response" | jq -r --arg sha "$FIX_COMMIT" '.result[] | select(.deployment_trigger.metadata.commit_hash == $sha and .environment == "preview") | .url' | head -n 1)"
             if [ -n "$origin" ] && [ "$origin" != "null" ]; then
               echo "PAGES_ORIGIN=$origin" >> "$GITHUB_ENV"
@@ -214,177 +75,60 @@ jobs:
             fi
             sleep 2
           done
-          echo 'Could not resolve preview deployment for validated fix commit.' >&2
           exit 1
 
-      - name: Repoint private access-gated Worker
+      - name: Upload private gateway Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/worker.mjs <<'EOF'
-          const ORIGIN = '__PAGES_ORIGIN__'
-          const ACCESS_CODE_SHA256 = '8078d896eb8691b5c1cbb29289e450b19162cc7bb0e453ab4040f2d5952c8651'
-          const COOKIE_NAME = 'wg_private_playtest'
-
-          function toHex(bytes) {
-            return [...new Uint8Array(bytes)].map((value) => value.toString(16).padStart(2, '0')).join('')
-          }
-          function equalText(a, b) {
-            if (a.length !== b.length) return false
-            let diff = 0
-            for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
-            return diff === 0
-          }
-          async function sha256(value) {
-            return toHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))
-          }
-          function cookieValue(request) {
-            const cookie = request.headers.get('Cookie') || ''
-            for (const part of cookie.split(';')) {
-              const [name, ...rest] = part.trim().split('=')
-              if (name === COOKIE_NAME) return rest.join('=')
-            }
-            return ''
-          }
-          function accessPage(error = false) {
-            const message = error ? '<p class="error">That playtest code did not match.</p>' : ''
-            return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Private Weed Goblins Playtest</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0A1A0A;color:#E8F0E8;font-family:Arial,sans-serif}main{width:min(92vw,460px);padding:32px;border:1px solid #2D4A2D;border-radius:18px;background:#1A2E1A}h1{margin-top:0;font-size:28px}p{color:#B7C9B7;line-height:1.5}.error{color:#ffb3a7}label{display:block;margin:20px 0 8px;font-weight:700}input{box-sizing:border-box;width:100%;padding:14px;border:1px solid #4A674A;border-radius:10px;background:#081508;color:#fff;font-size:18px}button{width:100%;margin-top:14px;padding:14px;border:0;border-radius:10px;background:#C9A84C;color:#0A1A0A;font-weight:800;font-size:16px;cursor:pointer}</style></head><body><main><h1>Private Weed Goblins Playtest</h1><p>This build is restricted to invited testers.</p>${message}<form method="post" action="/_playtest_access"><label for="code">Playtest code</label><input id="code" name="code" type="password" autocomplete="off" autofocus required><button type="submit">Open Weed Goblins</button></form></main></body></html>`, { status: error ? 401 : 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow, noarchive', 'Referrer-Policy': 'no-referrer' } })
-          }
-          async function proxy(request) {
-            const incoming = new URL(request.url)
-            const upstreamUrl = new URL(incoming.pathname + incoming.search, ORIGIN)
-            const headers = new Headers(request.headers)
-            headers.delete('Cookie')
-            const upstream = await fetch(new Request(upstreamUrl, { method: request.method, headers, body: ['GET', 'HEAD'].includes(request.method) ? undefined : request.body, redirect: 'manual' }))
-            const responseHeaders = new Headers(upstream.headers)
-            responseHeaders.set('Cache-Control', 'no-store')
-            responseHeaders.set('X-Robots-Tag', 'noindex, nofollow, noarchive')
-            responseHeaders.set('Referrer-Policy', 'no-referrer')
-            const location = responseHeaders.get('Location')
-            if (location && location.startsWith(ORIGIN)) responseHeaders.set('Location', location.slice(ORIGIN.length) || '/')
-            return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: responseHeaders })
-          }
-          export default {
-            async fetch(request, env) {
-              const url = new URL(request.url)
-              if (!env.SESSION_SECRET) return new Response('Private playtest unavailable.', { status: 503, headers: { 'Cache-Control': 'no-store' } })
-              if (url.pathname === '/_playtest_access' && request.method === 'POST') {
-                const raw = await request.text()
-                const code = new URLSearchParams(raw).get('code') || ''
-                const digest = await sha256(code)
-                if (!equalText(digest, ACCESS_CODE_SHA256)) return accessPage(true)
-                return new Response(null, { status: 303, headers: { 'Location': '/games/weed-goblins', 'Set-Cookie': `${COOKIE_NAME}=${env.SESSION_SECRET}; Path=/; Max-Age=86400; HttpOnly; Secure; SameSite=Lax`, 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow, noarchive' } })
-              }
-              const supplied = cookieValue(request)
-              if (!supplied || !equalText(supplied, env.SESSION_SECRET)) return accessPage(false)
-              return proxy(request)
-            },
-          }
-          EOF
-          python - <<'PY'
-          from pathlib import Path
-          import os
-          path = Path('/tmp/worker.mjs')
-          text = path.read_text()
-          if text.count('__PAGES_ORIGIN__') != 1:
-              raise SystemExit('Worker origin placeholder count was not one')
-          path.write_text(text.replace('__PAGES_ORIGIN__', os.environ['PAGES_ORIGIN']))
-          PY
           printf '%s' '{"main_module":"worker.mjs","compatibility_date":"2026-08-10"}' > /tmp/metadata.json
-          response="$(curl --fail-with-body --silent --show-error -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -F 'metadata=@/tmp/metadata.json;type=application/json' \
-            -F 'worker.mjs=@/tmp/worker.mjs;type=application/javascript+module')"
+          response="$(curl --fail-with-body --silent --show-error -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -F 'metadata=@/tmp/metadata.json;type=application/json' -F 'worker.mjs=@.github/weed-goblins-private-gateway.mjs;type=application/javascript+module')"
           printf '%s' "$response" | jq -e '.success == true' >/dev/null
 
+      - name: Set gateway origin and rotate private session secret
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin_payload="$(jq -nc --arg value "$PAGES_ORIGIN" '{name:"PAGES_ORIGIN",text:$value,type:"secret_text"}')"
+          response="$(curl --fail-with-body --silent --show-error -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest/secrets" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data "$origin_payload")"
+          printf '%s' "$response" | jq -e '.success == true' >/dev/null
           secret="$(openssl rand -hex 32)"
           echo "::add-mask::$secret"
           echo "PLAYTEST_SESSION_SECRET=$secret" >> "$GITHUB_ENV"
-          payload="$(jq -nc --arg secret "$secret" '{name:"SESSION_SECRET",text:$secret,type:"secret_text"}')"
-          response="$(curl --fail-with-body --silent --show-error -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest/secrets" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H 'Content-Type: application/json' \
-            --data "$payload")"
+          session_payload="$(jq -nc --arg value "$secret" '{name:"SESSION_SECRET",text:$value,type:"secret_text"}')"
+          response="$(curl --fail-with-body --silent --show-error -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest/secrets" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data "$session_payload")"
           printf '%s' "$response" | jq -e '.success == true' >/dev/null
 
+      - name: Verify private gate and authenticated proxy
+        shell: bash
+        run: |
+          set -euo pipefail
           for attempt in $(seq 1 20); do
             gate="$(curl --silent --show-error --max-time 10 "$PLAYTEST_URL" || true)"
-            app="$(curl --silent --show-error --max-time 10 -H "Cookie: wg_private_playtest=${secret}" "$PLAYTEST_URL" || true)"
+            app="$(curl --silent --show-error --max-time 10 -H "Cookie: wg_private_playtest=${PLAYTEST_SESSION_SECRET}" "$PLAYTEST_URL" || true)"
             if printf '%s' "$gate" | grep -q 'Private Weed Goblins Playtest' && printf '%s' "$app" | grep -q '<div id="root"></div>'; then
               echo 'PRIVATE_GATE_AND_AUTHENTICATED_PROXY=PASS'
               exit 0
             fi
             sleep 3
           done
-          echo 'Private playtest gateway did not verify.' >&2
           exit 1
 
-      - name: Browser-proof exact opening and Help gating
-        shell: bash
+      - name: Install browser proof tooling
         run: |
-          set -euo pipefail
           npm install --no-save --package-lock=false playwright@1.54.2
           npx playwright install --with-deps chromium
+
+      - name: Screenshot and verify live opening
+        run: |
           mkdir -p playtest-artifacts
-          cat > /tmp/proof.mjs <<'EOF'
-          import { chromium } from 'playwright'
-
-          const url = process.env.PLAYTEST_URL
-          const secret = process.env.PLAYTEST_SESSION_SECRET
-          const expected = [
-            "You've been chasing five goblins uphill for about an hour. They stole your Brass-Latched Research Case, they are not especially good at escaping with it, and the trail is honestly doing most of the work for you.",
-            "There are little bootprints all over the mud, a drag mark from the case, and one extremely clear goblin faceprint where somebody apparently lost an argument with the hill. They got back up. The faceprint did not.",
-            "The theft itself was also a mess. While they were taking the case, two of them stopped to argue about whether this counted as theft or 'aggressive redistribution.' A third one produced a form. Nobody knew who was supposed to fill it out. Then they remembered they were escaping and ran.",
-            "Now the tracks are heading straight toward the King's Stash Hall, which you can just make out up on the ridge whenever the fog gets out of the way. There's a miserable little bell up there going clonk every so often. Very regal.",
-            "What's your character's name, and are they human, dwarf, elf, or gnome?",
-          ]
-          const check = (condition, message) => { if (!condition) throw new Error(message) }
-          const browser = await chromium.launch({ headless: true })
-          try {
-            const context = await browser.newContext({ viewport: { width: 1050, height: 923 } })
-            await context.addCookies([{ name: 'wg_private_playtest', value: secret, domain: 'weed-goblins-playtest.casevoice-ai.workers.dev', path: '/', secure: true, httpOnly: true, sameSite: 'Lax' }])
-            await context.addInitScript(() => localStorage.clear())
-            const page = await context.newPage()
-            const response = await page.goto(url, { waitUntil: 'networkidle' })
-            check(response?.ok(), `playtest response was ${response?.status()}`)
-            await page.getByText(expected[0], { exact: true }).waitFor({ timeout: 30000 })
-            await page.getByText(expected[4], { exact: true }).waitFor({ timeout: 30000 })
-            const bubbles = await page.locator('.weed-goblins-game__message-bubble.is-eliza > p').allTextContents()
-            check(bubbles.length >= 5, `only ${bubbles.length} narrator bubbles visible`)
-            check(JSON.stringify(bubbles.slice(0, 5)) === JSON.stringify(expected), `opening bubbles did not match exact approved sequence: ${JSON.stringify(bubbles.slice(0, 5))}`)
-            const body = await page.locator('body').innerText()
-            for (const stale of [
-              'Welcome to the THC Trails.',
-              'A bell, or maybe just the idea of a bell, rings three times.',
-              'Half a beat later, it rings once more. Very regal.',
-              'Type a name in the message box.',
-              'forcing yourself to invent one on command',
-            ]) check(!body.includes(stale), `stale copy still visible: ${stale}`)
-            check(await page.locator('.weed-goblins-game__guidance-bubble').count() === 0, 'automatic idle guidance is still rendered')
-            await page.screenshot({ path: 'playtest-artifacts/weed-goblins-opening-approved.png', fullPage: true })
-
-            await page.getByRole('button', { name: /^Help/ }).click()
-            const help = page.locator('.weed-goblins-game__help-bubble p')
-            await help.waitFor({ timeout: 10000 })
-            check((await help.innerText()) === 'If you want name suggestions, I can give you a few.', `unexpected Help text: ${await help.innerText()}`)
-
-            console.log('LIVE_APPROVED_PREMISE_EXACT=PASS')
-            console.log('LIVE_VERY_REGAL_BEAT_EXACT=PASS')
-            console.log('LIVE_LOCKED_CHARACTER_QUESTION_EXACT=PASS')
-            console.log('LIVE_AUTOMATIC_GUIDANCE_ABSENT=PASS')
-            console.log('LIVE_HELP_BUTTON_OPT_IN=PASS')
-            console.log(`LIVE_URL=${page.url()}`)
-            console.log('SCREENSHOT=playtest-artifacts/weed-goblins-opening-approved.png')
-          } finally {
-            await browser.close()
-          }
-          EOF
-          node /tmp/proof.mjs
+          node .github/proof-wg-opening-live.mjs
 
       - name: Upload verified opening screenshot
         uses: actions/upload-artifact@v4
@@ -393,14 +137,14 @@ jobs:
           path: playtest-artifacts/weed-goblins-opening-approved.png
           if-no-files-found: error
 
-      - name: Remove temporary repair workflow
+      - name: Remove temporary repair tooling
         shell: bash
         run: |
           set -euo pipefail
           git pull --rebase origin feature/weed-goblins-session-zero
-          rm .github/workflows/repair-weed-goblins-opening-help.yml
+          rm .github/workflows/repair-weed-goblins-opening-help.yml .github/repair-wg-opening-help.py .github/verify-wg-opening-source.mjs .github/weed-goblins-private-gateway.mjs .github/proof-wg-opening-live.mjs
           git config user.name casevoiceai
           git config user.email casevoice.ai@gmail.com
           git add -A
-          git commit -m 'Remove temporary Weed Goblins repair workflow'
+          git commit -m 'Remove temporary Weed Goblins repair tooling'
           git push origin feature/weed-goblins-session-zero
