@@ -1,0 +1,124 @@
+name: Finish Weed Goblins Private Opening Proof
+
+on:
+  push:
+    branches:
+      - feature/weed-goblins-session-zero
+
+permissions:
+  contents: write
+
+jobs:
+  private-deploy-and-proof:
+    if: github.event.head_commit.message == 'Finish Weed Goblins private opening proof'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      FIX_COMMIT: 8f0217c0bdaf9eae9c3b65d392679fa28c9a6a48
+      PAGES_ORIGIN: https://02ade062.my420journal-app.pages.dev
+      PLAYTEST_URL: https://weed-goblins-playtest.casevoice-ai.workers.dev/games/weed-goblins
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/weed-goblins-session-zero
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Confirm validated source commit remains in branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$FIX_COMMIT" HEAD
+          node .github/verify-wg-opening-source.mjs
+
+      - name: Wait for immutable Cloudflare Pages preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            html="$(curl --silent --show-error --max-time 10 "$PAGES_ORIGIN/games/weed-goblins" || true)"
+            if printf '%s' "$html" | grep -q '<div id="root"></div>'; then
+              echo "IMMUTABLE_PAGES_PREVIEW_READY=$PAGES_ORIGIN"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo 'Validated immutable Pages preview never became reachable.' >&2
+          exit 1
+
+      - name: Upload private gateway Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' '{"main_module":"worker.mjs","compatibility_date":"2026-08-10"}' > /tmp/metadata.json
+          response="$(curl --fail-with-body --silent --show-error -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -F 'metadata=@/tmp/metadata.json;type=application/json' -F 'worker.mjs=@.github/weed-goblins-private-gateway.mjs;type=application/javascript+module')"
+          printf '%s' "$response" | jq -e '.success == true' >/dev/null
+
+      - name: Set exact preview origin and rotate private session secret
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin_payload="$(jq -nc --arg value "$PAGES_ORIGIN" '{name:"PAGES_ORIGIN",text:$value,type:"secret_text"}')"
+          response="$(curl --fail-with-body --silent --show-error -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest/secrets" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data "$origin_payload")"
+          printf '%s' "$response" | jq -e '.success == true' >/dev/null
+          secret="$(openssl rand -hex 32)"
+          echo "::add-mask::$secret"
+          echo "PLAYTEST_SESSION_SECRET=$secret" >> "$GITHUB_ENV"
+          session_payload="$(jq -nc --arg value "$secret" '{name:"SESSION_SECRET",text:$value,type:"secret_text"}')"
+          response="$(curl --fail-with-body --silent --show-error -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/weed-goblins-playtest/secrets" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data "$session_payload")"
+          printf '%s' "$response" | jq -e '.success == true' >/dev/null
+
+      - name: Verify private gate and authenticated proxy
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            gate="$(curl --silent --show-error --max-time 10 "$PLAYTEST_URL" || true)"
+            app="$(curl --silent --show-error --max-time 10 -H "Cookie: wg_private_playtest=${PLAYTEST_SESSION_SECRET}" "$PLAYTEST_URL" || true)"
+            if printf '%s' "$gate" | grep -q 'Private Weed Goblins Playtest' && printf '%s' "$app" | grep -q '<div id="root"></div>'; then
+              echo 'PRIVATE_GATE_AND_AUTHENTICATED_PROXY=PASS'
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1
+
+      - name: Install browser proof tooling
+        run: |
+          npm ci
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Screenshot and verify live opening
+        run: |
+          mkdir -p playtest-artifacts
+          node .github/proof-wg-opening-live.mjs
+
+      - name: Upload verified opening screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: weed-goblins-approved-opening-proof
+          path: playtest-artifacts/weed-goblins-opening-approved.png
+          if-no-files-found: error
+
+      - name: Remove temporary repair tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --rebase origin feature/weed-goblins-session-zero
+          rm -f .github/workflows/repair-weed-goblins-opening-help.yml .github/workflows/finish-wg-opening-private-proof.yml .github/repair-wg-opening-help.py .github/verify-wg-opening-source.mjs .github/weed-goblins-private-gateway.mjs .github/proof-wg-opening-live.mjs
+          git config user.name casevoiceai
+          git config user.email casevoice.ai@gmail.com
+          git add -A
+          git commit -m 'Remove temporary Weed Goblins repair tooling'
+          git push origin feature/weed-goblins-session-zero
