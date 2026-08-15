@@ -1,51 +1,27 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { onRequest } from '../../../../functions/api/weed-goblins-narration.js'
-import { buildPrivateTestingCookie } from '../../../../server/private-testing-access.js'
+import {
+  isAllowedWeedGoblinsNarrationOrigin,
+  onRequest,
+} from '../../../../functions/api/weed-goblins-narration.js'
 
-const TEST_ACCESS_CODE = 'journal-test-access-code'
 const env = {
-  JOURNAL_ACCESS_CODE: TEST_ACCESS_CODE,
   WEED_GOBLINS_NARRATION_WORKER_URL: 'https://private-worker.example.test',
   WEED_GOBLINS_PROXY_SECRET: 'private-shared-secret',
 }
-const testerCookie = (await buildPrivateTestingCookie(TEST_ACCESS_CODE)).split(';')[0]
 
-function makeRequest(origin = 'https://my420journal.app', { authorized = true } = {}) {
-  const headers = {
-    Origin: origin,
-    'Content-Type': 'application/json',
-    'CF-Connecting-IP': '203.0.113.42',
-  }
-  if (authorized) headers.Cookie = testerCookie
-
+function makeRequest(origin = 'https://my420journal.app') {
   return new Request('https://my420journal.app/api/weed-goblins-narration', {
     method: 'POST',
-    headers,
+    headers: {
+      Origin: origin,
+      'Content-Type': 'application/json',
+      'CF-Connecting-IP': '203.0.113.42',
+    },
     body: JSON.stringify({ moment: 'natural-one-complication' }),
   })
 }
-
-test('rejects a request without a valid tester session before forwarding', async () => {
-  const originalFetch = globalThis.fetch
-  let fetchCalls = 0
-  globalThis.fetch = async () => {
-    fetchCalls += 1
-    throw new Error('must not forward')
-  }
-  try {
-    const response = await onRequest({
-      request: makeRequest('https://my420journal.app', { authorized: false }),
-      env,
-    })
-    assert.equal(response.status, 401)
-    assert.equal(fetchCalls, 0)
-    assert.deepEqual(await response.json(), { error: 'Private testing access required' })
-  } finally {
-    globalThis.fetch = originalFetch
-  }
-})
 
 test('rejects an unapproved Origin before forwarding', async () => {
   const originalFetch = globalThis.fetch
@@ -66,7 +42,7 @@ test('rejects an unapproved Origin before forwarding', async () => {
   }
 })
 
-test('accepts only the two locked production origins', async () => {
+test('accepts only the two locked production origins when Preview wiring is absent', async () => {
   const originalFetch = globalThis.fetch
   const origins = []
   globalThis.fetch = async (_url, init) => {
@@ -85,6 +61,10 @@ test('accepts only the two locked production origins', async () => {
       assert.equal(response.status, 200)
       assert.equal((await response.json()).text, 'I record a harmless scheduling problem.')
     }
+    assert.equal(
+      isAllowedWeedGoblinsNarrationOrigin('https://feature-weed-goblins-session-zero.my420journal-app.pages.dev'),
+      false,
+    )
     assert.deepEqual(origins, [
       {
         authorization: 'Bearer private-shared-secret',
@@ -95,6 +75,49 @@ test('accepts only the two locked production origins', async () => {
         sourceAddress: '203.0.113.42',
       },
     ])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('Preview-only host binding admits Pages preview subdomains without admitting unrelated origins', async () => {
+  const previewEnv = {
+    ...env,
+    WEED_GOBLINS_PAGES_PREVIEW_HOST: 'my420journal-app.pages.dev',
+  }
+  const previewOrigin = 'https://feature-weed-goblins-session-zero.my420journal-app.pages.dev'
+  const hashOrigin = 'https://373f31e2.my420journal-app.pages.dev'
+
+  assert.equal(
+    isAllowedWeedGoblinsNarrationOrigin(previewOrigin, previewEnv.WEED_GOBLINS_PAGES_PREVIEW_HOST),
+    true,
+  )
+  assert.equal(
+    isAllowedWeedGoblinsNarrationOrigin(hashOrigin, previewEnv.WEED_GOBLINS_PAGES_PREVIEW_HOST),
+    true,
+  )
+  assert.equal(
+    isAllowedWeedGoblinsNarrationOrigin('https://my420journal-app.pages.dev', previewEnv.WEED_GOBLINS_PAGES_PREVIEW_HOST),
+    false,
+  )
+  assert.equal(
+    isAllowedWeedGoblinsNarrationOrigin('https://my420journal-app.pages.dev.evil.example', previewEnv.WEED_GOBLINS_PAGES_PREVIEW_HOST),
+    false,
+  )
+  assert.equal(
+    isAllowedWeedGoblinsNarrationOrigin('http://feature-weed-goblins-session-zero.my420journal-app.pages.dev', previewEnv.WEED_GOBLINS_PAGES_PREVIEW_HOST),
+    false,
+  )
+
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async () => new Response(JSON.stringify({ text: 'Preview narration works.' }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
+  try {
+    const response = await onRequest({ request: makeRequest(previewOrigin), env: previewEnv })
+    assert.equal(response.status, 200)
+    assert.equal((await response.json()).text, 'Preview narration works.')
   } finally {
     globalThis.fetch = originalFetch
   }

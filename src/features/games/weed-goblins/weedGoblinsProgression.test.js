@@ -14,6 +14,8 @@ import {
   weedGoblinsRunStorageKey,
 } from './weedGoblinsLocalDataAdapter.js'
 import {
+  WEED_GOBLINS_CHAPTER_THREE,
+  WEED_GOBLINS_CHAPTER_TWO,
   WEED_GOBLINS_PROGRESS_LABEL,
   WEED_GOBLINS_PROGRESSION_CATALOG,
   calculateWeedGoblinsProgression,
@@ -43,9 +45,18 @@ function createAuthOnlyStore(userId = 'user-1') {
 }
 
 function completedChapterOneRuns(count) {
-  return Array.from({ length: count }, () => ({
+  return Array.from({ length: count }, (_, index) => ({
     adventureId: 'goblin-highlands-session-1',
+    seed: `chapter-one-${index}`,
     ending: 'recovery',
+  }))
+}
+
+function completedChapterTwoRuns(count) {
+  return Array.from({ length: count }, (_, index) => ({
+    adventureId: 'hollow-market-session-1',
+    seed: `chapter-two-${index}`,
+    ending: 'market-operational',
   }))
 }
 
@@ -58,18 +69,26 @@ function classifyLikeNarrationCallbacks(completedRunCount) {
   }
 }
 
-test('formalizes Weed Goblins as Chapter 1 Quest 1', () => {
+test('formalizes Weed Goblins Chapters 1 through 3 without exposing later chapters early', () => {
   assert.equal(WEED_GOBLINS_PROGRESSION_CATALOG.gameId, 'weed-goblins')
-  assert.equal(WEED_GOBLINS_PROGRESSION_CATALOG.chapters.length, 1)
+  assert.equal(WEED_GOBLINS_PROGRESSION_CATALOG.chapters.length, 3)
   assert.equal(WEED_GOBLINS_PROGRESSION_CATALOG.chapters[0].number, 1)
   assert.equal(WEED_GOBLINS_PROGRESSION_CATALOG.chapters[0].title, 'The Goblin Highlands')
-  assert.equal(WEED_GOBLINS_PROGRESSION_CATALOG.chapters[0].quests.length, 1)
-  assert.equal(WEED_GOBLINS_PROGRESSION_CATALOG.chapters[0].quests[0].number, 1)
   assert.equal(WEED_GOBLINS_PROGRESSION_CATALOG.chapters[0].quests[0].adventureId, 'goblin-highlands-session-1')
+  assert.equal(WEED_GOBLINS_CHAPTER_TWO.number, 2)
+  assert.equal(WEED_GOBLINS_CHAPTER_TWO.title, 'The Hollow Market')
+  assert.equal(WEED_GOBLINS_CHAPTER_TWO.quests[0].adventureId, 'hollow-market-session-1')
+  assert.equal(WEED_GOBLINS_CHAPTER_THREE.number, 3)
+  assert.equal(WEED_GOBLINS_CHAPTER_THREE.title, 'The Withered Grove')
+  assert.equal(WEED_GOBLINS_CHAPTER_THREE.quests[0].adventureId, 'withered-grove-session-1')
   assert.equal(WEED_GOBLINS_PROGRESS_LABEL, 'Chapter 1: The Goblin Highlands')
+
+  const fresh = calculateWeedGoblinsProgression([])
+  assert.deepEqual(fresh.unlockedChapters.map((chapter) => chapter.id), ['chapter-1'])
+  assert.equal(fresh.nextChapterReference, null)
 })
 
-test('adds chapter and quest identity to the existing completed-run summary', () => {
+test('adds chapter and quest identity to all three canonical adventures', () => {
   assert.deepEqual(
     weedGoblinsProgressionMetadata('goblin-highlands-session-1'),
     {
@@ -82,6 +101,30 @@ test('adds chapter and quest identity to the existing completed-run summary', ()
       questTitle: 'Weed Goblins',
     },
   )
+  assert.deepEqual(
+    weedGoblinsProgressionMetadata('hollow-market-session-1'),
+    {
+      gameId: 'weed-goblins',
+      chapterId: 'chapter-2',
+      chapterNumber: 2,
+      chapterTitle: 'The Hollow Market',
+      questId: 'quest-2',
+      questNumber: 1,
+      questTitle: 'The Hollow Market',
+    },
+  )
+  assert.deepEqual(
+    weedGoblinsProgressionMetadata('withered-grove-session-1'),
+    {
+      gameId: 'weed-goblins',
+      chapterId: 'chapter-3',
+      chapterNumber: 3,
+      chapterTitle: 'The Withered Grove',
+      questId: 'quest-3',
+      questNumber: 1,
+      questTitle: 'The Withered Grove',
+    },
+  )
 })
 
 test('saves chapter and quest metadata in the existing Weed Goblins history key', async () => {
@@ -90,7 +133,7 @@ test('saves chapter and quest metadata in the existing Weed Goblins history key'
   const result = await saveWeedGoblinsRunSummary({
     runSummary: {
       adventureId: 'goblin-highlands-session-1',
-      backgroundId: 'hauler',
+      backgroundId: 'tracker',
       ending: 'recovery',
       outcomeSummary: 'recovered the field reliquary',
       trouble: 0,
@@ -112,30 +155,79 @@ test('saves chapter and quest metadata in the existing Weed Goblins history key'
   assert.equal(stored[0].questTitle, 'Weed Goblins')
 })
 
-test('reuses the existing 5 and 10 completed-run narration milestones for chapter progress', () => {
+test('five Chapter 1 runs unlock Hollow Market as a genuine next chapter signal', () => {
   const fresh = calculateWeedGoblinsProgression(completedChapterOneRuns(0))
+  const four = calculateWeedGoblinsProgression(completedChapterOneRuns(4))
   const five = calculateWeedGoblinsProgression(completedChapterOneRuns(5))
   const ten = calculateWeedGoblinsProgression(completedChapterOneRuns(10))
 
-  assert.equal(fresh.unlockedChapters.length, 1)
+  assert.deepEqual(fresh.unlockedChapters.map((chapter) => chapter.id), ['chapter-1'])
   assert.equal(fresh.currentChapter.finishedEnough, false)
-  assert.equal(fresh.currentChapter.milestoneTier, NARRATION_TIERS.normal)
   assert.equal(fresh.nextChapterReference, null)
 
-  assert.equal(five.unlockedChapters.length, 1)
-  assert.equal(five.currentChapter.finishedEnough, true)
-  assert.equal(five.currentChapter.mastered, false)
-  assert.equal(five.currentChapter.milestoneTier, NARRATION_TIERS.experiencedCallback)
-  assert.equal(five.nextChapterReference, null)
+  assert.deepEqual(four.unlockedChapters.map((chapter) => chapter.id), ['chapter-1'])
+  assert.equal(four.nextChapterReference, null)
 
-  assert.equal(ten.unlockedChapters.length, 1)
-  assert.equal(ten.currentChapter.finishedEnough, true)
+  assert.deepEqual(five.unlockedChapters.map((chapter) => chapter.id), ['chapter-1', 'chapter-2'])
+  assert.equal(five.currentChapter.id, 'chapter-1')
+  assert.equal(five.currentChapter.finishedEnough, true)
+  assert.equal(five.currentChapter.milestoneTier, NARRATION_TIERS.experiencedCallback)
+  assert.equal(five.nextChapterReference.id, 'chapter-2')
+  assert.equal(five.nextChapterReference.completedRunCount, 0)
+
+  assert.deepEqual(ten.unlockedChapters.map((chapter) => chapter.id), ['chapter-1', 'chapter-2'])
+  assert.equal(ten.currentChapter.id, 'chapter-1')
   assert.equal(ten.currentChapter.mastered, true)
-  assert.equal(ten.currentChapter.milestoneTier, NARRATION_TIERS.fourthWall)
-  assert.equal(ten.nextChapterReference, null)
+  assert.equal(ten.nextChapterReference.id, 'chapter-2')
 })
 
-test('newly unlocked unplayed chapter is next reference while current stays on last played chapter', () => {
+test('once Hollow Market has a completed run it becomes the chapter actually being worked through', () => {
+  const progression = calculateWeedGoblinsProgression([
+    ...completedChapterOneRuns(5),
+    ...completedChapterTwoRuns(1),
+  ])
+
+  assert.equal(progression.currentChapter.id, 'chapter-2')
+  assert.equal(progression.currentChapter.completedRunCount, 1)
+  assert.equal(progression.currentChapter.finishedEnough, false)
+  assert.equal(progression.nextChapterReference, null)
+})
+
+test('five Hollow Market runs unlock The Withered Grove without making the unplayed chapter current', () => {
+  const four = calculateWeedGoblinsProgression([
+    ...completedChapterOneRuns(5),
+    ...completedChapterTwoRuns(4),
+  ])
+  const five = calculateWeedGoblinsProgression([
+    ...completedChapterOneRuns(5),
+    ...completedChapterTwoRuns(5),
+  ])
+
+  assert.deepEqual(four.unlockedChapters.map((chapter) => chapter.id), ['chapter-1', 'chapter-2'])
+  assert.equal(four.currentChapter.id, 'chapter-2')
+  assert.equal(four.nextChapterReference, null)
+
+  assert.deepEqual(five.unlockedChapters.map((chapter) => chapter.id), ['chapter-1', 'chapter-2', 'chapter-3'])
+  assert.equal(five.currentChapter.id, 'chapter-2')
+  assert.equal(five.currentChapter.finishedEnough, true)
+  assert.equal(five.nextChapterReference.id, 'chapter-3')
+  assert.equal(five.nextChapterReference.completedRunCount, 0)
+})
+
+test('once The Withered Grove has a completed run it becomes the chapter actually being worked through', () => {
+  const progression = calculateWeedGoblinsProgression([
+    ...completedChapterOneRuns(5),
+    ...completedChapterTwoRuns(5),
+    { adventureId: 'withered-grove-session-1', seed: 'chapter-three-1', ending: 'grove-healing' },
+  ])
+
+  assert.equal(progression.currentChapter.id, 'chapter-3')
+  assert.equal(progression.currentChapter.completedRunCount, 1)
+  assert.equal(progression.currentChapter.finishedEnough, false)
+  assert.equal(progression.nextChapterReference, null)
+})
+
+test('generic progression core keeps newly unlocked unplayed chapter distinct from current chapter', () => {
   const catalog = createGameProgressionCatalog({
     gameId: 'progression-test',
     chapters: [
@@ -167,7 +259,7 @@ test('newly unlocked unplayed chapter is next reference while current stays on l
   assert.notEqual(progression.currentChapter.id, progression.nextChapterReference.id)
 })
 
-test('generic progression core unlocks the next catalog entry sequentially without another storage model', () => {
+test('generic progression core unlocks sequentially without another storage model', () => {
   const catalog = createGameProgressionCatalog({
     gameId: 'progression-test',
     chapters: [
@@ -198,11 +290,10 @@ test('generic progression core unlocks the next catalog entry sequentially witho
   })
   const laterWindow = calculateGameProgression({
     catalog,
-    previousRuns: Array.from({ length: 10 }, () => ({
-      gameId: 'progression-test',
-      chapterId: 'stage-b',
-      adventureId: 'fixture-b',
-    })),
+    previousRuns: [
+      ...Array.from({ length: 5 }, () => ({ adventureId: 'fixture-a' })),
+      ...Array.from({ length: 10 }, () => ({ adventureId: 'fixture-b' })),
+    ],
     classifyCompletedRunCount: classifyLikeNarrationCallbacks,
   })
 

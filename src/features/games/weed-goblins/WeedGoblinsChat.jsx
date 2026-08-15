@@ -3,37 +3,41 @@ import { useNavigate } from 'react-router-dom'
 
 import {
   createEmptyWeedGoblinsPersonalizationSnapshot,
-  readWeedGoblinsPersonalizationSnapshot,
+  readWeedGoblinsLocalContext,
   saveWeedGoblinsRunSummary,
 } from './weedGoblinsLocalDataAdapter.js'
 import {
   createWeedGoblinsChatSession,
   getWeedGoblinsQuickReplies,
   isWeedGoblinsFreeTextScene,
+  isWeedGoblinsSessionTextScene,
   narrateWeedGoblinsResolvedTurn,
   prepareWeedGoblinsFreeTextTurn,
+  prepareWeedGoblinsQuickReplyTurn,
   resolveWeedGoblinsPreparedMechanics,
   resolveWeedGoblinsPreparedTurn,
   resolveWeedGoblinsTransitionWithStaticFallback,
-  selectWeedGoblinsChatChoice,
+  submitWeedGoblinsSessionText,
 } from './weedGoblinsChatController.js'
 import { WEED_GOBLINS_NARRATOR_NAME } from './weedGoblinsEngine.js'
+import { findWeedGoblinsDiscoverableMatches } from './weedGoblinsDiscoverables.js'
+import { buildWeedGoblinsCharacterSummary } from './weedGoblinsCharacterSummary.js'
+import {
+  WEED_GOBLINS_COMPOSER_MAX_LENGTH,
+  appendWeedGoblinsVoiceTranscript,
+  getBrowserSpeechRecognition,
+} from './weedGoblinsVoiceInput.js'
+import {
+  getWeedGoblinsHelpContextKey,
+  getWeedGoblinsHelpResponse,
+} from './weedGoblinsHelp.js'
+import { weedGoblinsProgressionMetadata } from './weedGoblinsProgression.js'
+import {
+  clearWeedGoblinsActiveRun,
+  readWeedGoblinsActiveRun,
+  saveWeedGoblinsActiveRun,
+} from './weedGoblinsPersistence.js'
 import './WeedGoblinsChat.css'
-
-const SCENE_NAMES = Object.freeze({
-  'choose-background': 'Choose Your Background',
-  'choose-route': 'Choose Your Road',
-  'goblin-encounter': 'Goblin Ambush',
-  midpoint: 'The Keep Gate',
-  'goblin-king': 'The Goblin King',
-  ending: 'Quest Complete',
-})
-
-const BACKGROUND_DETAILS = Object.freeze({
-  'background:hauler': 'Strength 3  |  Defense 1  |  Mana 2',
-  'background:keeper': 'Strength 1  |  Defense 3  |  Mana 2',
-  'background:adept': 'Strength 1  |  Defense 2  |  Mana 4',
-})
 
 function makeRunSeed() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -49,30 +53,32 @@ function staticNarration({ hook }) {
   })
 }
 
-async function loadSnapshotWithFallback() {
+async function loadLocalContextWithFallback() {
   try {
-    return await readWeedGoblinsPersonalizationSnapshot()
+    return await readWeedGoblinsLocalContext()
   } catch {
-    return createEmptyWeedGoblinsPersonalizationSnapshot()
+    return {
+      userId: null,
+      snapshot: createEmptyWeedGoblinsPersonalizationSnapshot(),
+      campaignState: null,
+    }
   }
 }
 
-function actionDetail(state, action) {
-  if (BACKGROUND_DETAILS[action.id]) return BACKGROUND_DETAILS[action.id]
-  if (action.id === 'route:ridge') return 'Open ground  |  Strength check'
-  if (action.id === 'route:fen') return 'Hidden approach  |  Defense check'
-  if (action.id === 'goblin:strike') return 'Force a path  |  Strength check'
-  if (action.id === 'goblin:guard') return 'Hold your ground  |  Defense check'
-  if (action.id === 'goblin:channel') return 'Spend 1 Mana  |  Roll with advantage'
-  if (action.id === 'midpoint:help') return 'Gain an ally  |  No roll'
-  if (action.id === 'midpoint:take-charm') return 'Risk the alarm  |  Defense check'
-  if (action.id === 'midpoint:read-runes') return 'Spend 1 Mana  |  Read the throne gate'
-  if (action.id === 'midpoint:skip') return 'Press on now  |  No roll'
-  if (action.id === 'boss:overpower') return 'Take back the item  |  Strength check'
-  if (action.id === 'boss:outlast') return 'Break his control  |  Defense check'
-  if (action.id === 'boss:spell') return 'Spend 2 Mana  |  Roll with advantage'
-  if (action.id === 'boss:bargain') return 'Call your ally  |  Secure a bargain'
-  return state?.sceneId === 'choose-background' ? 'Choose your adventurer' : 'Advance the quest'
+function saveActiveRunSafely(session) {
+  try {
+    return saveWeedGoblinsActiveRun(session)
+  } catch {
+    return null
+  }
+}
+
+function clearActiveRunSafely(userId) {
+  try {
+    clearWeedGoblinsActiveRun({ userId })
+  } catch {
+    // The game remains playable when browser storage is unavailable.
+  }
 }
 
 function D20Icon({ value = null, size = 44 }) {
@@ -93,23 +99,52 @@ function D20Icon({ value = null, size = 44 }) {
   )
 }
 
-function Stat({ label, value, danger = false }) {
+function TypingIndicator({ label = 'Eliza is typing' }) {
   return (
-    <div className={`weed-goblins-game__stat${danger ? ' is-danger' : ''}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <div className="weed-goblins-game__typing" aria-label={label}>
+      <span />
+      <span />
+      <span />
     </div>
   )
 }
 
-function StoryEntry({ message, onRoll, canRoll, busy }) {
+function HighlightedMessageText({ text, state, onOpenDiscoverable }) {
+  const matches = findWeedGoblinsDiscoverableMatches(text, state)
+  if (matches.length === 0) return text
+
+  const parts = []
+  let cursor = 0
+  for (const match of matches) {
+    if (match.start > cursor) parts.push(text.slice(cursor, match.start))
+    parts.push(
+      <button
+        key={`${match.discoverable.id}-${match.start}`}
+        type="button"
+        className="weed-goblins-game__discoverable"
+        onClick={() => onOpenDiscoverable(match.discoverable)}
+      >
+        {match.text}
+      </button>,
+    )
+    cursor = match.end
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor))
+  return parts
+}
+
+function StoryEntry({ message, onRoll, canRoll, busy, state, onOpenDiscoverable }) {
   if (message.kind === 'roll-trigger') {
     return (
-      <div className="weed-goblins-game__roll-panel">
-        <p>The outcome hangs on a d20.</p>
-        <button type="button" onClick={onRoll} disabled={!canRoll || busy}>
-          <D20Icon />
-          <span>{canRoll ? 'Roll the die' : 'Die rolled'}</span>
+      <div className="weed-goblins-game__roll-row">
+        <button
+          type="button"
+          className="weed-goblins-game__roll-button"
+          onClick={onRoll}
+          disabled={!canRoll || busy}
+        >
+          <D20Icon size={30} />
+          <span>{canRoll ? 'Roll D20' : 'Rolled'}</span>
         </button>
       </div>
     )
@@ -118,36 +153,91 @@ function StoryEntry({ message, onRoll, canRoll, busy }) {
   if (message.kind === 'roll-result') {
     return (
       <div className="weed-goblins-game__roll-result" aria-label={`D20 result ${message.die}`}>
-        <span>Roll result</span>
-        <D20Icon value={message.die} size={54} />
+        <D20Icon value={message.die} size={46} />
       </div>
     )
   }
 
   if (message.direction === 'outgoing') {
     return (
-      <article className="weed-goblins-game__story-entry is-player">
-        <div className="weed-goblins-game__entry-label">Your move</div>
-        <p>{message.text}</p>
-      </article>
+      <div className="weed-goblins-game__message-row is-outgoing">
+        <article className="weed-goblins-game__message-bubble is-player">
+          <p>{message.text}</p>
+        </article>
+      </div>
     )
   }
 
   return (
-    <article className="weed-goblins-game__story-entry is-narrator">
-      <div className="weed-goblins-game__narrator-mark" aria-hidden="true">
-        {WEED_GOBLINS_NARRATOR_NAME.charAt(0)}
+    <div className="weed-goblins-game__message-row is-incoming">
+      <article className="weed-goblins-game__message-bubble is-eliza">
+        <p>
+          <HighlightedMessageText
+            text={message.text}
+            state={state}
+            onOpenDiscoverable={onOpenDiscoverable}
+          />
+        </p>
+        {message.die !== null && message.die !== undefined && (
+          <span className="weed-goblins-game__inline-die" aria-label={`D20 result ${message.die}`}>
+            <D20Icon value={message.die} size={30} />
+          </span>
+        )}
+      </article>
+    </div>
+  )
+}
+
+function MicrophoneIcon() {
+  return (
+    <svg className="weed-goblins-game__voice-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Zm-6-4a6 6 0 0 0 12 0M12 16.5V21M9 21h6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function MessageComposer({
+  id,
+  value,
+  onChange,
+  onSubmit,
+  placeholder,
+  ariaLabel,
+  disabled,
+  submitDisabled,
+  voiceAvailable = false,
+  voiceDisabled = false,
+  listening = false,
+  onVoiceToggle = () => {},
+}) {
+  return (
+    <form className="weed-goblins-game__composer" onSubmit={onSubmit}>
+      <div className="weed-goblins-game__composer-shell">
+        <button
+          type="button"
+          className={`weed-goblins-game__voice-button${listening ? ' is-listening' : ''}`}
+          onClick={onVoiceToggle}
+          aria-label={listening ? 'Stop voice input' : 'Start voice input'}
+          title={voiceAvailable ? 'Voice to text' : 'Voice input is not available in this browser'}
+          disabled={!voiceAvailable || voiceDisabled}
+        >
+          <MicrophoneIcon />
+        </button>
+        <input
+          id={id}
+          aria-label={ariaLabel}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          maxLength={WEED_GOBLINS_COMPOSER_MAX_LENGTH}
+          disabled={disabled}
+          autoComplete="off"
+        />
+        <button className="weed-goblins-game__send-button" type="submit" aria-label="Send message" disabled={submitDisabled}>
+          <span aria-hidden="true">↑</span>
+        </button>
       </div>
-      <div className="weed-goblins-game__entry-copy">
-        <div className="weed-goblins-game__entry-label">
-          {WEED_GOBLINS_NARRATOR_NAME} narrates
-        </div>
-        <p>{message.text}</p>
-      </div>
-      {message.die !== null && message.die !== undefined && (
-        <D20Icon value={message.die} size={42} />
-      )}
-    </article>
+    </form>
   )
 }
 
@@ -163,27 +253,67 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
   const [busy, setBusy] = useState(false)
   const [fatalError, setFatalError] = useState('')
   const [actionError, setActionError] = useState('')
+  const [activeDiscoverable, setActiveDiscoverable] = useState(null)
+  const [characterSheetOpen, setCharacterSheetOpen] = useState(false)
+  const [listening, setListening] = useState(false)
+  const [helpLevel, setHelpLevel] = useState(0)
+  const [helpMessage, setHelpMessage] = useState(null)
   const [runNumber, setRunNumber] = useState(0)
+  const [localUserId, setLocalUserId] = useState(null)
   const storyRef = useRef(null)
   const endRef = useRef(null)
+  const crestHoldTimerRef = useRef(null)
+  const speechRecognitionRef = useRef(null)
   const hasStartedScrollingRef = useRef(false)
+  const previousHelpContextKeyRef = useRef('')
   const resolvedSeed = useMemo(
     () => seed ? `${seed}:${runNumber}` : makeRunSeed(),
     [seed, runNumber],
   )
   const freeTextOpen = isWeedGoblinsFreeTextScene(state)
+  const sessionTextOpen = isWeedGoblinsSessionTextScene(state)
   const canType = freeTextOpen && !pendingTurn && !busy && state?.status !== 'completed'
-  const sceneName = SCENE_NAMES[state?.sceneId] || 'Entering the Highlands'
+  const canSessionType = sessionTextOpen && !pendingTurn && !busy && state?.status !== 'completed'
+  const SpeechRecognition = useMemo(
+    () => typeof window !== 'undefined' ? getBrowserSpeechRecognition(window) : null,
+    [],
+  )
+  const characterSummary = useMemo(() => buildWeedGoblinsCharacterSummary(state), [state])
+  const voiceInputEnabled = canType || canSessionType
+  const chapterNumber = useMemo(
+    () => weedGoblinsProgressionMetadata(state?.adventureId)?.chapterNumber || 1,
+    [state?.adventureId],
+  )
+  const helpContextKey = useMemo(
+    () => getWeedGoblinsHelpContextKey(state, chapterNumber),
+    [state, chapterNumber],
+  )
 
   useEffect(() => {
     let cancelled = false
 
     async function start() {
-      const snapshot = await loadSnapshotWithFallback()
+      const localContext = await loadLocalContextWithFallback()
       if (cancelled) return
 
+      const snapshot = localContext.snapshot || createEmptyWeedGoblinsPersonalizationSnapshot()
+      const userId = localContext.userId || null
       const blockedNames = Array.isArray(snapshot.productNames) ? snapshot.productNames : []
+      setLocalUserId(userId)
       setBlockedRealNames(blockedNames)
+
+      const restored = readWeedGoblinsActiveRun({ userId })
+      if (restored) {
+        setState(restored.state)
+        setMessages(restored.messages)
+        setChoices(restored.choices)
+        setPendingTurn(restored.pendingTurn)
+        setHelpLevel(restored.helpLevel)
+        setHelpMessage(restored.helpMessage)
+        setLoading(false)
+        return
+      }
+
       const options = {
         seed: resolvedSeed,
         journalSnapshot: snapshot,
@@ -202,6 +332,15 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
       setState(session.state)
       setMessages(session.messages)
       setChoices(session.choices)
+      saveActiveRunSafely({
+        userId,
+        state: session.state,
+        messages: session.messages,
+        choices: session.choices,
+        pendingTurn: null,
+        helpLevel: 0,
+        helpMessage: null,
+      })
       setLoading(false)
     }
 
@@ -216,6 +355,20 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     }
   }, [resolvedSeed])
 
+  useEffect(() => () => {
+    if (crestHoldTimerRef.current) clearTimeout(crestHoldTimerRef.current)
+    if (speechRecognitionRef.current?.abort) speechRecognitionRef.current.abort()
+  }, [])
+
+  useEffect(() => {
+    const previousKey = previousHelpContextKeyRef.current
+    if (previousKey && helpContextKey && previousKey !== helpContextKey) {
+      setHelpLevel(0)
+      setHelpMessage(null)
+    }
+    previousHelpContextKeyRef.current = helpContextKey
+  }, [helpContextKey])
+
   useEffect(() => {
     if (!hasStartedScrollingRef.current && messages.length > 0) {
       storyRef.current?.scrollTo({ top: 0 })
@@ -225,12 +378,33 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages, busy, pendingTurn])
 
+  function persistStableRun({
+    nextState = state,
+    nextMessages = messages,
+    nextChoices = choices,
+    nextPendingTurn = pendingTurn,
+    nextHelpLevel = helpLevel,
+    nextHelpMessage = helpMessage,
+  } = {}) {
+    return saveActiveRunSafely({
+      userId: localUserId,
+      state: nextState,
+      messages: nextMessages,
+      choices: nextChoices,
+      pendingTurn: nextPendingTurn,
+      helpLevel: nextHelpLevel,
+      helpMessage: nextHelpMessage,
+    })
+  }
+
   async function saveCompletedRun(nextState) {
     if (nextState.status !== 'completed') return
     try {
       await saveWeedGoblinsRunSummary({ runSummary: nextState.runSummary })
     } catch {
-      // The run remains playable when browser storage is unavailable.
+      // The completed story still remains visible when browser storage is unavailable.
+    } finally {
+      clearActiveRunSafely(localUserId)
     }
   }
 
@@ -238,9 +412,18 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     const nextMessages = [...baseMessages]
     if (resolution.rollResultMessage) nextMessages.push(resolution.rollResultMessage)
     nextMessages.push(...resolution.outcomeMessages)
+    const nextChoices = getWeedGoblinsQuickReplies(resolution.after)
     setMessages(nextMessages)
     setState(resolution.after)
-    setChoices(getWeedGoblinsQuickReplies(resolution.after))
+    setChoices(nextChoices)
+    persistStableRun({
+      nextState: resolution.after,
+      nextMessages,
+      nextChoices,
+      nextPendingTurn: null,
+      nextHelpLevel: 0,
+      nextHelpMessage: null,
+    })
     await saveCompletedRun(resolution.after)
   }
 
@@ -253,18 +436,52 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     setChoices([])
 
     try {
-      const transition = selectWeedGoblinsChatChoice(baseState, action)
-      const optimisticMessages = [...baseMessages, transition.outgoingMessage]
-      setState(transition.after)
-      setMessages(optimisticMessages)
-      const incomingMessages = await resolveWeedGoblinsTransitionWithStaticFallback({
-        before: transition.before,
-        after: transition.after,
+      const prepared = await prepareWeedGoblinsQuickReplyTurn({
+        state: baseState,
+        action,
         blockedRealNames,
       })
-      setMessages([...optimisticMessages, ...incomingMessages])
-      setChoices(getWeedGoblinsQuickReplies(transition.after))
-      await saveCompletedRun(transition.after)
+      const optimisticMessages = [...baseMessages, prepared.outgoingMessage]
+      setDraft('')
+      setMessages(optimisticMessages)
+
+      if (prepared.requiresRoll) {
+        const stagedMessages = [
+          ...optimisticMessages,
+          prepared.setupMessage,
+          prepared.rollTriggerMessage,
+        ].filter(Boolean)
+        setState(baseState)
+        setMessages(stagedMessages)
+        setPendingTurn(prepared)
+        persistStableRun({
+          nextState: baseState,
+          nextMessages: stagedMessages,
+          nextChoices: [],
+          nextPendingTurn: prepared,
+        })
+        return
+      }
+
+      setState(prepared.after)
+      const incomingMessages = await resolveWeedGoblinsTransitionWithStaticFallback({
+        before: prepared.before,
+        after: prepared.after,
+        blockedRealNames,
+      })
+      const finalMessages = [...optimisticMessages, ...incomingMessages]
+      const nextChoices = getWeedGoblinsQuickReplies(prepared.after)
+      setMessages(finalMessages)
+      setChoices(nextChoices)
+      persistStableRun({
+        nextState: prepared.after,
+        nextMessages: finalMessages,
+        nextChoices,
+        nextPendingTurn: null,
+        nextHelpLevel: 0,
+        nextHelpMessage: null,
+      })
+      await saveCompletedRun(prepared.after)
     } catch {
       setState(baseState)
       setMessages(baseMessages)
@@ -275,10 +492,59 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     }
   }
 
-  async function handleTextSubmit(event) {
+  async function handleSessionTextSubmit(event) {
     event?.preventDefault()
+    if (!state || !canSessionType) return
+    const isLookStep = state.sceneId === 'session-zero-look'
     const text = draft.trim()
-    if (!state || !canType || !text) return
+    if (isLookStep && !text) return
+
+    const baseState = state
+    const baseMessages = messages
+    setActionError('')
+    setBusy(true)
+    setChoices([])
+
+    try {
+      const transition = submitWeedGoblinsSessionText(baseState, text)
+      const optimisticMessages = transition.outgoingMessage
+        ? [...baseMessages, transition.outgoingMessage]
+        : [...baseMessages]
+      setState(transition.after)
+      setMessages(optimisticMessages)
+      const incomingMessages = await resolveWeedGoblinsTransitionWithStaticFallback({
+        before: transition.before,
+        after: transition.after,
+        blockedRealNames,
+      })
+      const finalMessages = [...optimisticMessages, ...incomingMessages]
+      const nextChoices = getWeedGoblinsQuickReplies(transition.after)
+      setMessages(finalMessages)
+      setChoices(nextChoices)
+      setDraft('')
+      persistStableRun({
+        nextState: transition.after,
+        nextMessages: finalMessages,
+        nextChoices,
+        nextPendingTurn: null,
+        nextHelpLevel: 0,
+        nextHelpMessage: null,
+      })
+    } catch {
+      setState(baseState)
+      setMessages(baseMessages)
+      setChoices(getWeedGoblinsQuickReplies(baseState))
+      setActionError(isLookStep
+        ? 'Describe your traveler or choose one of the looks above.'
+        : 'That name could not be saved. Try it again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleFreeTextAction(text, { restoreDraftOnError = true } = {}) {
+    const actionText = String(text ?? '').trim()
+    if (!state || !canType || !actionText) return
     setActionError('')
     setBusy(true)
     setChoices([])
@@ -286,7 +552,7 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     try {
       const prepared = await prepareWeedGoblinsFreeTextTurn({
         state,
-        playerAction: text,
+        playerAction: actionText,
         blockedRealNames,
       })
       const stagedMessages = [
@@ -300,6 +566,12 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
 
       if (prepared.requiresRoll) {
         setPendingTurn(prepared)
+        persistStableRun({
+          nextState: state,
+          nextMessages: stagedMessages,
+          nextChoices: [],
+          nextPendingTurn: prepared,
+        })
       } else {
         const resolution = await resolveWeedGoblinsPreparedTurn({
           preparedTurn: prepared,
@@ -308,12 +580,41 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
         await applyResolvedPreparedTurn(resolution, stagedMessages)
       }
     } catch {
-      setDraft(text)
+      if (restoreDraftOnError) setDraft(actionText)
       setChoices(getWeedGoblinsQuickReplies(state))
       setActionError('That custom move could not be resolved. Edit it or choose an action below.')
     } finally {
       setBusy(false)
     }
+  }
+
+  async function handleTextSubmit(event) {
+    event?.preventDefault()
+    await handleFreeTextAction(draft)
+  }
+
+  async function handleDiscoverableAction(action) {
+    if (!action || busy || pendingTurn) return
+    setActiveDiscoverable(null)
+    if (action.kind === 'engine') {
+      const available = getWeedGoblinsQuickReplies(state)
+      const choice = available.find((candidate) => candidate.id === action.id)
+        || { id: action.id, label: action.label }
+      await handleChoice(choice)
+      return
+    }
+    if (action.kind === 'free-text') {
+      await handleFreeTextAction(action.playerAction, { restoreDraftOnError: false })
+    }
+  }
+
+  function discoverableActionAvailable(action) {
+    if (!action || busy || pendingTurn) return false
+    if (action.kind === 'free-text') return canType
+    if (action.kind === 'engine') {
+      return getWeedGoblinsQuickReplies(state).some((choice) => choice.id === action.id)
+    }
+    return false
   }
 
   async function handleRoll() {
@@ -347,7 +648,85 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     }
   }
 
+  function clearCrestHold() {
+    if (!crestHoldTimerRef.current) return
+    clearTimeout(crestHoldTimerRef.current)
+    crestHoldTimerRef.current = null
+  }
+
+  function beginCrestHold() {
+    if (!state || crestHoldTimerRef.current) return
+    crestHoldTimerRef.current = setTimeout(() => {
+      crestHoldTimerRef.current = null
+      setCharacterSheetOpen(true)
+    }, 550)
+  }
+
+  function handleCrestKeyDown(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    beginCrestHold()
+  }
+
+  function handleCrestKeyUp(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    clearCrestHold()
+  }
+
+  function toggleVoiceInput() {
+    if (!SpeechRecognition || !voiceInputEnabled) return
+    if (listening && speechRecognitionRef.current?.stop) {
+      speechRecognitionRef.current.stop()
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'en-US'
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results || [])
+        .map((result) => result?.[0]?.transcript || '')
+        .join(' ')
+      setDraft((current) => appendWeedGoblinsVoiceTranscript(current, transcript))
+    }
+    recognition.onerror = () => {
+      setListening(false)
+      setActionError('Voice input stopped. You can keep typing.')
+    }
+    recognition.onend = () => {
+      speechRecognitionRef.current = null
+      setListening(false)
+    }
+
+    try {
+      speechRecognitionRef.current = recognition
+      recognition.start()
+      setListening(true)
+    } catch {
+      speechRecognitionRef.current = null
+      setListening(false)
+      setActionError('Voice input could not start. You can keep typing.')
+    }
+  }
+
+  function handleHelp() {
+    if (!state || state.status === 'completed' || busy) return
+    const nextLevel = Math.min(3, helpLevel + 1)
+    const response = getWeedGoblinsHelpResponse(state, nextLevel, chapterNumber)
+    if (!response) return
+    setHelpLevel(nextLevel)
+    setHelpMessage(response)
+    persistStableRun({
+      nextHelpLevel: nextLevel,
+      nextHelpMessage: response,
+    })
+  }
+
   function restartRun() {
+    clearActiveRunSafely(localUserId)
     setState(null)
     setMessages([])
     setChoices([])
@@ -355,124 +734,297 @@ export default function WeedGoblinsChat({ seed = null } = {}) {
     setPendingTurn(null)
     setFatalError('')
     setActionError('')
+    setActiveDiscoverable(null)
+    setCharacterSheetOpen(false)
+    setHelpLevel(0)
+    setHelpMessage(null)
+    if (speechRecognitionRef.current?.abort) speechRecognitionRef.current.abort()
+    speechRecognitionRef.current = null
+    setListening(false)
     setLoading(true)
     hasStartedScrollingRef.current = false
     setRunNumber((current) => current + 1)
   }
 
+  const composerPlaceholder = pendingTurn
+    ? 'Roll the die above'
+    : choices.length > 0
+      ? 'Message Eliza...'
+      : 'Message Eliza...'
+
   return (
-    <main className="weed-goblins-game" aria-label="Weed Goblins adventure">
+    <main className="weed-goblins-game" aria-label="Conversation with Eliza">
       <header className="weed-goblins-game__header">
-        <button type="button" className="weed-goblins-game__back" onClick={() => navigate(-1)} aria-label="Leave adventure">
+        <button
+          type="button"
+          className="weed-goblins-game__back"
+          onClick={() => navigate(-1)}
+          aria-label="Leave conversation"
+        >
           <span aria-hidden="true">‹</span>
         </button>
-        <div className="weed-goblins-game__title-group">
-          <div className="weed-goblins-game__eyebrow">Chapter 1 · Quest 1</div>
-          <h1>Eliza</h1>
-          <p>{sceneName}</p>
+        <div className="weed-goblins-game__contact">
+          <button
+            type="button"
+            className="weed-goblins-game__crest"
+            aria-label="Hold for character details"
+            onPointerDown={beginCrestHold}
+            onPointerUp={clearCrestHold}
+            onPointerCancel={clearCrestHold}
+            onPointerLeave={clearCrestHold}
+            onKeyDown={handleCrestKeyDown}
+            onKeyUp={handleCrestKeyUp}
+            onContextMenu={(event) => event.preventDefault()}
+            onClick={(event) => event.preventDefault()}
+          >
+            E
+          </button>
+          <div className="weed-goblins-game__contact-copy">
+            <h1>{WEED_GOBLINS_NARRATOR_NAME}</h1>
+            <p>{busy ? 'typing…' : 'online'}</p>
+          </div>
         </div>
-        <div className="weed-goblins-game__crest" aria-hidden="true">E</div>
+        <div className="weed-goblins-game__header-spacer" aria-hidden="true" />
       </header>
 
-      <section className="weed-goblins-game__quest-bar" aria-label="Quest status">
-        <div className="weed-goblins-game__objective">
-          <span>Objective</span>
-          <strong>{state?.stolenItem ? `Take ${state.stolenItem} back from the Goblin King` : 'Enter the Goblin Highlands'}</strong>
+      <section
+        ref={storyRef}
+        className="weed-goblins-game__story"
+        aria-live="polite"
+        aria-busy={busy}
+      >
+        <div className="weed-goblins-game__thread">
+          {loading && (
+            <div className="weed-goblins-game__message-row is-incoming">
+              <div className="weed-goblins-game__message-bubble is-eliza is-typing">
+                <TypingIndicator label="Eliza is opening the conversation" />
+              </div>
+            </div>
+          )}
+          {!loading && fatalError && (
+            <div className="weed-goblins-game__error" role="alert">{fatalError}</div>
+          )}
+          {messages.map((message, index) => (
+            <StoryEntry
+              key={`${message.kind || 'message'}-${message.direction}-${index}-${message.actionId || 'story'}`}
+              message={message}
+              onRoll={handleRoll}
+              canRoll={Boolean(pendingTurn) && message.kind === 'roll-trigger' && index === messages.length - 1}
+              busy={busy}
+              state={state}
+              onOpenDiscoverable={setActiveDiscoverable}
+            />
+          ))}
+          {helpMessage && (
+            <div className="weed-goblins-game__message-row is-incoming">
+              <article className={`weed-goblins-game__message-bubble is-eliza weed-goblins-game__help-bubble${helpMessage.solvesObstacle ? ' is-solution' : ''}`}>
+                <p>{helpMessage.text}</p>
+              </article>
+            </div>
+          )}
+          {busy && !loading && (
+            <div className="weed-goblins-game__message-row is-incoming">
+              <div className="weed-goblins-game__message-bubble is-eliza is-typing">
+                <TypingIndicator />
+              </div>
+            </div>
+          )}
+          <div ref={endRef} />
         </div>
-        {state?.background && (
-          <div className="weed-goblins-game__stats" aria-label="Character stats">
-            <Stat label="STR" value={state.stats.strength} />
-            <Stat label="DEF" value={state.stats.defense} />
-            <Stat label="MANA" value={`${state.stats.manaPool}/${state.stats.maxMana}`} />
-            <Stat label="TROUBLE" value={`${state.trouble}/3`} danger={state.trouble >= 2} />
-          </div>
-        )}
       </section>
 
-      <section ref={storyRef} className="weed-goblins-game__story" aria-live="polite" aria-busy={busy}>
-        <div className="weed-goblins-game__story-heading">
-          <span>Adventure log</span>
-          <span>{sceneName}</span>
+      {characterSheetOpen && characterSummary && (
+        <div
+          className="weed-goblins-game__character-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setCharacterSheetOpen(false)
+          }}
+        >
+          <section
+            className="weed-goblins-game__character-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="weed-goblins-character-title"
+          >
+            <button
+              type="button"
+              className="weed-goblins-game__character-close"
+              onClick={() => setCharacterSheetOpen(false)}
+              aria-label="Close character details"
+            >
+              ×
+            </button>
+            <div className="weed-goblins-game__character-head">
+              <div className="weed-goblins-game__crest" aria-hidden="true">E</div>
+              <div>
+                <h2 id="weed-goblins-character-title">{characterSummary.name}</h2>
+                <p>{characterSummary.location || 'Goblin Highlands'}</p>
+              </div>
+            </div>
+            <div className="weed-goblins-game__character-grid">
+              <div className="weed-goblins-game__character-field"><span>Race</span><strong>{characterSummary.race}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Class</span><strong>{characterSummary.className}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Weapon</span><strong>{characterSummary.weapon}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Ability</span><strong>{characterSummary.ability || 'Not chosen yet'}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Strength</span><strong>{characterSummary.strength}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Defense</span><strong>{characterSummary.defense}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Mana</span><strong>{characterSummary.mana}/{characterSummary.maxMana}</strong></div>
+              <div className="weed-goblins-game__character-field"><span>Trouble</span><strong>{characterSummary.trouble}/3</strong></div>
+            </div>
+            {characterSummary.pronoun && (
+              <div className="weed-goblins-game__character-look">
+                <span>Pronouns</span>
+                <p>{characterSummary.pronoun}</p>
+              </div>
+            )}
+            {characterSummary.look && (
+              <div className="weed-goblins-game__character-look">
+                <span>Appearance</span>
+                <p>{characterSummary.look}</p>
+              </div>
+            )}
+            <div className="weed-goblins-game__character-objective">
+              <span>Current objective</span>
+              <p>{characterSummary.objective}</p>
+            </div>
+          </section>
         </div>
-        {loading && (
-          <div className="weed-goblins-game__loading">
-            <D20Icon />
-            <span>Opening the road...</span>
-          </div>
-        )}
-        {!loading && fatalError && <div className="weed-goblins-game__error">{fatalError}</div>}
-        {messages.map((message, index) => (
-          <StoryEntry
-            key={`${message.kind || 'message'}-${message.direction}-${index}-${message.actionId || 'story'}`}
-            message={message}
-            onRoll={handleRoll}
-            canRoll={Boolean(pendingTurn) && message.kind === 'roll-trigger' && index === messages.length - 1}
-            busy={busy}
-          />
-        ))}
-        {busy && (
-          <div className="weed-goblins-game__resolving">
-            {WEED_GOBLINS_NARRATOR_NAME} is resolving the move...
-          </div>
-        )}
-        <div ref={endRef} />
-      </section>
+      )}
+
+      {activeDiscoverable && (
+        <div
+          className="weed-goblins-game__discoverable-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setActiveDiscoverable(null)
+          }}
+        >
+          <section
+            className="weed-goblins-game__discoverable-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="weed-goblins-discoverable-title"
+          >
+            <button
+              type="button"
+              className="weed-goblins-game__discoverable-close"
+              onClick={() => setActiveDiscoverable(null)}
+              aria-label="Close information"
+            >
+              ×
+            </button>
+            <h2 id="weed-goblins-discoverable-title">{activeDiscoverable.title}</h2>
+            <p>{activeDiscoverable.body}</p>
+            {activeDiscoverable.action && discoverableActionAvailable(activeDiscoverable.action) && (
+              <button
+                type="button"
+                className="weed-goblins-game__discoverable-action"
+                onClick={() => handleDiscoverableAction(activeDiscoverable.action)}
+              >
+                {activeDiscoverable.action.label}
+              </button>
+            )}
+          </section>
+        </div>
+      )}
 
       {!loading && !fatalError && (
-        <footer className="weed-goblins-game__actions">
-          {actionError && <div className="weed-goblins-game__action-error" role="alert">{actionError}</div>}
-          {state?.status === 'completed' ? (
-            <button type="button" className="weed-goblins-game__play-again" onClick={restartRun}>
-              Begin a new run
-            </button>
-          ) : (
-            <>
-              {choices.length > 0 && (
-                <div className="weed-goblins-game__action-block">
-                  <div className="weed-goblins-game__action-heading">
-                    <h2>{state?.sceneId === 'choose-background' ? 'Choose your adventurer' : 'Choose your action'}</h2>
-                    <span>{choices.length} available</span>
-                  </div>
-                  <div className="weed-goblins-game__action-grid">
-                    {choices.map((choice, index) => (
+        <footer className="weed-goblins-game__controls">
+          <div className="weed-goblins-game__controls-inner">
+            {actionError && (
+              <div className="weed-goblins-game__action-error" role="alert">{actionError}</div>
+            )}
+
+            {state?.status !== 'completed' && (
+              <div className="weed-goblins-game__help-row">
+                <button
+                  type="button"
+                  className="weed-goblins-game__help-button"
+                  onClick={handleHelp}
+                  disabled={busy}
+                  aria-label={`Help with current scene${helpLevel > 0 ? `, level ${helpLevel}` : ''}`}
+                >
+                  Help
+                </button>
+              </div>
+            )}
+
+            {state?.status === 'completed' ? (
+              <button type="button" className="weed-goblins-game__play-again" onClick={restartRun}>
+                Start another run
+              </button>
+            ) : (
+              <>
+                {choices.length > 0 && (
+                  <div className="weed-goblins-game__quick-replies" aria-label="Reply choices">
+                    {choices.map((choice) => (
                       <button
                         key={choice.id}
                         type="button"
-                        className="weed-goblins-game__action-card"
+                        className="weed-goblins-game__quick-reply"
                         onClick={() => handleChoice(choice)}
                         disabled={busy || Boolean(pendingTurn)}
                       >
-                        <span className="weed-goblins-game__action-number">{index + 1}</span>
-                        <span className="weed-goblins-game__action-copy">
-                          <strong>{choice.label}</strong>
-                          <small>{actionDetail(state, choice)}</small>
-                        </span>
-                        <span className="weed-goblins-game__action-arrow" aria-hidden="true">›</span>
+                        {choice.label}
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
 
-              {freeTextOpen && !pendingTurn && (
-                <form className="weed-goblins-game__custom-action" onSubmit={handleTextSubmit}>
-                  <label htmlFor="weed-goblins-custom-action">Try another action</label>
-                  <div>
-                    <input
-                      id="weed-goblins-custom-action"
-                      aria-label="Describe another action"
-                      placeholder="Describe what your character does"
-                      value={draft}
-                      onChange={(event) => setDraft(event.target.value)}
-                      maxLength={160}
-                      disabled={!canType}
-                    />
-                    <button type="submit" disabled={!canType || !draft.trim()}>Attempt</button>
-                  </div>
-                </form>
-              )}
-            </>
-          )}
+                {sessionTextOpen ? (
+                  <MessageComposer
+                    id="weed-goblins-session-input"
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onSubmit={handleSessionTextSubmit}
+                    placeholder={state?.sceneId === 'session-zero-name'
+                      ? 'Message Eliza a name...'
+                      : 'Describe yourself...'}
+                    ariaLabel={state?.sceneId === 'session-zero-name'
+                      ? 'Message Eliza a name'
+                      : 'Describe yourself to Eliza'}
+                    disabled={!canSessionType}
+                    submitDisabled={!canSessionType || (state?.sceneId === 'session-zero-look' && !draft.trim())}
+                    voiceAvailable={Boolean(SpeechRecognition)}
+                    voiceDisabled={!canSessionType}
+                    listening={listening}
+                    onVoiceToggle={toggleVoiceInput}
+                  />
+                ) : freeTextOpen && !pendingTurn ? (
+                  <MessageComposer
+                    id="weed-goblins-custom-action"
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onSubmit={handleTextSubmit}
+                    placeholder="Message Eliza..."
+                    ariaLabel="Message Eliza another action"
+                    disabled={!canType}
+                    submitDisabled={!canType || !draft.trim()}
+                    voiceAvailable={Boolean(SpeechRecognition)}
+                    voiceDisabled={!canType}
+                    listening={listening}
+                    onVoiceToggle={toggleVoiceInput}
+                  />
+                ) : (
+                  <MessageComposer
+                    id="weed-goblins-disabled-composer"
+                    value=""
+                    onChange={() => {}}
+                    onSubmit={(event) => event.preventDefault()}
+                    placeholder={composerPlaceholder}
+                    ariaLabel="Message input unavailable"
+                    disabled
+                    submitDisabled
+                    voiceAvailable={Boolean(SpeechRecognition)}
+                    voiceDisabled
+                    listening={false}
+                    onVoiceToggle={toggleVoiceInput}
+                  />
+                )}
+              </>
+            )}
+          </div>
         </footer>
       )}
     </main>
