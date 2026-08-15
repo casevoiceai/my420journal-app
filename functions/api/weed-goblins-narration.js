@@ -27,6 +27,25 @@ function byteLength(value) {
   return new TextEncoder().encode(value).byteLength
 }
 
+export function isAllowedWeedGoblinsNarrationOrigin(origin, previewHost = '') {
+  if (ALLOWED_ORIGINS.has(origin)) return true
+
+  const allowedPreviewHost = String(previewHost ?? '').trim().toLowerCase()
+  if (!allowedPreviewHost) return false
+
+  let parsed
+  try {
+    parsed = new URL(origin)
+  } catch {
+    return false
+  }
+
+  const hostname = parsed.hostname.toLowerCase()
+  return parsed.protocol === 'https:'
+    && parsed.port === ''
+    && hostname.endsWith(`.${allowedPreviewHost}`)
+}
+
 export async function onRequest({ request, env }) {
   const accessCode = String(env?.JOURNAL_ACCESS_CODE ?? '').trim()
   const hasTesterSession = accessCode
@@ -38,7 +57,8 @@ export async function onRequest({ request, env }) {
   }
 
   const origin = request.headers.get('Origin') || ''
-  if (!ALLOWED_ORIGINS.has(origin)) {
+  const previewHost = String(env?.WEED_GOBLINS_PAGES_PREVIEW_HOST ?? '').trim()
+  if (!isAllowedWeedGoblinsNarrationOrigin(origin, previewHost)) {
     return jsonResponse({ error: 'Origin not allowed' }, 403)
   }
 
