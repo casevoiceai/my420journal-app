@@ -5,23 +5,54 @@ import {
   isAllowedWeedGoblinsNarrationOrigin,
   onRequest,
 } from '../../../../functions/api/weed-goblins-narration.js'
+import {
+  PRIVATE_TESTING_COOKIE,
+  createPrivateTestingSession,
+} from '../../../../server/private-testing-access.js'
 
+const ACCESS_CODE = 'journal-private-test-code'
 const env = {
+  JOURNAL_ACCESS_CODE: ACCESS_CODE,
   WEED_GOBLINS_NARRATION_WORKER_URL: 'https://private-worker.example.test',
   WEED_GOBLINS_PROXY_SECRET: 'private-shared-secret',
 }
 
-function makeRequest(origin = 'https://my420journal.app') {
+async function makeRequest(origin = 'https://my420journal.app', { authorized = true } = {}) {
+  const headers = {
+    Origin: origin,
+    'Content-Type': 'application/json',
+    'CF-Connecting-IP': '203.0.113.42',
+  }
+  if (authorized) {
+    const session = await createPrivateTestingSession(ACCESS_CODE)
+    headers.Cookie = `${PRIVATE_TESTING_COOKIE}=${session}`
+  }
+
   return new Request('https://my420journal.app/api/weed-goblins-narration', {
     method: 'POST',
-    headers: {
-      Origin: origin,
-      'Content-Type': 'application/json',
-      'CF-Connecting-IP': '203.0.113.42',
-    },
+    headers,
     body: JSON.stringify({ moment: 'natural-one-complication' }),
   })
 }
+
+test('rejects a request without a valid private-testing session before forwarding', async () => {
+  const originalFetch = globalThis.fetch
+  let fetchCalls = 0
+  globalThis.fetch = async () => {
+    fetchCalls += 1
+    throw new Error('must not forward')
+  }
+  try {
+    const response = await onRequest({
+      request: await makeRequest('https://my420journal.app', { authorized: false }),
+      env,
+    })
+    assert.equal(response.status, 401)
+    assert.equal(fetchCalls, 0)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
 
 test('rejects an unapproved Origin before forwarding', async () => {
   const originalFetch = globalThis.fetch
@@ -32,7 +63,7 @@ test('rejects an unapproved Origin before forwarding', async () => {
   }
   try {
     const response = await onRequest({
-      request: makeRequest('https://example.com'),
+      request: await makeRequest('https://example.com'),
       env,
     })
     assert.equal(response.status, 403)
@@ -57,7 +88,7 @@ test('accepts only the two locked production origins when Preview wiring is abse
   }
   try {
     for (const origin of ['https://my420journal.app', 'https://my420journal.com']) {
-      const response = await onRequest({ request: makeRequest(origin), env })
+      const response = await onRequest({ request: await makeRequest(origin), env })
       assert.equal(response.status, 200)
       assert.equal((await response.json()).text, 'I record a harmless scheduling problem.')
     }
@@ -115,7 +146,7 @@ test('Preview-only host binding admits Pages preview subdomains without admittin
     headers: { 'Content-Type': 'application/json' },
   })
   try {
-    const response = await onRequest({ request: makeRequest(previewOrigin), env: previewEnv })
+    const response = await onRequest({ request: await makeRequest(previewOrigin), env: previewEnv })
     assert.equal(response.status, 200)
     assert.equal((await response.json()).text, 'Preview narration works.')
   } finally {
@@ -137,7 +168,7 @@ test('passes a clean rate-limit response and Retry-After header through unchange
   })
 
   try {
-    const response = await onRequest({ request: makeRequest(), env })
+    const response = await onRequest({ request: await makeRequest(), env })
     assert.equal(response.status, 429)
     assert.equal(response.headers.get('Retry-After'), '900')
     assert.deepEqual(await response.json(), {
@@ -159,7 +190,7 @@ test('keeps Worker URL and secret server-side and returns generic connection err
     throw new Error(`could not reach ${url}`)
   }
   try {
-    const response = await onRequest({ request: makeRequest(), env })
+    const response = await onRequest({ request: await makeRequest(), env })
     const text = await response.text()
     assert.equal(target, env.WEED_GOBLINS_NARRATION_WORKER_URL)
     assert.equal(authorization, `Bearer ${env.WEED_GOBLINS_PROXY_SECRET}`)
