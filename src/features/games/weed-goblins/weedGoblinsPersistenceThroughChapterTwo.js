@@ -383,7 +383,10 @@ export function readWeedGoblinsActiveRun({
   } catch {
     return null
   }
-  if (parsed?.version === CHAPTER_TWO_ACTIVE_RUN_VERSION) {
+  if (
+    parsed?.version === CHAPTER_TWO_ACTIVE_RUN_VERSION
+    && (isChapterTwoState(parsed.state) || isChapterTwoTargetSession(parsed.state))
+  ) {
     return createV2ActiveRunRecord(parsed)
   }
   return legacy.readWeedGoblinsActiveRun({ storage, userId })
