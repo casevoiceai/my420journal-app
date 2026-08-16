@@ -1,4 +1,4 @@
-name: Temporary Weed Goblins Chapter 2 Test Migration
+name: Temporary Weed Goblins Verify
 
 on:
   push:
@@ -6,48 +6,25 @@ on:
       - feature/phase1-log-talk-play-integration
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  migrate-tests:
-    if: github.event.head_commit.message != 'Migrate Chapter 2 tests to direct Session Zero'
+  current-weed-goblins:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Remove obsolete Session Zero continue step from current Chapter 2 tests
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          integration = Path('src/features/games/weed-goblins/weedGoblinsChapterTwoIntegration.test.js')
-          text = integration.read_text()
-          old_one = "  state = choose(state, 'session:continue')\n  state = submitWeedGoblinsSessionText(state, 'Fenna Duskrow').after\n"
-          new_one = "  state = submitWeedGoblinsSessionText(state, 'Fenna Duskrow').after\n"
-          old_two = "  let state = choose(session.state, 'session:continue')\n  state = submitWeedGoblinsSessionText(state, 'Fenna Duskrow').after\n"
-          new_two = "  let state = submitWeedGoblinsSessionText(session.state, 'Fenna Duskrow').after\n"
-          if text.count(old_one) != 1:
-              raise SystemExit(f'Expected exactly 1 standard Chapter 2 integration continue step, found {text.count(old_one)}')
-          if text.count(old_two) != 1:
-              raise SystemExit(f'Expected exactly 1 transition Chapter 2 integration continue step, found {text.count(old_two)}')
-          text = text.replace(old_one, new_one).replace(old_two, new_two)
-          integration.write_text(text)
-
-          persistence = Path('src/features/games/weed-goblins/weedGoblinsChapterTwoPersistence.test.js')
-          text = persistence.read_text()
-          if text.count(old_one) != 1:
-              raise SystemExit(f'Expected exactly 1 Chapter 2 persistence continue step, found {text.count(old_one)}')
-          persistence.write_text(text.replace(old_one, new_one))
-          PY
-          git diff --check
-          git diff -- src/features/games/weed-goblins/weedGoblinsChapterTwoIntegration.test.js src/features/games/weed-goblins/weedGoblinsChapterTwoPersistence.test.js
-      - name: Commit test migration
-        shell: bash
-        run: |
-          git config user.name 'casevoiceai'
-          git config user.email 'casevoice.ai@gmail.com'
-          git add src/features/games/weed-goblins/weedGoblinsChapterTwoIntegration.test.js src/features/games/weed-goblins/weedGoblinsChapterTwoPersistence.test.js
-          git commit -m 'Migrate Chapter 2 tests to direct Session Zero'
-          git push origin HEAD:feature/phase1-log-talk-play-integration
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Run current runtime regression
+        run: node --test src/features/games/weed-goblins/weedGoblinsCurrentRuntime.test.js
+      - name: Run Chapter 2 integration
+        run: node --test src/features/games/weed-goblins/weedGoblinsChapterTwoIntegration.test.js
+      - name: Run Chapter 2 persistence
+        run: node --test src/features/games/weed-goblins/weedGoblinsChapterTwoPersistence.test.js
