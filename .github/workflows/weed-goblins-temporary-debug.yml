@@ -9,9 +9,9 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  test-files:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,45 +22,43 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      - name: Run full tests with grouped failure summary
+      - name: Run Weed Goblins test files independently
         shell: bash
         run: |
           set +e
-          npm test 2>&1 | tee test-output.log
-          status=${PIPESTATUS[0]}
+          rm -f weed-goblins-file-results.txt
+          overall=0
+          for file in src/features/games/weed-goblins/*.test.js; do
+            output="$(node --test "$file" 2>&1)"
+            status=$?
+            tests="$(printf '%s\n' "$output" | awk '/^# tests / {print $3}' | tail -1)"
+            pass="$(printf '%s\n' "$output" | awk '/^# pass / {print $3}' | tail -1)"
+            fail="$(printf '%s\n' "$output" | awk '/^# fail / {print $3}' | tail -1)"
+            tests="${tests:-?}"
+            pass="${pass:-?}"
+            fail="${fail:-?}"
+            if [ "$status" -eq 0 ]; then
+              printf 'PASS | %s | tests=%s pass=%s fail=%s\n' "$file" "$tests" "$pass" "$fail" >> weed-goblins-file-results.txt
+            else
+              overall=1
+              printf 'FAIL | %s | tests=%s pass=%s fail=%s\n' "$file" "$tests" "$pass" "$fail" >> weed-goblins-file-results.txt
+            fi
+          done
           python - <<'PY'
           from pathlib import Path
-          import re
-          from collections import Counter
-
-          lines = Path('test-output.log').read_text(errors='replace').splitlines()
-          failures = []
-          groups = Counter()
-          for i, line in enumerate(lines):
-              if not line.startswith('not ok'):
-                  continue
-              name = re.sub(r'^not ok\s+\d+\s+-\s+', '', line).strip()
-              location = 'unknown'
-              for nxt in lines[i + 1:i + 35]:
-                  match = re.search(r"location: '([^']+)'", nxt)
-                  if match:
-                      location = match.group(1).split('/src/', 1)[-1].split(':', 1)[0]
-                      break
-              failures.append((location, name))
-              groups[location] += 1
-
-          totals = [line for line in lines if line.startswith('# tests ') or line.startswith('# pass ') or line.startswith('# fail ')]
-          group_lines = [f'{count} | {path}' for path, count in sorted(groups.items(), key=lambda item: (-item[1], item[0]))]
-          summary = '\n'.join(['FAILURES BY TEST FILE:', *group_lines, '', 'TAP TOTALS:', *totals])
+          lines = Path('weed-goblins-file-results.txt').read_text().splitlines()
+          passing = [line for line in lines if line.startswith('PASS |')]
+          failing = [line for line in lines if line.startswith('FAIL |')]
+          summary = '\n'.join([
+              f'WEED GOBLINS TEST FILES: {len(lines)} total, {len(passing)} fully green, {len(failing)} failing',
+              '',
+              'FAILING FILES:',
+              *failing,
+              '',
+              'FULLY GREEN FILES:',
+              *passing,
+          ])
           summary = summary.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
           print(f'::error::{summary}')
-
-          chunk_size = 16
-          for start in range(0, len(failures), chunk_size):
-              chunk = failures[start:start + chunk_size]
-              chunk_lines = [f'{path} | {name}' for path, name in chunk]
-              text = '\n'.join([f'FAILURES {start + 1}-{start + len(chunk)} OF {len(failures)}:', *chunk_lines])
-              text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-              print(f'::error::{text}')
           PY
-          exit "$status"
+          exit "$overall"
