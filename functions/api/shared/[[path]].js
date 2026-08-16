@@ -1,4 +1,8 @@
-import { isPrivateTestingSessionValid } from '../../../server/private-testing-access.js'
+import {
+  isPrivateTestingHashedCodeSessionValid,
+  isPrivateTestingSessionValid,
+} from '../../../server/private-testing-access.js'
+import { getPhase1PreviewAccessCodeHash } from '../../../server/phase1-preview-access.js'
 
 const DEFAULT_WORKER_URL = 'https://my420journal-shared-worker.casevoice-ai.workers.dev'
 const MAX_REQUEST_BYTES = 64 * 1024
@@ -37,10 +41,15 @@ function byteLength(value) {
 }
 
 export async function onRequest({ request, env, params }) {
+  const requestUrl = new URL(request.url)
   const accessCode = String(env?.JOURNAL_ACCESS_CODE ?? '').trim()
+  const previewCodeHash = accessCode ? '' : getPhase1PreviewAccessCodeHash(requestUrl.hostname)
+  const cookieHeader = request.headers.get('Cookie') || ''
   const hasTesterSession = accessCode
-    ? await isPrivateTestingSessionValid(request.headers.get('Cookie') || '', accessCode)
-    : false
+    ? await isPrivateTestingSessionValid(cookieHeader, accessCode)
+    : previewCodeHash
+      ? await isPrivateTestingHashedCodeSessionValid(cookieHeader, previewCodeHash)
+      : false
 
   if (!hasTesterSession) {
     return jsonResponse({ error: 'Private testing access required' }, 401)
@@ -72,9 +81,8 @@ export async function onRequest({ request, env, params }) {
   }
 
   const workerBaseUrl = String(env?.SHARED_AGGREGATE_WORKER_URL ?? DEFAULT_WORKER_URL).replace(/\/+$/, '')
-  const incomingUrl = new URL(request.url)
   const upstreamUrl = new URL(`${workerBaseUrl}/${relativePath}`)
-  upstreamUrl.search = incomingUrl.search
+  upstreamUrl.search = requestUrl.search
 
   let body
   if (request.method !== 'GET') {
