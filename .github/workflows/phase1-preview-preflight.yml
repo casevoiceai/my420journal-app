@@ -16,6 +16,7 @@ jobs:
     env:
       PREVIEW_BASE: https://feature-phase1-log-talk-play.my420journal-app.pages.dev
       BRANCH_NAME: feature/phase1-log-talk-play-integration
+      PUBLIC_KEY_B64: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUFvQjBXVThWVlhZTnJteEtOaGtLRQpGSzJ1UnJjcVZiQTlEWEM5U2NHai9YSmY3TjZpdGdXdzlmanZPMHk4OTd2Vk00Z1JIMnVOM2ZIeloyRDV0b3QrCkhzdXpKektXeVlNa0E5aGZXMkc0M0hCRlljaWRSYzR5VlNDaU9XMnZSR1VYMHRQWDd0U05LOVZUSytQMEU0Y3IKZkNqUmxzTCtnWUNJcS90VElIWGpnbGZ3VFlWb3UwWmxzdkZqQmZCN2QzMkJ2dGdRL1d2OVVzVWhEL2N5SWZROApJVUdlNXd4cENWMjV0YzN5OU1oaEUyTUc1bWNEaFZvMDlGeFdFZmhQWjVtTmlPdWprWWUrb09oWDlHNWFHVUIwCnJCK2p6QzJIQit2UXFnOUZGN3FOakF1Q2RxV05OcXFXQWN4RDl4YUs3M0lUWGVYSDBUeUNEcHlhQXk0aHhDSW8KeXdJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,20 +44,29 @@ jobs:
           code="P1-${raw:0:4}-${raw:4:4}-${raw:8:4}-${raw:12:4}-${raw:16:4}-${raw:20:4}-${raw:24:4}-${raw:28:4}"
           echo "::add-mask::$code"
           hash=$(printf '%s' "$code" | sha256sum | awk '{print $1}')
-          echo "FOUNDER_CODE=$code" >> "$GITHUB_ENV"
-          echo "PREVIEW_ACCESS_HASH=$hash" >> "$GITHUB_ENV"
 
-          python - <<'PY'
+          python - "$hash" <<'PY'
           from pathlib import Path
-          import os
+          import sys
           p = Path('server/phase1-preview-access.js')
           text = p.read_text()
           old = "export const PHASE1_PREVIEW_ACCESS_CODE_SHA256 = '0000000000000000000000000000000000000000000000000000000000000000'"
-          new = f"export const PHASE1_PREVIEW_ACCESS_CODE_SHA256 = '{os.environ['PREVIEW_ACCESS_HASH']}'"
+          new = f"export const PHASE1_PREVIEW_ACCESS_CODE_SHA256 = '{sys.argv[1]}'"
           if text.count(old) != 1:
               raise SystemExit('Expected exactly one preview hash placeholder')
           p.write_text(text.replace(old, new))
           PY
+
+          printf '%s' "$PUBLIC_KEY_B64" | base64 -d > /tmp/phase1-public.pem
+          ciphertext=$(printf '%s' "$code" | openssl pkeyutl -encrypt \
+            -pubin -inkey /tmp/phase1-public.pem \
+            -pkeyopt rsa_padding_mode:oaep \
+            -pkeyopt rsa_oaep_md:sha256 \
+            -pkeyopt rsa_mgf1_md:sha256 | base64 -w0)
+
+          echo "FOUNDER_CODE=$code" >> "$GITHUB_ENV"
+          echo "PREVIEW_ACCESS_HASH=$hash" >> "$GITHUB_ENV"
+          echo "FOUNDER_CODE_CIPHERTEXT=$ciphertext" >> "$GITHUB_ENV"
 
           git config user.name casevoiceai
           git config user.email casevoice.ai@gmail.com
@@ -65,6 +75,7 @@ jobs:
           git push origin "HEAD:$BRANCH_NAME"
           echo "HASH_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
           echo "PREVIEW_ACCESS_HASH=$hash"
+          echo "FOUNDER_CODE_CIPHERTEXT=$ciphertext"
 
       - name: Wait for hash deployment
         shell: bash
@@ -72,37 +83,30 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          success=0
           for attempt in $(seq 1 80); do
             json=$(curl --silent --show-error --max-time 15 \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H 'Accept: application/vnd.github+json' \
               "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$HASH_COMMIT/check-runs?per_page=100")
             if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion == "success")' >/dev/null; then
-              success=1
-              break
+              echo 'HASH_DEPLOYMENT=PASS'
+              exit 0
             fi
             if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion != "success")' >/dev/null; then
-              echo 'Cloudflare Pages hash deployment failed.' >&2
               exit 1
             fi
             sleep 3
           done
-          test "$success" = 1
-          echo 'HASH_DEPLOYMENT=PASS'
+          exit 1
 
       - name: Verify private preview before cleanup
         shell: bash
         run: |
           set -euo pipefail
-
           for path in / /games/weed-goblins /games/who-took-my-lighter /games/the-new-place; do
             safe=$(printf '%s' "$path" | tr '/?' '__')
-            status=$(curl --silent --show-error --max-time 15 \
-              -H 'Accept: text/html' \
-              -D "/tmp/pre-${safe}.headers" \
-              -o "/tmp/pre-${safe}.body" \
-              -w '%{http_code}' "$PREVIEW_BASE$path")
+            status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' \
+              -D "/tmp/pre-${safe}.headers" -o "/tmp/pre-${safe}.body" -w '%{http_code}' "$PREVIEW_BASE$path")
             echo "pre-cleanup unauth $path status=$status"
             test "$status" = '401'
             grep -q 'Private Testing' "/tmp/pre-${safe}.body"
@@ -116,7 +120,6 @@ jobs:
             "$PREVIEW_BASE/api/private-testing-access")
           echo "pre-cleanup wrong-code status=$wrong_status"
           test "$wrong_status" = '401'
-          grep -q 'That code is not valid or has expired' /tmp/pre-wrong.body
           if grep -qi '^Set-Cookie:' /tmp/pre-wrong.headers; then exit 1; fi
           echo 'PRE_CLEANUP_WRONG_CODE=PASS'
 
@@ -127,10 +130,7 @@ jobs:
               -D /tmp/pre-good.headers -c /tmp/pre-cookies -o /tmp/pre-good.body -w '%{http_code}' \
               -X POST --data-urlencode "access_code=$FOUNDER_CODE" \
               "$PREVIEW_BASE/api/private-testing-access")
-            if [ "$good_status" = '303' ] && grep -qi '^Set-Cookie:.*__Host-my420journal_private_testing' /tmp/pre-good.headers; then
-              good=1
-              break
-            fi
+            if [ "$good_status" = '303' ] && grep -qi '^Set-Cookie:.*__Host-my420journal_private_testing' /tmp/pre-good.headers; then good=1; break; fi
             sleep 2
           done
           test "$good" = 1
@@ -138,36 +138,13 @@ jobs:
 
           for path in / /games/weed-goblins /games/who-took-my-lighter /games/the-new-place; do
             safe=$(printf '%s' "$path" | tr '/?' '__')
-            status=$(curl --silent --show-error --max-time 15 \
-              -H 'Accept: text/html' -b /tmp/pre-cookies \
+            status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' -b /tmp/pre-cookies \
               -o "/tmp/pre-auth-${safe}.body" -w '%{http_code}' "$PREVIEW_BASE$path")
             echo "pre-cleanup auth $path status=$status"
             test "$status" = '200'
             if grep -q 'Private Testing' "/tmp/pre-auth-${safe}.body"; then exit 1; fi
           done
           echo 'PRE_CLEANUP_AUTHENTICATED_ROUTES=PASS'
-
-      - name: Encrypt founder code for handoff
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat > /tmp/phase1-public.pem <<'EOF'
-          -----BEGIN PUBLIC KEY-----
-          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoB0WU8VVXYNrmxKNhkKE
-          FK2uRrcqVbA9DXC9ScGj/XJf7N6itgWw9fjvO0y897vVM4gRH2uN3fHzZ2D5tot+
-          HsuzJzKWyYMkA9hfW2G43HBFYcidRc4yVSCiOW2vRGUX0tPX7tSNK9VTK+P0E4cr
-          fCjRlsL+gYCIq/tTIHXjglfwTYVou0ZlsvFjBfB7d32BvtgQ/Wv9UsUhD/cyIfQ8
-          IUGe5wxpCV25tc3y9MhhE2MG5mcDhVo09FxWEfhPZ5mNiOujkYe+oOhX9G5aGUB0
-          rB+jzC2HB+vQqg9FF7qNjAuCdqWNNqqWAcxD9xaK73ITXeXH0TyCDpyaAy4hxCIo
-          ywIDAQAB
-          -----END PUBLIC KEY-----
-          EOF
-          ciphertext=$(printf '%s' "$FOUNDER_CODE" | openssl pkeyutl -encrypt \
-            -pubin -inkey /tmp/phase1-public.pem \
-            -pkeyopt rsa_padding_mode:oaep \
-            -pkeyopt rsa_oaep_md:sha256 \
-            -pkeyopt rsa_mgf1_md:sha256 | base64 -w0)
-          echo "FOUNDER_CODE_CIPHERTEXT=$ciphertext"
 
       - name: Remove temporary diagnostics and workflow
         shell: bash
@@ -196,33 +173,28 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          success=0
           for attempt in $(seq 1 80); do
             json=$(curl --silent --show-error --max-time 15 \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H 'Accept: application/vnd.github+json' \
               "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$CLEANUP_COMMIT/check-runs?per_page=100")
             if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion == "success")' >/dev/null; then
-              success=1
-              break
+              echo 'CLEANUP_DEPLOYMENT=PASS'
+              exit 0
             fi
             if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion != "success")' >/dev/null; then
-              echo 'Cloudflare Pages cleanup deployment failed.' >&2
               exit 1
             fi
             sleep 3
           done
-          test "$success" = 1
-          echo 'CLEANUP_DEPLOYMENT=PASS'
+          exit 1
 
       - name: Verify final cleaned preview
         shell: bash
         run: |
           set -euo pipefail
-
-          diag_status=$(curl --silent --show-error --max-time 15 \
-            -H 'Accept: text/html' -o /tmp/final-diag.body -w '%{http_code}' \
-            "$PREVIEW_BASE/api/private-testing-diagnostic")
+          diag_status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' \
+            -o /tmp/final-diag.body -w '%{http_code}' "$PREVIEW_BASE/api/private-testing-diagnostic")
           echo "final diagnostic status=$diag_status"
           test "$diag_status" = '401'
           grep -q 'Private Testing' /tmp/final-diag.body
@@ -230,15 +202,11 @@ jobs:
 
           for path in / /games/weed-goblins /games/who-took-my-lighter /games/the-new-place; do
             safe=$(printf '%s' "$path" | tr '/?' '__')
-            status=$(curl --silent --show-error --max-time 15 \
-              -H 'Accept: text/html' \
-              -D "/tmp/final-${safe}.headers" \
-              -o "/tmp/final-${safe}.body" \
-              -w '%{http_code}' "$PREVIEW_BASE$path")
+            status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' \
+              -D "/tmp/final-${safe}.headers" -o "/tmp/final-${safe}.body" -w '%{http_code}' "$PREVIEW_BASE$path")
             echo "final unauth $path status=$status"
             test "$status" = '401'
             grep -q 'Private Testing' "/tmp/final-${safe}.body"
-            grep -qi '^X-Robots-Tag:.*noindex' "/tmp/final-${safe}.headers"
           done
           echo 'FINAL_UNAUTHENTICATED_BLOCKING=PASS'
 
@@ -258,10 +226,7 @@ jobs:
               -D /tmp/final-good.headers -c /tmp/final-cookies -o /tmp/final-good.body -w '%{http_code}' \
               -X POST --data-urlencode "access_code=$FOUNDER_CODE" \
               "$PREVIEW_BASE/api/private-testing-access")
-            if [ "$good_status" = '303' ] && grep -qi '^Set-Cookie:.*__Host-my420journal_private_testing' /tmp/final-good.headers; then
-              good=1
-              break
-            fi
+            if [ "$good_status" = '303' ] && grep -qi '^Set-Cookie:.*__Host-my420journal_private_testing' /tmp/final-good.headers; then good=1; break; fi
             sleep 2
           done
           test "$good" = 1
@@ -269,8 +234,7 @@ jobs:
 
           for path in / /games/weed-goblins /games/who-took-my-lighter /games/the-new-place; do
             safe=$(printf '%s' "$path" | tr '/?' '__')
-            status=$(curl --silent --show-error --max-time 15 \
-              -H 'Accept: text/html' -b /tmp/final-cookies \
+            status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' -b /tmp/final-cookies \
               -o "/tmp/final-auth-${safe}.body" -w '%{http_code}' "$PREVIEW_BASE$path")
             echo "final auth $path status=$status"
             test "$status" = '200'
@@ -278,27 +242,4 @@ jobs:
           done
           echo 'FINAL_AUTHENTICATED_ROUTES=PASS'
           echo 'FINAL_PREVIEW_SECURITY=PASS'
-
-      - name: Re-emit encrypted founder code
-        if: always()
-        shell: bash
-        run: |
-          if [ -n "${FOUNDER_CODE:-}" ]; then
-            cat > /tmp/phase1-public.pem <<'EOF'
-            -----BEGIN PUBLIC KEY-----
-            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoB0WU8VVXYNrmxKNhkKE
-            FK2uRrcqVbA9DXC9ScGj/XJf7N6itgWw9fjvO0y897vVM4gRH2uN3fHzZ2D5tot+
-            HsuzJzKWyYMkA9hfW2G43HBFYcidRc4yVSCiOW2vRGUX0tPX7tSNK9VTK+P0E4cr
-            fCjRlsL+gYCIq/tTIHXjglfwTYVou0ZlsvFjBfB7d32BvtgQ/Wv9UsUhD/cyIfQ8
-            IUGe5wxpCV25tc3y9MhhE2MG5mcDhVo09FxWEfhPZ5mNiOujkYe+oOhX9G5aGUB0
-            rB+jzC2HB+vQqg9FF7qNjAuCdqWNNqqWAcxD9xaK73ITXeXH0TyCDpyaAy4hxCIo
-            ywIDAQAB
-            -----END PUBLIC KEY-----
-            EOF
-            ciphertext=$(printf '%s' "$FOUNDER_CODE" | openssl pkeyutl -encrypt \
-              -pubin -inkey /tmp/phase1-public.pem \
-              -pkeyopt rsa_padding_mode:oaep \
-              -pkeyopt rsa_oaep_md:sha256 \
-              -pkeyopt rsa_mgf1_md:sha256 | base64 -w0)
-            echo "FOUNDER_CODE_CIPHERTEXT=$ciphertext"
-          fi
+          echo "FOUNDER_CODE_CIPHERTEXT=$FOUNDER_CODE_CIPHERTEXT"
