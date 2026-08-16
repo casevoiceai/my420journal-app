@@ -1,0 +1,51 @@
+name: Temporary Weed Goblins Debug
+
+on:
+  push:
+    branches:
+      - feature/phase1-log-talk-play-integration
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Run full tests with detailed annotations
+        shell: bash
+        run: |
+          set +e
+          npm test 2>&1 | tee test-output.log
+          status=${PIPESTATUS[0]}
+          python - <<'PY'
+          from pathlib import Path
+          lines = Path('test-output.log').read_text(errors='replace').splitlines()
+          for i, line in enumerate(lines):
+              if not line.startswith('not ok'):
+                  continue
+              block = [line]
+              j = i + 1
+              while j < len(lines):
+                  nxt = lines[j]
+                  if nxt.startswith('ok ') or nxt.startswith('not ok'):
+                      break
+                  block.append(nxt)
+                  if len(block) >= 35:
+                      break
+                  j += 1
+              text = '\n'.join(block)
+              text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{text}')
+          PY
+          exit "$status"
