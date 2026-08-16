@@ -24,17 +24,22 @@ jobs:
 
           integration = Path('src/features/games/weed-goblins/weedGoblinsChapterTwoIntegration.test.js')
           text = integration.read_text()
-          old = "  state = choose(state, 'session:continue')\n  state = submitWeedGoblinsSessionText(state, 'Fenna Duskrow').after\n"
-          new = "  state = submitWeedGoblinsSessionText(state, 'Fenna Duskrow').after\n"
-          if text.count(old) != 2:
-              raise SystemExit(f'Expected exactly 2 obsolete Chapter 2 integration continue steps, found {text.count(old)}')
-          integration.write_text(text.replace(old, new))
+          old_one = "  state = choose(state, 'session:continue')\n  state = submitWeedGoblinsSessionText(state, 'Fenna Duskrow').after\n"
+          new_one = "  state = submitWeedGoblinsSessionText(state, 'Fenna Duskrow').after\n"
+          old_two = "  let state = choose(session.state, 'session:continue')\n  state = submitWeedGoblinsSessionText(state, 'Fenna Duskrow').after\n"
+          new_two = "  let state = submitWeedGoblinsSessionText(session.state, 'Fenna Duskrow').after\n"
+          if text.count(old_one) != 1:
+              raise SystemExit(f'Expected exactly 1 standard Chapter 2 integration continue step, found {text.count(old_one)}')
+          if text.count(old_two) != 1:
+              raise SystemExit(f'Expected exactly 1 transition Chapter 2 integration continue step, found {text.count(old_two)}')
+          text = text.replace(old_one, new_one).replace(old_two, new_two)
+          integration.write_text(text)
 
           persistence = Path('src/features/games/weed-goblins/weedGoblinsChapterTwoPersistence.test.js')
           text = persistence.read_text()
-          if text.count(old) != 1:
-              raise SystemExit(f'Expected exactly 1 obsolete Chapter 2 persistence continue step, found {text.count(old)}')
-          persistence.write_text(text.replace(old, new))
+          if text.count(old_one) != 1:
+              raise SystemExit(f'Expected exactly 1 Chapter 2 persistence continue step, found {text.count(old_one)}')
+          persistence.write_text(text.replace(old_one, new_one))
           PY
           git diff --check
           git diff -- src/features/games/weed-goblins/weedGoblinsChapterTwoIntegration.test.js src/features/games/weed-goblins/weedGoblinsChapterTwoPersistence.test.js
