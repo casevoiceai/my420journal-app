@@ -9,9 +9,9 @@ permissions:
   contents: read
 
 jobs:
-  test-files:
+  current-runtime:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,43 +22,5 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      - name: Run Weed Goblins test files independently
-        shell: bash
-        run: |
-          set +e
-          rm -f weed-goblins-file-results.txt
-          overall=0
-          for file in src/features/games/weed-goblins/*.test.js; do
-            output="$(node --test "$file" 2>&1)"
-            status=$?
-            tests="$(printf '%s\n' "$output" | awk '/^# tests / {print $3}' | tail -1)"
-            pass="$(printf '%s\n' "$output" | awk '/^# pass / {print $3}' | tail -1)"
-            fail="$(printf '%s\n' "$output" | awk '/^# fail / {print $3}' | tail -1)"
-            tests="${tests:-?}"
-            pass="${pass:-?}"
-            fail="${fail:-?}"
-            if [ "$status" -eq 0 ]; then
-              printf 'PASS | %s | tests=%s pass=%s fail=%s\n' "$file" "$tests" "$pass" "$fail" >> weed-goblins-file-results.txt
-            else
-              overall=1
-              printf 'FAIL | %s | tests=%s pass=%s fail=%s\n' "$file" "$tests" "$pass" "$fail" >> weed-goblins-file-results.txt
-            fi
-          done
-          python - <<'PY'
-          from pathlib import Path
-          lines = Path('weed-goblins-file-results.txt').read_text().splitlines()
-          passing = [line for line in lines if line.startswith('PASS |')]
-          failing = [line for line in lines if line.startswith('FAIL |')]
-          summary = '\n'.join([
-              f'WEED GOBLINS TEST FILES: {len(lines)} total, {len(passing)} fully green, {len(failing)} failing',
-              '',
-              'FAILING FILES:',
-              *failing,
-              '',
-              'FULLY GREEN FILES:',
-              *passing,
-          ])
-          summary = summary.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          print(f'::error::{summary}')
-          PY
-          exit "$overall"
+      - name: Run current Weed Goblins runtime regression test
+        run: node --test src/features/games/weed-goblins/weedGoblinsCurrentRuntime.test.js
