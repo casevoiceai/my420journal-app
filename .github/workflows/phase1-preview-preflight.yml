@@ -1,4 +1,4 @@
-name: Temporary Phase 1 Preview Credential Probe
+name: Temporary Phase 1 Preview Security Verify
 
 on:
   push:
@@ -9,37 +9,64 @@ permissions:
   contents: read
 
 jobs:
-  probe:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_PAGES_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
-      PAGES_API_TOKEN: ${{ secrets.PAGES_API_TOKEN }}
-      CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
-      CLOUDFLARE_GLOBAL_API_KEY: ${{ secrets.CLOUDFLARE_GLOBAL_API_KEY }}
-      CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
-      CF_API_KEY: ${{ secrets.CF_API_KEY }}
-      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
-      CF_EMAIL: ${{ secrets.CF_EMAIL }}
-      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-      JOURNAL_ACCESS_CODE: ${{ secrets.JOURNAL_ACCESS_CODE }}
-      MY420JOURNAL_ACCESS_CODE: ${{ secrets.MY420JOURNAL_ACCESS_CODE }}
+      PREVIEW_BASE: https://feature-phase1-log-talk-play.my420journal-app.pages.dev
     steps:
-      - name: Report credential presence only
+      - name: Wait for diagnostic deployment and verify preview secret presence
         shell: bash
         run: |
-          for name in \
-            CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID \
-            CLOUDFLARE_PAGES_API_TOKEN PAGES_API_TOKEN \
-            CLOUDFLARE_API_KEY CLOUDFLARE_GLOBAL_API_KEY CF_GLOBAL_API_KEY CF_API_KEY \
-            CLOUDFLARE_EMAIL CF_EMAIL CF_API_TOKEN CF_ACCOUNT_ID \
-            JOURNAL_ACCESS_CODE MY420JOURNAL_ACCESS_CODE; do
-            if [ -n "${!name}" ]; then
-              echo "$name=present"
-            else
-              echo "$name=missing"
+          set -euo pipefail
+          ready=0
+          for attempt in $(seq 1 60); do
+            body=$(curl --silent --show-error --max-time 10 "$PREVIEW_BASE/api/private-testing-diagnostic" || true)
+            if printf '%s' "$body" | jq -e '.journal_access_code_present == true' >/dev/null 2>&1; then
+              echo 'PREVIEW_JOURNAL_ACCESS_CODE_PRESENT=yes'
+              ready=1
+              break
             fi
+            sleep 3
           done
+          if [ "$ready" -ne 1 ]; then
+            echo 'PREVIEW_JOURNAL_ACCESS_CODE_PRESENT=no'
+            exit 1
+          fi
+
+      - name: Verify unauthenticated routes are blocked
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in / /games/weed-goblins /games/who-took-my-lighter /games/the-new-place; do
+            safe=$(printf '%s' "$path" | tr '/?' '__')
+            headers="/tmp/${safe}.headers"
+            body="/tmp/${safe}.body"
+            status=$(curl --silent --show-error --max-time 15 -D "$headers" -o "$body" -w '%{http_code}' "$PREVIEW_BASE$path")
+            echo "$path status=$status"
+            test "$status" = '401'
+            grep -q 'Private Testing' "$body"
+            grep -qi '^X-Robots-Tag:.*noindex' "$headers"
+          done
+          echo 'UNAUTHENTICATED_PREVIEW_BLOCKING=PASS'
+
+      - name: Verify wrong code cannot create session
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl --silent --show-error --max-time 15 \
+            -D /tmp/wrong.headers \
+            -o /tmp/wrong.body \
+            -w '%{http_code}' \
+            -X POST \
+            --data-urlencode 'access_code=definitely-not-the-valid-code' \
+            "$PREVIEW_BASE/api/private-testing-access")
+          echo "wrong-code status=$status"
+          test "$status" = '401'
+          grep -q 'That code is not valid or has expired' /tmp/wrong.body
+          if grep -qi '^Set-Cookie:' /tmp/wrong.headers; then
+            echo 'WRONG_CODE_SET_COOKIE=yes'
+            exit 1
+          fi
+          echo 'WRONG_CODE_SET_COOKIE=no'
+          echo 'WRONG_CODE_REJECTION=PASS'
