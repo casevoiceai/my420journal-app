@@ -1,4 +1,5 @@
 import { SHARED_PROFILE_DEFAULTS } from './sharedPrivacy'
+import { createLocalGuideReply } from './localGuide'
 
 const STORAGE_PREFIX = 'my420journal_local_v1'
 const ACTIVE_USER_KEY = `${STORAGE_PREFIX}:active_user`
@@ -305,16 +306,6 @@ class LocalQuery {
   }
 }
 
-function localGuideReply(body = {}) {
-  const guide = body.guide || 'guide'
-  const latest = Array.isArray(body.messages) ? body.messages[body.messages.length - 1]?.content : ''
-  const intro = guide === 'unit' || guide === 'tool'
-    ? 'Logged locally.'
-    : 'I can help organize this locally on this device.'
-  const detail = latest ? ` I am reading your latest note as: ${String(latest).slice(0, 180)}` : ''
-  return `${intro}${detail}`
-}
-
 function localPlacesResponse(body = {}) {
   if (body.type === 'autocomplete') return { predictions: [] }
   if (body.type === 'details') return null
@@ -380,7 +371,13 @@ export const localStore = {
   },
   tools: {
     async invoke(name, { body } = {}) {
-      if (name === 'guide-response') return { data: { content: localGuideReply(body) }, error: null }
+      if (name === 'guide-response') {
+        const user = getActiveUser()
+        const entries = user
+          ? readTable('entries').filter((entry) => entry?.user_id === user.id)
+          : []
+        return { data: { content: createLocalGuideReply({ ...body, entries }) }, error: null }
+      }
       if (name === 'place-lookup') return { data: localPlacesResponse(body), error: null }
       return { data: null, error: new Error('Local-only build does not run external tools.') }
     },
