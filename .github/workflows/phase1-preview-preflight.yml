@@ -11,28 +11,24 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     env:
       PREVIEW_BASE: https://feature-phase1-log-talk-play.my420journal-app.pages.dev
     steps:
-      - name: Wait for diagnostic deployment and verify preview secret presence
+      - name: Inspect preview access-code presence
         shell: bash
         run: |
           set -euo pipefail
-          ready=0
-          for attempt in $(seq 1 60); do
-            body=$(curl --silent --show-error --max-time 10 "$PREVIEW_BASE/api/private-testing-diagnostic" || true)
-            if printf '%s' "$body" | jq -e '.journal_access_code_present == true' >/dev/null 2>&1; then
-              echo 'PREVIEW_JOURNAL_ACCESS_CODE_PRESENT=yes'
-              ready=1
-              break
-            fi
-            sleep 3
-          done
-          if [ "$ready" -ne 1 ]; then
-            echo 'PREVIEW_JOURNAL_ACCESS_CODE_PRESENT=no'
-            exit 1
-          fi
+          body=/tmp/diagnostic.body
+          headers=/tmp/diagnostic.headers
+          status=$(curl --silent --show-error --max-time 15 -D "$headers" -o "$body" -w '%{http_code}' "$PREVIEW_BASE/api/private-testing-diagnostic")
+          echo "diagnostic status=$status"
+          printf 'diagnostic body='
+          cat "$body"
+          echo
+          test "$status" = '200'
+          jq -e '.journal_access_code_present == true' "$body" >/dev/null
+          echo 'PREVIEW_JOURNAL_ACCESS_CODE_PRESENT=yes'
 
       - name: Verify unauthenticated routes are blocked
         shell: bash
