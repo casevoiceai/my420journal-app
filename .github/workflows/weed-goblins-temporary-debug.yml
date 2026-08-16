@@ -1,4 +1,4 @@
-name: Temporary Weed Goblins Debug
+name: Temporary Weed Goblins Persistence Patch
 
 on:
   push:
@@ -6,21 +6,36 @@ on:
       - feature/phase1-log-talk-play-integration
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  current-runtime:
+  patch-persistence:
+    if: github.event.head_commit.message != 'Fix Chapter 1 active-run restore'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-      - name: Install
-        run: npm ci
-      - name: Run current Weed Goblins runtime regression test
-        run: node --test src/features/games/weed-goblins/weedGoblinsCurrentRuntime.test.js
+      - name: Apply exact Chapter 1 restore fix
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/features/games/weed-goblins/weedGoblinsPersistenceThroughChapterTwo.js')
+          text = path.read_text()
+          old = """  if (parsed?.version === CHAPTER_TWO_ACTIVE_RUN_VERSION) {\n    return createV2ActiveRunRecord(parsed)\n  }\n  return legacy.readWeedGoblinsActiveRun({ storage, userId })\n"""
+          new = """  if (\n    parsed?.version === CHAPTER_TWO_ACTIVE_RUN_VERSION\n    && (isChapterTwoState(parsed.state) || isChapterTwoTargetSession(parsed.state))\n  ) {\n    return createV2ActiveRunRecord(parsed)\n  }\n  return legacy.readWeedGoblinsActiveRun({ storage, userId })\n"""
+          if text.count(old) != 1:
+              raise SystemExit('Exact persistence read block was not found exactly once; refusing to patch.')
+          path.write_text(text.replace(old, new))
+          PY
+          git diff --check
+          git diff -- src/features/games/weed-goblins/weedGoblinsPersistenceThroughChapterTwo.js
+      - name: Commit exact persistence fix
+        shell: bash
+        run: |
+          git config user.name 'casevoiceai'
+          git config user.email 'casevoice.ai@gmail.com'
+          git add src/features/games/weed-goblins/weedGoblinsPersistenceThroughChapterTwo.js
+          git commit -m 'Fix Chapter 1 active-run restore'
+          git push origin HEAD:feature/phase1-log-talk-play-integration
