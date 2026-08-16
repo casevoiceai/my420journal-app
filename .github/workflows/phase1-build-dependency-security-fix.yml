@@ -1,0 +1,64 @@
+name: Temporary Phase 1 Build Dependency Security Fix
+
+on:
+  push:
+    branches:
+      - feature/phase1-build-dependency-security-fix
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    if: github.event.head_commit.message == 'Verify non-force dependency security update'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/phase1-build-dependency-security-fix
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact current dependencies
+        run: npm ci
+      - name: Apply non-force security fixes only
+        run: npm audit fix
+      - name: Run complete test suite
+        run: npm test
+      - name: Build production bundle
+        run: npm run build
+      - name: Require zero known dependency advisories
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm audit --json > dependency-audit-after.json || true
+          node - <<'NODE'
+          const fs=require('fs')
+          const audit=JSON.parse(fs.readFileSync('dependency-audit-after.json','utf8'))
+          const meta=audit.metadata?.vulnerabilities || {}
+          const names=Object.keys(audit.vulnerabilities || {})
+          console.log('AUDIT_COUNTS='+JSON.stringify(meta))
+          console.log('AUDIT_NAMES='+names.join(','))
+          if ((meta.total || 0) !== 0 || names.length !== 0) process.exit(1)
+          console.log('DEPENDENCY_AUDIT=PASS_ZERO')
+          NODE
+      - name: Show exact package changes
+        run: git diff -- package.json package-lock.json
+      - name: Commit verified dependency update and remove workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name casevoiceai
+          git config user.email casevoice.ai@gmail.com
+          git rm .github/workflows/phase1-build-dependency-security-fix.yml
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo 'No package changes were required.'
+            git commit -m 'Remove temporary dependency security workflow'
+          else
+            git commit -m 'Update build dependencies to security-fixed releases'
+          fi
+          git push origin HEAD:feature/phase1-build-dependency-security-fix
