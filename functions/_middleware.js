@@ -4,6 +4,8 @@ import {
   renderPrivateTestingGate,
 } from '../server/private-testing-access.js'
 
+const PRIVATE_TESTING_DIAGNOSTIC_PATH = '/api/private-testing-diagnostic'
+
 function gateHeaders(contentType) {
   return {
     'Content-Type': contentType,
@@ -38,7 +40,10 @@ export async function onRequest(context) {
   const { request, env } = context
   const url = new URL(request.url)
 
-  if (url.pathname === PRIVATE_TESTING_ACCESS_PATH) {
+  if (
+    url.pathname === PRIVATE_TESTING_ACCESS_PATH
+    || url.pathname === PRIVATE_TESTING_DIAGNOSTIC_PATH
+  ) {
     return context.next()
   }
 
