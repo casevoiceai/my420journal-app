@@ -15,7 +15,6 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      JOURNAL_ACCESS_CODE: ${{ secrets.JOURNAL_ACCESS_CODE }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,15 +25,32 @@ jobs:
           cache: npm
       - name: Install app
         run: npm ci
-      - name: Verify credential presence
+      - name: Verify Cloudflare credential presence
         shell: bash
         run: |
           missing=0
           if [ -n "$CLOUDFLARE_API_TOKEN" ]; then echo 'CLOUDFLARE_API_TOKEN_PRESENT=yes'; else echo 'CLOUDFLARE_API_TOKEN_PRESENT=no'; missing=1; fi
           if [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then echo 'CLOUDFLARE_ACCOUNT_ID_PRESENT=yes'; else echo 'CLOUDFLARE_ACCOUNT_ID_PRESENT=no'; missing=1; fi
-          if [ -n "$JOURNAL_ACCESS_CODE" ]; then echo 'JOURNAL_ACCESS_CODE_PRESENT=yes'; else echo 'JOURNAL_ACCESS_CODE_PRESENT=no'; missing=1; fi
           exit $missing
       - name: Verify Wrangler auth
         run: npx --yes wrangler@latest whoami
-      - name: List Pages projects
-        run: npx --yes wrangler@latest pages project list --json
+      - name: Discover Pages project
+        shell: bash
+        run: |
+          npx --yes wrangler@latest pages project list --json > /tmp/pages-projects.json
+          echo 'PAGES_PROJECTS:'
+          jq -r '.[] | "name=\(.name) production_branch=\(.production_branch // "") repo=\(.source.config.repo_name // "")"' /tmp/pages-projects.json
+          project=$(jq -r '[.[] | select((.source.config.repo_name // "") == "my420journal-app" or (.name | test("my420journal"; "i")))] | first | .name // empty' /tmp/pages-projects.json)
+          if [ -z "$project" ]; then
+            echo 'MY420JOURNAL_PROJECT_FOUND=no'
+            exit 1
+          fi
+          echo "MY420JOURNAL_PROJECT_FOUND=yes"
+          echo "MY420JOURNAL_PROJECT_NAME=$project"
+          curl -fsS "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$project" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H 'Content-Type: application/json' > /tmp/pages-project.json
+          jq -e '.success == true' /tmp/pages-project.json >/dev/null
+          echo "PRODUCTION_BRANCH=$(jq -r '.result.production_branch // ""' /tmp/pages-project.json)"
+          echo 'PREVIEW_ENV_BINDINGS:'
+          jq -r '(.result.deployment_configs.preview.env_vars // {}) | to_entries[]? | "name=\(.key) type=\(.value.type // "unknown")"' /tmp/pages-project.json
