@@ -1,0 +1,40 @@
+name: Temporary Phase 1 Preview Preflight
+
+on:
+  push:
+    branches:
+      - feature/phase1-log-talk-play-integration
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      JOURNAL_ACCESS_CODE: ${{ secrets.JOURNAL_ACCESS_CODE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install app
+        run: npm ci
+      - name: Verify credential presence
+        shell: bash
+        run: |
+          missing=0
+          if [ -n "$CLOUDFLARE_API_TOKEN" ]; then echo 'CLOUDFLARE_API_TOKEN_PRESENT=yes'; else echo 'CLOUDFLARE_API_TOKEN_PRESENT=no'; missing=1; fi
+          if [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then echo 'CLOUDFLARE_ACCOUNT_ID_PRESENT=yes'; else echo 'CLOUDFLARE_ACCOUNT_ID_PRESENT=no'; missing=1; fi
+          if [ -n "$JOURNAL_ACCESS_CODE" ]; then echo 'JOURNAL_ACCESS_CODE_PRESENT=yes'; else echo 'JOURNAL_ACCESS_CODE_PRESENT=no'; missing=1; fi
+          exit $missing
+      - name: Verify Wrangler auth
+        run: npx --yes wrangler@latest whoami
+      - name: List Pages projects
+        run: npx --yes wrangler@latest pages project list --json
