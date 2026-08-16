@@ -1,0 +1,109 @@
+name: Temporary Phase 1 Browser Smoke
+
+on:
+  push:
+    branches:
+      - feature/phase1-log-talk-play-integration
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install app
+        run: npm ci
+      - name: Install temporary Chromium runner
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start Vite dev server
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          echo $! > /tmp/vite.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/vite.log
+          exit 1
+      - name: Play WTML and The New Place in Chromium
+        shell: bash
+        run: |
+          cat > /tmp/phase1-smoke.mjs <<'NODE'
+          import { chromium } from 'playwright'
+
+          const browser = await chromium.launch({ headless: true })
+          const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+          const browserErrors = []
+          page.on('pageerror', error => browserErrors.push(`pageerror: ${error.message}`))
+          page.on('console', message => {
+            if (message.type() === 'error') browserErrors.push(`console: ${message.text()}`)
+          })
+
+          async function expectText(text) {
+            await page.getByText(text, { exact: false }).first().waitFor({ state: 'visible', timeout: 10000 })
+          }
+
+          async function clickFirstButtonStartingWith(prefix) {
+            const buttons = page.locator('button')
+            const count = await buttons.count()
+            for (let i = 0; i < count; i += 1) {
+              const button = buttons.nth(i)
+              const text = (await button.innerText()).trim()
+              if (text.startsWith(prefix)) {
+                await button.click()
+                return text
+              }
+            }
+            throw new Error(`No button starting with ${prefix}`)
+          }
+
+          // Who Took My Lighter? complete case.
+          await page.goto('http://127.0.0.1:5173/games/who-took-my-lighter', { waitUntil: 'networkidle' })
+          await expectText('Who Took My Lighter?')
+          await page.getByRole('button', { name: 'Examine the scene' }).click()
+          await page.getByRole('button', { name: 'Inspect: The disturbed surface' }).click()
+          await page.getByRole('button', { name: 'Inspect: A physical marker' }).click()
+          await page.getByRole('button', { name: 'Start interviews' }).click()
+          await clickFirstButtonStartingWith('Interview ')
+          await clickFirstButtonStartingWith('Interview ')
+          await clickFirstButtonStartingWith('Accuse ')
+          await expectText('Case')
+          await page.getByRole('button', { name: 'Start a new case' }).waitFor({ state: 'visible', timeout: 10000 })
+          console.log('WTML_BROWSER_SMOKE=PASS')
+
+          // The New Place complete seven-day week.
+          await page.goto('http://127.0.0.1:5173/games/the-new-place', { waitUntil: 'networkidle' })
+          await expectText('The New Place')
+          for (let day = 0; day < 7; day += 1) {
+            const decisionSection = page.locator('section[aria-label="Available decisions"]')
+            await decisionSection.waitFor({ state: 'visible', timeout: 10000 })
+            await decisionSection.locator('button').first().click()
+            await decisionSection.locator('button').first().click()
+          }
+          await expectText('Sunday summary')
+          await page.getByRole('button', { name: 'Start a new week' }).waitFor({ state: 'visible', timeout: 10000 })
+          console.log('THE_NEW_PLACE_BROWSER_SMOKE=PASS')
+
+          if (browserErrors.length) {
+            throw new Error(`Browser errors:\n${browserErrors.join('\n')}`)
+          }
+          console.log('BROWSER_ERRORS=0')
+          await browser.close()
+          NODE
+          node /tmp/phase1-smoke.mjs
+      - name: Show Vite log on failure
+        if: failure()
+        run: cat /tmp/vite.log || true
