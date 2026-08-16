@@ -22,7 +22,7 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      - name: Run full tests with complete failure summary
+      - name: Run full tests with grouped failure summary
         shell: bash
         run: |
           set +e
@@ -30,11 +30,37 @@ jobs:
           status=${PIPESTATUS[0]}
           python - <<'PY'
           from pathlib import Path
+          import re
+          from collections import Counter
+
           lines = Path('test-output.log').read_text(errors='replace').splitlines()
-          failures = [line for line in lines if line.startswith('not ok')]
+          failures = []
+          groups = Counter()
+          for i, line in enumerate(lines):
+              if not line.startswith('not ok'):
+                  continue
+              name = re.sub(r'^not ok\s+\d+\s+-\s+', '', line).strip()
+              location = 'unknown'
+              for nxt in lines[i + 1:i + 35]:
+                  match = re.search(r"location: '([^']+)'", nxt)
+                  if match:
+                      location = match.group(1).split('/src/', 1)[-1].split(':', 1)[0]
+                      break
+              failures.append((location, name))
+              groups[location] += 1
+
           totals = [line for line in lines if line.startswith('# tests ') or line.startswith('# pass ') or line.startswith('# fail ')]
-          summary = '\n'.join(['ALL FAILURES:', *failures, '', 'TAP TOTALS:', *totals])
+          group_lines = [f'{count} | {path}' for path, count in sorted(groups.items(), key=lambda item: (-item[1], item[0]))]
+          summary = '\n'.join(['FAILURES BY TEST FILE:', *group_lines, '', 'TAP TOTALS:', *totals])
           summary = summary.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
           print(f'::error::{summary}')
+
+          chunk_size = 16
+          for start in range(0, len(failures), chunk_size):
+              chunk = failures[start:start + chunk_size]
+              chunk_lines = [f'{path} | {name}' for path, name in chunk]
+              text = '\n'.join([f'FAILURES {start + 1}-{start + len(chunk)} OF {len(failures)}:', *chunk_lines])
+              text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{text}')
           PY
           exit "$status"
