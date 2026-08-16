@@ -1,0 +1,446 @@
+name: Temporary Founder Acceptance Test
+
+on:
+  push:
+    branches:
+      - feature/phase1-log-talk-play-integration
+
+permissions:
+  contents: write
+  checks: read
+
+jobs:
+  acceptance:
+    if: github.event.head_commit.message == 'Start founder acceptance test'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PREVIEW_BASE: https://feature-phase1-log-talk-play.my420journal-app.pages.dev
+      BRANCH_NAME: feature/phase1-log-talk-play-integration
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feature/phase1-log-talk-play-integration
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Verify branch baseline
+        run: |
+          npm ci
+          npm test
+          npm run build
+
+      - name: Rotate to temporary CI-only preview tester code
+        shell: bash
+        run: |
+          set -euo pipefail
+          original_hash=$(python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('server/phase1-preview-access.js').read_text()
+          m = re.search(r"PHASE1_PREVIEW_ACCESS_CODE_SHA256 = '([0-9a-f]{64})'", text)
+          if not m:
+              raise SystemExit('Preview access hash not found')
+          print(m.group(1))
+          PY
+          )
+          echo "ORIGINAL_HASH=$original_hash" >> "$GITHUB_ENV"
+
+          raw=$(openssl rand -hex 18 | tr '[:lower:]' '[:upper:]')
+          code="FAT-${raw:0:6}-${raw:6:6}-${raw:12:6}-${raw:18:6}-${raw:24:6}-${raw:30:6}"
+          echo "::add-mask::$code"
+          temp_hash=$(printf '%s' "$code" | sha256sum | awk '{print $1}')
+          echo "TEMP_TEST_CODE=$code" >> "$GITHUB_ENV"
+          echo "TEMP_TEST_HASH=$temp_hash" >> "$GITHUB_ENV"
+
+          python - "$temp_hash" <<'PY'
+          from pathlib import Path
+          import re, sys
+          p = Path('server/phase1-preview-access.js')
+          text = p.read_text()
+          updated, count = re.subn(
+              r"(PHASE1_PREVIEW_ACCESS_CODE_SHA256 = ')[0-9a-f]{64}(')",
+              rf"\g<1>{sys.argv[1]}\g<2>",
+              text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit('Expected exactly one preview access hash')
+          p.write_text(updated)
+          PY
+
+          git config user.name casevoiceai
+          git config user.email casevoice.ai@gmail.com
+          git add server/phase1-preview-access.js
+          git commit -m 'Temporary founder acceptance tester hash'
+          git push origin "HEAD:$BRANCH_NAME"
+          echo "TEST_HASH_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "TEMP_TEST_HASH=$temp_hash"
+
+      - name: Wait for temporary tester deployment
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 100); do
+            json=$(curl --silent --show-error --max-time 15 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$TEST_HASH_COMMIT/check-runs?per_page=100")
+            if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion == "success")' >/dev/null; then
+              echo 'TEMP_TEST_DEPLOYMENT=PASS'
+              exit 0
+            fi
+            if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion != "success")' >/dev/null; then
+              echo 'Cloudflare Pages temporary test deployment failed' >&2
+              exit 1
+            fi
+            sleep 3
+          done
+          echo 'Timed out waiting for Cloudflare Pages temporary test deployment' >&2
+          exit 1
+
+      - name: Install Chromium automation
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run founder acceptance browser session
+        shell: bash
+        run: |
+          mkdir -p founder-acceptance
+          cat > /tmp/founder-acceptance.mjs <<'NODE'
+          import { chromium } from 'playwright'
+          import fs from 'node:fs'
+
+          const base = process.env.PREVIEW_BASE
+          const code = process.env.TEMP_TEST_CODE
+          const outDir = 'founder-acceptance'
+          const report = {
+            startedAt: new Date().toISOString(),
+            preview: base,
+            results: [],
+            observations: {},
+            consoleErrors: [],
+            pageErrors: [],
+          }
+
+          function result(area, test, status, detail = '') {
+            report.results.push({ area, test, status, detail })
+            console.log(`[${status}] ${area}: ${test}${detail ? ` -- ${detail}` : ''}`)
+          }
+          const clip = (value, n = 900) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, n)
+          async function shot(page, name) {
+            await page.screenshot({ path: `${outDir}/${name}.png`, fullPage: true }).catch(() => {})
+          }
+          async function bodyText(page) {
+            return await page.locator('body').innerText().catch(() => '')
+          }
+          async function waitSettled(page, ms = 500) {
+            await page.waitForTimeout(ms)
+          }
+
+          const browser = await chromium.launch({ headless: true })
+          const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+          const page = await context.newPage()
+          page.on('console', msg => {
+            if (msg.type() === 'error') report.consoleErrors.push({ url: page.url(), text: msg.text() })
+          })
+          page.on('pageerror', err => report.pageErrors.push({ url: page.url(), text: err.message }))
+
+          try {
+            // Private gate.
+            let response = await page.goto(base, { waitUntil: 'networkidle', timeout: 60000 })
+            result('ACCESS', 'unauthenticated root blocked', response?.status() === 401 ? 'PASS' : 'FAIL', `status=${response?.status()}`)
+            const gateVisible = await page.getByText('Private Testing', { exact: true }).count()
+            result('ACCESS', 'private testing gate visible', gateVisible ? 'PASS' : 'FAIL')
+            await page.getByLabel('Access code').fill(code)
+            await Promise.all([
+              page.waitForURL(`${base}/`, { timeout: 30000 }),
+              page.getByRole('button', { name: 'Continue' }).click(),
+            ])
+            result('ACCESS', 'temporary tester login', (await page.getByText('Private Testing', { exact: true }).count()) === 0 ? 'PASS' : 'FAIL')
+
+            // Fresh local account through real UI.
+            await page.goto(`${base}/signup?m420test=1`, { waitUntil: 'networkidle' })
+            await shot(page, '01-signup')
+            const email = await page.getByLabel('Email address').inputValue()
+            result('ONBOARDING', 'test-convenience signup form loads', email === 'test@my420journal.local' ? 'PASS' : 'FAIL', `email=${email}`)
+            await page.getByRole('button', { name: 'Create your account' }).click()
+            await page.waitForURL(/\/onboarding/, { timeout: 15000 })
+            result('ONBOARDING', 'local account creation', 'PASS')
+
+            await page.getByRole('button', { name: 'Meet them' }).click()
+            await page.getByRole('button', { name: /Sunny Day/ }).click()
+            const detailText = await bodyText(page)
+            result('ONBOARDING', 'Sunny Day guide detail opens', detailText.includes('Sunny Day') ? 'PASS' : 'FAIL')
+            await page.getByRole('button', { name: 'Choose Sunny as my guide' }).click()
+            await page.waitForURL(/\/onboarding\?step=location/, { timeout: 10000 })
+            await page.getByRole('button', { name: 'Skip for now' }).click()
+            await page.waitForURL(/\/pin-setup/, { timeout: 10000 })
+            await page.getByRole('button', { name: 'Skip for now' }).click()
+            await page.waitForURL(/\/home/, { timeout: 10000 })
+            result('ONBOARDING', 'guide selection to home flow', 'PASS')
+            await shot(page, '02-home')
+
+            // LOG: quick entry, save, journal, reload persistence.
+            await page.goto(`${base}/quick`, { waitUntil: 'networkidle' })
+            await page.getByPlaceholder('Product name...').fill('Founder Test Flower')
+            const goodText = page.getByText('Good', { exact: true })
+            const goodParent = goodText.locator('..')
+            const goodButton = goodParent.getByRole('button')
+            await goodButton.click()
+            await page.getByPlaceholder('Or type a note...').fill('Founder acceptance log. Calm and creative evening.')
+            await shot(page, '03-quick-entry-filled')
+            await page.getByRole('button', { name: 'Save', exact: true }).click()
+            await page.waitForURL(/\/home/, { timeout: 10000 })
+            result('LOG', 'quick entry saves without error', 'PASS')
+
+            await page.goto(`${base}/journal`, { waitUntil: 'networkidle' })
+            let journalText = await bodyText(page)
+            const journalHasEntry = journalText.includes('Founder Test Flower')
+            result('LOG', 'saved product appears in Journal', journalHasEntry ? 'PASS' : 'FAIL', clip(journalText, 500))
+            await shot(page, '04-journal')
+            await page.reload({ waitUntil: 'networkidle' })
+            journalText = await bodyText(page)
+            result('LOG', 'entry persists after reload', journalText.includes('Founder Test Flower') ? 'PASS' : 'FAIL')
+            report.observations.journal = clip(journalText, 1200)
+
+            // TALK: ask selected guide about the just-saved log.
+            await page.goto(`${base}/guide`, { waitUntil: 'networkidle' })
+            await page.waitForTimeout(900)
+            const guideBefore = await bodyText(page)
+            result('TALK', 'selected guide opens as Sunny Day', guideBefore.includes('Sunny Day') ? 'PASS' : 'FAIL', clip(guideBefore, 500))
+            const chatInput = page.getByPlaceholder('Say something...')
+            await chatInput.fill('What product did I just log?')
+            await chatInput.press('Enter')
+            await page.waitForTimeout(900)
+            const guideAfter = await bodyText(page)
+            report.observations.guide = clip(guideAfter, 1600)
+            const knowsLoggedProduct = guideAfter.includes('Founder Test Flower')
+            result('TALK', 'guide can answer from the saved journal entry', knowsLoggedProduct ? 'PASS' : 'BLOCKER', knowsLoggedProduct ? 'Guide referenced Founder Test Flower.' : clip(guideAfter, 700))
+            await shot(page, '05-guide-response')
+
+            // PLAY 1: Weed Goblins actual interaction, one Help, D20 lifecycle, persistence/resume, then continue toward completion.
+            await page.goto(`${base}/games/weed-goblins`, { waitUntil: 'networkidle' })
+            await page.waitForTimeout(1000)
+            let wgBody = await bodyText(page)
+            result('PLAY-WG', 'Weed Goblins opens as Eliza conversation', wgBody.includes('Eliza') ? 'PASS' : 'FAIL', clip(wgBody, 600))
+            await shot(page, '06-weed-goblins-start')
+
+            let interactions = 0
+            let rolls = 0
+            let quickReplies = 0
+            let customActions = 0
+            let helpUsed = false
+            let resumeChecked = false
+            let resumePassed = false
+            let characterSheetPassed = false
+            let completed = false
+
+            for (let turn = 0; turn < 70; turn++) {
+              await waitSettled(page, 250)
+              if (await page.getByRole('button', { name: 'Start another run' }).count()) {
+                completed = true
+                break
+              }
+
+              const nameInput = page.getByLabel('Message Eliza a name')
+              if (await nameInput.count() && await nameInput.isEnabled()) {
+                await nameInput.fill('Moss')
+                await nameInput.press('Enter')
+                interactions++
+                await waitSettled(page, 500)
+                continue
+              }
+
+              const lookInput = page.getByLabel('Describe yourself to Eliza')
+              if (await lookInput.count() && await lookInput.isEnabled()) {
+                await lookInput.fill('a short traveler with a red scarf and muddy boots')
+                await lookInput.press('Enter')
+                interactions++
+                await waitSettled(page, 500)
+                continue
+              }
+
+              const roll = page.getByRole('button', { name: 'Roll D20' })
+              if (await roll.count() && await roll.isEnabled()) {
+                await roll.click()
+                rolls++
+                interactions++
+                await waitSettled(page, 700)
+                continue
+              }
+
+              if (!helpUsed && interactions >= 4) {
+                const help = page.getByRole('button', { name: /^Help/ })
+                if (await help.count() && await help.isEnabled()) {
+                  const before = await bodyText(page)
+                  await help.click()
+                  await waitSettled(page, 250)
+                  const after = await bodyText(page)
+                  helpUsed = after.length > before.length
+                  result('PLAY-WG', 'Help produces contextual guidance', helpUsed ? 'PASS' : 'FAIL')
+                  continue
+                }
+              }
+
+              const replies = page.locator('.weed-goblins-game__quick-reply:enabled')
+              if (await replies.count()) {
+                await replies.first().click()
+                quickReplies++
+                interactions++
+                await waitSettled(page, 600)
+              } else {
+                const actionInput = page.getByLabel('Message Eliza another action')
+                if (await actionInput.count() && await actionInput.isEnabled()) {
+                  await actionInput.fill('I look around carefully')
+                  await actionInput.press('Enter')
+                  customActions++
+                  interactions++
+                  await waitSettled(page, 650)
+                } else {
+                  await waitSettled(page, 700)
+                }
+              }
+
+              if (!characterSheetPassed && interactions >= 3) {
+                const crest = page.getByLabel('Hold for character details')
+                if (await crest.count()) {
+                  await crest.dispatchEvent('pointerdown')
+                  await page.waitForTimeout(650)
+                  await crest.dispatchEvent('pointerup')
+                  const dialog = page.getByRole('dialog', { name: /Moss|character/i })
+                  characterSheetPassed = (await dialog.count()) > 0
+                  result('PLAY-WG', 'hidden E hold opens character details', characterSheetPassed ? 'PASS' : 'FAIL')
+                  if (characterSheetPassed) {
+                    const close = page.getByLabel('Close character details')
+                    if (await close.count()) await close.click()
+                  }
+                }
+              }
+
+              if (!resumeChecked && interactions >= 6) {
+                const keys = await page.evaluate(() => Object.keys(localStorage).filter(k => k.includes('weed_goblins')))
+                report.observations.weedGoblinsStorageKeys = keys
+                const beforeReload = await bodyText(page)
+                const hadName = beforeReload.includes('Moss')
+                await page.reload({ waitUntil: 'networkidle' })
+                await page.waitForTimeout(700)
+                const afterReload = await bodyText(page)
+                const resetToName = (await page.getByLabel('Message Eliza a name').count()) > 0
+                resumePassed = keys.length > 0 && (!hadName || afterReload.includes('Moss')) && !resetToName
+                resumeChecked = true
+                result('PLAY-WG', 'active run persists and resumes after reload', resumePassed ? 'PASS' : 'BLOCKER', `keys=${keys.join(',')}; resetToName=${resetToName}`)
+              }
+            }
+
+            wgBody = await bodyText(page)
+            report.observations.weedGoblins = {
+              interactions, rolls, quickReplies, customActions, helpUsed, resumeChecked, resumePassed, characterSheetPassed, completed,
+              finalText: clip(wgBody, 1800),
+            }
+            result('PLAY-WG', 'explicit D20 lifecycle exercised', rolls > 0 ? 'PASS' : 'FAIL', `rolls=${rolls}`)
+            result('PLAY-WG', 'quick-reply interaction exercised', quickReplies > 0 ? 'PASS' : 'FAIL', `quickReplies=${quickReplies}`)
+            result('PLAY-WG', 'run reaches a completed ending in founder playthrough', completed ? 'PASS' : 'BLOCKER', `interactions=${interactions}; rolls=${rolls}`)
+            await shot(page, '07-weed-goblins-final')
+
+            // PLAY 2 and PLAY 3 intended public-in-preview routes.
+            for (const [key, path, title] of [
+              ['PLAY-WTML', '/games/who-took-my-lighter', 'Who Took My Lighter?'],
+              ['PLAY-TNP', '/games/the-new-place', 'The New Place'],
+            ]) {
+              const r = await page.goto(`${base}${path}`, { waitUntil: 'networkidle' })
+              await page.waitForTimeout(350)
+              const text = await bodyText(page)
+              const finalUrl = page.url()
+              const stillOnRoute = new URL(finalUrl).pathname === path
+              const titleVisible = text.includes(title)
+              report.observations[key] = { responseStatus: r?.status(), finalUrl, body: clip(text, 900) }
+              result(key, `${title} intended route remains mounted`, stillOnRoute && titleVisible ? 'PASS' : 'BLOCKER', `finalUrl=${finalUrl}; titleVisible=${titleVisible}`)
+              await shot(page, key === 'PLAY-WTML' ? '08-who-took-my-lighter' : '09-the-new-place')
+            }
+
+            report.finishedAt = new Date().toISOString()
+          } catch (error) {
+            result('INFRA', 'acceptance browser session completed', 'FAIL', error?.stack || String(error))
+            report.fatalError = error?.stack || String(error)
+          } finally {
+            fs.writeFileSync(`${outDir}/acceptance-report.json`, JSON.stringify(report, null, 2))
+            await context.close().catch(() => {})
+            await browser.close().catch(() => {})
+          }
+          NODE
+          node /tmp/founder-acceptance.mjs
+
+      - name: Upload acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: founder-acceptance-evidence
+          path: founder-acceptance/
+          retention-days: 7
+
+      - name: Restore founder access hash and remove temporary workflow
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$BRANCH_NAME"
+          git reset --hard "origin/$BRANCH_NAME"
+          if [ -z "${ORIGINAL_HASH:-}" ]; then
+            echo 'ORIGINAL_HASH missing; refusing to change preview hash blindly.' >&2
+            exit 1
+          fi
+          python - "$ORIGINAL_HASH" <<'PY'
+          from pathlib import Path
+          import re, sys
+          p = Path('server/phase1-preview-access.js')
+          text = p.read_text()
+          updated, count = re.subn(
+              r"(PHASE1_PREVIEW_ACCESS_CODE_SHA256 = ')[0-9a-f]{64}(')",
+              rf"\g<1>{sys.argv[1]}\g<2>",
+              text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit('Expected exactly one preview access hash during cleanup')
+          p.write_text(updated)
+          PY
+          git rm -f .github/workflows/founder-acceptance-test.yml
+          git config user.name casevoiceai
+          git config user.email casevoice.ai@gmail.com
+          git add server/phase1-preview-access.js
+          git commit -m 'Restore founder preview access after acceptance test'
+          git push origin "HEAD:$BRANCH_NAME"
+          echo "RESTORE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Wait for restored founder preview deployment
+        if: always() && env.RESTORE_COMMIT != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 100); do
+            json=$(curl --silent --show-error --max-time 15 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$RESTORE_COMMIT/check-runs?per_page=100")
+            if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion == "success")' >/dev/null; then
+              echo 'FOUNDER_ACCESS_RESTORED_DEPLOYMENT=PASS'
+              exit 0
+            fi
+            if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion != "success")' >/dev/null; then
+              exit 1
+            fi
+            sleep 3
+          done
+          exit 1
