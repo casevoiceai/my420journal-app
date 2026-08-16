@@ -4,7 +4,7 @@
 export const PHASE1_PREVIEW_HOST = 'feature-phase1-log-talk-play.my420journal-app.pages.dev'
 
 // Founder-acceptance preview code hash. The raw code is handed off separately.
-export const PHASE1_PREVIEW_ACCESS_CODE_SHA256 = 'ec5f1a5769360abe14d22210925c16b7233cab0844243fd2a969d60956656703'
+export const PHASE1_PREVIEW_ACCESS_CODE_SHA256 = '7b8255e8e54c192b3e5badfe34566390c03fbaf57a5f8db7f1320f3286d91028'
 
 export function getPhase1PreviewAccessCodeHash(hostname) {
   const host = String(hostname ?? '').trim().toLowerCase()
