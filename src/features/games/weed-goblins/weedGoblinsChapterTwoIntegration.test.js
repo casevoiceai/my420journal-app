@@ -41,7 +41,6 @@ function choose(state, id) {
 
 async function playableChapterTwoState() {
   let { state } = await targetSession()
-  state = choose(state, 'session:continue')
   state = submitWeedGoblinsSessionText(state, 'Fenna Duskrow').after
   state = choose(state, 'session:race:human')
   state = choose(state, 'session:weapon:sword')
@@ -88,8 +87,7 @@ test('completing Session Zero converts directly into the playable Lantern Mouth 
 
 test('Session Zero to Chapter 2 transition produces Hollow Market opening narration', async () => {
   let session = await targetSession()
-  let state = choose(session.state, 'session:continue')
-  state = submitWeedGoblinsSessionText(state, 'Fenna Duskrow').after
+  let state = submitWeedGoblinsSessionText(session.state, 'Fenna Duskrow').after
   state = choose(state, 'session:race:human')
   state = choose(state, 'session:weapon:sword')
   state = choose(state, 'background:tracker')

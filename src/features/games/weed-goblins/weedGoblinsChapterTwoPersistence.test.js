@@ -77,7 +77,6 @@ function choose(state, id) {
 
 async function playableState() {
   let { state } = await chapterTwoSessionZeroState()
-  state = choose(state, 'session:continue')
   state = submitWeedGoblinsSessionText(state, 'Fenna Duskrow').after
   state = choose(state, 'session:race:human')
   state = choose(state, 'session:weapon:sword')
