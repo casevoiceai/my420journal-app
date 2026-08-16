@@ -1,8 +1,10 @@
 import {
   PRIVATE_TESTING_ACCESS_PATH,
+  isPrivateTestingHashedCodeSessionValid,
   isPrivateTestingSessionValid,
   renderPrivateTestingGate,
 } from '../server/private-testing-access.js'
+import { getPhase1PreviewAccessCodeHash } from '../server/phase1-preview-access.js'
 
 const PRIVATE_TESTING_DIAGNOSTIC_PATH = '/api/private-testing-diagnostic'
 
@@ -48,9 +50,14 @@ export async function onRequest(context) {
   }
 
   const secret = String(env?.JOURNAL_ACCESS_CODE ?? '').trim()
+  const previewCodeHash = secret ? '' : getPhase1PreviewAccessCodeHash(url.hostname)
+  const cookieHeader = request.headers.get('Cookie') || ''
+
   const authorized = secret
-    ? await isPrivateTestingSessionValid(request.headers.get('Cookie') || '', secret)
-    : false
+    ? await isPrivateTestingSessionValid(cookieHeader, secret)
+    : previewCodeHash
+      ? await isPrivateTestingHashedCodeSessionValid(cookieHeader, previewCodeHash)
+      : false
 
   if (authorized) {
     return continueAuthorized(context)
