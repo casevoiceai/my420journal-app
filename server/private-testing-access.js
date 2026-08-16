@@ -9,6 +9,16 @@ function bytesToHex(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+function hexToBytes(hex) {
+  const normalized = String(hex ?? '').trim().toLowerCase()
+  if (!/^[a-f0-9]{64}$/.test(normalized)) return null
+  const bytes = new Uint8Array(32)
+  for (let index = 0; index < 32; index += 1) {
+    bytes[index] = Number.parseInt(normalized.slice(index * 2, index * 2 + 2), 16)
+  }
+  return bytes
+}
+
 function constantTimeEqualBytes(left, right) {
   if (left.length !== right.length) return false
   let mismatch = 0
@@ -38,6 +48,13 @@ async function hmacHex(secret, message) {
 export async function timingSafeEqualText(left, right) {
   const [leftDigest, rightDigest] = await Promise.all([sha256(left), sha256(right)])
   return constantTimeEqualBytes(leftDigest, rightDigest)
+}
+
+export async function timingSafeEqualTextToSha256Hex(value, expectedSha256Hex) {
+  const expectedDigest = hexToBytes(expectedSha256Hex)
+  if (!expectedDigest) return false
+  const suppliedDigest = await sha256(value)
+  return constantTimeEqualBytes(suppliedDigest, expectedDigest)
 }
 
 function readCookie(cookieHeader, name) {
@@ -88,6 +105,38 @@ export async function isPrivateTestingSessionValid(cookieHeader, secret, now = D
 export async function buildPrivateTestingCookie(secret) {
   const session = await createPrivateTestingSession(secret)
   return `${PRIVATE_TESTING_COOKIE}=${session}; Path=/; Max-Age=${PRIVATE_TESTING_SESSION_TTL_SECONDS}; HttpOnly; Secure; SameSite=Lax`
+}
+
+export async function isPrivateTestingHashedCodeSessionValid(
+  cookieHeader,
+  expectedSha256Hex,
+  now = Date.now(),
+) {
+  const raw = readCookie(cookieHeader, PRIVATE_TESTING_COOKIE)
+  const separator = raw.indexOf('.')
+  if (separator <= 0) return false
+
+  const expiresText = raw.slice(0, separator)
+  if (!/^\d{13}$/.test(expiresText)) return false
+  const expiresAt = Number(expiresText)
+  if (!Number.isFinite(expiresAt) || expiresAt <= now) return false
+
+  let suppliedCode = ''
+  try {
+    suppliedCode = decodeURIComponent(raw.slice(separator + 1)).trim()
+  } catch {
+    suppliedCode = ''
+  }
+  if (!suppliedCode) return false
+
+  return timingSafeEqualTextToSha256Hex(suppliedCode, expectedSha256Hex)
+}
+
+export function buildPrivateTestingHashedCodeCookie(accessCode, now = Date.now()) {
+  const normalizedCode = String(accessCode ?? '').trim()
+  const expiresAt = now + PRIVATE_TESTING_SESSION_TTL_SECONDS * 1000
+  const encodedCode = encodeURIComponent(normalizedCode)
+  return `${PRIVATE_TESTING_COOKIE}=${expiresAt}.${encodedCode}; Path=/; Max-Age=${PRIVATE_TESTING_SESSION_TTL_SECONDS}; HttpOnly; Secure; SameSite=Lax`
 }
 
 export function renderPrivateTestingGate({ showError = false } = {}) {
