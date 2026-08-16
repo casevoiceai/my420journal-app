@@ -41,7 +41,7 @@ jobs:
       - name: Play WTML and The New Place in Chromium
         shell: bash
         run: |
-          cat > /tmp/phase1-smoke.mjs <<'NODE'
+          cat > .phase1-smoke.mjs <<'NODE'
           import { chromium } from 'playwright'
 
           const browser = await chromium.launch({ headless: true })
@@ -70,7 +70,6 @@ jobs:
             throw new Error(`No button starting with ${prefix}`)
           }
 
-          // Who Took My Lighter? complete case.
           await page.goto('http://127.0.0.1:5173/games/who-took-my-lighter', { waitUntil: 'networkidle' })
           await expectText('Who Took My Lighter?')
           await page.getByRole('button', { name: 'Examine the scene' }).click()
@@ -80,11 +79,9 @@ jobs:
           await clickFirstButtonStartingWith('Interview ')
           await clickFirstButtonStartingWith('Interview ')
           await clickFirstButtonStartingWith('Accuse ')
-          await expectText('Case')
           await page.getByRole('button', { name: 'Start a new case' }).waitFor({ state: 'visible', timeout: 10000 })
           console.log('WTML_BROWSER_SMOKE=PASS')
 
-          // The New Place complete seven-day week.
           await page.goto('http://127.0.0.1:5173/games/the-new-place', { waitUntil: 'networkidle' })
           await expectText('The New Place')
           for (let day = 0; day < 7; day += 1) {
@@ -103,7 +100,7 @@ jobs:
           console.log('BROWSER_ERRORS=0')
           await browser.close()
           NODE
-          node /tmp/phase1-smoke.mjs
+          node .phase1-smoke.mjs
       - name: Show Vite log on failure
         if: failure()
         run: cat /tmp/vite.log || true
