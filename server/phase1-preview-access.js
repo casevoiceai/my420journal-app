@@ -4,7 +4,7 @@
 export const PHASE1_PREVIEW_HOST = 'feature-phase1-log-talk-play.my420journal-app.pages.dev'
 
 // Replaced by the temporary verification workflow with the generated code hash.
-export const PHASE1_PREVIEW_ACCESS_CODE_SHA256 = 'a817c6c1ea2159d3dadfa60bc74fc7b059c081780bd8ffe1cd99aa34b6dd6fbe'
+export const PHASE1_PREVIEW_ACCESS_CODE_SHA256 = '7b8255e8e54c192b3e5badfe34566390c03fbaf57a5f8db7f1320f3286d91028'
 
 export function getPhase1PreviewAccessCodeHash(hostname) {
   const host = String(hostname ?? '').trim().toLowerCase()
