@@ -12,7 +12,7 @@ permissions:
 jobs:
   finalize:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       PREVIEW_BASE: https://feature-phase1-log-talk-play.my420journal-app.pages.dev
       BRANCH_NAME: feature/phase1-log-talk-play-integration
@@ -36,7 +36,7 @@ jobs:
           npm test
           npm run build
 
-      - name: Generate masked founder code and commit only its hash
+      - name: Generate fresh masked founder code and rotate only its hash
         shell: bash
         run: |
           set -euo pipefail
@@ -47,14 +47,18 @@ jobs:
 
           python - "$hash" <<'PY'
           from pathlib import Path
-          import sys
+          import re, sys
           p = Path('server/phase1-preview-access.js')
           text = p.read_text()
-          old = "export const PHASE1_PREVIEW_ACCESS_CODE_SHA256 = '0000000000000000000000000000000000000000000000000000000000000000'"
-          new = f"export const PHASE1_PREVIEW_ACCESS_CODE_SHA256 = '{sys.argv[1]}'"
-          if text.count(old) != 1:
-              raise SystemExit('Expected exactly one preview hash placeholder')
-          p.write_text(text.replace(old, new))
+          updated, count = re.subn(
+              r"(PHASE1_PREVIEW_ACCESS_CODE_SHA256 = ')[0-9a-f]{64}(')",
+              rf"\g<1>{sys.argv[1]}\g<2>",
+              text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit('Expected exactly one preview access hash')
+          p.write_text(updated)
           PY
 
           printf '%s' "$PUBLIC_KEY_B64" | base64 -d > /tmp/phase1-public.pem
@@ -65,19 +69,19 @@ jobs:
             -pkeyopt rsa_mgf1_md:sha256 | base64 -w0)
 
           echo "FOUNDER_CODE=$code" >> "$GITHUB_ENV"
-          echo "PREVIEW_ACCESS_HASH=$hash" >> "$GITHUB_ENV"
           echo "FOUNDER_CODE_CIPHERTEXT=$ciphertext" >> "$GITHUB_ENV"
+          echo "PREVIEW_ACCESS_HASH=$hash" >> "$GITHUB_ENV"
 
           git config user.name casevoiceai
           git config user.email casevoice.ai@gmail.com
           git add server/phase1-preview-access.js
-          git commit -m 'Set generated Phase 1 preview access hash'
+          git commit -m 'Rotate Phase 1 preview founder access hash'
           git push origin "HEAD:$BRANCH_NAME"
           echo "HASH_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
           echo "PREVIEW_ACCESS_HASH=$hash"
           echo "FOUNDER_CODE_CIPHERTEXT=$ciphertext"
 
-      - name: Wait for hash deployment
+      - name: Wait for rotated-hash deployment
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -92,59 +96,96 @@ jobs:
               echo 'HASH_DEPLOYMENT=PASS'
               exit 0
             fi
-            if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion != "success")' >/dev/null; then
-              exit 1
-            fi
+            if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion != "success")' >/dev/null; then exit 1; fi
             sleep 3
           done
           exit 1
 
-      - name: Verify private preview before cleanup
+      - name: Verify unauthenticated and wrong-code blocking
         shell: bash
         run: |
           set -euo pipefail
           for path in / /games/weed-goblins /games/who-took-my-lighter /games/the-new-place; do
             safe=$(printf '%s' "$path" | tr '/?' '__')
             status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' \
-              -D "/tmp/pre-${safe}.headers" -o "/tmp/pre-${safe}.body" -w '%{http_code}' "$PREVIEW_BASE$path")
-            echo "pre-cleanup unauth $path status=$status"
+              -D "/tmp/u-${safe}.headers" -o "/tmp/u-${safe}.body" -w '%{http_code}' "$PREVIEW_BASE$path")
+            echo "unauth $path status=$status"
             test "$status" = '401'
-            grep -q 'Private Testing' "/tmp/pre-${safe}.body"
-            grep -qi '^X-Robots-Tag:.*noindex' "/tmp/pre-${safe}.headers"
+            grep -q 'Private Testing' "/tmp/u-${safe}.body"
+            grep -qi '^X-Robots-Tag:.*noindex' "/tmp/u-${safe}.headers"
           done
-          echo 'PRE_CLEANUP_UNAUTHENTICATED_BLOCKING=PASS'
-
-          wrong_status=$(curl --silent --show-error --max-time 15 \
-            -D /tmp/pre-wrong.headers -o /tmp/pre-wrong.body -w '%{http_code}' \
+          wrong=$(curl --silent --show-error --max-time 15 \
+            -D /tmp/wrong.headers -o /tmp/wrong.body -w '%{http_code}' \
             -X POST --data-urlencode 'access_code=definitely-not-the-valid-code' \
             "$PREVIEW_BASE/api/private-testing-access")
-          echo "pre-cleanup wrong-code status=$wrong_status"
-          test "$wrong_status" = '401'
-          if grep -qi '^Set-Cookie:' /tmp/pre-wrong.headers; then exit 1; fi
-          echo 'PRE_CLEANUP_WRONG_CODE=PASS'
+          echo "wrong-code status=$wrong"
+          test "$wrong" = '401'
+          if grep -qi '^Set-Cookie:' /tmp/wrong.headers; then exit 1; fi
+          echo 'UNAUTH_AND_WRONG_CODE=PASS'
 
-          good=0
-          for attempt in $(seq 1 20); do
-            rm -f /tmp/pre-cookies /tmp/pre-good.headers /tmp/pre-good.body
-            good_status=$(curl --silent --show-error --max-time 15 \
-              -D /tmp/pre-good.headers -c /tmp/pre-cookies -o /tmp/pre-good.body -w '%{http_code}' \
+      - name: Verify each route with a fresh authenticated session
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in / /games/weed-goblins /games/who-took-my-lighter /games/the-new-place; do
+            rm -f /tmp/route-cookies /tmp/login.headers /tmp/login.body
+            login=$(curl --silent --show-error --max-time 15 \
+              -D /tmp/login.headers -c /tmp/route-cookies -o /tmp/login.body -w '%{http_code}' \
               -X POST --data-urlencode "access_code=$FOUNDER_CODE" \
               "$PREVIEW_BASE/api/private-testing-access")
-            if [ "$good_status" = '303' ] && grep -qi '^Set-Cookie:.*__Host-my420journal_private_testing' /tmp/pre-good.headers; then good=1; break; fi
-            sleep 2
-          done
-          test "$good" = 1
-          echo 'PRE_CLEANUP_CORRECT_CODE=PASS'
-
-          for path in / /games/weed-goblins /games/who-took-my-lighter /games/the-new-place; do
+            echo "fresh login for $path status=$login"
+            test "$login" = '303'
+            grep -qi '^Set-Cookie:.*__Host-my420journal_private_testing' /tmp/login.headers
+            awk 'BEGIN{FS="\t"} !/^#/ && NF>=7 {print "cookie domain=" $1 " path=" $3 " secure=" $4 " name=" $6}' /tmp/route-cookies
             safe=$(printf '%s' "$path" | tr '/?' '__')
-            status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' -b /tmp/pre-cookies \
-              -o "/tmp/pre-auth-${safe}.body" -w '%{http_code}' "$PREVIEW_BASE$path")
-            echo "pre-cleanup auth $path status=$status"
+            status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' -b /tmp/route-cookies \
+              -D "/tmp/a-${safe}.headers" -o "/tmp/a-${safe}.body" -w '%{http_code}' "$PREVIEW_BASE$path")
+            echo "fresh-session auth $path status=$status"
             test "$status" = '200'
-            if grep -q 'Private Testing' "/tmp/pre-auth-${safe}.body"; then exit 1; fi
+            if grep -q 'Private Testing' "/tmp/a-${safe}.body"; then exit 1; fi
           done
-          echo 'PRE_CLEANUP_AUTHENTICATED_ROUTES=PASS'
+          echo 'FRESH_SESSION_AUTHENTICATED_ROUTES=PASS'
+
+      - name: Install temporary Chromium runner
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify browser login and all protected routes
+        shell: bash
+        run: |
+          cat > .phase1-preview-browser.mjs <<'NODE'
+          import { chromium } from 'playwright'
+          const base = process.env.PREVIEW_BASE
+          const code = process.env.FOUNDER_CODE
+          const browser = await chromium.launch({ headless: true })
+          const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+          const browserErrors = []
+          page.on('pageerror', error => browserErrors.push(`pageerror: ${error.message}`))
+          page.on('console', message => { if (message.type() === 'error') browserErrors.push(`console: ${message.text()}`) })
+
+          let response = await page.goto(base, { waitUntil: 'networkidle' })
+          if (response.status() !== 401) throw new Error(`Expected initial 401, got ${response.status()}`)
+          await page.getByLabel('Access code').fill(code)
+          await Promise.all([
+            page.waitForURL(`${base}/`),
+            page.getByRole('button', { name: 'Continue' }).click(),
+          ])
+          if (await page.getByText('Private Testing', { exact: true }).count()) throw new Error('Gate still visible after valid login')
+          console.log('BROWSER_LOGIN=PASS')
+
+          for (const path of ['/', '/games/weed-goblins', '/games/who-took-my-lighter', '/games/the-new-place']) {
+            response = await page.goto(`${base}${path === '/' ? '' : path}`, { waitUntil: 'networkidle' })
+            console.log(`browser ${path} status=${response.status()}`)
+            if (response.status() !== 200) throw new Error(`Authenticated ${path} returned ${response.status()}`)
+            if (await page.getByText('Private Testing', { exact: true }).count()) throw new Error(`Gate visible on authenticated ${path}`)
+          }
+          if (browserErrors.length) throw new Error(browserErrors.join('\n'))
+          console.log('BROWSER_AUTHENTICATED_ROUTES=PASS')
+          console.log('BROWSER_ERRORS=0')
+          await browser.close()
+          NODE
+          node .phase1-preview-browser.mjs
 
       - name: Remove temporary diagnostics and workflow
         shell: bash
@@ -175,71 +216,39 @@ jobs:
           set -euo pipefail
           for attempt in $(seq 1 80); do
             json=$(curl --silent --show-error --max-time 15 \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H 'Accept: application/vnd.github+json' \
+              -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
               "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$CLEANUP_COMMIT/check-runs?per_page=100")
             if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion == "success")' >/dev/null; then
               echo 'CLEANUP_DEPLOYMENT=PASS'
               exit 0
             fi
-            if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion != "success")' >/dev/null; then
-              exit 1
-            fi
+            if printf '%s' "$json" | jq -e '.check_runs[]? | select(.name == "Cloudflare Pages" and .status == "completed" and .conclusion != "success")' >/dev/null; then exit 1; fi
             sleep 3
           done
           exit 1
 
-      - name: Verify final cleaned preview
+      - name: Verify cleaned preview one final time
         shell: bash
         run: |
           set -euo pipefail
-          diag_status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' \
-            -o /tmp/final-diag.body -w '%{http_code}' "$PREVIEW_BASE/api/private-testing-diagnostic")
-          echo "final diagnostic status=$diag_status"
-          test "$diag_status" = '401'
-          grep -q 'Private Testing' /tmp/final-diag.body
-          echo 'FINAL_DIAGNOSTIC_REMOVED=PASS'
+          diag=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' -o /tmp/diag.body -w '%{http_code}' "$PREVIEW_BASE/api/private-testing-diagnostic")
+          echo "diagnostic-after-cleanup status=$diag"
+          test "$diag" = '401'
+          grep -q 'Private Testing' /tmp/diag.body
 
           for path in / /games/weed-goblins /games/who-took-my-lighter /games/the-new-place; do
-            safe=$(printf '%s' "$path" | tr '/?' '__')
-            status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' \
-              -D "/tmp/final-${safe}.headers" -o "/tmp/final-${safe}.body" -w '%{http_code}' "$PREVIEW_BASE$path")
+            status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' -o /tmp/final-u.body -w '%{http_code}' "$PREVIEW_BASE$path")
             echo "final unauth $path status=$status"
             test "$status" = '401'
-            grep -q 'Private Testing' "/tmp/final-${safe}.body"
-          done
-          echo 'FINAL_UNAUTHENTICATED_BLOCKING=PASS'
+            grep -q 'Private Testing' /tmp/final-u.body
 
-          wrong_status=$(curl --silent --show-error --max-time 15 \
-            -D /tmp/final-wrong.headers -o /tmp/final-wrong.body -w '%{http_code}' \
-            -X POST --data-urlencode 'access_code=definitely-not-the-valid-code' \
-            "$PREVIEW_BASE/api/private-testing-access")
-          echo "final wrong-code status=$wrong_status"
-          test "$wrong_status" = '401'
-          if grep -qi '^Set-Cookie:' /tmp/final-wrong.headers; then exit 1; fi
-          echo 'FINAL_WRONG_CODE_REJECTION=PASS'
-
-          good=0
-          for attempt in $(seq 1 20); do
-            rm -f /tmp/final-cookies /tmp/final-good.headers /tmp/final-good.body
-            good_status=$(curl --silent --show-error --max-time 15 \
-              -D /tmp/final-good.headers -c /tmp/final-cookies -o /tmp/final-good.body -w '%{http_code}' \
-              -X POST --data-urlencode "access_code=$FOUNDER_CODE" \
-              "$PREVIEW_BASE/api/private-testing-access")
-            if [ "$good_status" = '303' ] && grep -qi '^Set-Cookie:.*__Host-my420journal_private_testing' /tmp/final-good.headers; then good=1; break; fi
-            sleep 2
+            rm -f /tmp/final-cookies /tmp/final-login.headers
+            login=$(curl --silent --show-error --max-time 15 -D /tmp/final-login.headers -c /tmp/final-cookies -o /tmp/final-login.body -w '%{http_code}' \
+              -X POST --data-urlencode "access_code=$FOUNDER_CODE" "$PREVIEW_BASE/api/private-testing-access")
+            test "$login" = '303'
+            auth=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' -b /tmp/final-cookies -o /tmp/final-a.body -w '%{http_code}' "$PREVIEW_BASE$path")
+            echo "final fresh-session auth $path status=$auth"
+            test "$auth" = '200'
           done
-          test "$good" = 1
-          echo 'FINAL_CORRECT_CODE_LOGIN=PASS'
-
-          for path in / /games/weed-goblins /games/who-took-my-lighter /games/the-new-place; do
-            safe=$(printf '%s' "$path" | tr '/?' '__')
-            status=$(curl --silent --show-error --max-time 15 -H 'Accept: text/html' -b /tmp/final-cookies \
-              -o "/tmp/final-auth-${safe}.body" -w '%{http_code}' "$PREVIEW_BASE$path")
-            echo "final auth $path status=$status"
-            test "$status" = '200'
-            if grep -q 'Private Testing' "/tmp/final-auth-${safe}.body"; then exit 1; fi
-          done
-          echo 'FINAL_AUTHENTICATED_ROUTES=PASS'
           echo 'FINAL_PREVIEW_SECURITY=PASS'
           echo "FOUNDER_CODE_CIPHERTEXT=$FOUNDER_CODE_CIPHERTEXT"
