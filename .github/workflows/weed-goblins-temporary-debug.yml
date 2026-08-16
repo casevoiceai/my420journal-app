@@ -1,4 +1,4 @@
-name: Temporary Weed Goblins Verify
+name: Temporary Phase 1 Candidate Gate
 
 on:
   push:
@@ -9,9 +9,9 @@ permissions:
   contents: read
 
 jobs:
-  current-weed-goblins:
+  candidate-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,9 +22,36 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      - name: Run current runtime regression
-        run: node --test src/features/games/weed-goblins/weedGoblinsCurrentRuntime.test.js
-      - name: Run Chapter 2 integration
-        run: node --test src/features/games/weed-goblins/weedGoblinsChapterTwoIntegration.test.js
-      - name: Run Chapter 2 persistence
-        run: node --test src/features/games/weed-goblins/weedGoblinsChapterTwoPersistence.test.js
+      - name: Run candidate current Phase 1 test gate
+        run: >-
+          node --test
+          src/features/games/weed-goblins/weedGoblinsAiComplication.test.js
+          src/features/games/weed-goblins/weedGoblinsChapterOneStatic.test.js
+          src/features/games/weed-goblins/weedGoblinsChapterThreeRuntime.test.js
+          src/features/games/weed-goblins/weedGoblinsChapterTwo.test.js
+          src/features/games/weed-goblins/weedGoblinsChapterTwoHelp.test.js
+          src/features/games/weed-goblins/weedGoblinsChapterTwoIntegration.test.js
+          src/features/games/weed-goblins/weedGoblinsChapterTwoNarration.test.js
+          src/features/games/weed-goblins/weedGoblinsChapterTwoPersistence.test.js
+          src/features/games/weed-goblins/weedGoblinsChapterTwoRuntime.test.js
+          src/features/games/weed-goblins/weedGoblinsCurrentRuntime.test.js
+          src/features/games/weed-goblins/weedGoblinsDiscoverables.test.js
+          src/features/games/weed-goblins/weedGoblinsFreeTextInterpreter.test.js
+          src/features/games/weed-goblins/weedGoblinsFreeTextNarration.test.js
+          src/features/games/weed-goblins/weedGoblinsHelp.test.js
+          src/features/games/weed-goblins/weedGoblinsHiddenMenuVoice.test.js
+          src/features/games/weed-goblins/weedGoblinsNarrationStoryBeats.test.js
+          src/features/games/weed-goblins/weedGoblinsPagesFunction.test.js
+          src/features/games/weed-goblins/weedGoblinsProgression.test.js
+          src/features/games/who-took-my-lighter/whoTookMyLighterEngine.test.js
+          src/features/games/who-took-my-lighter/whoTookMyLighterLocalDataAdapter.test.js
+          src/features/games/who-took-my-lighter/whoTookMyLighterGuide.test.js
+          src/features/games/the-new-place/theNewPlaceEngine.test.js
+          src/features/games/the-new-place/theNewPlaceLocalDataAdapter.test.js
+          src/features/games/the-new-place/theNewPlaceGuide.test.js
+          src/lib/sharedAggregateProxy.test.js
+          server/weed-goblins-narration-worker/index.test.js
+          server/weed-goblins-narration-worker/story-beats.test.js
+          server/shared-aggregate-worker/index.test.js
+      - name: Build production bundle
+        run: npm run build
