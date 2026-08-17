@@ -19,16 +19,16 @@ const featureCards = [
     image: featureCard1Image,
   },
   {
-    title: 'Log by voice',
+    title: 'Type your entry',
     mobileLines: [
-      'Say what happened out loud and let the app turn it into a transcript.',
-      'Review what it heard, edit it if needed, then save the entry.',
-      'A faster option when typing is inconvenient.',
+      'Phase 1 testing uses typed entry only.',
+      'Browser Voice and microphone access are intentionally unavailable in this test build.',
+      'Review what you entered, edit it if needed, then save the entry.',
     ],
     desktopLines: [
-      'Say what happened out loud and let the app turn it into a transcript.',
-      'Review what it heard, edit it if needed, then save the entry.',
-      'A faster option when typing is inconvenient.',
+      'Phase 1 testing uses typed entry only.',
+      'Browser Voice and microphone access are intentionally unavailable in this test build.',
+      'Review what you entered, edit it if needed, then save the entry.',
     ],
     image: featureCard2Image,
   },
