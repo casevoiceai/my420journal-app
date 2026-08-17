@@ -142,7 +142,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 The idea was not to build another cannabis marketplace, social network, or recommendation engine. It was to create a personal journal that helps adults record what they tried, how it felt, and what they learned over time.
               </p>
               <p>
-                You can log an experience while the details are still fresh. You can scan a label instead of typing everything manually. You can return later and look for patterns across your own history.
+                You can log an experience while the details are still fresh. You can enter the product details as part of the entry instead of relying on memory later. You can return later and look for patterns across your own history.
               </p>
               <p>
                 my420journal gives you a choice of guide voices. Each one has a different way of talking with you, but the useful context comes from what you have already logged rather than an outside recommendation system.
