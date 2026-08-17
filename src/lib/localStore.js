@@ -73,8 +73,36 @@ function writeTable(table, rows) {
   writeJson(tableKey(table), rows)
 }
 
+function sanitizeEntryRow(row) {
+  if (!row) return row
+
+  const suggested = Array.isArray(row.terpenesAiSuggested)
+    ? row.terpenesAiSuggested.map((name) => String(name))
+    : []
+  if (suggested.length === 0) return row
+
+  const terpenes = row.terpenes && typeof row.terpenes === 'object'
+    ? { ...row.terpenes }
+    : row.terpenes
+
+  if (terpenes && typeof terpenes === 'object') {
+    for (const name of suggested) {
+      const value = terpenes[name]
+      if (value === '' || value === null || value === undefined) delete terpenes[name]
+    }
+  }
+
+  const next = {
+    ...row,
+    ...(terpenes && typeof terpenes === 'object' ? { terpenes } : {}),
+  }
+  delete next.terpenesAiSuggested
+  return next
+}
+
 function withTableDefaults(table, row) {
   if (!row) return row
+  if (table === 'entries') return sanitizeEntryRow(row)
   if (table !== 'user_profiles') return row
   return {
     ...SHARED_PROFILE_DEFAULTS,
