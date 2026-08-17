@@ -123,7 +123,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 >
                   No Trace Ever
                 </button>{' '}
-                as a hard rule across this app, not as a policy I could soften later.
+                into the privacy design of this app: keep the private journal local, collect less, and describe optional data flows plainly.
               </p>
               <p>
                 And I vowed I would never build "Hy" again.
@@ -145,10 +145,10 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 You can log an experience while the details are still fresh. You can scan a label instead of typing everything manually. You can return later and look for patterns across your own history.
               </p>
               <p>
-                Instead of one AI trying to know everything about you, my420journal gives you a choice of guides. Each one has a different focus and a different way of talking to you, so you pick the voice that actually fits how you want to journal.
+                my420journal gives you a choice of guide voices. Each one has a different way of talking with you, but the useful context comes from what you have already logged rather than an outside recommendation system.
               </p>
               <p>
-                None of them push you. None of them judge what you log or how much you use. They are here to help you remember, not to decide anything for you.
+                None of them push you. None of them judge what you log or how much you use. They are here to help you remember your own record, not to decide anything for you.
               </p>
               <p>
                 You can switch guides any time, the moment one stops feeling right for you.
@@ -164,32 +164,22 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
             </div>
             <div className="origin-story-copy">
               <p>
-                <span className="origin-story-guide-name">Bud Tendar</span> is the dispensary-savvy one. He talks deals, trip planning, and budget, in a warm, knowledgeable-friend kind of way. Short answers, no lectures.
+                <span className="origin-story-guide-name">Bud Tendar</span> is practical and direct. He helps you look back at what you logged without turning the conversation into a lecture or a recommendation engine.
               </p>
               <p>
-                <span className="origin-story-guide-name">Sunny Day</span> is there for conversation. She checks in on how you are actually doing, not just what you logged, with an easy, unhurried warmth.
+                <span className="origin-story-guide-name">Sunny Day</span> is conversational and easygoing. She helps you reflect on what is already in your journal with an unhurried warmth.
               </p>
               <p>
-                <span className="origin-story-guide-name">Lucky Larry</span> is the old head. He has been around cannabis culture since the 1970s and talks strain history and folklore like a guy who has a story for everything, because he does. Dry, unhurried, never in a rush to finish a sentence.
+                <span className="origin-story-guide-name">Lucky Larry</span> has the laid-back old-head voice. He keeps the conversation loose and story-like while staying grounded in your own logged history.
               </p>
               <p>
-                <span className="origin-story-guide-name">Herb N. Spices</span> is the science one. Terpenes, cannabinoids, pattern analysis. He says little out loud and thinks in the details, because for him the chemistry explains everything.
+                <span className="origin-story-guide-name">Herb N. Spices</span> is detail-focused. He helps you compare patterns already present in your entries without pretending to know more than your journal contains.
               </p>
               <p>
-                <span className="origin-story-guide-name">Mary Jayne</span> focuses on wellness, sleep, and self-care. She asks one honest question at a time and never plays doctor. Just direct, personal, and to the point.
+                <span className="origin-story-guide-name">Mary Jayne</span> is calm and personal. She reflects on what you recorded without turning the conversation into medical advice.
               </p>
               <p>
-                And then there is:
-                <br />
-                <span className="origin-story-guide-name">S.T.O.N.E.R.</span>: Streamlined Tracking Of Notable Experiences Recorded.
-                <br />
-                <br />
-                No guide voice. No check-ins. No opinions.
-                <br />
-                Just a clean, private log that records exactly what you tell it and nothing more, for people who already know what they want and just need a place to put it.
-              </p>
-              <p>
-                Five personalities and one no-personality mode, because a journal should meet you where you are, not decide who you should be.
+                Five personalities. Same journal. The voice changes, but the source material stays your own logged history.
               </p>
             </div>
           </article>
@@ -247,27 +237,19 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
             </h2>
             <div className="origin-story-modal-body">
               <p>
-                No Trace Ever is the privacy architecture behind every product built by Vogtcom LLC.
+                No Trace Ever is the privacy design principle behind my420journal.
               </p>
               <p>
-                For us as a company, it means a simple rule: if we do not need your personal data to make the app work, we do not collect it, store it, or send it anywhere.
+                The private journal is designed to keep your journal entries on your device rather than storing them as a Vogtcom account or server-side journal.
               </p>
               <p>
-                For you as a user, it means:
+                Optional features can have separate, limited data flows. Shared Journey View, for example, is opt-in and follows the staging, aggregation, and deletion rules described in the Privacy Policy.
               </p>
               <p>
-                Your journal entries stay on your device. They are not stored on our servers.
+                We do not sell your private journal entries or provide them to advertisers, dispensaries, or data brokers.
               </p>
               <p>
-                We do not sell, share, or transmit your personal data to advertisers, dispensaries, or data brokers.
-              </p>
-              <p>
-                Nothing you write is used to build a profile on you.
-              </p>
-              <p>
-                <strong>This is not a marketing claim.</strong>
-                <br />
-                It is a hard rule built into how the app works, not a policy we can quietly change later.
+                The Privacy Policy is the controlling description of what leaves your device, what is temporarily retained, and what can be deleted or aggregated.
               </p>
             </div>
           </div>
