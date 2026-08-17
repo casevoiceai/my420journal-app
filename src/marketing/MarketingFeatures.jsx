@@ -33,16 +33,16 @@ const featureCards = [
     image: featureCard2Image,
   },
   {
-    title: 'Nothing stored without your choice',
+    title: 'Private by default',
     mobileLines: [
-      'Nothing saves anywhere until you decide it should.',
-      "You control exactly what gets kept and what doesn't.",
-      'Delete any entry, any time. No trace, ever.',
+      'Your private journal entries stay on your device.',
+      'Optional Shared Journey contributions are off by default.',
+      'Delete local entries any time. Shared contributions follow the separate rules in the Privacy Policy.',
     ],
     desktopLines: [
-      'Nothing saves anywhere until you decide it should.',
-      "You control exactly what gets kept and what doesn't.",
-      'Delete any entry, any time. No trace, ever.',
+      'Your private journal entries stay on your device.',
+      'Optional Shared Journey contributions are off by default.',
+      'Delete local entries any time. Shared contributions follow the separate rules in the Privacy Policy.',
     ],
     image: featureCard3Image,
   },
