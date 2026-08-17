@@ -3,26 +3,26 @@ import { ContactSection } from './MarketingContact'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
 const howItWorks = [
-  'The customer logs what they tried, the dose, the method, and how it affected their body, mind, and mood. Everything stays on their own device. No account is required, and there is no server storage of their personal entries.',
-  'They can pick from five guide personalities, or a no-personality mode called S.T.O.N.E.R., depending on how they want to journal.',
-  'If they choose to, they can opt in to share fully anonymized, aggregated signals into a shared pool. No individual is ever identified. Everything shared stays aggregate only.',
+  'The customer logs what they tried, the dose, the method, and how it affected their body, mind, and mood. Their private journal entries stay on their own device. No account is required to use the private journal.',
+  'They can choose from five guide personalities depending on how they want to journal. The guide works from the permitted context in their own logged history rather than an outside recommendation system.',
+  'If they choose to use Shared Journey View, a limited contribution can be held briefly under a random contributor identifier before it is folded into aggregate counts. Dispensary-facing reporting is aggregate only; individual journal entries are not provided to dispensaries.',
 ]
 
 const dispensaryLayer = [
-  'The free tier gives you a behavioral preview based on your own public menu. No user data is involved.',
-  'Tier 1 gives you own-product intelligence: aggregate signals specific to the products you carry. It activates once 50 opted-in users are contributing data.',
-  'Tier 2 gives you cross-product and competitor benchmarking, so you can see how your products compare to others in the category. It activates once 400 opted-in users are contributing data.',
+  'The free tier gives you a behavioral preview based on your own public menu. No private journal entries are involved.',
+  'Tier 1 gives you own-product intelligence: aggregate signals specific to the products you carry. Reporting is shown only after the applicable privacy thresholds are met.',
+  'Tier 2 gives you cross-product and competitor benchmarking, so you can see how your products compare to others in the category. Reporting is shown only after the applicable privacy thresholds are met.',
   'Tier 3 gives you cultivator and brand network intelligence: aggregate insight across the full brand and cultivator network, for larger operations.',
 ]
 
 const valueCase = [
   'You make better restocking decisions, because they are based on what customers actually report back, not just what sold once.',
-  'Your product recommendations are grounded in real aggregate outcomes instead of guesswork or rep pitches.',
-  "You understand your customer base's experience without adding a survey, a loyalty app, or any data collection burden on your staff.",
+  'You can compare aggregate customer-reported outcomes across products instead of relying only on guesswork or rep pitches.',
+  "You understand patterns across participating customers without adding a survey, a loyalty app, or access to anyone's private journal entries.",
 ]
 
 const whatWeAreNot = [
-  "my420journal is not a loyalty program. It is not an ad platform. We do not sell or show any individual customer's data, ever. Everything stays aggregate and opt-in only.",
+  "my420journal is not a loyalty program. It is not an ad platform. We do not sell or show a customer's private journal entries to a dispensary. Dispensary-facing reporting is aggregate and based only on opt-in contributions.",
   'It does not replace your point-of-sale or inventory system. It adds insight on top of what you already do.',
 ]
 
@@ -41,7 +41,7 @@ export default function MarketingPartners() {
             </h1>
             <div className="partners-page-intro">
               <p>
-                my420journal gives your customers a private way to track what actually works for them, and it gives you anonymized, aggregate insight into what's working across your customer base, without ever seeing one individual's data.
+                my420journal gives customers a private way to track their own experiences and is designed to turn separate, opt-in Shared Journey contributions into aggregate insight for participating dispensaries, without exposing individual journal entries.
               </p>
               <p>
                 You sell a product once. What happens after your customer walks out the door is usually a blank spot. Did it work for them? Would they buy it again? Right now the only way you find out is if they come back and tell you, or they don't come back and you never know why.
@@ -57,7 +57,7 @@ export default function MarketingPartners() {
           <section className="partners-page-section partners-page-getting-started">
             <h2>GETTING STARTED</h2>
             <p>
-              Let's have a short conversation about giving my420journal a look. Consider an early, full-access pilot, so we can learn together what's most useful to see before any tier or pricing commitment.
+              Let's have a short conversation about whether a future pilot could make sense. Any pilot would begin only after the required product, privacy, and legal gates for that stage are satisfied.
             </p>
           </section>
         </div>
