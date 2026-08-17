@@ -1,5 +1,5 @@
-import { SHARED_PROFILE_DEFAULTS } from './sharedPrivacy'
-import { createLocalGuideReply } from './localGuide'
+import { SHARED_PROFILE_DEFAULTS } from './sharedPrivacy.js'
+import { createLocalGuideReply } from './localGuide.js'
 
 const STORAGE_PREFIX = 'my420journal_local_v1'
 const ACTIVE_USER_KEY = `${STORAGE_PREFIX}:active_user`
