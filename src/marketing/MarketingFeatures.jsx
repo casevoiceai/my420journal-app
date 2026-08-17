@@ -5,16 +5,16 @@ import featureCard3Image from './FeatureCard3.png'
 
 const featureCards = [
   {
-    title: 'Scan any label',
+    title: 'Log the details',
     mobileLines: [
-      'Point your camera at any label and let it capture the details.',
-      'It reads the strain, dose, and method automatically.',
-      'No manual typing, no guessing at what you jotted down later.',
+      'Add the product details that matter while they are still fresh.',
+      'Keep strain, dose, method, and your experience together in one entry.',
+      'No relying on memory later.',
     ],
     desktopLines: [
-      'Point your camera at any label and let it capture the details.',
-      'It reads the strain, dose, and method automatically.',
-      'No manual typing, no guessing at what you jotted down later.',
+      'Add the product details that matter while they are still fresh.',
+      'Keep strain, dose, method, and your experience together in one entry.',
+      'No relying on memory later.',
     ],
     image: featureCard1Image,
   },
