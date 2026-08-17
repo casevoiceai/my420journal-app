@@ -15,7 +15,7 @@ const fontInter    = "'Inter', sans-serif"
 const fontPlayfair = "'Playfair Display', serif"
 
 const GUIDE_META = {
-  bud:    { name: 'Bud Tendar',       accent: '#C9A84C', greeting: "What are we shopping for?"         },
+  bud:    { name: 'Bud Tendar',       accent: '#C9A84C', greeting: "What are we logging?"              },
   sunny:  { name: 'Sunny Day',        accent: '#FF7F5C', greeting: 'Ready when you are.'               },
   larry:  { name: 'Lucky Larry',      accent: '#C17A3A', greeting: 'What did you get?'                 },
   herb:   { name: 'Herb N. Spices',   accent: '#4ECDC4', greeting: 'Log something. I will look at it.' },
