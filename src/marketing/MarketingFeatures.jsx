@@ -21,14 +21,14 @@ const featureCards = [
   {
     title: 'Log by voice',
     mobileLines: [
-      'Say what happened out loud and let it become the entry.',
-      'Your words get logged exactly as spoken, hands free.',
-      "No typing, no forms, no digging for your phone's keyboard.",
+      'Say what happened out loud and let the app turn it into a transcript.',
+      'Review what it heard, edit it if needed, then save the entry.',
+      'A faster option when typing is inconvenient.',
     ],
     desktopLines: [
-      'Say what happened out loud and let it become the entry.',
-      'Your words get logged exactly as spoken, hands free.',
-      "No typing, no forms, no digging for your phone's keyboard.",
+      'Say what happened out loud and let the app turn it into a transcript.',
+      'Review what it heard, edit it if needed, then save the entry.',
+      'A faster option when typing is inconvenient.',
     ],
     image: featureCard2Image,
   },
