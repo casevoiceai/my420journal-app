@@ -97,12 +97,10 @@ function InputField({ label, type, value, onChange, placeholder, autoComplete })
 
 export default function Login() {
   const navigate = useNavigate()
-  const [email,     setEmail]     = useState(TEST_CONVENIENCE_ENABLED ? TEST_EMAIL : '')
-  const [password,  setPassword]  = useState(TEST_CONVENIENCE_ENABLED ? TEST_PASSWORD : '')
-  const [loading,   setLoading]   = useState(false)
-  const [error,     setError]     = useState('')
-  const [resetSent, setResetSent] = useState(false)
-  const [resetting, setResetting] = useState(false)
+  const [email,    setEmail]    = useState(TEST_CONVENIENCE_ENABLED ? TEST_EMAIL : '')
+  const [password, setPassword] = useState(TEST_CONVENIENCE_ENABLED ? TEST_PASSWORD : '')
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState('')
 
   async function handleSignIn(e) {
     e.preventDefault()
@@ -113,17 +111,6 @@ export default function Login() {
     setLoading(false)
     if (err) { setError(err.message || 'Could not open the local profile. Check the email and password saved on this device.'); return }
     navigate(hasPin() ? '/pin' : '/home', { replace: true })
-  }
-
-  async function handleForgotPassword() {
-    if (!email.trim()) { setError('Enter the email used for this local profile first.'); return }
-    setError('')
-    setResetting(true)
-    const reset = localStore.auth['resetPassword' + 'ForEmail']
-    const { error: err } = await reset.call(localStore.auth, email.trim())
-    setResetting(false)
-    if (err) { setError(err.message || 'Local-profile password recovery is unavailable in this local-only build. Create a new local profile or use your PIN reset.'); return }
-    setResetSent(true)
   }
 
   return (
@@ -162,12 +149,6 @@ export default function Login() {
             </p>
           )}
 
-          {resetSent && !error && (
-            <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: '0 0 14px 0', lineHeight: '1.5' }}>
-              Local-profile password reset notice sent. Check your inbox.
-            </p>
-          )}
-
           <button
             type="submit"
             disabled={loading}
@@ -187,19 +168,16 @@ export default function Login() {
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-          <button
-            onClick={handleForgotPassword}
-            disabled={resetting}
-            style={{
-              background: 'none', border: 'none', cursor: resetting ? 'default' : 'pointer',
-              fontFamily: fontInter, fontSize: '13px', color: S.textSecondary,
-              padding: '4px', opacity: resetting ? 0.6 : 1,
-            }}
-          >
-            {resetting ? 'Checking...' : 'Forgot local-profile password?'}
-          </button>
-        </div>
+        <p style={{
+          fontFamily: fontInter,
+          fontSize: '12px',
+          color: S.textSecondary,
+          margin: '0 0 18px 0',
+          lineHeight: '1.5',
+          textAlign: 'center',
+        }}>
+          Email password recovery is not available in this Phase 1 local-only build. Keep your local-profile password somewhere you can retrieve it.
+        </p>
 
         <p style={{ textAlign: 'center', fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0 }}>
           New on this device?{' '}
