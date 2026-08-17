@@ -3,7 +3,7 @@ import { ContactSection } from './MarketingContact'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
 const howItWorks = [
-  'The customer logs what they tried, the dose, the method, and how it affected their body, mind, and mood. Their private journal entries stay on their own device. No account is required to use the private journal.',
+  'The customer logs what they tried, the dose, the method, and how it affected their body, mind, and mood. Their private journal entries stay on their own device. No cloud account is required; the Phase 1 app uses a local profile saved on the device.',
   'They can choose from five guide personalities depending on how they want to journal. The guide works from the permitted context in their own logged history rather than an outside recommendation system.',
   'If they choose to use Shared Journey View, a limited contribution can be held briefly under a random contributor identifier before it is folded into aggregate counts. Dispensary-facing reporting is aggregate only; individual journal entries are not provided to dispensaries.',
 ]
