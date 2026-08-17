@@ -11,6 +11,7 @@ import {
   enableSharedOptIn,
   getSharedPrivacyState,
   getSharedProfileFields,
+  PHASE1_SHARED_CONTRIBUTIONS_ENABLED,
 } from '../lib/sharedPrivacy'
 
 const S = {
@@ -36,10 +37,12 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
   }, [profile])
 
   useEffect(() => {
-    retryQueuedSharedContributions()
+    if (PHASE1_SHARED_CONTRIBUTIONS_ENABLED) retryQueuedSharedContributions()
+    else clearSharedContributionQueue()
   }, [])
 
   const enabled = state.shared_opt_in_enabled === true
+  const sharedAvailable = PHASE1_SHARED_CONTRIBUTIONS_ENABLED === true
 
   async function saveProfileFields(nextState) {
     const fields = getSharedProfileFields(nextState)
@@ -56,7 +59,7 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
   }
 
   async function handleToggle() {
-    if (saving) return
+    if (!sharedAvailable || saving) return
     setSaving(true)
     setStatus('')
     setError('')
@@ -67,14 +70,14 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
         setState(next)
         await saveProfileFields(next)
         await syncOptInStatus(next)
-        setStatus('Opt-in saved. New entries you save from now on can contribute anonymous product signals. Entries from before opt-in are not backfilled.')
+        setStatus('Opt-in saved. New entries you save from now on can contribute product signals under the Shared Journey rules described in the Privacy Policy. Entries from before opt-in are not backfilled.')
       } else {
         const next = disableSharedOptIn(state)
         setState(next)
         clearSharedContributionQueue()
         await saveProfileFields(next)
         await requestOptOutDeletion(next)
-        setStatus('Opt-out saved. Pending shared contribution retries were cleared. Your anonymous contributions should be removed from the shared aggregate pool within 24 hours.')
+        setStatus('Opt-out saved. Pending shared contribution retries were cleared. The deletion request was sent for temporary contributor-linked records.')
       }
     } catch {
       setError('Could not update Shared Journey settings. Try again.')
@@ -98,19 +101,22 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
               Shared Journey View
             </p>
             <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-              Off by default. If you turn it on, new entries saved going forward can contribute anonymous product signals to aggregate counts only. Entries from before opt-in are not backfilled.
+              {sharedAvailable
+                ? 'Off by default. If you turn it on, new entries saved going forward can contribute product signals under the Shared Journey rules described in the Privacy Policy. Entries from before opt-in are not backfilled.'
+                : 'Unavailable during Phase 1 external testing. Shared contributions remain off unless qualified legal review specifically approves them for this test.'}
             </p>
           </div>
           <button
             onClick={handleToggle}
-            disabled={saving}
+            disabled={saving || !sharedAvailable}
             aria-label="Toggle Shared Journey View"
             style={{
               width: '48px', height: '28px', borderRadius: '14px', border: 'none',
               backgroundColor: enabled ? S.gold : S.border,
-              cursor: saving ? 'not-allowed' : 'pointer',
+              cursor: saving || !sharedAvailable ? 'not-allowed' : 'pointer',
               position: 'relative', transition: 'background-color 0.2s ease',
               flexShrink: 0, padding: 0, marginTop: '2px',
+              opacity: sharedAvailable ? 1 : 0.55,
             }}
           >
             <div style={{
@@ -123,14 +129,17 @@ export default function SharedOptInPanel({ profile, onProfileChange }) {
           </button>
         </div>
 
-        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-            Only aggregate counts and percentages can be shared. No private notes, raw entries, exact addresses, GPS coordinates, or one-person records are displayed.
+        {sharedAvailable ? (
+          <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
+              Shared Journey has a separate, limited data flow from the private local journal. See the Privacy Policy for the controlling description.
+            </p>
+          </div>
+        ) : (
+          <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: '12px 0 0 0', lineHeight: 1.5 }}>
+            The private journal continues to work normally while this feature is unavailable.
           </p>
-          <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, margin: 0, lineHeight: 1.5 }}>
-            If you opt out later, pending retries are cleared and your anonymous contributions must be removed from the shared aggregate pool within 24 hours.
-          </p>
-        </div>
+        )}
 
         {status && (
           <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.success, margin: '12px 0 0 0', lineHeight: 1.5 }}>
