@@ -185,7 +185,7 @@ export default function PinSetup() {
             lineHeight: '1.7',
             margin: '0 0 48px 0',
           }}>
-            Want to add a PIN? It locks the app so only you can open your journal.
+            Want to add a PIN? It adds a PIN check before opening the journal on this device.
           </p>
           <button
             onClick={() => setPhase('first')}
