@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { localStore } from './lib/localStore'
-import { clearPin, hasPin } from './lib/pin'
+import { hasPin } from './lib/pin'
 import { isDevMode } from './lib/dev'
 import AgeGate from './screens/AgeGate'
 import Signup from './screens/Signup'
@@ -22,7 +22,6 @@ import Profile from './screens/Profile'
 import Settings from './screens/Settings'
 import Strains from './screens/Strains'
 import StrainDetail from './screens/StrainDetail'
-import ForgotPassword from './screens/ForgotPassword'
 import CheckIn from './screens/CheckIn'
 import PostUseUpdate from './screens/PostUseUpdate'
 import QuickEntry from './screens/QuickEntry'
@@ -42,7 +41,6 @@ import { retryQueuedSharedContributions } from './lib/sharedContributionQueue'
 
 const fontInter = "'Inter', sans-serif"
 
-// ── Routes where the bottom nav should NOT render ────────────────────────────
 const NO_NAV_ROUTES = new Set([
   '/',
   '/about',
@@ -56,7 +54,6 @@ const NO_NAV_ROUTES = new Set([
   '/onboarding',
   '/pin',
   '/pin-setup',
-  '/forgot-password',
   '/games/weed-goblins',
 ])
 
@@ -65,8 +62,6 @@ function routeHidesNav(pathname) {
   if (pathname.startsWith('/onboarding')) return true
   return false
 }
-
-// ── Bottom navigation bar ─────────────────────────────────────────────────────
 
 const NAV_TABS = [
   {
@@ -194,8 +189,6 @@ function BottomNav() {
   )
 }
 
-// ── Auth utilities ────────────────────────────────────────────────────────────
-
 const HIDDEN_EXIT_ROUTES = new Set([
   '/',
   '/about',
@@ -253,24 +246,6 @@ function EmergencyExit() {
   )
 }
 
-function RecoveryHandler() {
-  const navigate = useNavigate()
-  const location = useLocation()
-
-  useEffect(() => {
-    if (isDevMode()) return
-    const params = new URLSearchParams(
-      window.location.hash.startsWith('#') ? window.location.hash.slice(1) : ''
-    )
-    if (params.get('type') === 'recovery') {
-      clearPin()
-      navigate('/pin-setup', { state: { isReset: true }, replace: true })
-    }
-  }, [location.key, navigate])
-
-  return null
-}
-
 function HomeGuard() {
   const navigate = useNavigate()
   const [ready, setReady] = useState(isDevMode())
@@ -290,8 +265,6 @@ function HomeGuard() {
   return <Home />
 }
 
-// ── App ───────────────────────────────────────────────────────────────────────
-
 export default function App() {
   useEffect(() => {
     retryQueuedSharedContributions()
@@ -299,7 +272,6 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <RecoveryHandler />
       <EmergencyExit />
       <Routes>
         <Route path="/"                  element={<MarketingHome />} />
@@ -311,7 +283,6 @@ export default function App() {
         <Route path="/app"               element={<AgeGate />} />
         <Route path="/signup"            element={<Signup />} />
         <Route path="/login"             element={<Login />} />
-        <Route path="/forgot-password"   element={<ForgotPassword />} />
         <Route path="/onboarding"        element={<Onboarding />} />
         <Route path="/pin-setup"         element={<PinSetup />} />
         <Route path="/pin"               element={<PinEntry />} />
