@@ -172,6 +172,7 @@ export async function submitEntryContribution(entry, options = {}) {
     const sharedState = getSharedPrivacyState(options.sharedState || {})
 
     if (sharedState.shared_opt_in_enabled !== true) {
+      clearSharedContributionQueue()
       return { ok: true, status: 'shared_opt_in_disabled', skipped: true }
     }
 
