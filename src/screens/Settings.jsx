@@ -93,7 +93,7 @@ function MiniNumPad({ onDigit, onDelete }) {
           >
             {isDel ? (
               <svg width="18" height="13" viewBox="0 0 22 16" fill="none">
-                <path d="M8 1H20C20.5523 0 21 1.44772 21 2V14C21 14.5523 20.5523 15 20 15H8L1 8L8 1Z" stroke={S.textSecondary} strokeWidth="1.5" strokeLinejoin="round"/>
+                <path d="M8 1H20C20.5523 1 21 1.44772 21 2V14C21 14.5523 20.5523 15 20 15H8L1 8L8 1Z" stroke={S.textSecondary} strokeWidth="1.5" strokeLinejoin="round"/>
                 <path d="M14 6L10 10M10 6L14 10" stroke={S.textSecondary} strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
             ) : key}
