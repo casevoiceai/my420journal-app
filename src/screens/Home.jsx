@@ -115,6 +115,25 @@ export default function Home() {
           Talk to Your Guide
         </button>
 
+        {/* Phase 1 games — full width */}
+        <button
+          onClick={() => navigate('/games')}
+          style={{
+            width: '100%', height: '76px',
+            backgroundColor: S.surface,
+            border: `1px solid ${S.gold}`,
+            borderRadius: '12px', cursor: 'pointer',
+            fontFamily: fontPlayfair, fontSize: '18px', fontWeight: '600',
+            color: S.gold,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background-color 0.12s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${S.gold}14` }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = S.surface }}
+        >
+          Play Games
+        </button>
+
         {/* Quick Log + Full Log */}
         <div style={{ display: 'flex', gap: '12px' }}>
           <GridButton label="Quick Log 🎤" onClick={() => navigate('/quick')} borderColor={S.gold} textColor={S.gold} />
