@@ -111,18 +111,18 @@ export default function Login() {
     const signIn = localStore.auth['signIn' + 'WithPassword']
     const { error: err } = await signIn.call(localStore.auth, { email: email.trim(), password })
     setLoading(false)
-    if (err) { setError(err.message || 'Sign in failed. Check your credentials.'); return }
+    if (err) { setError(err.message || 'Could not open the local profile. Check the email and password saved on this device.'); return }
     navigate(hasPin() ? '/pin' : '/home', { replace: true })
   }
 
   async function handleForgotPassword() {
-    if (!email.trim()) { setError('Enter your email address above first.'); return }
+    if (!email.trim()) { setError('Enter the email used for this local profile first.'); return }
     setError('')
     setResetting(true)
     const reset = localStore.auth['resetPassword' + 'ForEmail']
     const { error: err } = await reset.call(localStore.auth, email.trim())
     setResetting(false)
-    if (err) { setError(err.message || 'Local-only password reset is unavailable. Create a new local profile or use your PIN reset.'); return }
+    if (err) { setError(err.message || 'Local-profile password recovery is unavailable in this local-only build. Create a new local profile or use your PIN reset.'); return }
     setResetSent(true)
   }
 
@@ -138,10 +138,10 @@ export default function Login() {
           fontFamily: fontPlayfair, fontSize: '26px', fontWeight: '600',
           color: S.textPrimary, margin: '0 0 8px 0', lineHeight: '1.2',
         }}>
-          Welcome back.
+          Open your local profile.
         </h1>
         <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, margin: '0 0 36px 0', lineHeight: '1.5' }}>
-          Sign in to your journal.
+          Use the email and password saved on this device.
         </p>
 
         <form onSubmit={handleSignIn} noValidate>
@@ -164,7 +164,7 @@ export default function Login() {
 
           {resetSent && !error && (
             <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: '0 0 14px 0', lineHeight: '1.5' }}>
-              Password local reset notice sent. Check your inbox.
+              Local-profile password reset notice sent. Check your inbox.
             </p>
           )}
 
@@ -183,7 +183,7 @@ export default function Login() {
             onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.backgroundColor = S.goldHover; e.currentTarget.style.transform = 'translateY(-1px)' } }}
             onMouseLeave={(e) => { if (!loading) { e.currentTarget.style.backgroundColor = S.gold; e.currentTarget.style.transform = 'translateY(0)' } }}
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Opening...' : 'Open local profile'}
           </button>
         </form>
 
@@ -197,14 +197,14 @@ export default function Login() {
               padding: '4px', opacity: resetting ? 0.6 : 1,
             }}
           >
-            {resetting ? 'Sending...' : 'Forgot password?'}
+            {resetting ? 'Checking...' : 'Forgot local-profile password?'}
           </button>
         </div>
 
         <p style={{ textAlign: 'center', fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0 }}>
-          New here?{' '}
+          New on this device?{' '}
           <Link to="/signup" style={{ color: S.gold, textDecoration: 'none', fontWeight: '500' }}>
-            Create an account
+            Create a local profile
           </Link>
         </p>
 
