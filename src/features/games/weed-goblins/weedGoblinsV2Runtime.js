@@ -38,12 +38,18 @@ function rewriteLatestRuling(state, patch) {
   return state
 }
 
-function applyCrookedRootQuestionOutcome(state, pending) {
+function applyBridgeConversationOutcome(state, pending) {
   if (pending?.actionId !== 'bridge:bargain') return state
-  const hadEvidence = state.discoveries?.some((item) => item.id === 'crooked-root-mark')
-  if (!hadEvidence) return state
   const roll = [...state.ledger].reverse().find((event) => event.type === 'roll' && event.resolutionId === pending.id)
   if (!roll?.success) return state
+
+  const withoutInventedPromise = {
+    ...state,
+    threads: state.threads.filter((thread) => thread.id !== 'sneak-bargain'),
+  }
+
+  const hadEvidence = state.discoveries?.some((item) => item.id === 'crooked-root-mark')
+  if (!hadEvidence) return withoutInventedPromise
 
   const tributeDiscovery = {
     id: 'stolen-stash-is-tribute',
@@ -55,9 +61,8 @@ function applyCrookedRootQuestionOutcome(state, pending) {
     : [...state.discoveries, tributeDiscovery]
 
   return {
-    ...state,
+    ...withoutInventedPromise,
     discoveries,
-    threads: state.threads.filter((thread) => thread.id !== 'sneak-bargain'),
   }
 }
 
@@ -371,7 +376,7 @@ export function commitPendingCheck(state, options) {
     return { ...resolved, ledger }
   }
   const resolved = commitCoreCheck(state, options)
-  return applyCrookedRootQuestionOutcome(resolved, pending)
+  return applyBridgeConversationOutcome(resolved, pending)
 }
 
 export function interpretLocalFreeform(state, text) {
