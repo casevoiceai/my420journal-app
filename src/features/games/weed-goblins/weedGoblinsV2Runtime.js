@@ -307,7 +307,7 @@ export function commitPendingCheck(state, options) {
     }
     const resolved = commitCoreCheck(mapped, options)
     const ledger = resolved.ledger.map((event) => {
-      if (event.resolutionId !== pending.id && event.actionId !== 'bridge:bypass') return event
+      if (event.resolutionId !== pending.id) return event
       if (!['roll', 'outcome'].includes(event.type)) return event
       return { ...event, actionId: pending.actionId }
     })
