@@ -1,570 +1,280 @@
-# Weed Goblins Game Experience Specification
+# Weed Goblins — Founder-Controlled RPG Experience Spec v2
 
-Status: controlling product and implementation reference for the Weed Goblins player experience.
+Status: CONTROLLING for the RPG rebuild on `feature/weed-goblins-rpg-vertical-slice`.
 
-This document supersedes earlier presentation assumptions that treated Weed Goblins as a visibly branded fantasy-game screen. The game remains mechanically a tabletop-style fantasy adventure, but the player-facing shell is deliberately a stealth messenger.
+This file supersedes the messenger/chat/session-zero experience previously implemented for Weed Goblins. Historical code may remain in the repository for rollback or reference, but it is not authoritative for v2 behavior.
 
-## 1. Core product rule
+## Core experience
 
-Weed Goblins must look, at a glance, like an ordinary text-message conversation while operating underneath as a branching tabletop adventure.
+Weed Goblins is a text-based fantasy CYOA with real D20 tabletop mechanics. The player should feel both that Eliza is DMing a strange goblin campaign and that they are playing a polished digital adventure. It is not an AI texting simulator.
 
-The messenger appearance is not a cosmetic theme. It is a product requirement.
+The Chapter 1 vertical slice is:
 
-Normal play should expose only what is needed to continue the conversation:
+Windcut Trail → meaningful route choice → distributed character creation → Rattlebridge → Highland Sneak encounter → Cloudberry Shelf.
 
-- Eliza as the contact/GM at the top;
-- Eliza's incoming message bubbles;
-- the player's outgoing message bubbles;
-- approximately four or five contextual response choices under the latest conversation state;
-- one standard-looking text composer beneath those choices;
-- optional voice-to-text into that composer;
-- temporary roll controls only when a roll is actually required.
+Do not extend this slice to Highland Camp, Stash Hall, or the Goblin King until the founder approves the slice in play.
 
-Visible RPG HUD treatment must not dominate the ordinary screen.
+## Eliza
 
-## 2. Messenger anatomy
+Eliza is the Dungeon Master. She describes the world, plays NPCs and enemies, explains rulings when needed, adjudicates genuinely freeform intent, and narrates already-resolved mechanics.
 
-### Header
+The engine owns canon, stats, inventory, HP, Mana, wounds, difficulty, dice, outcomes, enemy capabilities, position, faction knowledge, and persistent world state. Eliza may not change those facts for prose convenience.
 
-The ordinary header should be minimal:
+First-ever campaign introduction is exactly:
 
-- back/exit control;
-- Eliza's name;
-- small E-circle identity mark beside Eliza;
-- no permanent visible chapter/quest/stat HUD.
+“Hi, I’m Eliza, and I’ll be your Dungeon Master. If this is your first time playing, don’t worry about knowing the rules. Just tell me what you want to do when I ask, and I’ll walk you through anything else as we go.
 
-The E-circle has a hidden secondary interaction: press-and-hold opens the character/status menu.
+All right. The Goblin Highlands.”
 
-### Conversation
+Returning campaigns skip the tutorial portion.
 
-Eliza messages appear as incoming bubbles on the left.
+Remote AI narration is disabled in this vertical slice. The adapter boundary may exist, but founder testing must remain functional with local authored/rule-based narration only.
 
-The player's selected button choice or typed action appears as an outgoing bubble on the right.
+## Prose contract
 
-Do not label every turn with phrases such as `Eliza narrates` or `Your move`. The bubble direction already communicates speaker identity.
+Default narration is normal connected prose in real paragraphs with varied sentence length. Serial one-line fragments and fake-cinematic stacking are prohibited except for a rare deliberately earned dramatic beat.
 
-The transcript is the story. It should read like a message exchange, not an adventure log or RPG combat log.
+Humor belongs in the world. Eliza takes the world seriously even when goblin circumstances are ridiculous. Do not force a joke every paragraph, explain jokes, congratulate choices, or use product/tutorial language inside narration.
 
-### Choice area
+The target is easy-to-read fantasy adventure that becomes delightfully strange, not stoner caricature and not comedy-copywriting.
 
-The current response choices live in a fixed interaction area beneath the newest conversation state.
+## Interaction model
 
-They do not persist as giant permanent cards throughout the transcript.
+Primary input is 3–4 contextual CYOA actions. Freeform text is an escape hatch for actions not represented by a button.
 
-Target approximately four or five meaningful choices per gameplay decision when the current state supports that many.
+Buttons represent concrete character actions or dialogue, not abstract UI categories such as Attack / Defend / Magic.
 
-Choices should be concise enough to scan quickly while still naming a concrete in-world action.
+A choice is committed when selected. Dice, costs, resources, inventory changes, promises, and consequences are final. Refresh may resume a committed state but never reroll or rewind it.
 
-### Composer
+## Distributed character creation
 
-The composer is always the open-ended alternative to the listed choices when free-form gameplay is allowed.
+There is no session-zero questionnaire.
 
-The player may ignore every suggested response and type another action.
+Order:
 
-Voice-to-text should place editable text into the same composer. Speech recognition must not automatically submit the result.
+1. The story begins.
+2. Player makes the first meaningful route choice.
+3. Name and race are established.
+4. Weapon is established when equipment becomes relevant.
+5. Background is established before the first substantial uncertain check.
+6. Appearance/pronouns may be established later only when fiction naturally calls for them.
 
-## 3. Player action contract
+No D20 roll occurs before background selection.
 
-Buttons are the primary interaction method throughout the game.
+Races: Human, Dwarf, Elf, Gnome.
 
-Each meaningful Eliza/game response should repopulate the choice area from current state.
+Weapons: Sword, Bow, Battle Axe, Bo Staff, Mace, Daggers.
 
-Choices must reflect the actual fiction: room, visible objects, NPCs, discovered clues, inventory, prior consequences, danger, and available resources.
+Backgrounds:
 
-The choices are not merely mechanical labels such as `Strength`, `Defense`, or `Mana`. They should describe what the player is doing in the world.
+- Highland Tracker: Strength 3, Defense 1, Mana 2, Max HP 14, base Guard 11, signature `Push Through`.
+- Trail Warden: Strength 1, Defense 3, Mana 2, Max HP 16, base Guard 13, signature `Hold the Line`.
+- Fen Diviner: Strength 1, Defense 2, Mana 4, Max HP 12, base Guard 12, magical capability +2 at Level 1, signature `Read the Wrong Map Right`.
 
-Examples:
+Race gives situational traits, not raw stat bonuses.
 
-- Cross quietly.
-- Cut the alarm line.
-- Distract Bracken.
-- Inspect the bottle-cap bells.
-- Look for another way across.
+## Core D20 rules
 
-Selecting a choice must create the same kind of outgoing player bubble that typed input creates.
+Checks: d20 + relevant modifier versus DC. Meet or beat succeeds.
 
-## 4. Free-form action contract
+Working DC ladder:
 
-Typed input functions as an additional "anything else" choice.
+- Routine: no roll
+- Easy: 8
+- Moderate: 11
+- Hard: 14
+- Severe: 17
+- Extreme: 20
 
-The player may attempt actions not listed by the button system.
+Advantage: roll 2d20, keep high. Disadvantage: keep low. They cancel. Ordinary sources do not stack.
 
-Examples:
+Nat 20 is contextually stronger. Nat 1 creates a strong contextual complication. Nat 1 does not automatically add two Trouble and does not automatically cause death.
 
-- Throw my boot at the bell.
-- Ask Nib what the King is afraid of.
-- Crawl under the bridge.
-- Inspect the black-root seal.
+Failure always changes the situation. No identical immediate retry unless fiction materially changes.
 
-The AI interpretation layer may determine the player's likely intent and map it to a playable action category.
+Before any player roll, the game establishes action, stat, DC/target if known, advantage/disadvantage, cost, success stakes, and failure risk. These cannot be changed after the die is known.
 
-The AI must not become authoritative about:
+## Dice ownership
 
-- whether the action is legal;
-- the DC;
-- the roll result;
-- success or failure;
-- Trouble or wound changes;
-- inventory changes;
-- persistent campaign consequences;
-- endings.
+Player visibly rolls:
 
-Those remain engine-owned facts.
+- player checks
+- player attacks
+- player resistance
+- player damage after a successful damaging attack
 
-Free-form input should be available throughout actual gameplay unless a specific interaction state intentionally disables it, such as while a roll is pending.
+Eliza/DM visibly rolls enemy attacks, enemy damage, enemy resistance, and other NPC dice. Player never presses the enemy roll button.
 
-## 5. Unified tabletop roll lifecycle
+The mechanical result is committed before its animation/render. Refresh must reveal the same committed result.
 
-All actions requiring a check must use one consistent lifecycle whether they originated from a button or from typed input.
+## Weapons
 
-Required sequence:
+Starting weapon is permanent for the campaign. It may be repaired, upgraded, altered, enchanted, or renamed, but the base weapon type is not swapped.
 
-1. The player declares the action.
-2. The player's action appears as an outgoing bubble.
-3. Eliza recaps what she understands the player is trying to do.
-4. Eliza explains any immediately relevant situational factor, class/background benefit, item effect, Mana option, advantage, disadvantage, or other modifier that the player needs to understand.
-5. Eliza states the exact target number required to succeed.
-6. A temporary `ROLL D20` control appears.
-7. The player explicitly activates the roll.
-8. The die result is shown.
-9. The deterministic engine resolves the result.
-10. Eliza narrates the authoritative outcome.
-11. The next contextual choices appear.
+Base Level 1 damage:
 
-Example GM setup:
+- Sword: d8
+- Bow: d8
+- Battle Axe: d10
+- Bo Staff: d8
+- Mace: d8
+- Daggers: 2d4
 
-> You're trying to cut the alarm line before the bridge swings you back into Bracken. Your Tracker training helps here, so you have advantage. You need a 12 or better. Roll it.
+Each weapon must support at least two physically legitimate Level 1 approaches so no weapon/background combination is a trap. The approach changes fiction and tactical effect; the player may not simply choose their best stat without justification.
 
-The UI must not secretly resolve a check at the moment a normal action button is tapped.
+Forceful Strength-based damaging attacks add Strength to damage. Precision/Defense attacks normally do not add Defense to damage unless an ability explicitly says otherwise.
 
-Actions that genuinely require no roll may proceed without the D20 step.
+A successful ordinary damaging attack deals at least 1 HP after ordinary modifiers/resistance unless an explicit barrier, immunity, or reaction prevents damage.
 
-## 6. Eliza's role
+Weapon identities:
 
-Eliza is the GameMaster.
+- Sword: adaptable, counters/defensive maneuvers.
+- Bow: range and positional pressure; impaired while Engaged.
+- Battle Axe: force, breach, environmental destruction.
+- Bo Staff: control, shove, reposition, defensive space.
+- Mace: impact, disruption, Guard/structure pressure.
+- Daggers: fast close precision, reposition, later multi-hit paths.
 
-She is not merely a narrator and must never sound like a generic AI assistant describing program state.
+## Mana and magic
 
-Her job includes:
+Mana powers special abilities. Cost is committed before the roll and is not refunded on failure.
 
-- establishing the immediate scene clearly;
-- making the fictional world react to the player;
-- interpreting unexpected player ideas fairly;
-- deciding, through the engine contract, when uncertainty warrants a roll;
-- explaining mechanics in natural GM language;
-- presenting stakes before a roll;
-- keeping pacing moving;
-- portraying NPCs distinctly;
-- preserving continuity;
-- making failure move the story forward;
-- encouraging agency without praising every decision;
-- helping new players learn how to play.
+Tracker/Warden Mana represents extraordinary technique. Diviner Mana powers actual magic.
 
-Eliza should embody an original professional-GM personality informed by strong real-world GM practices: immersive scene control, character focus, improvisation, player agency, cinematic pacing, tactical clarity, accessible teaching, and willingness to let unexpected player ideas change the scene.
+Fen Diviner magic is freeform rather than a fixed spell list. At Level 1, minor harmless magic may cost 0, useful small effects usually cost 1, strong encounter-changing effects usually cost 2 and may require a check. Effects beyond current Level are reduced to a legitimate scale or refused.
 
-Do not imitate any real person's exact wording or protected performance voice.
+Magic cannot resurrect permanent death, erase committed history, grant unlimited permanent resources, bypass Level, or rewrite hard canon.
 
-## 7. Eliza tone
+## HP, wounds, and defeat
 
-Target world/narration weirdness: approximately 7.25 out of 10.
+HP is normal combat durability.
 
-The game should be clearly weird and funny while remaining easy to follow.
+Wound severity: None → Scraped → Bruised → Broken → Downed.
 
-Humor may move between:
+Ordinary HP loss does not automatically create a wound. Wounds come from severe circumstances, critical effects where fiction supports them, environmental harm, authored abilities, or 0 HP.
 
-- dry absurdity;
-- fantasy satire;
-- lowbrow or juvenile humor when appropriate;
-- literate/highbrow humor;
-- anticlimax;
-- bureaucracy treated as life-or-death seriousness;
-- occasional surreal observation.
+Ordinary Chapter 1 encounters are nonlethal. Reaching 0 HP in an ordinary encounter produces Downed and a serious story consequence such as defeat, capture, displacement, confiscation, or lost position. It does not reload a checkpoint.
 
-Story clarity always outranks the joke.
+Permanent death is reserved for clearly lethal/boss situations later in the campaign. Permanent player death archives the run; a new character begins Level 1 Chapter 1. No resurrection.
 
-Eliza should not make every sentence a punchline.
+## Trouble and pressure
 
-The strongest recurring comedic method is to treat ridiculous facts as completely ordinary facts of the world.
+Trouble is chapter-wide external danger:
 
-The player must still understand:
+0 Controlled
+1 Complicated
+2 Dangerous
+3 Hot
 
-- where they are;
-- what just happened;
-- what matters;
-- what they can do;
-- what the stakes are.
+Trouble 3 is not game over.
 
-## 8. Goblin performance rules
+Specific pressures are separate, for example Alarm Quiet / Threatened / Raised / Disabled, stealth Unseen / Suspicious / Spotted, and pursuit/time states.
 
-Goblins may be substantially more chaotic than Eliza.
+## Opening routes
 
-Their comedy may include:
+Route 1 — Direct pursuit:
 
-- petty bureaucracy;
-- pointless procedures;
-- strange ranks and job titles;
-- aggressive commitment to rules that make little sense;
-- contradictory customs;
-- absurd food and ingredients;
-- theatrical overconfidence;
-- arguments over technicalities;
-- petty promotions and rivalries;
-- occasional fourth-wall breaks.
+- fastest
+- least information
+- maintains pressure on thieves
+- Rattlebridge begins with the guard more prepared and the alarm potentially already Threatened
 
-Different goblins must still feel like different characters rather than one shared joke voice.
+Route 2 — Investigate campsite/tracks:
 
-Goblin absurdity should grow from character motives and social systems whenever possible, not random nonsense inserted into every line.
+- costs time
+- reveals targeted-theft evidence, lookout evidence, crooked-root evidence, and related discoveries
+- Rattlebridge begins with better knowledge and no automatic detection
 
-## 9. Rooms and persistent world state
+Route 3 — High/alternate approach:
 
-The game must distinguish `room` from `scene`.
+- Hard environmental approach
+- success grants unusual/elevated position and Unseen state
+- failure still reaches Rattlebridge with changed position, time, Trouble, HP, or stealth; never a reset
 
-A room is a persistent physical location in the adventure.
+## Rattlebridge
 
-A scene is the current story/interaction beat occurring within or across rooms.
+Rattlebridge is a state-driven encounter, not a fixed scene conveyor.
 
-Chapter 1 canonical rooms:
+Highland Sneak Level 1 baseline:
 
-1. Windcut Trail
-2. Rattlebridge
-3. Cloudberry Shelf
-4. Highland Camp
-5. King's Stash Hall
+- HP 12
+- Strength 1
+- Defense 2
+- Guard 12
+- initiative d20 + 2
+- Hookknife attack d20 + 2
+- Hookknife damage d4 Physical
+- objective: protect the crossing and get a warning through
 
-The engine should eventually track, at minimum:
+The Sneak evaluates alarm status, whether it knows the player is present, immediate danger, access to alarm, escape/report route, morale, and bargaining opportunity. It does not default to attacking every turn.
 
-- currentRoomId;
-- currentSceneId;
-- room state;
-- NPCs currently present;
-- objects currently present;
-- discovered/undiscovered interactables;
-- resolved clues;
-- persistent consequences in that room;
-- whether the current moment is eligible for a future Adventure Snapshot.
+Alarm states:
 
-The user does not need a retro text-adventure map on the normal screen.
+Quiet → Threatened → Raised
 
-## 10. Discoverables and highlighted text
+or Quiet/Threatened → Disabled.
 
-Eliza may highlight words or phrases in story messages when doing so will encourage exploration or help maintain interest.
+The alarm is deliberately a two-step threat. A Sneak generally must begin the warning process, then complete it on a later action unless interrupted, blocked, disabled, bargained with, or the situation changes. Direct-pursuit entry may begin at Threatened. Investigation/high-route entries normally do not.
 
-Eligible highlight types include:
+A Sneak that escapes without raising the alarm starts an off-screen report process. Factions are not omniscient; knowledge spreads through witnesses, survivors, reports, rumors, evidence, or communication.
 
-- locations;
-- NPCs;
-- objects;
-- clues;
-- rumors;
-- breadcrumbs;
-- unfamiliar game terms;
-- suspicious details;
-- lore terms;
-- environmental details the character could reasonably investigate.
+Valid Rattlebridge resolution families include stealth/bypass, alarm manipulation, social, combat, environmental action, and freeform play. These are capabilities, not menu tabs.
 
-The GM/narration layer has discretion over which elements deserve highlighting.
+## Combat
 
-Tapping highlighted text opens a small temporary popup above the messenger.
+Real fights use initiative. Ordinary small fights should usually resolve in roughly 3–5 rounds, though control, morale, surrender, clever environmental solutions, or unusual builds may vary.
 
-Closing the popup leaves the conversation untouched.
+No grid. Use encounter-specific zones such as Engaged, Near, Far, Cover, Elevated, Bridge Edge.
 
-A highlighted element may:
+Initiative is normally d20 + Defense. Similar minor enemies may share initiative; named/elites use separate turns.
 
-- provide extra descriptive information;
-- expose a clue;
-- reveal another response choice;
-- start a simple investigation interaction;
-- require a roll;
-- add a remembered breadcrumb.
+One meaningful primary action per turn. Movement may bundle with that action when reasonable. Substantial/dangerous movement can itself be the primary action/check.
 
-Highlighting exists to communicate that the world is explorable and that the player's attention matters.
+Enemy morale is descriptive: Confident → Shaken → Breaking. Enemies can retreat, surrender, bargain, protect objectives, or flee.
 
-## 11. Puzzle design
+Combat intent is inferred from what the player actually does: subdue, drive off, or kill. Do not show a generic combat-intent modal unless freeform input is genuinely ambiguous.
 
-Puzzles should be deliberately easy.
+## Knowledge and exploration
 
-Target: approximately third-grade solvability for a relaxed or stoned adult.
+Tell the player automatically what the character reasonably notices. Subtle information may require investigation, race/background ability, tools, or a D20 check.
 
-The reward should come from noticing and interacting, not from prolonged logic work.
+No repeated “search room” grind. Required progress cannot depend on one missable clue.
 
-Good puzzle patterns include:
+Discoveries store concise meaningful knowledge. Threads store unresolved objectives, obligations, promises, and favors without becoming a quest checklist.
 
-- noticing the obvious control for a trap;
-- remembering a ridiculous password;
-- matching a simple image or symbol;
-- using a visible item in an intuitive way;
-- asking the right NPC about an obvious contradiction;
-- spotting a straightforward environmental clue.
+Map shows only discovered places/routes and distinguishes confirmed, reported, and rumored information where relevant.
 
-Do not create puzzles whose intended fun depends on obscure trivia, difficult ciphers, long arithmetic, pixel hunting, or repeated blind guessing.
+## Persistence architecture
 
-## 12. Tutorial model
+V2 persistence is local-first and uses IndexedDB, not the legacy single localStorage session blob.
 
-Automatic beginner teaching belongs in Chapters 1 and 2.
+Three layers:
 
-Eliza should teach while GMing, not switch into a separate tutorial-screen voice.
+1. Current Snapshot — what is true now.
+2. Immutable Decision/Roll Ledger — committed decisions, costs, rolls, promises, and state mutations.
+3. Adventure History — readable Eliza/player presentation.
 
-Early guidance may explain things such as:
+The transcript is never authoritative state.
 
-- that the player can choose a listed response or type their own;
-- when a roll is required;
-- what the target number means;
-- how advantage works;
-- what Mana can do;
-- what a highlighted term means;
-- that Help is available;
-- that the E-circle hides more detailed character information.
+A state-changing roll transaction follows:
 
-Starting in Chapter 3, automatic beginner guidance should be suppressed unless a specific mechanic genuinely needs explanation.
+Intent → ruling/stakes fixed → player commits → random result generated and persisted → state mutation committed → narration rendered.
 
-The Help control remains available after Chapter 2.
+The old v1/v2/v3 chat prototype localStorage records are not automatically migrated into this RPG campaign.
 
-## 13. Graduated Help system
+## Privacy boundary
 
-Help state is tied to the current obstacle or decision problem and resets when that obstacle changes.
+Only the already-approved structured local personalization snapshot may enter Weed Goblins. Do not use or persist raw journal notes, transcripts, health information, exact amounts, dates, prices, precise location, or Shared Journey/Layer 2 data.
 
-### Help level 1
+## Vertical-slice acceptance
 
-Give a small reminder or nudge.
+Automated tests may prove mechanics, state integrity, privacy boundaries, deterministic/committed roll behavior, route divergence, alarm behavior, defeat behavior, and build integrity. Automated tests may not claim the game is fun or the prose is good.
 
-Do not solve the problem.
+Founder play must eventually cover:
 
-### Help level 2
+1. noncombat/investigation path
+2. real combat path
+3. intentional failed check
+4. intentional ordinary 0 HP defeat
 
-Give a stronger directional hint.
-
-The player should be very close to understanding the intended path.
-
-### Help level 3
-
-Use the Eliza easter egg.
-
-Eliza briefly breaks the fourth wall, jokingly checks whether the player is okay, rambles about being up late writing this particular section and apparently making it incomprehensible for some people, then gives the correct answer directly with no more guessing.
-
-The exact joke should vary enough not to become a canned repeated paragraph.
-
-The third hint may solve the immediate hurdle. It must not automatically execute the player's action for them.
-
-## 14. Hidden E-circle character/status menu
-
-Normal play should not display a permanent visible character sheet or stat bar.
-
-Press-and-hold the E-circle beside Eliza's name to open the hidden menu.
-
-The menu may contain:
-
-- player name;
-- race;
-- appearance/pronouns as applicable;
-- class/background;
-- weapon;
-- Strength;
-- Defense;
-- Mana;
-- Trouble and later wound state;
-- inventory;
-- special items;
-- current objective;
-- relevant discovered campaign information.
-
-The interaction must be discoverable to the player through Chapter 1 onboarding without making the normal messenger look like an RPG dashboard.
-
-Closing the menu returns immediately to the conversation.
-
-## 15. Voice-to-text
-
-A microphone control should be integrated with the message composer.
-
-Required behavior:
-
-1. Player activates microphone.
-2. Speech recognition produces text.
-3. Recognized text appears in the normal composer.
-4. Player may edit it.
-5. Player presses Send.
-
-Do not automatically submit speech recognition output.
-
-Voice input is merely another way to fill the same custom-action field.
-
-## 16. Chapter 1 canonical content requirements
-
-The rebuilt Chapter 1 must remain compatible with the canonical campaign bible.
-
-Required locations:
-
-- Windcut Trail;
-- Rattlebridge;
-- Cloudberry Shelf;
-- Highland Camp;
-- King's Stash Hall.
-
-Required important NPCs/content include:
-
-- Goblin King;
-- Nib;
-- Grubbin;
-- Old Tatter;
-- Highland Sneaks;
-- Cliff Kites;
-- King's Root-Crowned Club.
-
-Required simple puzzle/breadcrumb content includes:
-
-- Rattlebridge alarm lines;
-- carved-face stash latch;
-- picture-based tribute ledger pointing toward the Hollow Market.
-
-Required meaningful branch categories include:
-
-- spare or humiliate the King;
-- expose or protect the tribute arrangement;
-- keep Nib safe or use Nib as bait;
-- recover the stolen item intact, altered, or not at all.
-
-Required Chapter 1 reward/state candidates include:
-
-- remembered stolen-item condition;
-- black-root seal;
-- goblin favor;
-- highland charm.
-
-Chapter 1 must ultimately support at least five meaningfully different completed runs.
-
-## 17. Replay and memory behavior
-
-Replay memory should feel selective and deliberate.
-
-Do not dump previous-run history into every scene.
-
-When Eliza recalls a previous run, choose the one prior fact that matters most to the current moment.
-
-Replay should affect actual state where appropriate: relationships, item condition, discovered information, prices, available allies, danger, rewards, and later chapter options.
-
-A callback is useful only if it makes the world feel like it remembers the player.
-
-## 18. Active-run persistence
-
-Closing the app must not destroy an unfinished adventure.
-
-The game should eventually persist enough state to resume exactly where the user left off, including:
-
-- deterministic engine state;
-- current room;
-- current scene;
-- conversation transcript;
-- current contextual choices;
-- inventory;
-- discovered clues;
-- room-state changes;
-- RNG state;
-- pending roll state;
-- Help level for the current obstacle.
-
-Persisted state must remain within the existing privacy and local-data rules of my420journal.
-
-## 19. Privacy boundary
-
-The existing local-first personalization boundary remains controlling.
-
-The game may use only approved sanitized journal-derived fields already allowed by the adapter contract.
-
-Do not send raw notes, voice transcripts, health information, exact amounts, dates/timestamps, real dispensary names/addresses, prices, Layer 2 data, or other unrestricted journal content into the game narration system.
-
-New game features must not weaken that boundary.
-
-## 20. Future campaign systems
-
-Before Chapter 2 becomes production content, the reusable engine should be capable of supporting:
-
-- persistent campaign state;
-- persistent inventory;
-- Rootcoin;
-- danger tiers: Sprout, Bloom, Harvest, Wither;
-- wound states: Scraped, Bruised, Broken, Downed;
-- Body/Mind/Mood reward/effect mapping;
-- selective replay memory;
-- data-driven chapter definitions.
-
-Do not build Chapters 2–12 as another series of large scene-specific `if`/`else` blocks.
-
-## 21. Chapter authoring format goal
-
-A chapter should eventually be representable as structured data/configuration covering:
-
-- chapter identity;
-- rooms;
-- scenes;
-- NPCs;
-- objects;
-- discoverables;
-- contextual choices;
-- checks;
-- puzzles;
-- rewards;
-- hints;
-- entry conditions;
-- exit conditions;
-- persistent consequences;
-- snapshot points.
-
-The engine should execute those definitions rather than requiring each chapter to invent a new runtime architecture.
-
-## 22. Adventure Snapshot hooks
-
-Do not build the Story-Picture Builder yet.
-
-Build snapshot eligibility into the room/scene architecture now.
-
-A future snapshot record should be able to identify:
-
-- chapter;
-- room;
-- scene;
-- important characters present;
-- important objects;
-- environment state;
-- meaningful consequence/state;
-- whether the moment is eligible for an adventure image.
-
-This should support a future Disneyland-ride-photo-style story image without requiring the image system to infer location from an unstructured transcript.
-
-## 23. Narration staging rule
-
-A new Eliza system prompt or major narration-contract change must not first be evaluated on the production Worker.
-
-Use a separately named staging narration Worker and a Pages Preview path that calls staging.
-
-Production remains untouched until live AI-generated gameplay has been tested and approved.
-
-## 24. Build order
-
-Follow this order unless a later explicit decision changes it:
-
-1. Definitive Game Experience Spec and replacement of obsolete UI presentation rules.
-2. Messenger UI rebuild.
-3. Unified button/custom-action to GM setup to explicit D20 to outcome lifecycle.
-4. Persistent room system.
-5. Dynamic four-to-five choices and full-game custom input.
-6. Discoverables/highlight popups.
-7. Hidden E character menu and voice-to-text.
-8. Chapter 1-2 tutorial/Help engine including the three-tap easter egg.
-9. Staging narration Worker and Pages Preview connection.
-10. Rewrite Eliza GM prompt and goblin voice rules, then live-test on staging.
-11. Expand Chapter 1 to full canonical locations, NPCs, puzzles, rewards, and branches.
-12. Add active-run save/resume and persistent campaign state.
-13. Validate five materially different Chapter 1 runs.
-14. Only then begin Chapter 2.
-
-## 25. Non-goals for the current foundation pass
-
-Do not:
-
-- turn Weed Goblins into a Zork-style parser interface;
-- expose a permanent RPG HUD in normal messenger view;
-- remove the response buttons;
-- make free text the sole interaction method;
-- let AI decide authoritative mechanics or outcomes;
-- make puzzles difficult;
-- start Chapter 2 before the reusable Chapter 1 platform is stable;
-- deploy an untested narration prompt directly to production.
+No merge or production deployment from this branch without separate explicit founder authorization.
