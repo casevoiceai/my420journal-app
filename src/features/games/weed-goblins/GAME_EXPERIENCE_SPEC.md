@@ -170,14 +170,17 @@ Trouble 3 is not game over.
 
 Specific pressures are separate, for example Alarm Quiet / Threatened / Raised / Disabled, stealth Unseen / Suspicious / Spotted, and pursuit/time states.
 
+The vertical slice uses descriptive pursuit pressure represented internally as Close → Normal → Delayed → Lost. Route choice establishes the starting pressure. Meaningful delay at Rattlebridge, including entering a fight or failing time-consuming bypass/social attempts, may worsen it. Cloudberry Shelf must make the resulting lead visible in the fiction rather than leaving pursuit pressure as an invisible variable.
+
 ## Opening routes
 
 Route 1 — Direct pursuit:
 
 - fastest
 - least information
-- maintains pressure on thieves
-- Rattlebridge begins with the guard more prepared and the alarm potentially already Threatened
+- maintains the strongest initial pressure on the thieves
+- Rattlebridge begins openly with the guard prepared, but the alarm itself begins Quiet
+- arriving openly does not mean the warning process has already been mechanically completed halfway
 
 Route 2 — Investigate campsite/tracks:
 
@@ -214,11 +217,17 @@ Quiet → Threatened → Raised
 
 or Quiet/Threatened → Disabled.
 
-The alarm is deliberately a two-step threat. A Sneak generally must begin the warning process, then complete it on a later action unless interrupted, blocked, disabled, bargained with, or the situation changes. Direct-pursuit entry may begin at Threatened. Investigation/high-route entries normally do not.
+The alarm is deliberately a two-step threat. Direct pursuit begins with the alarm Quiet even though the guard is ready for trouble. If the Sneak wins initiative or otherwise gets an uncontested opening, its first alarm action moves Quiet → Threatened. It must then complete Threatened → Raised on a later action unless interrupted, blocked, disabled, bargained with, or the situation changes. Losing initiative by itself must never skip directly from Quiet to Raised.
+
+When the alarm is Threatened during combat, the player must receive a concrete contextual opportunity to interfere with the live alarm before the Sneak can complete it. A successful interruption must materially change position/state so the enemy cannot simply repeat the exact same alarm action immediately without first changing the situation.
+
+Once the alarm is already Raised, subsequent choice labels, rulings, and narration must stop pretending the player can still prevent that warning. The problem becomes the physical crossing, pursuit, guard, and downstream consequences.
 
 A Sneak that escapes without raising the alarm starts an off-screen report process. Factions are not omniscient; knowledge spreads through witnesses, survivors, reports, rumors, evidence, or communication.
 
 Valid Rattlebridge resolution families include stealth/bypass, alarm manipulation, social, combat, environmental action, and freeform play. These are capabilities, not menu tabs.
+
+Successful social interaction may change the guard's attitude or open the crossing, but the engine may not create a promise, bargain, favor, or obligation unless the player's actual words/actions establish one.
 
 ## Combat
 
@@ -232,7 +241,7 @@ One meaningful primary action per turn. Movement may bundle with that action whe
 
 Enemy morale is descriptive: Confident → Shaken → Breaking. Enemies can retreat, surrender, bargain, protect objectives, or flee.
 
-Combat intent is inferred from what the player actually does: subdue, drive off, or kill. Do not show a generic combat-intent modal unless freeform input is genuinely ambiguous.
+Combat intent is inferred from what the player actually does: subdue, drive off, or kill. Internal state may remain unresolved until the fiction establishes intent. Do not silently assign `drive off`, `kill`, or another intent merely because combat began. Do not show a generic combat-intent modal unless freeform input is genuinely ambiguous.
 
 ## Knowledge and exploration
 
@@ -240,7 +249,7 @@ Tell the player automatically what the character reasonably notices. Subtle info
 
 No repeated “search room” grind. Required progress cannot depend on one missable clue.
 
-Discoveries store concise meaningful knowledge. Threads store unresolved objectives, obligations, promises, and favors without becoming a quest checklist.
+Discoveries store concise meaningful knowledge. Threads store unresolved objectives, obligations, promises, and favors without becoming a quest checklist. A Thread may not manufacture a promise or obligation the player never made.
 
 Map shows only discovered places/routes and distinguishes confirmed, reported, and rumored information where relevant.
 
