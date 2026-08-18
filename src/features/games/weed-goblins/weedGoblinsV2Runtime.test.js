@@ -13,7 +13,7 @@ import {
   resolveEnemyTurn,
   startCombat,
 } from './weedGoblinsV2Runtime.js'
-import { attackNarration, checkResultNarration } from './weedGoblinsV2Narration.js'
+import { attackNarration, backgroundNarration, checkResultNarration } from './weedGoblinsV2Narration.js'
 
 function character({ route = 'investigate', weapon = 'bow', background = 'tracker' } = {}) {
   let state = createWeedGoblinsV2State({ campaignId: `runtime:${route}:${weapon}:${background}` })
@@ -165,5 +165,28 @@ test('signature abilities have specific DM result narration rather than the gene
     const failure = checkResultNarration({ actionId, success: false, natural: 5, state: character() })
     assert.doesNotMatch(success, /^The attempt works/)
     assert.doesNotMatch(failure, /^The attempt fails/)
+  }
+})
+
+test('crooked-root questioning success actually reveals why the stash was taken and creates no phantom promise', () => {
+  let state = character({ route: 'investigate', weapon: 'mace', background: 'tracker' })
+  assert.ok(state.discoveries.some((item) => item.id === 'crooked-root-mark'))
+  state = prepareAction(state, 'bridge:bargain')
+  assert.equal(state.pendingResolution.advantage, 'advantage')
+  state = commitPendingCheck(state, { rolls: [8, 19] })
+  assert.ok(state.discoveries.some((item) => item.id === 'stolen-stash-is-tribute'))
+  assert.equal(state.threads.some((thread) => thread.id === 'sneak-bargain'), false)
+  const narration = checkResultNarration({ actionId: 'bridge:bargain', success: true, natural: 19, state })
+  assert.match(narration, /tribute/i)
+  assert.match(narration, /leaves the Highlands/i)
+})
+
+test('background narration stays inside the fiction instead of explaining the game design', () => {
+  for (const route of ['investigate', 'high']) {
+    for (const background of ['tracker', 'warden', 'diviner']) {
+      const narration = backgroundNarration(background, route)
+      assert.ok(narration.length > 0)
+      assert.doesNotMatch(narration, /generic obstacle|part that matters now|name for what you used to do/i)
+    }
   }
 })
