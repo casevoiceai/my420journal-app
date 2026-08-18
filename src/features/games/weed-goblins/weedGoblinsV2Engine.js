@@ -125,6 +125,18 @@ function spendMana(state, cost) {
   }
 }
 
+const TIME_PRESSURE_STEPS = Object.freeze(['close', 'normal', 'delayed', 'lost'])
+
+function worsenTimePressure(state, steps = 1) {
+  const current = TIME_PRESSURE_STEPS.indexOf(state.timePressure)
+  const start = current >= 0 ? current : 1
+  const next = Math.min(TIME_PRESSURE_STEPS.length - 1, start + Math.max(0, steps))
+  return {
+    ...state,
+    timePressure: TIME_PRESSURE_STEPS[next],
+  }
+}
+
 export function getHighRouteActions(state) {
   if (state.sceneId !== V2_SCENES.highRouteCheck || state.pendingResolution) return []
   const actions = [
@@ -324,7 +336,9 @@ export function getRattlebridgeActions(state) {
   if (state.stealth !== 'spotted') {
     actions.push({
       id: 'bridge:bypass',
-      label: 'Slip past the guard and cross without giving it a clean warning',
+      label: state.alarm === 'raised'
+        ? 'Slip past the guard and get across before it can stop you'
+        : 'Slip past the guard and cross without giving it a clean warning',
       detail: 'Defense · Hard DC 14',
     })
   }
@@ -375,8 +389,12 @@ export function prepareRattlebridgeAction(state, actionId) {
       stat: 'defense',
       dc: DC.hard,
       advantage: state.stealth === 'unseen' ? 'advantage' : 'normal',
-      successText: 'Get across without the guard sending a warning.',
-      failureText: 'The bypass collapses into a worse position; the guard is now fully aware of you.',
+      successText: state.alarm === 'raised'
+        ? 'Get across before the guard can physically stop you.'
+        : 'Get across without the guard sending a warning.',
+      failureText: state.alarm === 'raised'
+        ? 'The bypass collapses into a worse position and the guard closes the crossing.'
+        : 'The bypass collapses into a worse position; the guard is now fully aware of you.',
     }
   } else if (actionId === 'bridge:bargain') {
     spec = {
@@ -384,7 +402,9 @@ export function prepareRattlebridgeAction(state, actionId) {
       dc: DC.moderate,
       advantage: state.discoveries.some((item) => item.id === 'crooked-root-mark') ? 'advantage' : 'normal',
       successText: 'Get the guard talking and create a nonviolent way through.',
-      failureText: 'The guard does not accept the approach and uses the conversation to improve its warning position.',
+      failureText: state.alarm === 'raised'
+        ? 'The guard refuses to stand down; the crossing remains contested.'
+        : 'The guard does not accept the approach and uses the conversation to improve its warning position.',
     }
   }
 
@@ -452,7 +472,7 @@ function resolveRattlebridgeCheck(state, pending, { success, natural }) {
 
   if (pending.actionId === 'bridge:bypass') {
     if (success) return reachCloudberryShelf(state)
-    return {
+    const failed = {
       ...state,
       stealth: 'spotted',
       trouble: Math.min(3, state.trouble + (natural === 1 ? 1 : 0)),
@@ -470,6 +490,7 @@ function resolveRattlebridgeCheck(state, pending, { success, natural }) {
         },
       },
     }
+    return worsenTimePressure(failed)
   }
 
   if (pending.actionId === 'bridge:bargain') {
@@ -497,7 +518,7 @@ function resolveRattlebridgeCheck(state, pending, { success, natural }) {
       })
       return next
     }
-    return setAlarm({
+    const failed = setAlarm({
       ...state,
       stealth: 'spotted',
       world: {
@@ -509,6 +530,7 @@ function resolveRattlebridgeCheck(state, pending, { success, natural }) {
         },
       },
     }, state.alarm === 'quiet' ? 'threatened' : state.alarm)
+    return worsenTimePressure(failed)
   }
 
   return state
@@ -516,25 +538,26 @@ function resolveRattlebridgeCheck(state, pending, { success, natural }) {
 
 export function startCombat(state) {
   if (state.sceneId !== V2_SCENES.rattlebridge) throw new Error('Combat can only start at Rattlebridge in this slice.')
+  const pressured = worsenTimePressure(state)
   const combatState = {
     active: true,
     round: 0,
     turn: 'initiative',
-    playerPosition: state.player.weaponId === 'bow' ? POSITIONS.far : POSITIONS.near,
+    playerPosition: pressured.player.weaponId === 'bow' ? POSITIONS.far : POSITIONS.near,
     enemyPosition: POSITIONS.near,
     initiative: null,
-    intent: 'drive-off',
+    intent: 'unresolved',
     lastEnemyIntent: null,
   }
   const next = {
-    ...state,
+    ...pressured,
     sceneId: V2_SCENES.combat,
     stealth: 'spotted',
     combat: combatState,
     world: {
-      ...state.world,
+      ...pressured.world,
       sneak: {
-        ...state.world.sneak,
+        ...pressured.world.sneak,
         awareness: 'aware',
       },
     },
@@ -543,7 +566,7 @@ export function startCombat(state) {
     type: 'initiative',
     actionId: 'combat:initiative',
     stat: 'defense',
-    modifier: state.player.defense,
+    modifier: pressured.player.defense,
     successText: 'Act before the Highland Sneak.',
     failureText: 'The Highland Sneak acts first.',
     context: 'combat-initiative',
@@ -598,6 +621,18 @@ export function commitInitiative(state, { playerDie, enemyDie }) {
   return next
 }
 
+function combatAlarmInterruptSpec(weapon) {
+  const specs = {
+    sword: { stat: 'defense', label: 'Catch the live alarm line on your sword and wrench it clear' },
+    bow: { stat: 'defense', label: 'Put an arrow through the live alarm line before it snaps tight' },
+    'battle-axe': { stat: 'strength', label: 'Drive the axe into the alarm rig before the Sneak can finish it' },
+    'bo-staff': { stat: 'defense', label: 'Hook the alarm line with the staff and wrench it away from the Sneak' },
+    mace: { stat: 'strength', label: 'Crush the alarm crank before the Sneak can finish the warning' },
+    daggers: { stat: 'defense', label: 'Cut the live alarm cord before the Sneak can pull it tight' },
+  }
+  return specs[weapon?.id] || { stat: 'defense', label: 'Stop the Sneak from finishing the alarm' }
+}
+
 export function getCombatActions(state) {
   if (state.sceneId !== V2_SCENES.combat || !state.combat?.active || state.combat.turn !== 'player' || state.pendingResolution) return []
   const weapon = weaponById(state.player.weaponId)
@@ -611,18 +646,46 @@ export function getCombatActions(state) {
     daggers: ['Close hard and drive a dagger in', 'Move inside the guard and strike with both daggers'],
   }
   const [forceLabel, precisionLabel] = labels[weapon.id] || ['Make a forceful attack', 'Make a precise attack']
-  return [
-    { id: 'combat:attack-force', label: forceLabel, detail: `Strength +${state.player.strength}` },
-    { id: 'combat:attack-precision', label: precisionLabel, detail: `Defense +${state.player.defense}` },
-    { id: 'combat:control', label: 'Use position or weapon control instead of pure damage', detail: 'Contextual check' },
-    { id: 'combat:retreat', label: 'Break away from the fight and change the situation', detail: 'Defense · Moderate DC 11' },
-  ]
+  const forceAttack = { id: 'combat:attack-force', label: forceLabel, detail: `Strength +${state.player.strength}` }
+  const precisionAttack = { id: 'combat:attack-precision', label: precisionLabel, detail: `Defense +${state.player.defense}` }
+  const control = { id: 'combat:control', label: 'Use position or weapon control instead of pure damage', detail: 'Contextual check' }
+  const retreat = { id: 'combat:retreat', label: 'Break away from the fight and change the situation', detail: 'Defense · Moderate DC 11' }
+
+  if (state.alarm === 'threatened') {
+    const interrupt = combatAlarmInterruptSpec(weapon)
+    const preferredAttack = ['bow', 'bo-staff', 'daggers'].includes(weapon.id) ? precisionAttack : forceAttack
+    return [
+      { id: 'combat:interrupt-alarm', label: interrupt.label, detail: `${interrupt.stat === 'strength' ? 'Strength' : 'Defense'} · Moderate DC 11` },
+      preferredAttack,
+      control,
+      retreat,
+    ]
+  }
+
+  return [forceAttack, precisionAttack, control, retreat]
 }
 
 export function prepareCombatAction(state, actionId) {
   if (state.sceneId !== V2_SCENES.combat || state.combat?.turn !== 'player') throw new Error('It is not the player turn.')
   const weapon = weaponById(state.player.weaponId)
   if (!weapon) throw new Error('A weapon is required.')
+
+  if (actionId === 'combat:interrupt-alarm') {
+    if (state.alarm !== 'threatened') throw new Error('The alarm is not currently being prepared.')
+    const interrupt = combatAlarmInterruptSpec(weapon)
+    return setPending(state, {
+      type: 'check',
+      actionId,
+      stat: interrupt.stat,
+      modifier: playerModifier(state, interrupt.stat),
+      dc: DC.moderate,
+      advantage: 'normal',
+      successText: 'Break the Sneak away from the live alarm and force the mechanism quiet.',
+      failureText: 'The alarm remains live and the Sneak gets the next move.',
+      context: 'combat-maneuver',
+      maneuver: 'interrupt-alarm',
+    })
+  }
 
   if (actionId === 'combat:attack-force' || actionId === 'combat:attack-precision') {
     const force = actionId === 'combat:attack-force'
@@ -663,6 +726,7 @@ export function prepareCombatAction(state, actionId) {
   }
 
   if (actionId === 'combat:retreat') {
+    const warningStillMatters = state.alarm === 'quiet' || state.alarm === 'threatened'
     return setPending(state, {
       type: 'check',
       actionId,
@@ -670,8 +734,12 @@ export function prepareCombatAction(state, actionId) {
       modifier: state.player.defense,
       dc: DC.moderate,
       advantage: 'normal',
-      successText: 'Break away without giving the guard an immediate clean warning.',
-      failureText: 'Get away, but the guard gains the warning position.',
+      successText: warningStillMatters
+        ? 'Break away without giving the guard an immediate clean warning.'
+        : 'Break away cleanly and reset the distance from the guard.',
+      failureText: warningStillMatters
+        ? 'Get away, but the guard gains the warning position.'
+        : 'Get away, but give the guard the better position on the crossing.',
       context: 'combat-maneuver',
       maneuver: 'retreat',
     })
@@ -804,6 +872,36 @@ export function commitPlayerDamage(state, { rolls }) {
 
 function resolveCombatManeuver(state, pending, { success, natural }) {
   if (!state.combat?.active) return state
+
+  if (pending.maneuver === 'interrupt-alarm') {
+    if (success) {
+      const quiet = setAlarm(state, 'quiet')
+      return {
+        ...quiet,
+        combat: {
+          ...quiet.combat,
+          playerPosition: POSITIONS.engaged,
+          turn: 'enemy',
+        },
+        world: {
+          ...quiet.world,
+          sneak: {
+            ...quiet.world.sneak,
+            position: POSITIONS.near,
+            awareness: 'aware',
+          },
+        },
+      }
+    }
+    return {
+      ...state,
+      combat: {
+        ...state.combat,
+        turn: 'enemy',
+      },
+    }
+  }
+
   if (pending.maneuver === 'retreat') {
     const alarm = success ? state.alarm : state.alarm === 'quiet' ? 'threatened' : state.alarm
     return {
@@ -1037,6 +1135,9 @@ export function interpretLocalFreeform(state, text) {
   }
 
   if (state.sceneId === V2_SCENES.combat && state.combat?.turn === 'player') {
+    if (state.alarm === 'threatened' && /alarm|bell|cord|rope|warning/.test(normalized)) {
+      return { supported: true, actionId: 'combat:interrupt-alarm' }
+    }
     if (/run|retreat|back away|escape|break away/.test(normalized)) return { supported: true, actionId: 'combat:retreat' }
     if (/push|trip|shove|control|disarm|pin|knock/.test(normalized)) return { supported: true, actionId: 'combat:control' }
     if (/attack|fight|shoot|stab|hit|strike|swing/.test(normalized)) return { supported: true, actionId: 'combat:attack-precision' }
