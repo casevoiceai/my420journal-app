@@ -64,9 +64,11 @@ export function backgroundNarration(backgroundId, routeId) {
 export function rattlebridgeArrival(state) {
   const alarmText = state.alarm === 'threatened'
     ? 'The Highland Sneak already has one hand on the alarm mechanism and is trying to get the warning started before you can interfere.'
-    : state.stealth === 'unseen'
-      ? 'From the side approach, the Highland Sneak has not found you yet. It keeps glancing down the main trail, exactly where it expects trouble to arrive.'
-      : 'A Highland Sneak waits near the alarm frame, alert enough to know the trail is wrong but not yet certain where the trouble is coming from.'
+    : state.route === 'direct' && state.alarm === 'quiet'
+      ? 'You arrived fast enough to catch the guard before the warning has started. The Highland Sneak has one hand hovering near the alarm mechanism, but the cords are still slack and the bell is still quiet.'
+      : state.stealth === 'unseen'
+        ? 'From the side approach, the Highland Sneak has not found you yet. It keeps glancing down the main trail, exactly where it expects trouble to arrive.'
+        : 'A Highland Sneak waits near the alarm frame, alert enough to know the trail is wrong but not yet certain where the trouble is coming from.'
   return `Rattlebridge is narrower up close, forty feet of old planks and newer repairs stretched over a gorge that would prefer you not test either. The alarm rig at the near end is a mess of cords, a bell, and small pieces of metal threaded beneath the boards. ${alarmText}\n\nThe guard is small even by goblin standards, with a hookknife, a patched leather coat, and the concentrated expression of somebody who has been given one important job and very little confidence that the universe intends to let them finish it.`
 }
 
@@ -99,6 +101,11 @@ export function checkResultNarration({ actionId, success, natural, state }) {
       : `The mechanism turns out to be cruder than it looks and therefore much harder to predict. By the time you find the part that matters, the Sneak has found you. One hand goes to the warning line, and the quiet part of the encounter is over.`
   }
   if (actionId === 'bridge:bypass') {
+    if (state?.alarm === 'raised') {
+      return success
+        ? `The bell has already done whatever damage it was going to do, so subtlety is no longer the point. You catch the Sneak on the wrong side of the bridge, drive through the opening, and leave the guard behind before it can close the crossing.`
+        : `You nearly get past while the Sneak is still reorganizing, but the guard recovers in time to cut off the line. The warning is already out; now the problem is simply that the goblin is still physically between you and the far side.`
+    }
     return success
       ? `The crossing opens for a few seconds and you use every one of them. The guard never gets a clean sightline, the alarm stays out of the conversation, and by the time the Sneak understands where you went, Rattlebridge is already behind you.`
       : `The route almost works. Almost is enough to get you farther across, but not enough to stay unnoticed. A plank shifts under your weight, the Sneak whips around, and the bridge becomes a much more immediate place.`
@@ -107,9 +114,17 @@ export function checkResultNarration({ actionId, success, natural, state }) {
     if (success && state?.discoveries?.some((item) => item.id === 'stolen-stash-is-tribute')) {
       return `The Sneak’s attention fixes on the crooked-root mark, and for the first time the hookknife seems less important than the fact that you found it. “That tin isn’t staying here,” the goblin says. “The King put it with the tribute goods. It leaves the Highlands with the rest.”\n\nThe Sneak glances back toward the trail, immediately regretting how much of that sentence escaped. Then it steps away from the alarm frame and lowers the knife. “You did not hear that from me.” The bridge is open.`
     }
+    if (!success && state?.alarm === 'raised') {
+      return `The Sneak hears you out, but whatever chance there was to make this simple disappeared with the bell. The goblin keeps the hookknife up and refuses to give you the crossing. At this point the warning is not the leverage; the guard itself is.`
+    }
     return success
       ? `The guard listens because the alternative is beginning to look worse. The hookknife does not disappear, but it lowers. Whatever understanding you have just created is imperfect, temporary, and real enough to get you through.`
       : `The Sneak hears you out with the rigid attention of somebody trying very hard not to be persuaded. Whatever you were hoping to get from the conversation, the goblin gives you nothing useful. Instead, one foot inches toward the alarm frame while the hookknife stays between you.`
+  }
+  if (actionId === 'combat:interrupt-alarm') {
+    return success
+      ? `You get between the Sneak and the warning at the exact moment the mechanism becomes dangerous. The live line goes slack again, and your pressure forces the goblin away from the alarm side of the bridge. The bell is quiet. For now, the Sneak has to deal with you before it can try that again.`
+      : `You go for the live alarm line, but the Sneak keeps just enough control of the mechanism to hold it ready. The warning has not gone through yet. The bad news is that the goblin gets the next move with the line already in its hand.`
   }
   if (actionId === 'ability:tracker-bridge') {
     return success
@@ -142,6 +157,11 @@ export function checkResultNarration({ actionId, success, natural, state }) {
       : `You set the line and the Sneak refuses to meet it where you want. It slips just far enough around the pressure to keep the position unsettled, leaving the technique spent without giving you control for free.`
   }
   if (actionId === 'combat:retreat') {
+    if (state?.alarm === 'raised') {
+      return success
+        ? `The bell has already rung, so there is nothing left to save by hovering near the alarm. You break contact cleanly, put several steps between yourself and the hookknife, and force the Sneak to decide whether it wants another fight or simply wants the bridge.`
+        : `You get your distance, but the Sneak makes you pay for it in position. The bell has already rung; what the goblin gains now is control of the crossing rather than another warning.`
+    }
     return success
       ? `You break contact on your terms and put space back between you and the hookknife. The fight is over for the moment, but the guard is still part of the bridge problem.`
       : `You get away, but not cleanly. The Sneak uses the opening to improve its warning position, which means the retreat solves one problem while making another one louder.`
@@ -191,5 +211,14 @@ export function cloudberryNarration(state) {
     : state.world.sneak.reportProcess?.status === 'in-progress'
       ? 'The guard escaped toward the camp, so the warning is moving through the world even if it has not arrived yet.'
       : 'For the moment, nothing ahead suggests the camp knows exactly how Rattlebridge ended.'
-  return `Cloudberry Shelf opens above the gorge in a broad patch of wind-flattened grass and pale berry shrubs. Rattlebridge is behind you, but its outcome has followed. ${warning}`
+
+  const pursuit = state.timePressure === 'close'
+    ? 'You never gave the thieves enough room to vanish properly. Bent grass and fresh scuffs continue off the shelf, and somewhere ahead the stash carrier is still close enough that this remains a pursuit rather than a search.'
+    : state.timePressure === 'normal'
+      ? 'The thieves have a lead, but not a comfortable one. Their trail is still fresh enough to follow without stopping to reconstruct every turn.'
+      : state.timePressure === 'delayed'
+        ? 'Rattlebridge cost you time. The thieves are out of sight now, and the trail ahead will have to do more of the work if you want to close the distance again.'
+        : 'Whatever close pursuit you had is gone. The thieves have had enough time to disappear into the Highlands, leaving you with a direction, a trail, and the consequences you carried off the bridge.'
+
+  return `Cloudberry Shelf opens above the gorge in a broad patch of wind-flattened grass and pale berry shrubs. Rattlebridge is behind you, but its outcome has followed. ${warning}\n\n${pursuit}`
 }
