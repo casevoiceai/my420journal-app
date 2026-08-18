@@ -46,6 +46,7 @@ import {
   backgroundNarration,
   checkResultNarration,
   cloudberryNarration,
+  combatStartNarration,
   damageNarration,
   enemyTurnNarration,
   highRouteResultNarration,
@@ -333,6 +334,7 @@ export default function WeedGoblinsFounderSlice() {
   async function resolveEnemyIfNeeded(next) {
     if (next.sceneId !== V2_SCENES.combat || next.combat?.turn !== 'enemy') return next
     const intent = determineEnemyIntent(next)
+    const round = next.combat?.round || 1
     let attackDie = null
     let damageRolls = []
     if (intent?.type === 'attack') {
@@ -345,9 +347,9 @@ export default function WeedGoblinsFounderSlice() {
       const hit = attackDie + HIGHLAND_SNEAK.attackModifier >= next.player.guard
       entries.push({ type: 'roll', owner: 'dm', label: 'DM roll · Highland Sneak attack', rolls: [attackDie], modifier: HIGHLAND_SNEAK.attackModifier, total: attackDie + HIGHLAND_SNEAK.attackModifier, target: next.player.guard, result: hit ? 'Hit' : 'Miss' })
       if (hit) entries.push({ type: 'roll', owner: 'dm', label: 'DM roll · Hookknife damage', rolls: damageRolls, modifier: 0, total: damageRolls[0], result: `${damageRolls[0]} Physical damage` })
-      entries.push({ type: 'narration', text: enemyTurnNarration({ action: 'attack', hit, damage: hit ? damageRolls[0] : 0 }) })
+      entries.push({ type: 'narration', text: enemyTurnNarration({ action: 'attack', hit, damage: hit ? damageRolls[0] : 0, round }) })
     } else if (intent?.type) {
-      entries.push({ type: 'narration', text: enemyTurnNarration({ action: intent.type }) })
+      entries.push({ type: 'narration', text: enemyTurnNarration({ action: intent.type, round }) })
     }
     resolved = addEntries(resolved, entries)
     return resolved
@@ -356,9 +358,12 @@ export default function WeedGoblinsFounderSlice() {
   async function act(action) {
     return run(async () => {
       const before = state.sceneId
+      const returningToCombat = action.id === 'bridge:fight' && state.ledger.some((event) => event.actionId === 'combat:initiative')
       let next = prepareAction(state, action.id)
       const entries = [{ type: 'player-action', text: action.displayText || action.label }]
-      if (next.sceneId === V2_SCENES.combat && before !== V2_SCENES.combat) entries.push({ type: 'narration', text: 'The choice closes the distance between argument and violence. The Highland Sneak brings the hookknife up, plants one foot beside the alarm rig, and the fight becomes real enough for initiative.' })
+      if (next.sceneId === V2_SCENES.combat && before !== V2_SCENES.combat) {
+        entries.push({ type: 'narration', text: combatStartNarration({ returning: returningToCombat }) })
+      }
       if (next.sceneId === V2_SCENES.cloudberry) entries.push({ type: 'narration', text: cloudberryNarration(next) })
       await commit(next, entries)
     })
