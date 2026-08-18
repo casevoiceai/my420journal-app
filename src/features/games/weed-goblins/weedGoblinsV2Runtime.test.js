@@ -8,6 +8,7 @@ import {
   commitPlayerAttack,
   commitPlayerDamage,
   getCurrentActions,
+  interpretLocalFreeform,
   prepareAction,
   resolveEnemyTurn,
   startCombat,
@@ -113,4 +114,19 @@ test('Fen Diviner gets a real magical combat attack with a separate d6 damage ro
   assert.equal(state.world.sneak.hp, 12)
   state = commitPlayerDamage(state, { rolls: [6, 6] })
   assert.equal(state.world.sneak.hp, 0)
+})
+
+test('typed Fen Diviner magic is routed into bounded magic without replacing the player wording', () => {
+  let state = character({ background: 'diviner' })
+  let interpretation = interpretLocalFreeform(state, 'I cast a spell into the bridge cords and ask the magic where the blind route is')
+  assert.equal(interpretation.supported, true)
+  assert.equal(interpretation.actionId, 'ability:diviner-bridge')
+  assert.equal(interpretation.boundedMagic, true)
+
+  state = startCombat(state)
+  state = commitInitiative(state, { playerDie: 20, enemyDie: 1 })
+  interpretation = interpretLocalFreeform(state, 'I cast a quick arcane bolt at the goblin')
+  assert.equal(interpretation.supported, true)
+  assert.equal(interpretation.actionId, 'ability:diviner-combat')
+  assert.equal(interpretation.boundedMagic, true)
 })
