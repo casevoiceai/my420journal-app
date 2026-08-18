@@ -1,3 +1,3 @@
-import WeedGoblinsGame from './WeedGoblinsGame.jsx'
+import WeedGoblinsFounderSlice from './WeedGoblinsFounderSlice.jsx'
 
-export default WeedGoblinsGame
+export default WeedGoblinsFounderSlice
