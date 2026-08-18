@@ -70,6 +70,13 @@ export function rattlebridgeArrival(state) {
   return `Rattlebridge is narrower up close, forty feet of old planks and newer repairs stretched over a gorge that would prefer you not test either. The alarm rig at the near end is a mess of cords, a bell, and small pieces of metal threaded beneath the boards. ${alarmText}\n\nThe guard is small even by goblin standards, with a hookknife, a patched leather coat, and the concentrated expression of somebody who has been given one important job and very little confidence that the universe intends to let them finish it.`
 }
 
+export function combatStartNarration({ returning = false } = {}) {
+  if (returning) {
+    return `You close the distance again. This time neither of you is starting from scratch: the Sneak has already seen how you move, and you know exactly how quickly that hookknife comes up when the bridge gets crowded. Both of you reset your footing and commit to another exchange.`
+  }
+  return `The choice closes the distance between argument and violence. The Highland Sneak brings the hookknife up, plants one foot beside the alarm rig, and the fight becomes real enough for initiative.`
+}
+
 export function highRouteResultNarration({ success, natural }) {
   if (success) {
     return `The high trail makes you work for every yard, but it does not get the final vote. You reach the overlook with the bridge below and the guard still watching the wrong approach. For the moment, you have position and surprise.`
@@ -101,8 +108,8 @@ export function checkResultNarration({ actionId, success, natural, state }) {
       return `The Sneak’s attention fixes on the crooked-root mark, and for the first time the hookknife seems less important than the fact that you found it. “That tin isn’t staying here,” the goblin says. “The King put it with the tribute goods. It leaves the Highlands with the rest.”\n\nThe Sneak glances back toward the trail, immediately regretting how much of that sentence escaped. Then it steps away from the alarm frame and lowers the knife. “You did not hear that from me.” The bridge is open.`
     }
     return success
-      ? `The guard listens because the alternative is beginning to look worse. The hookknife does not disappear, but it lowers. Whatever agreement you have just created is imperfect, temporary, and real enough to get you through.`
-      : `The Sneak hears you out with the rigid attention of somebody trying very hard not to be persuaded. It does not answer the question. Instead, one foot inches toward the alarm frame while the hookknife stays between you.`
+      ? `The guard listens because the alternative is beginning to look worse. The hookknife does not disappear, but it lowers. Whatever understanding you have just created is imperfect, temporary, and real enough to get you through.`
+      : `The Sneak hears you out with the rigid attention of somebody trying very hard not to be persuaded. Whatever you were hoping to get from the conversation, the goblin gives you nothing useful. Instead, one foot inches toward the alarm frame while the hookknife stays between you.`
   }
   if (actionId === 'ability:tracker-bridge') {
     return success
@@ -121,7 +128,7 @@ export function checkResultNarration({ actionId, success, natural, state }) {
   }
   if (actionId === 'combat:control') {
     return success
-      ? `You stop treating the fight as a contest of damage and make the bridge itself part of the argument. The Sneak gives ground, its footing gets worse, and a little of the confidence goes out of its face.`
+      ? `You turn the weapon and the bridge into the same problem. The Sneak gives ground, its footing gets worse, and a little of the confidence goes out of its face.`
       : `The idea is sound. The timing is not. The Sneak slips around the pressure and leaves you in a worse position for the next exchange.`
   }
   if (actionId === 'ability:tracker-combat') {
@@ -155,7 +162,7 @@ export function damageNarration({ damage, enemyHealth }) {
   return `The damage lands for ${damage}. The Highland Sneak is ${enemyHealth.toLowerCase()} now, and its attention has shifted from doing its job neatly to deciding whether the job is worth what it is becoming.`
 }
 
-export function enemyTurnNarration({ action, hit = null, damage = 0 }) {
+export function enemyTurnNarration({ action, hit = null, damage = 0, round = 1 }) {
   if (action === 'prepare-alarm') {
     return `The Sneak does not waste the opening on you. It lunges for the alarm rig instead, yanking one cord into position. The warning has not gone through yet, but one more clean action will do it.`
   }
@@ -166,10 +173,14 @@ export function enemyTurnNarration({ action, hit = null, damage = 0 }) {
     return `The Sneak decides that surviving with useful information is better than dying beside a bell. It breaks away from the bridge and runs for the camp, which means the fight has ended but the consequences have not.`
   }
   if (action === 'attack' && hit) {
-    return `The Sneak commits to the hookknife and gets through your guard. The blade does ${damage} damage before the goblin pulls back into the narrow space beside the alarm rig.`
+    return round % 2 === 0
+      ? `The Sneak darts in from the alarm side and catches you before you can close the angle. The hookknife bites for ${damage} damage, and the goblin is already pulling back before the opening disappears.`
+      : `The Sneak commits to the hookknife and gets through your guard. The blade does ${damage} damage before the goblin pulls back into the narrow space beside the alarm rig.`
   }
   if (action === 'attack') {
-    return `The Sneak comes in with the hookknife, but the attack never gets cleanly through your guard. It recoils into position and looks immediately for another way to keep you from controlling the crossing.`
+    return round % 2 === 0
+      ? `The Sneak tries to slip the hookknife through the opening beside your weapon, but you close it in time. The goblin recoils, annoyed, and shifts its feet before trying to build another angle.`
+      : `The Sneak comes in with the hookknife, but the attack never gets cleanly through your guard. It recoils into position and looks immediately for another way to keep you from controlling the crossing.`
   }
   return ''
 }
@@ -180,5 +191,5 @@ export function cloudberryNarration(state) {
     : state.world.sneak.reportProcess?.status === 'in-progress'
       ? 'The guard escaped toward the camp, so the warning is moving through the world even if it has not arrived yet.'
       : 'For the moment, nothing ahead suggests the camp knows exactly how Rattlebridge ended.'
-  return `Cloudberry Shelf opens above the gorge in a broad patch of wind-flattened grass and pale berry shrubs. Rattlebridge is behind you, but its outcome has followed. ${warning}\n\nThis is where the vertical slice ends. The state you carry from the crossing — HP, Mana, wounds, alarm, Trouble, discoveries, bargains, escaped witnesses, and route consequences — is the state Chapter 1 must continue from.`
+  return `Cloudberry Shelf opens above the gorge in a broad patch of wind-flattened grass and pale berry shrubs. Rattlebridge is behind you, but its outcome has followed. ${warning}`
 }
