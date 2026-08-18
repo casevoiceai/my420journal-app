@@ -44,12 +44,21 @@ export function weaponNarration(weaponId) {
 }
 
 export function backgroundNarration(backgroundId, routeId) {
-  const background = BACKGROUNDS[backgroundId]
-  if (!background) return ''
+  if (!BACKGROUNDS[backgroundId]) return ''
   if (routeId === 'high') {
-    return `${background.label} is not merely a name for what you used to do. It tells you what kind of problem the broken high ledge actually is. The safe answer is still somewhere in front of you, but now you have the training to decide how you are going to reach it.`
+    const highDetails = {
+      tracker: `The broken ledge stops looking like a wall and starts looking like a trail with bad manners. Loose stone has already shown you where it wants to slide, the grass is bent where footing will hold, and the fastest line is not quite the safest one. You have enough information to choose which risk you actually want.`,
+      warden: `The broken ledge is a problem of weight and position. One shelf will hold if you keep your center low, another gives you cover from the bridge, and the exposed stretch between them is where a bad step becomes expensive. You can work with that.`,
+      diviner: `The high path has the uncomfortable look of a route that is technically present and spiritually unconvinced. The stone itself is ordinary, but the safe line through it does not match the obvious one. That kind of disagreement is familiar enough to be useful.`,
+    }
+    return highDetails[backgroundId] || ''
   }
-  return `${background.label} is the part that matters now. By the time Rattlebridge fills the gorge ahead of you, you are no longer looking at a generic obstacle. You are looking at positions, warning lines, a nervous guard, and a crossing that can be handled more than one way.`
+  const bridgeDetails = {
+    tracker: `Rattlebridge comes into focus the way a trail does once you know what disturbed it. The guard’s weight keeps drifting toward the alarm frame, the warning lines pull toward the left rail, and two replacement boards near the center sit a fraction higher than the rest. None of that decides your move for you, but it shows you where the guard expects trouble and where the crossing may give you an opening.`,
+    warden: `Rattlebridge is a chokepoint before it is anything else. The guard has one useful position beside the alarm, one narrow route it needs to deny, and almost nowhere to retreat without giving something up. If this becomes a contest over space, you already know which pieces of ground matter.`,
+    diviner: `Nothing about the alarm feels enchanted, which is useful in its own way. The oddness here is physical: crossed lines, blind angles, repeated repairs, and a route whose shape changes depending on where the guard is standing. It is the sort of pattern that can become very strange very quickly if you decide to lean on it.`,
+  }
+  return bridgeDetails[backgroundId] || ''
 }
 
 export function rattlebridgeArrival(state) {
@@ -88,9 +97,12 @@ export function checkResultNarration({ actionId, success, natural, state }) {
       : `The route almost works. Almost is enough to get you farther across, but not enough to stay unnoticed. A plank shifts under your weight, the Sneak whips around, and the bridge becomes a much more immediate place.`
   }
   if (actionId === 'bridge:bargain') {
+    if (success && state?.discoveries?.some((item) => item.id === 'stolen-stash-is-tribute')) {
+      return `The Sneak’s attention fixes on the crooked-root mark, and for the first time the hookknife seems less important than the fact that you found it. “That tin isn’t staying here,” the goblin says. “The King put it with the tribute goods. It leaves the Highlands with the rest.”\n\nThe Sneak glances back toward the trail, immediately regretting how much of that sentence escaped. Then it steps away from the alarm frame and lowers the knife. “You did not hear that from me.” The bridge is open.`
+    }
     return success
       ? `The guard listens because the alternative is beginning to look worse. The hookknife does not disappear, but it lowers. Whatever agreement you have just created is imperfect, temporary, and real enough to get you through.`
-      : `The Sneak hears you out with the rigid attention of somebody trying very hard not to be persuaded. The conversation buys information, but it also buys the guard time to edge closer to the alarm.`
+      : `The Sneak hears you out with the rigid attention of somebody trying very hard not to be persuaded. It does not answer the question. Instead, one foot inches toward the alarm frame while the hookknife stays between you.`
   }
   if (actionId === 'ability:tracker-bridge') {
     return success
