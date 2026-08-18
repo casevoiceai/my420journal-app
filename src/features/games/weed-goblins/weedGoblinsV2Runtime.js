@@ -143,6 +143,41 @@ function combatSignatureAction(state) {
   return null
 }
 
+function hasPriorCombat(state) {
+  return state.ledger?.some((event) => event.actionId === 'combat:initiative') || false
+}
+
+function weaponControlLabel(state) {
+  const labels = {
+    sword: 'Catch the hookknife on your blade and force the Sneak off balance',
+    bow: 'Use the bow to keep the Sneak pinned away from the alarm side',
+    'battle-axe': 'Hook the axe into the bridge rail and drive the Sneak off its footing',
+    'bo-staff': 'Sweep the Sneak’s footing and take control of the bridge',
+    mace: 'Use the mace to batter the Sneak away from the ground it wants',
+    daggers: 'Crowd the Sneak with the daggers and take away its room to move',
+  }
+  return labels[state.player?.weaponId] || 'Force the Sneak out of position'
+}
+
+function relabelContextualActions(state, actions) {
+  const foughtBefore = hasPriorCombat(state)
+  return actions.map((action) => {
+    if (action.id === 'bridge:bargain' && foughtBefore && !state.discoveries?.some((item) => item.id === 'crooked-root-mark')) {
+      return { ...action, label: 'Try to talk the fight down before either of you commits again' }
+    }
+    if (action.id === 'bridge:fight' && foughtBefore) {
+      return { ...action, label: 'Close in and fight the Sneak again' }
+    }
+    if (action.id === 'combat:control') {
+      return { ...action, label: weaponControlLabel(state), detail: 'Contextual control check' }
+    }
+    if (action.id === 'combat:retreat') {
+      return { ...action, label: 'Break contact and force the Sneak to choose whether to follow' }
+    }
+    return action
+  })
+}
+
 function actionsAfterDisabledAlarm(state) {
   const actions = []
   if (state.stealth !== 'spotted') {
@@ -200,12 +235,11 @@ export function getCurrentActions(state) {
     actions = actionsAfterDisabledAlarm(state)
   }
   if (state?.sceneId === 'rattlebridge' && activeSneak(state)) {
-    return injectBridgeSignature(state, actions)
+    actions = injectBridgeSignature(state, actions)
+  } else if (state?.sceneId === 'rattlebridge-combat' && state.combat?.turn === 'player') {
+    actions = injectCombatSignature(state, actions)
   }
-  if (state?.sceneId === 'rattlebridge-combat' && state.combat?.turn === 'player') {
-    return injectCombatSignature(state, actions)
-  }
-  return actions
+  return relabelContextualActions(state, actions)
 }
 
 function prepareBridgeSignature(state, actionId) {
