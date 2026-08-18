@@ -152,7 +152,7 @@ export const ROUTES = Object.freeze({
     id: 'direct',
     label: 'Follow them before they reach the bridge',
     timePressure: 'close',
-    startingAlarm: 'threatened',
+    startingAlarm: 'quiet',
     startingStealth: 'spotted',
   }),
   investigate: Object.freeze({
