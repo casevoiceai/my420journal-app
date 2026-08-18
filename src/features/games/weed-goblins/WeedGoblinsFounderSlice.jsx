@@ -374,7 +374,7 @@ export default function WeedGoblinsFounderSlice() {
         const playerDie = randomDie(20)
         const enemyDie = randomDie(20)
         next = commitInitiative(state, { playerDie, enemyDie })
-        entries.push({ type: 'roll', owner: 'player', label: 'Initiative', rolls: [playerDie], modifier: state.player.defense, total: playerDie + state.player.defense, result: next.combat.turn === 'player' ? 'You act first' : 'Eliza acts first' })
+        entries.push({ type: 'roll', owner: 'player', label: 'Initiative', rolls: [playerDie], modifier: state.player.defense, total: playerDie + state.player.defense, result: next.combat.turn === 'player' ? 'You act first' : 'Highland Sneak acts first' })
         entries.push({ type: 'roll', owner: 'dm', label: 'DM roll · Highland Sneak initiative', rolls: [enemyDie], modifier: HIGHLAND_SNEAK.initiativeModifier, total: enemyDie + HIGHLAND_SNEAK.initiativeModifier })
         next = addEntries(next, entries)
         next = await resolveEnemyIfNeeded(next)
@@ -387,7 +387,7 @@ export default function WeedGoblinsFounderSlice() {
         const event = lastPlayerRoll(next)
         next = addEntries(next, [
           { type: 'roll', owner: 'player', label: 'Attack roll', rolls: event.rolls, modifier: event.modifier, total: event.total, target: pending.targetKnown === false ? undefined : event.target, result: event.success ? 'Hit' : 'Miss' },
-          { type: 'narration', text: attackNarration({ hit: event.success, weaponId: state.player.weaponId }) },
+          { type: 'narration', text: attackNarration({ hit: event.success }) },
         ])
         next = await resolveEnemyIfNeeded(next)
         await persist(next)
