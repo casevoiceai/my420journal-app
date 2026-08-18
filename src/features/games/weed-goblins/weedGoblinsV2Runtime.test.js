@@ -2,7 +2,16 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { V2_SCENES, chooseBackground, chooseOpeningRoute, chooseWeapon, createWeedGoblinsV2State, establishIdentity } from './weedGoblinsV2State.js'
-import { getCurrentActions, prepareAction, resolveEnemyTurn, startCombat, commitInitiative } from './weedGoblinsV2Runtime.js'
+import {
+  commitInitiative,
+  commitPendingCheck,
+  commitPlayerAttack,
+  commitPlayerDamage,
+  getCurrentActions,
+  prepareAction,
+  resolveEnemyTurn,
+  startCombat,
+} from './weedGoblinsV2Runtime.js'
 
 function character({ route = 'investigate', weapon = 'bow', background = 'tracker' } = {}) {
   let state = createWeedGoblinsV2State({ campaignId: `runtime:${route}:${weapon}:${background}` })
@@ -52,4 +61,56 @@ test('a guard who physically escapes after Downed defeat successfully warns camp
   assert.equal(state.world.sneak.reportProcess.status, 'completed')
   assert.equal(state.campAwareness, 'warned')
   assert.equal(state.alarm, 'disabled')
+})
+
+test('all three backgrounds expose a real one-Mana signature action at Rattlebridge', () => {
+  for (const background of ['tracker', 'warden', 'diviner']) {
+    const state = character({ background })
+    const ability = getCurrentActions(state).find((action) => action.id === `ability:${background}-bridge`)
+    assert.ok(ability, `${background} must have a Rattlebridge signature action`)
+    const pending = prepareAction(state, ability.id)
+    assert.equal(pending.player.mana, state.player.mana - 1)
+    assert.equal(pending.pendingResolution.manaCost, 1)
+    assert.equal(pending.pendingResolution.dc, 11)
+  }
+})
+
+test('a successful bridge signature uses failure-forward bypass resolution and reaches the far side', () => {
+  let state = character({ background: 'tracker' })
+  state = prepareAction(state, 'ability:tracker-bridge')
+  state = commitPendingCheck(state, { rolls: [20] })
+  assert.equal(state.sceneId, V2_SCENES.cloudberry)
+  assert.equal(state.player.mana, 1)
+  assert.ok(state.ledger.some((event) => event.type === 'roll' && event.actionId === 'ability:tracker-bridge'))
+})
+
+test('Tracker and Warden replace generic combat control with their signature technique', () => {
+  for (const background of ['tracker', 'warden']) {
+    let state = character({ background })
+    state = startCombat(state)
+    state = commitInitiative(state, { playerDie: 20, enemyDie: 1 })
+    const actions = getCurrentActions(state)
+    assert.equal(actions.some((action) => action.id === 'combat:control'), false)
+    assert.ok(actions.some((action) => action.id === `ability:${background}-combat`))
+    state = prepareAction(state, `ability:${background}-combat`)
+    assert.equal(state.player.mana, 1)
+    assert.equal(state.pendingResolution.dc, 8)
+  }
+})
+
+test('Fen Diviner gets a real magical combat attack with a separate d6 damage roll', () => {
+  let state = character({ background: 'diviner' })
+  state = startCombat(state)
+  state = commitInitiative(state, { playerDie: 20, enemyDie: 1 })
+  assert.ok(getCurrentActions(state).some((action) => action.id === 'ability:diviner-combat'))
+  state = prepareAction(state, 'ability:diviner-combat')
+  assert.equal(state.player.mana, 3)
+  assert.equal(state.pendingResolution.stat, 'magic')
+  assert.deepEqual(state.pendingResolution.damageDice, [6])
+  state = commitPlayerAttack(state, { rolls: [20] })
+  assert.equal(state.pendingResolution.type, 'damage')
+  assert.deepEqual(state.pendingResolution.dice, [6])
+  assert.equal(state.world.sneak.hp, 12)
+  state = commitPlayerDamage(state, { rolls: [6, 6] })
+  assert.equal(state.world.sneak.hp, 0)
 })
