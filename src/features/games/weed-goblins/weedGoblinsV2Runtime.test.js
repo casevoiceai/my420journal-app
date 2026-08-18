@@ -13,7 +13,7 @@ import {
   resolveEnemyTurn,
   startCombat,
 } from './weedGoblinsV2Runtime.js'
-import { attackNarration, backgroundNarration, checkResultNarration } from './weedGoblinsV2Narration.js'
+import { attackNarration, backgroundNarration, checkResultNarration, cloudberryNarration, combatStartNarration, enemyTurnNarration } from './weedGoblinsV2Narration.js'
 
 function character({ route = 'investigate', weapon = 'bow', background = 'tracker' } = {}) {
   let state = createWeedGoblinsV2State({ campaignId: `runtime:${route}:${weapon}:${background}` })
@@ -189,4 +189,61 @@ test('background narration stays inside the fiction instead of explaining the ga
       assert.doesNotMatch(narration, /generic obstacle|part that matters now|name for what you used to do/i)
     }
   }
+})
+
+test('returning to Rattlebridge after combat gets state-aware social and fight labels', () => {
+  let state = character({ route: 'direct', weapon: 'sword', background: 'tracker' })
+  state = startCombat(state)
+  state = commitInitiative(state, { playerDie: 20, enemyDie: 1 })
+  state = prepareAction(state, 'combat:retreat')
+  state = commitPendingCheck(state, { rolls: [20] })
+  assert.equal(state.sceneId, V2_SCENES.rattlebridge)
+  const actions = getCurrentActions(state)
+  const talk = actions.find((action) => action.id === 'bridge:bargain')
+  const fight = actions.find((action) => action.id === 'bridge:fight')
+  assert.ok(talk)
+  assert.ok(fight)
+  assert.doesNotMatch(talk.label, /before this becomes a fight/i)
+  assert.match(talk.label, /talk the fight down/i)
+  assert.match(fight.label, /again/i)
+})
+
+test('generic combat control is expressed as a concrete weapon action', () => {
+  for (const weapon of ['sword', 'bow', 'battle-axe', 'bo-staff', 'mace', 'daggers']) {
+    let state = character({ weapon, background: 'tracker' })
+    state = { ...state, player: { ...state.player, mana: 0 } }
+    state = startCombat(state)
+    state = commitInitiative(state, { playerDie: 20, enemyDie: 1 })
+    const control = getCurrentActions(state).find((action) => action.id === 'combat:control')
+    assert.ok(control, `${weapon} should expose a concrete control action when signature Mana is unavailable`)
+    assert.doesNotMatch(control.label, /instead of pure damage|weapon control/i)
+  }
+})
+
+test('failed generic social interaction does not invent a question the player never asked', () => {
+  const state = character({ route: 'direct', weapon: 'sword', background: 'tracker' })
+  const narration = checkResultNarration({ actionId: 'bridge:bargain', success: false, natural: 9, state })
+  assert.doesNotMatch(narration, /answer the question/i)
+})
+
+test('combat re-entry narration changes instead of replaying the first combat paragraph', () => {
+  const first = combatStartNarration({ returning: false })
+  const returning = combatStartNarration({ returning: true })
+  assert.notEqual(first, returning)
+  assert.match(returning, /again|starting from scratch/i)
+})
+
+test('Cloudberry story narration contains no founder-development language', () => {
+  const state = character({ route: 'direct', weapon: 'sword', background: 'tracker' })
+  const narration = cloudberryNarration(state)
+  assert.doesNotMatch(narration, /vertical slice|Chapter 1 must continue|merge|deploy/i)
+})
+
+test('repeated enemy attacks do not have to reuse the exact same DM sentence', () => {
+  const firstMiss = enemyTurnNarration({ action: 'attack', hit: false, round: 1 })
+  const secondMiss = enemyTurnNarration({ action: 'attack', hit: false, round: 2 })
+  const firstHit = enemyTurnNarration({ action: 'attack', hit: true, damage: 2, round: 1 })
+  const secondHit = enemyTurnNarration({ action: 'attack', hit: true, damage: 2, round: 2 })
+  assert.notEqual(firstMiss, secondMiss)
+  assert.notEqual(firstHit, secondHit)
 })
