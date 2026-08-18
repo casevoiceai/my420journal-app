@@ -92,10 +92,35 @@ export function checkResultNarration({ actionId, success, natural, state }) {
       ? `The guard listens because the alternative is beginning to look worse. The hookknife does not disappear, but it lowers. Whatever agreement you have just created is imperfect, temporary, and real enough to get you through.`
       : `The Sneak hears you out with the rigid attention of somebody trying very hard not to be persuaded. The conversation buys information, but it also buys the guard time to edge closer to the alarm.`
   }
+  if (actionId === 'ability:tracker-bridge') {
+    return success
+      ? `You stop treating the crossing as something that needs permission. The Tracker’s read of the ground gives you the one line the guard cannot close in time, and you drive through it before the situation can reorganize around you.`
+      : `You commit to the opening, but the ground refuses to stay as readable as it looked. The push still gets you farther into the crossing; it just leaves the guard with a much better idea of exactly where you are.`
+  }
+  if (actionId === 'ability:warden-bridge') {
+    return success
+      ? `You read the bridge as a defensive problem instead of a race. One safe line becomes two, the Sneak loses the angle it was counting on, and suddenly the crossing belongs to your positioning rather than its warning plan.`
+      : `You find the line you want, but the Sneak adjusts before you can own it. You are not pushed back to the start; the bridge simply becomes contested ground with the guard fully aware of how you mean to take it.`
+  }
+  if (actionId === 'ability:diviner-bridge') {
+    return success
+      ? `For a moment the bridge stops making sense in the ordinary way and starts making sense in yours. The cords, planks, and blind angles settle into a route that was never drawn but was apparently waiting to be noticed, and you follow it through before the guard understands what changed.`
+      : `The wrong map answers, but not cleanly. You catch the shape of the safe route a heartbeat too late, enough to keep moving and not enough to remain mysterious. The Sneak now knows there is magic in the problem.`
+  }
   if (actionId === 'combat:control') {
     return success
       ? `You stop treating the fight as a contest of damage and make the bridge itself part of the argument. The Sneak gives ground, its footing gets worse, and a little of the confidence goes out of its face.`
       : `The idea is sound. The timing is not. The Sneak slips around the pressure and leaves you in a worse position for the next exchange.`
+  }
+  if (actionId === 'ability:tracker-combat') {
+    return success
+      ? `You push through the space the Sneak meant to deny you and make it give ground. The move does not need to draw blood to matter; its next decision now starts from a worse position and with less confidence.`
+      : `You spend the effort and commit to the pressure, but the Sneak wriggles out of the line before you can close it. The Mana is gone, the position is not yours, and the guard gets the next say.`
+  }
+  if (actionId === 'ability:warden-combat') {
+    return success
+      ? `You take away the piece of bridge the Sneak was trying to use and hold it. The goblin can still fight, but it cannot have the position, the alarm, and you all at once anymore.`
+      : `You set the line and the Sneak refuses to meet it where you want. It slips just far enough around the pressure to keep the position unsettled, leaving the technique spent without giving you control for free.`
   }
   if (actionId === 'combat:retreat') {
     return success
