@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/phase1-log-talk-play-integration
+      - feature/weed-goblins-rpg-vertical-slice
   workflow_dispatch:
 
 permissions:
