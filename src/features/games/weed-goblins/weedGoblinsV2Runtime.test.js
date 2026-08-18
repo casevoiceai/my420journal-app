@@ -13,6 +13,7 @@ import {
   resolveEnemyTurn,
   startCombat,
 } from './weedGoblinsV2Runtime.js'
+import { attackNarration, checkResultNarration } from './weedGoblinsV2Narration.js'
 
 function character({ route = 'investigate', weapon = 'bow', background = 'tracker' } = {}) {
   let state = createWeedGoblinsV2State({ campaignId: `runtime:${route}:${weapon}:${background}` })
@@ -85,6 +86,26 @@ test('a successful bridge signature uses failure-forward bypass resolution and r
   assert.ok(state.ledger.some((event) => event.type === 'roll' && event.actionId === 'ability:tracker-bridge'))
 })
 
+test('a later signature resolution never relabels an earlier ordinary bypass in the immutable ledger', () => {
+  let state = character({ background: 'tracker' })
+  state = prepareAction(state, 'bridge:bypass')
+  const ordinaryResolutionId = state.pendingResolution.id
+  state = commitPendingCheck(state, { rolls: [1] })
+  const ordinaryBefore = state.ledger.filter((event) => event.resolutionId === ordinaryResolutionId && ['roll', 'outcome'].includes(event.type))
+  assert.ok(ordinaryBefore.length >= 2)
+  assert.ok(ordinaryBefore.every((event) => event.actionId === 'bridge:bypass'))
+
+  state = prepareAction(state, 'ability:tracker-bridge')
+  const signatureResolutionId = state.pendingResolution.id
+  state = commitPendingCheck(state, { rolls: [20] })
+
+  const ordinaryAfter = state.ledger.filter((event) => event.resolutionId === ordinaryResolutionId && ['roll', 'outcome'].includes(event.type))
+  assert.ok(ordinaryAfter.every((event) => event.actionId === 'bridge:bypass'))
+  const signature = state.ledger.filter((event) => event.resolutionId === signatureResolutionId && ['roll', 'outcome'].includes(event.type))
+  assert.ok(signature.length >= 2)
+  assert.ok(signature.every((event) => event.actionId === 'ability:tracker-bridge'))
+})
+
 test('Tracker and Warden replace generic combat control with their signature technique', () => {
   for (const background of ['tracker', 'warden']) {
     let state = character({ background })
@@ -129,4 +150,20 @@ test('typed Fen Diviner magic is routed into bounded magic without replacing the
   assert.equal(interpretation.supported, true)
   assert.equal(interpretation.actionId, 'ability:diviner-combat')
   assert.equal(interpretation.boundedMagic, true)
+})
+
+test('attack narration cannot mislabel a spell as the equipped physical weapon', () => {
+  const hit = attackNarration({ hit: true, weaponId: 'bow' })
+  const miss = attackNarration({ hit: false, weaponId: 'battle-axe' })
+  assert.doesNotMatch(hit, /bow|axe|sword|staff|mace|dagger/i)
+  assert.doesNotMatch(miss, /bow|axe|sword|staff|mace|dagger/i)
+})
+
+test('signature abilities have specific DM result narration rather than the generic fallback', () => {
+  for (const actionId of ['ability:tracker-bridge', 'ability:warden-bridge', 'ability:diviner-bridge', 'ability:tracker-combat', 'ability:warden-combat']) {
+    const success = checkResultNarration({ actionId, success: true, natural: 15, state: character() })
+    const failure = checkResultNarration({ actionId, success: false, natural: 5, state: character() })
+    assert.doesNotMatch(success, /^The attempt works/)
+    assert.doesNotMatch(failure, /^The attempt fails/)
+  }
 })
