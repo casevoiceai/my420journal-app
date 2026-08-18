@@ -109,11 +109,9 @@ export function checkResultNarration({ actionId, success, natural, state }) {
       : `The attempt fails, but it does not reset the scene. The consequences stay in the world and the next choice begins from here.`
 }
 
-export function attackNarration({ hit, weaponId }) {
-  const weapon = weaponById(weaponId)
-  if (!weapon) return hit ? 'The attack connects.' : 'The attack misses.'
-  if (!hit) return `The ${weapon.label.toLowerCase()} does not find the opening you wanted. The Sneak gets through the exchange intact and immediately starts looking for what it can do with the space you just gave it.`
-  return `The ${weapon.label.toLowerCase()} finds the opening. The hit is real; now the only question is how much it costs the Sneak.`
+export function attackNarration({ hit }) {
+  if (!hit) return `Your attack does not find the opening you wanted. The Sneak gets through the exchange intact and immediately starts looking for what it can do with the space you just gave it.`
+  return `Your attack finds the opening. The hit is real; now the only question is how much it costs the Sneak.`
 }
 
 export function damageNarration({ damage, enemyHealth }) {
