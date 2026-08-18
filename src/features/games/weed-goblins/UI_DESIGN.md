@@ -1,114 +1,170 @@
-# Weed Goblins Interface Design
+# Weed Goblins — RPG UI Design v2
 
-Status: controlling UI reference for implementation. Read `GAME_EXPERIENCE_SPEC.md` first; that file is the definitive product and interaction specification.
+Status: CONTROLLING for the RPG vertical slice. Supersedes the messenger/chat UI.
 
-## Locked presentation
+## Design goal
 
-Weed Goblins is a stealth tabletop adventure presented through an ordinary-looking messenger interface.
+The screen should feel like a readable fantasy adventure that tightens into a tabletop RPG interface when dice/combat matter. It must not look like Eliza and the player are texting each other.
 
-It must NOT read immediately as a visibly branded fantasy RPG screen.
+## Main exploration screen
 
-The normal screen contains:
+Use a centered adventure-book reading column on the existing dark my420journal shell.
 
-1. a minimal messenger header with Eliza's name and small E-circle;
-2. Eliza's incoming bubbles on the left;
-3. the player's outgoing bubbles on the right;
-4. approximately four or five contextual response choices under the newest conversation state;
-5. a standard-looking text composer beneath the choices;
-6. a microphone control that transcribes into the editable composer;
-7. a temporary D20 control only when a roll is required.
+Top bar:
 
-Do not permanently expose a chapter/quest HUD, objective panel, Strength/Defense/Mana/Trouble bar, Adventure Log heading, giant RPG action cards, `Eliza narrates` labels, or `Your move` labels in ordinary play.
+- Back to Games control
+- Chapter label and location
+- compact E character-sheet button
 
-The plain messenger appearance is intentional so the game can be played discreetly inside my420journal.
+Do not show online status, typing indicator, avatar conversation chrome, microphone, message bubbles, or fake timestamps.
 
-## Header and hidden character menu
+The primary content area contains sequential story entries:
 
-The normal header should remain visually simple.
+- Eliza narration in normal paragraphs
+- committed player action as a compact labeled choice/action record, not a chat bubble
+- roll/ruling cards only when mechanics occur
+- contextual CYOA buttons below the current scene
+- a plain freeform action field below the buttons
 
-The E-circle beside Eliza's name is a hidden secondary control. Press-and-hold opens the character/status menu.
+Only the current unresolved interaction is actionable. Prior history remains scrollable and readable but inert.
 
-That menu may show character identity, race, appearance/pronouns, class/background, weapon, Strength, Defense, Mana, Trouble or wound state, inventory, special items, current objective, and other deeper game information.
+## Typography/prose rendering
 
-Closing the menu returns directly to the conversation.
+Narration uses normal paragraphs with comfortable line length and spacing. Never render each sentence as its own block.
 
-## Player actions
+The UI must not encourage micro-paragraph generation. A narration entry can contain multiple paragraphs, but paragraph boundaries come from authored/narrator content, not automatic sentence splitting.
 
-Buttons remain the primary gameplay interaction.
+## Choice presentation
 
-After each meaningful game response, the choice area should repopulate with approximately four or five concise, context-specific actions when the fiction supports that many.
+Normally show 3–4 contextual action buttons. Buttons should be short concrete actions or actual dialogue, for example:
 
-Choices should describe in-world actions rather than raw mechanical categories.
+- Follow them before they reach the bridge
+- Check the campsite and tracks first
+- Take the high trail above the gorge
 
-Selecting a choice adds that choice to the transcript as a normal outgoing player bubble.
+Do not use abstract repeated buttons such as Attack, Defend, Magic, Search, Continue.
 
-Choice buttons live in the active control area below the latest messages. They do not persist as large permanent cards throughout the transcript.
+Freeform remains available under choices as an escape hatch. No microphone in v2.
 
-The composer is the additional open-ended choice. The player may ignore all supplied options and type another action.
+## Distributed character creation
 
-## Voice input
+Character details appear only when relevant to play.
 
-Voice-to-text fills the same custom-action composer.
+After the first route choice, ask for name and race in the story flow. When equipment matters, show the six weapon choices. Before the first substantial uncertain check, show the three background choices with concise mechanical summaries.
 
-Speech recognition output must remain editable before the player sends it.
+Do not show a separate character-creation page or a multi-question form.
 
-Never submit recognized speech automatically.
+## Ruling and dice card
 
-## Dice
+Before a player roll, show a compact ruling card with:
 
-All checks, whether started by a response button or typed action, use the same explicit tabletop lifecycle:
+- action
+- relevant stat or capability
+- DC/target if the character knows it
+- advantage/disadvantage and reason
+- Mana/item cost if any
+- success stakes
+- failure risk
 
-1. player declares action;
-2. Eliza explains what the player is attempting and the relevant circumstances;
-3. Eliza states any immediately relevant advantage/disadvantage/resource effect;
-4. Eliza states the exact number needed to succeed;
-5. a temporary `ROLL D20` control appears;
-6. the player explicitly rolls;
-7. the result is displayed;
-8. the engine resolves the authoritative result;
-9. Eliza narrates the outcome;
-10. new contextual choices appear.
+Then show a single `Roll D20` control.
 
-A check must not secretly resolve when a normal response button is tapped.
+After commit, reveal:
 
-A genuine no-roll action may proceed without showing the D20 control.
+- die result
+- modifier
+- total
+- target
+- success/failure
 
-## Highlighted discoverables
+If a successful attack deals damage, show a separate player-controlled damage roll afterward.
 
-Eliza may highlight useful or interesting words and phrases in her story bubbles: people, places, objects, clues, rumors, breadcrumbs, unfamiliar game terms, or suspicious details.
+Enemy/DM rolls animate visibly but have no player roll button. Clearly label them as DM rolls.
 
-Tapping a highlight opens a small temporary information popup over the messenger. Closing it leaves the transcript unchanged.
+## Combat mode
 
-A discoverable may simply explain something or may expose a new choice, clue, investigation path, or roll.
+Combat remains on the same page and in the same reading history. Do not switch to a dashboard.
 
-## Help
+When combat is active, add a compact status strip:
 
-Help is contextual to the current obstacle.
+Player:
+- HP / Max HP
+- Mana / Max Mana
+- wound/condition when relevant
+- position
 
-- First use: gentle nudge.
-- Second use: stronger direction.
-- Third use: Eliza's fourth-wall easter egg and direct solution to the immediate hurdle.
+Enemy:
+- name/type
+- descriptive health state, not exact HP
+- known/estimated Guard if learned
+- position
+- visible condition/morale when perceivable
+- telegraphed intent when perceivable
 
-Automatic beginner guidance is expected in Chapters 1 and 2 and fades starting in Chapter 3. The Help control remains available.
+Contextual actions remain below the current combat beat. Choices must change with position, alarm state, enemy intent, weapon, background, Mana, and prior actions.
 
-## Rooms and snapshot readiness
+## Enemy information
 
-The UI may show subtle room-transition information when useful, but normal play remains a messenger.
+Do not expose exact enemy HP by default. Use descriptive states such as Unhurt, Hurt, Badly Wounded, Near Defeat, Down.
 
-The underlying game must distinguish persistent physical rooms from transient scenes so later exploration, clues, NPC state, persistence, and Adventure Snapshot generation have a deterministic location.
+Exact enemy Guard is learned through fighting, observation, or investigation rather than always shown from the first frame.
 
-Chapter 1 canonical rooms are Windcut Trail, Rattlebridge, Cloudberry Shelf, Highland Camp, and King's Stash Hall.
+## E character sheet
 
-## Narration typography
+The E control opens an overlay/drawer with these sections:
 
-Narration should prioritize readability in a compact message bubble.
+1. Character
+   - name, race, Level, background
+   - Strength, Defense, Guard
+   - HP/Max HP, Mana/Max Mana
+   - wound/injury detail, conditions
+2. Gear & Pack
+   - permanent weapon and condition
+   - protective gear and condition
+   - significant pack slots
+   - story items, Rootcoin
+3. Abilities
+   - background signature
+   - race traits
+   - permanent unlocks
+4. Threads
+   - unresolved known obligations/objectives/promises
+5. Discoveries
+   - meaningful learned information and rumor/confirmed state
+6. People / Factions / Map
+   - descriptive relationship states
+   - faction knowledge/reputation where known
+   - discovered geography only
 
-Use ordinary punctuation and short paragraphs/sentences appropriate to messaging. Generated narration must not contain em dashes or en dashes under the existing narration-validation contract unless a later explicit decision changes that rule.
+The E sheet is not the main game screen.
 
-## Responsive behavior
+## Mobile behavior
 
-Mobile is the primary presentation target.
+Mobile is the primary layout. Reading column fills the viewport with comfortable side padding. Choice buttons are full-width/tappable. Dice/ruling cards stack vertically. E opens as a full-height sheet or drawer.
 
-The conversation should remain readable with the on-screen keyboard open. Current choices and the composer must remain reachable on short screens. Long transcripts should scroll naturally like a messenger conversation.
+Desktop may widen the reading column modestly but should remain a reading experience, not become a multi-column dashboard.
 
-Desktop may widen the conversation column but should preserve the same messenger hierarchy rather than introducing a separate visible RPG dashboard.
+## Accessibility
+
+- minimum comfortable tap targets
+- high contrast
+- visible focus states
+- dice result always represented in text, not animation alone
+- status changes announced accessibly where practical
+- reduced-motion preference disables decorative roll animation
+
+## Forbidden legacy UI
+
+The following are explicitly superseded and must not appear in v2:
+
+- incoming/outgoing message bubbles
+- `Eliza is typing`
+- chat composer with send-arrow chrome
+- microphone/voice button
+- fake online/presence indicators
+- transcript as authoritative state
+- permanent `Attack / Defend / Magic` action bar
+- automatic one-sentence-per-paragraph rendering
+
+## Founder validation boundary
+
+The opening reading cadence and distributed creation through route → name/race → weapon were founder-approved in live play. Combat presentation, dice feel, and the Rattlebridge consequence flow remain subject to founder play validation after implementation.
