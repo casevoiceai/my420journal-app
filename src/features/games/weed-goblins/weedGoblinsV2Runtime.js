@@ -317,9 +317,6 @@ export function commitPendingCheck(state, options) {
 }
 
 export function interpretLocalFreeform(state, text) {
-  const core = interpretCoreFreeform(state, text)
-  if (core.supported) return core
-
   const normalized = String(text ?? '').trim().toLowerCase()
   if (
     state?.player?.backgroundId === 'diviner'
@@ -333,7 +330,7 @@ export function interpretLocalFreeform(state, text) {
       return { supported: true, actionId: 'ability:diviner-combat', boundedMagic: true }
     }
   }
-  return core
+  return interpretCoreFreeform(state, text)
 }
 
 export function resolveEnemyTurn(state, options = {}) {
