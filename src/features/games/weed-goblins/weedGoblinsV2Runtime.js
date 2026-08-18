@@ -1,6 +1,7 @@
 import {
   commitPendingCheck as commitCoreCheck,
   getCurrentActions as getCoreActions,
+  interpretLocalFreeform as interpretCoreFreeform,
   prepareAction as prepareCoreAction,
   resolveEnemyTurn as resolveCoreEnemyTurn,
 } from './weedGoblinsV2Engine.js'
@@ -313,6 +314,26 @@ export function commitPendingCheck(state, options) {
     return { ...resolved, ledger }
   }
   return commitCoreCheck(state, options)
+}
+
+export function interpretLocalFreeform(state, text) {
+  const core = interpretCoreFreeform(state, text)
+  if (core.supported) return core
+
+  const normalized = String(text ?? '').trim().toLowerCase()
+  if (
+    state?.player?.backgroundId === 'diviner'
+    && hasMana(state, 1)
+    && /magic|spell|cast|hex|enchant|charm|illusion|divin|mystic|arcane/.test(normalized)
+  ) {
+    if (state.sceneId === 'rattlebridge') {
+      return { supported: true, actionId: 'ability:diviner-bridge', boundedMagic: true }
+    }
+    if (state.sceneId === 'rattlebridge-combat' && state.combat?.turn === 'player') {
+      return { supported: true, actionId: 'ability:diviner-combat', boundedMagic: true }
+    }
+  }
+  return core
 }
 
 export function resolveEnemyTurn(state, options = {}) {
