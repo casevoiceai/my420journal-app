@@ -7,6 +7,7 @@ on:
       - feature/weed-goblins-rpg-vertical-slice
   workflow_dispatch:
 
+# Branch-local verification entry is temporary and will be removed after the slice passes.
 permissions:
   contents: read
 
