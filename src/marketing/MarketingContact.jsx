@@ -2,8 +2,7 @@ import { useState } from 'react'
 import MarketingLayout from './MarketingLayout'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
-// Replace this placeholder with the real Web3Forms access key for vogtcomllc@gmail.com.
-const WEB3FORMS_ACCESS_KEY = 'YOUR_WEB3FORMS_ACCESS_KEY_HERE'
+const CONTACT_EMAIL = 'vogtcomllc@gmail.com'
 
 const initialForm = {
   name: '',
@@ -28,56 +27,48 @@ export function ContactSection({ id = undefined, tone = 'base', mode = 'general'
     setForm((current) => ({ ...current, [field]: value }))
   }
 
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault()
-    setStatus('submitting')
+    setStatus('opening')
     setError('')
 
-    const submission = isPartnerForm
-      ? {
-          access_key: WEB3FORMS_ACCESS_KEY,
-          subject: 'my420journal dispensary partnership inquiry',
-          from_name: form.name,
-          business_name: form.businessName,
-          contact_name: form.name,
-          position_or_role: form.role,
-          business_email: form.email,
-          phone: form.phone,
-          preferred_contact_method: form.preferredContact,
-          business_location: form.location,
-          business_website: form.website || 'Not provided',
-          message: form.message,
-        }
-      : {
-          access_key: WEB3FORMS_ACCESS_KEY,
-          subject: 'my420journal contact form',
-          from_name: form.name,
-          name: form.name,
-          email: form.email,
-          message: form.message,
-        }
-
     try {
-      const response = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submission),
-      })
+      const subject = isPartnerForm
+        ? 'my420journal dispensary partnership inquiry'
+        : 'my420journal contact form'
 
-      const result = await response.json()
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Submission failed')
-      }
+      const lines = isPartnerForm
+        ? [
+            `Business or dispensary: ${form.businessName}`,
+            `Contact name: ${form.name}`,
+            `Position or role: ${form.role}`,
+            `Business email: ${form.email}`,
+            `Phone: ${form.phone}`,
+            `Preferred contact method: ${form.preferredContact}`,
+            `Business location: ${form.location}`,
+            `Business website: ${form.website || 'Not provided'}`,
+            '',
+            'Message:',
+            form.message,
+          ]
+        : [
+            `Name: ${form.name}`,
+            `Email: ${form.email}`,
+            '',
+            'Message:',
+            form.message,
+          ]
 
-      setForm(initialForm)
-      setStatus('success')
+      const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join('\n'))}`
+      window.location.href = mailto
+      setStatus('ready')
     } catch {
       setStatus('error')
-      setError('Something went wrong. Please try again.')
+      setError(`Please email us directly at ${CONTACT_EMAIL}.`)
     }
   }
 
-  const submitting = status === 'submitting'
+  const submitting = status === 'opening'
 
   return (
     <section
@@ -293,17 +284,15 @@ export function ContactSection({ id = undefined, tone = 'base', mode = 'general'
             }}
           >
             {submitting
-              ? 'Sending'
+              ? 'Opening email'
               : isPartnerForm
-                ? 'Send partnership inquiry'
-                : 'Send it'}
+                ? 'Email partnership inquiry'
+                : 'Email Vogtcom LLC'}
           </button>
 
-          {status === 'success' && (
+          {status === 'ready' && (
             <p style={{ margin: '16px 0 0 0', color: S.success, fontSize: '14px', lineHeight: 1.5 }}>
-              {isPartnerForm
-                ? 'Partnership inquiry sent. We will follow up using your preferred contact method.'
-                : 'Message sent. Thank you for reaching out.'}
+              Your email app should open with the message addressed to {CONTACT_EMAIL}. Review it, then send.
             </p>
           )}
 
@@ -320,9 +309,11 @@ export function ContactSection({ id = undefined, tone = 'base', mode = 'general'
           fontSize: '15px',
           lineHeight: 1.65,
         }}>
+          Email us directly at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: S.gold }}>{CONTACT_EMAIL}</a>.
+          {' '}
           {isPartnerForm
-            ? 'We will use this information only to respond to your business inquiry and discuss possible partnership or pilot options.'
-            : 'If you are a dispensary owner interested in the mycannabisjournal.ai partner program, use the message field and tell us where you are located. We will be in touch when we have availability in your area.'}
+            ? 'We will use your message only to respond to your business inquiry and discuss possible partnership or pilot options.'
+            : 'If you are a dispensary owner interested in the mycannabisjournal.ai partner program, tell us where you are located. We will be in touch when we have availability in your area.'}
         </p>
       </div>
     </section>
