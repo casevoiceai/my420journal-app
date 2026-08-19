@@ -6,7 +6,7 @@ const sections = [
     heading: 'WHO WE ARE',
     paragraphs: [
       '420journal.app is a product of Vogtcom LLC, a Pennsylvania limited liability company based in Carbondale, Pennsylvania.',
-      'Contact: casevoice.ai@gmail.com',
+      'Contact: vogtcomllc@gmail.com',
       '420journal.app is a private cannabis session journal. You log what you used, how you used it, and how it made you feel, in Body, Mind, and Mood terms. Your journal lives on your device.',
     ],
   },
@@ -78,7 +78,7 @@ const sections = [
   {
     heading: 'CHILDREN',
     paragraphs: [
-      'This app is not directed at anyone under 21 and not intended for anyone under 18. We do not knowingly collect personal information from minors. If you believe a minor has used this app, contact us at casevoice.ai@gmail.com.',
+      'This app is not directed at anyone under 21 and not intended for anyone under 18. We do not knowingly collect personal information from minors. If you believe a minor has used this app, contact us at vogtcomllc@gmail.com.',
     ],
   },
   {
@@ -96,7 +96,7 @@ const sections = [
   {
     heading: 'CONTACT US',
     paragraphs: [
-      <>Vogtcom LLC<br />Carbondale, Pennsylvania<br />casevoice.ai@gmail.com</>,
+      <>Vogtcom LLC<br />Carbondale, Pennsylvania<br />vogtcomllc@gmail.com</>,
     ],
   },
 ]

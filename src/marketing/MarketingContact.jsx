@@ -2,7 +2,7 @@ import { useState } from 'react'
 import MarketingLayout from './MarketingLayout'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
-// Replace this placeholder with the real Web3Forms access key for casevoice.ai@gmail.com.
+// Replace this placeholder with the real Web3Forms access key for vogtcomllc@gmail.com.
 const WEB3FORMS_ACCESS_KEY = 'YOUR_WEB3FORMS_ACCESS_KEY_HERE'
 
 const initialForm = {
