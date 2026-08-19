@@ -37,46 +37,44 @@ const GREETINGS = {
   bud: [
     "Hey. What are we logging?",
     "Good to see you. What did you get?",
-    "Hey. I pulled up a few options near you.",
-    "Back again. What happened?",
-    "Hey. Earlier than usual. Good trip?",
-    "Alright. I know what you like. What do you need?",
+    "Back again. Want to look at your latest product log?",
+    "What happened?",
+    "Want to review something you logged?",
+    "Your journal has some history now. What do you want to look up?",
   ],
   sunny: [
-    "Hey! You came back! What happened, tell me everything!",
-    "Hi! Before we log -- how are you actually doing today?",
-    "Hey, I was just thinking about you...",
-    "Hey you. I have a question and I need you to be honest with me.",
-    "Hey. How are you? The real version.",
-    "Hi. I have been thinking about something you said.",
+    "Hey! You came back! What happened?",
+    "Hi! What do you want to look back at today?",
+    "Hey you. Want to check your latest product log?",
+    "Tell me what you want to pull from your journal.",
+    "Hey. What did you log?",
+    "Your journal has a lot in it now. What should we look at?",
   ],
   larry: [
     "Hey. What did you get?",
     "Back again. What are we looking at?",
-    "Hey. I was thinking about something.",
-    "You are back. I have thoughts on what you logged.",
-    "Hey. Long time. What happened?",
-    "A hundred sessions. What do you need?",
+    "Want to pull up something you logged?",
+    "You are back. What entry do you want to look at?",
+    "Hey. What happened?",
+    "A lot of entries in here now. What do you want to find?",
   ],
   herb: [
     "Hey. What are we logging?",
     "Hey. What did you get this time?",
-    "Hey. I noticed something. Want to hear it?",
-    "Good. You are back. I have been looking at your log.",
-    "Hey. Want to pull up your full terpene history?",
-    "A hundred sessions. Do you know what we have now?",
+    "Want to look at the details from something you logged?",
+    "Good. You are back. What entry should we pull up?",
+    "Want to review your recent product logs?",
+    "Your journal has a lot of entries now. What do you want to examine?",
   ],
   mary: [
     "Hey. What are we tracking today?",
-    "Hey. Before we log -- how did you sleep?",
-    "Hey. How are you feeling overall?",
-    "Hey. Can we talk about something I noticed?",
-    "You look better than last week. Am I right?",
-    "A hundred sessions. You have told me a lot.",
+    "Want to look back at something you logged?",
+    "Hey. What entry do you want to review?",
+    "What did you record that you want to look at again?",
+    "Want to revisit one of your recent product logs?",
+    "You have built up a lot of journal history. What should we look at?",
   ],
 }
-
-const HERB_T0_THOUGHT = "(already thinking about your terpene profile)"
 
 const UNIT_RESPONSES = ["Logged.", "Noted.", "Confirmed."]
 
@@ -205,12 +203,10 @@ export default function Guide() {
       }
 
       setLoaded(true)
-      // Stoner mode: no opening message, user initiates
       if (guideKey === 'stoner') return
       setTimeout(() => {
         const greetings = GREETINGS[guideKey] || GREETINGS.bud
-        let greeting    = greetings[t] || greetings[0]
-        if (guideKey === 'herb' && t === 0) greeting = greeting + '\n' + HERB_T0_THOUGHT
+        const greeting = greetings[t] || greetings[0]
         const opening = [{ role: 'assistant', content: greeting }]
         setMessages(opening)
         saveChat(opening)
@@ -296,8 +292,7 @@ export default function Guide() {
     if (guide === 'stoner') return
     setTimeout(() => {
       const greetings = GREETINGS[guide] || GREETINGS.bud
-      let greeting    = greetings[tier] || greetings[0]
-      if (guide === 'herb' && tier === 0) greeting = greeting + '\n' + HERB_T0_THOUGHT
+      const greeting = greetings[tier] || greetings[0]
       const opening = [{ role: 'assistant', content: greeting }]
       setMessages(opening)
       saveChat(opening)
@@ -333,7 +328,6 @@ export default function Guide() {
         alignItems: 'center',
         paddingBottom: '80px',
       }}>
-        {/* Inner column — max 680px */}
         <div style={{
           width: '100%',
           maxWidth: '680px',
@@ -341,8 +335,6 @@ export default function Guide() {
           flexDirection: 'column',
           height: '100%',
         }}>
-
-          {/* ── Header ── */}
           <div style={{
             height: '56px',
             flexShrink: 0,
@@ -353,7 +345,6 @@ export default function Guide() {
             boxSizing: 'border-box',
             position: 'relative',
           }}>
-            {/* Back */}
             <button
               onClick={() => navigate(-1)}
               style={{
@@ -367,7 +358,6 @@ export default function Guide() {
               </svg>
             </button>
 
-            {/* Guide name centered */}
             <span style={{
               position: 'absolute', left: '44px', right: '80px',
               textAlign: 'center', pointerEvents: 'none',
@@ -376,7 +366,6 @@ export default function Guide() {
               {guideName}
             </span>
 
-            {/* Switch Guide */}
             <button
               onClick={() => navigate('/onboarding')}
               style={{
@@ -390,7 +379,6 @@ export default function Guide() {
             </button>
           </div>
 
-          {/* ── Chat area ── */}
           <div style={{
             flex: 1,
             overflowY: 'auto',
@@ -436,14 +424,12 @@ export default function Guide() {
             <div ref={bottomRef} />
           </div>
 
-          {/* ── Input area ── */}
           <div style={{
             flexShrink: 0,
             borderTop: `1px solid ${S.border}`,
             backgroundColor: S.surface,
             boxSizing: 'border-box',
           }}>
-            {/* Clear conversation row */}
             <button
               onClick={clearChat}
               style={{
@@ -459,7 +445,6 @@ export default function Guide() {
               Clear conversation
             </button>
 
-            {/* Input row */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               padding: '12px 16px',
@@ -489,7 +474,6 @@ export default function Guide() {
                 onBlur={(e)  => { e.currentTarget.style.borderColor = S.border }}
               />
 
-              {/* Mic */}
               {micSupported && (
                 <button
                   onClick={toggleMic}
@@ -511,7 +495,6 @@ export default function Guide() {
                 </button>
               )}
 
-              {/* Send */}
               <button
                 onClick={() => send(input)}
                 disabled={!canSend}
@@ -531,7 +514,6 @@ export default function Guide() {
               </button>
             </div>
           </div>
-
         </div>
       </div>
     </>

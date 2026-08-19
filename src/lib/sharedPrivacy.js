@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'my420journal_shared_privacy_v1'
 
+export const PHASE1_SHARED_CONTRIBUTIONS_ENABLED = false
+
 export const SHARED_PROFILE_DEFAULTS = {
   shared_opt_in_enabled: false,
   shared_opt_in_at: null,
@@ -37,7 +39,8 @@ export function getSharedPrivacyState(profile = {}) {
     ...SHARED_PROFILE_DEFAULTS,
     ...localState,
     ...profile,
-    shared_opt_in_enabled: profile?.shared_opt_in_enabled === true || localState?.shared_opt_in_enabled === true,
+    shared_opt_in_enabled: PHASE1_SHARED_CONTRIBUTIONS_ENABLED
+      && (profile?.shared_opt_in_enabled === true || localState?.shared_opt_in_enabled === true),
     pending_shared_delete: profile?.pending_shared_delete === true || localState?.pending_shared_delete === true,
   }
 }
@@ -48,6 +51,13 @@ export function ensureAnonymousContributorId(state = {}) {
 
 export function enableSharedOptIn(currentState = {}) {
   const current = getSharedPrivacyState(currentState)
+  if (!PHASE1_SHARED_CONTRIBUTIONS_ENABLED) {
+    return {
+      ...current,
+      shared_opt_in_enabled: false,
+    }
+  }
+
   const next = {
     ...current,
     shared_opt_in_enabled: true,

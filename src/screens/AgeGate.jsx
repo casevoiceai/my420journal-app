@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { localStore } from '../lib/localStore'
+import { hasPin } from '../lib/pin'
 import { isDevMode } from '../lib/dev'
 import { AGE_GATE_TEST_CODE, isRuntimeTestConvenienceEnabled } from '../lib/testConvenience'
 
@@ -43,10 +45,19 @@ export default function AgeGate() {
   const [testCode, setTestCode] = useState('')
   const [error, setError] = useState('')
 
-  function handleContinue() {
+  async function continueToJournal() {
+    const { data: { user } } = await localStore.auth.getUser()
+    if (user) {
+      navigate(hasPin() ? '/pin' : '/home', { replace: true })
+      return
+    }
+    navigate('/signup', { replace: true })
+  }
+
+  async function handleContinue() {
     if (TEST_CONVENIENCE_ENABLED && testCode.trim() === AGE_GATE_TEST_CODE) {
       setError('')
-      navigate('/signup')
+      await continueToJournal()
       return
     }
 
@@ -59,7 +70,7 @@ export default function AgeGate() {
       return
     }
     setError('')
-    navigate('/signup')
+    await continueToJournal()
   }
 
   const selectStyle = {

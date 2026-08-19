@@ -1,8 +1,11 @@
 import {
   buildPrivateTestingCookie,
+  buildPrivateTestingHashedCodeCookie,
   renderPrivateTestingGate,
   timingSafeEqualText,
+  timingSafeEqualTextToSha256Hex,
 } from '../../server/private-testing-access.js'
+import { getPhase1PreviewAccessCodeHash } from '../../server/phase1-preview-access.js'
 
 function gateHeaders() {
   return {
@@ -30,10 +33,15 @@ export async function onRequest({ request, env }) {
     suppliedCode = ''
   }
 
+  const url = new URL(request.url)
   const expectedCode = String(env?.JOURNAL_ACCESS_CODE ?? '').trim()
+  const previewCodeHash = expectedCode ? '' : getPhase1PreviewAccessCodeHash(url.hostname)
+
   const valid = expectedCode && suppliedCode
     ? await timingSafeEqualText(suppliedCode, expectedCode)
-    : false
+    : previewCodeHash && suppliedCode
+      ? await timingSafeEqualTextToSha256Hex(suppliedCode, previewCodeHash)
+      : false
 
   if (!valid) {
     return new Response(renderPrivateTestingGate({ showError: true }), {
@@ -42,12 +50,16 @@ export async function onRequest({ request, env }) {
     })
   }
 
+  const cookie = expectedCode
+    ? await buildPrivateTestingCookie(expectedCode)
+    : buildPrivateTestingHashedCodeCookie(suppliedCode)
+
   return new Response(null, {
     status: 303,
     headers: {
       'Cache-Control': 'no-store, max-age=0',
-      'Set-Cookie': await buildPrivateTestingCookie(expectedCode),
-      Location: '/',
+      'Set-Cookie': cookie,
+      Location: '/app',
     },
   })
 }

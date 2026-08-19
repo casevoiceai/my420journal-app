@@ -8,8 +8,8 @@ import {
   normalizeProductKey,
   normalizeProductName,
   normalizeStrainType,
-} from './sharedContributionBuckets'
-import { getSharedPrivacyState } from './sharedPrivacy'
+} from './sharedContributionBuckets.js'
+import { getSharedPrivacyState } from './sharedPrivacy.js'
 
 const VALID_MOOD_FACES = new Set(['good', 'meh', 'off', 'eww'])
 

@@ -8,27 +8,27 @@ const faqs = [
   },
   {
     question: 'Who can see my journal?',
-    answer: 'Nobody. Your entries are stored on your device. The people who built this app cannot see them. Your dispensary cannot see them. We collect anonymous behavioral signals only, aggregated, never individual, to help dispensaries understand what their customers respond to in general. Your specific entries, your specific data, and your identity are never transmitted, sold, or shared.',
+    answer: 'Your private journal entries stay on your device. If you choose to turn on Shared Journey View, a limited contribution can be held briefly under a random contributor identifier before it is folded into aggregate counts. Dispensaries do not receive your individual journal entries. See the Privacy Policy for the full Shared Journey data flow and deletion rules.',
   },
   {
     question: 'Do I need to know anything about terpenes to use this?',
-    answer: 'No. Log what you felt in your own words. Your guide does the pattern work. If you want to learn about terpenes, Herb N. Spices is the guide for that. If you just want to remember what you liked and find it at a good price, Bud Tendar handles that. You do not need to know the science to benefit from it.',
+    answer: 'No. Log what you felt in your own words. Your guide can help you look back at patterns in your own entries. You do not need to know the science to benefit from keeping a useful record.',
   },
   {
     question: 'Is this legal where I live?',
-    answer: 'my420journal is a journaling application. It does not sell cannabis, connect you to dispensaries, or facilitate any purchase. Using a journaling app is legal everywhere. What you journal about is governed by the laws of wherever you are. That part is yours to navigate.',
+    answer: 'Cannabis laws vary by jurisdiction. my420journal does not sell cannabis or facilitate cannabis purchases. You are responsible for knowing and following the laws that apply where you live and use the app.',
   },
   {
     question: "What is the guide's name?",
-    answer: 'You will find out when you sign up. There are five of them. You choose one. It is worth the thirty seconds it takes to meet them.',
+    answer: 'There are five guide personalities. You choose the voice that fits how you want to journal, and you can switch guides later.',
   },
   {
     question: 'How is my data stored?',
-    answer: 'On your device. Locally. The OCR scanning that reads your labels and receipts processes images on your device and discards them immediately after extraction. Nothing is sent to any server. This is not a policy we can change later, it is how the app is built.',
+    answer: 'Your private journal entries are stored locally on your device. Optional features can have separate data flows, including Shared Journey View, so the Privacy Policy is the controlling description of what leaves your device and when.',
   },
   {
     question: 'Can I switch guides after I choose one?',
-    answer: 'Yes. Your default guide is the one the app opens to, but all five are accessible any time with one tap. Your data is the same regardless of which guide you are talking to. Only the voice changes.',
+    answer: 'Yes. Your default guide is the one the app opens to, but all five are accessible any time with one tap. Your journal data is the same regardless of which guide you are using. Only the voice changes.',
   },
 ]
 
@@ -62,7 +62,7 @@ export function FAQSection({ id = undefined, tone = 'base' }) {
           fontSize: '17px',
           lineHeight: 1.7,
         }}>
-          Clear answers about privacy, storage, legality, guides, and how the app works.
+          Clear answers about privacy, storage, legal boundaries, guides, and how the app works.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

@@ -4,6 +4,7 @@ import {
 } from './weedGoblinsNarrationValidation.js'
 
 export const WEED_GOBLINS_NARRATION_ENDPOINT = '/api/weed-goblins-narration'
+export const PHASE1_EXTERNAL_TEST_LIVE_NARRATION_ENABLED = false
 
 const MOMENT_CONFIG = Object.freeze({
   'premise-statement': Object.freeze({ outcomes: Object.freeze(['premise']), troubleCost: 0 }),
@@ -181,6 +182,10 @@ function narrationRequest({ moment, outcome, event, state, hook, fallbackText, c
   }
 }
 
+async function disabledPhase1NarrationFetch() {
+  throw new Error('Live narration is disabled for Phase 1 external testing.')
+}
+
 async function generateValidatedNarration({
   moment,
   event,
@@ -189,12 +194,22 @@ async function generateValidatedNarration({
   staticFallbacks,
   blockedRealNames = [],
   endpoint = WEED_GOBLINS_NARRATION_ENDPOINT,
-  fetchImpl = fetch,
+  fetchImpl = PHASE1_EXTERNAL_TEST_LIVE_NARRATION_ENABLED ? fetch : disabledPhase1NarrationFetch,
 } = {}) {
   const outcome = resolveOutcome(moment, event, hook)
   assertSupportedNarration(moment, outcome, event, hook)
 
   const fallbackText = fallbackForNarration(hook, event, staticFallbacks)
+  if (fetchImpl === disabledPhase1NarrationFetch) {
+    return {
+      text: fallbackText,
+      source: 'static-fallback',
+      model: null,
+      attempts: 0,
+      validationFailures: [],
+    }
+  }
+
   const allowedFictionalNames = [
     hook?.fictionalStolenItem ?? state?.stolenItem,
     hook?.fictionalGoblinName ?? state?.goblinName,

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
-const disclaimerText = 'my420journal is a private journaling tool for adults in jurisdictions where cannabis is legal. It does not sell cannabis, provide medical advice, or connect you to any dispensary for purchase. Your entries stay on your device unless you choose to share anonymized signals through the opt-in Shared Signals feature.'
+const disclaimerText = 'my420journal is a private journaling tool for adults. It does not sell cannabis, provide medical advice, or facilitate cannabis purchases. Private journal entries stay on your device. Optional Shared Journey contributions have a separate, limited data flow described in the Privacy Policy. Cannabis laws vary by jurisdiction.'
 
 const sectionTabs = [
   { label: 'Home', href: '/#home' },
@@ -90,7 +90,7 @@ export default function MarketingLayout({ children }) {
                 textAlign: 'center',
               }}
             >
-              Already have an account? Sign in
+              Already using my420journal? Open the app
             </Link>
             <a
               href="/#contact"
@@ -226,7 +226,7 @@ export default function MarketingLayout({ children }) {
             />
             <FooterColumn
               heading="WHAT THIS IS"
-              lines={['A private journaling tool', 'Free, always', 'Local-first, your data stays on your device.']}
+              lines={['A private journaling tool', 'Free, always', 'Local-first, private journal entries stay on your device.']}
             />
             <FooterColumn
               heading="WHAT THIS IS NOT"

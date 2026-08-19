@@ -1,415 +1,42 @@
+import * as prior from './weedGoblinsLocalDataAdapterThroughChapterTwo.js'
 import { attachWeedGoblinsProgressionMetadata } from './weedGoblinsProgression.js'
+import {
+  CHAPTER_THREE,
+  CHAPTER_THREE_GROVE_STATES,
+  CHAPTER_THREE_REWARDS,
+} from './weedGoblinsChapterThree.js'
+import { CHAPTER_THREE_WOUNDS } from './weedGoblinsChapterThreeRuntime.js'
 
-const MAX_TEXT_LENGTH = 100
+export * from './weedGoblinsLocalDataAdapterThroughChapterTwo.js'
 
-export const PERSONALIZATION_LIMITS = Object.freeze({
-  productNames: 5,
-  productCategories: 3,
-  effectTags: 5,
-  terpeneLabels: 5,
-  fictionalLocationNames: 3,
-  previousRuns: 10,
-})
+const VALID_GROVE_STATES = new Set(CHAPTER_THREE_GROVE_STATES)
+const VALID_REWARDS = new Set(Object.values(CHAPTER_THREE_REWARDS))
 
-export const WEED_GOBLINS_RUNS_STORAGE_PREFIX =
-  'my420journal_local_v1:weed_goblins_runs'
-
-const LOCATION_NOUNS = Object.freeze([
-  'Warrens',
-  'Gatehouse',
-  'Galleries',
-  'Vaults',
-  'Causeway',
-  'Tribunal',
-  'Bastion',
-  'Cloisters',
-  'Cellars',
-  'Crossing',
-  'Arcade',
-  'Annex',
-  'Repository',
-  'Caverns',
-  'Archives',
-  'Halls',
-])
-
-const LOCATION_ADJECTIVES = Object.freeze([
-  'Mossbound',
-  'Copper',
-  'Lantern-Lit',
-  'Weathered',
-  'Moonlit',
-  'Quiet',
-  'Gilded',
-  'Hollow',
-  'Emberlit',
-  'Crooked',
-  'Hidden',
-  'Silvered',
-  'Rootbound',
-  'Brassbound',
-  'Verdant',
-  'High',
-])
-
-const LOCATION_ADJECTIVE_HINTS = Object.freeze([
-  Object.freeze([/\brestore(?:d|s|ing)?\b/i, 'Restored']),
-  Object.freeze([/\bjustice\b/i, 'Justiciar']),
-  Object.freeze([/\bcare\b/i, 'Sheltered']),
-  Object.freeze([/\bethos\b/i, 'Earnest']),
-  Object.freeze([/\bbeyond\b/i, 'Far']),
-  Object.freeze([/\bsunnyside\b/i, 'Sunlit']),
-  Object.freeze([/\borganic\b/i, 'Rootbound']),
-  Object.freeze([/\bprime\b/i, 'High']),
-  Object.freeze([/\bgreen\b/i, 'Verdant']),
-])
-
-const EFFECT_TRAIT_FLAVORS = Object.freeze({
-  body: Object.freeze([
-    'You favor solid footing, deliberate movement, and the sort of patience that makes loose stones nervous.',
-    'You carry yourself like someone who checks balance first and lets momentum arrive on schedule.',
-    'You trust steady movement and physical follow-through more than dramatic shortcuts.',
-  ]),
-  mind: Object.freeze([
-    'You approach obstacles as puzzles with suspiciously many acceptable diagrams.',
-    'You notice patterns quickly and keep a second theory ready in case the first one becomes a goblin.',
-    'You treat every locked door as a question that probably has footnotes.',
-  ]),
-  mood: Object.freeze([
-    'You meet strange situations with steady good humor and an alarming willingness to greet goblins politely.',
-    'You keep morale intact by treating absurdity as useful field information.',
-    'You assume most situations are salvageable until the paperwork proves otherwise.',
-  ]),
-  neutral: Object.freeze([
-    'You have developed a measured field style that is difficult for goblins to classify.',
-    'Your habits suggest a practical adventurer who prefers repeatable methods over dramatic guesses.',
-    'You enter the Highlands with a personal rhythm that does not require explanation.',
-  ]),
-})
-
-const TERPENE_THEME_HINTS = Object.freeze([
-  Object.freeze([/limonene/i, 'citrus']),
-  Object.freeze([/myrcene/i, 'low-fog']),
-  Object.freeze([/linalool/i, 'floral-hush']),
-  Object.freeze([/caryophyllene/i, 'pepper-spark']),
-  Object.freeze([/pinene/i, 'pine-shadow']),
-  Object.freeze([/terpinolene/i, 'herbal-wind']),
-  Object.freeze([/humulene/i, 'dry-green']),
-])
-
-const TERPENE_ENVIRONMENT_FLAVORS = Object.freeze({
-  citrus: Object.freeze([
-    'The Highlands air has a bright, citrus-sharp edge, and the rune-light looks almost too clean.',
-    'Bright, sharp air cuts through the mist while the old stones catch a pale gold gleam.',
-  ]),
-  'low-fog': Object.freeze([
-    'Low, heavy fog pools between the stones, making every lantern look farther away than it is.',
-    'A dense low mist drapes the path and turns the lower ruins into dark islands of stone.',
-  ]),
-  'floral-hush': Object.freeze([
-    'A pale floral hush hangs over the path, as if the moss has agreed to keep its voice down.',
-    'Soft violet light gathers around the old stones while the air stays strangely quiet.',
-  ]),
-  'pepper-spark': Object.freeze([
-    'Warm peppery sparks drift from the rune-stones whenever the path shifts underfoot.',
-    'The old masonry gives off a dry, pepper-bright crackle when the wind crosses it.',
-  ]),
-  'pine-shadow': Object.freeze([
-    'Resin-bright air and needle-dark shadows make the highland paths feel newly carved.',
-    'Dark evergreen shadows stripe the route while the air stays sharp and resinous.',
-  ]),
-  'herbal-wind': Object.freeze([
-    'The wind carries a bright herbal edge around old runes that hum when nobody touches them.',
-    'Herbal-scented gusts sweep the ridge and wake faint green light in the carved stones.',
-  ]),
-  'dry-green': Object.freeze([
-    'Dry green wind moves through the ruins and leaves the old stone smelling faintly of fields.',
-    'The route feels dry and green-edged, with brittle moss whispering against the masonry.',
-  ]),
-  neutral: Object.freeze([
-    'Thin silver mist follows the old stones, and faint rune-light gathers wherever the path narrows.',
-    'Moss-lanterns burn along the route with a quiet green light that the goblins insist is normal.',
-    'The Highlands carry a cool mineral haze, and the carved stones answer the wind with a low hum.',
-  ]),
-})
-
-const RUN_SUMMARY_FIELDS = Object.freeze([
-  'adventureId',
-  'gameId',
-  'chapterId',
-  'chapterNumber',
-  'chapterTitle',
-  'questId',
-  'questNumber',
-  'questTitle',
-  'backgroundId',
-  'stolenItem',
-  'routeId',
-  'midpointChoice',
-  'ending',
-  'outcomeSummary',
-  'trouble',
-  'manaRemaining',
-  'complicationCount',
-  'narrationTier',
-  'reason',
-])
-
-function cleanText(value) {
-  if (typeof value !== 'string') return ''
-  return value.trim().replace(/\s+/g, ' ').slice(0, MAX_TEXT_LENGTH)
+function cleanText(value, maxLength = 120) {
+  return typeof value === 'string'
+    ? value.trim().replace(/\s+/g, ' ').slice(0, maxLength)
+    : ''
 }
 
-function normalizeRankedLabels(values) {
-  if (!Array.isArray(values)) return []
-  const seen = new Set()
-  const labels = []
-  for (const value of values) {
-    const text = cleanText(value)
-    const key = text.toLocaleLowerCase('en-US')
-    if (!text || seen.has(key)) continue
-    seen.add(key)
-    labels.push(text)
-    if (labels.length >= 5) break
-  }
-  return labels
-}
-
-function stableTextHash(value) {
-  const text = cleanText(value).toLocaleLowerCase('en-US')
-  let hash = 2166136261
-  for (let index = 0; index < text.length; index += 1) {
-    hash ^= text.charCodeAt(index)
-    hash = Math.imul(hash, 16777619)
-  }
-  return hash >>> 0
-}
-
-export function buildEffectTraitFlavor(effectTags = [], dominantGroup = 'neutral') {
-  const labels = normalizeRankedLabels(effectTags)
-  if (labels.length === 0) return ''
-
-  const group = Object.hasOwn(EFFECT_TRAIT_FLAVORS, dominantGroup)
-    ? dominantGroup
-    : 'neutral'
-  const family = EFFECT_TRAIT_FLAVORS[group]
-  const hash = stableTextHash(`${group}:${labels.join('|')}`)
-  return family[hash % family.length]
-}
-
-export function buildTerpeneEnvironmentFlavor(terpeneLabels = []) {
-  const labels = normalizeRankedLabels(terpeneLabels)
-  if (labels.length === 0) return ''
-
-  const primary = labels[0]
-  const theme = TERPENE_THEME_HINTS.find(([pattern]) => pattern.test(primary))?.[1]
-    ?? 'neutral'
-  const family = TERPENE_ENVIRONMENT_FLAVORS[theme]
-  const hash = stableTextHash(labels.join('|'))
-  return family[hash % family.length]
-}
-
-export function fictionalizeDispensaryName(value) {
-  const normalized = cleanText(value)
-  if (!normalized) return ''
-
-  const hash = stableTextHash(normalized)
-  const hint = LOCATION_ADJECTIVE_HINTS.find(([pattern]) => pattern.test(normalized))
-  const adjective = hint?.[1]
-    ?? LOCATION_ADJECTIVES[(hash >>> 8) % LOCATION_ADJECTIVES.length]
-  const noun = LOCATION_NOUNS[hash % LOCATION_NOUNS.length]
-  return `The ${adjective} ${noun}`
-}
-
-function normalizeEntryType(value) {
-  return cleanText(value).toLowerCase()
-}
-
-function isCannabisJournalEntry(entry) {
-  const type = normalizeEntryType(entry?.entry_type)
-  return !type || type === 'cannabis'
-}
-
-function addRankedValue(index, value, order) {
-  const text = cleanText(value)
-  if (!text) return order
-  const key = text.toLocaleLowerCase('en-US')
-  const existing = index.get(key)
-  if (existing) {
-    existing.count += 1
-    return order
-  }
-  index.set(key, { value: text, count: 1, firstSeen: order })
-  return order + 1
-}
-
-function rankedValues(index, limit) {
-  return [...index.values()]
-    .sort((a, b) => b.count - a.count || a.firstSeen - b.firstSeen)
-    .slice(0, limit)
-    .map((item) => item.value)
-}
-
-function collectArrayValues(index, values, order) {
-  if (!Array.isArray(values)) return order
-  let nextOrder = order
-  for (const value of values) nextOrder = addRankedValue(index, value, nextOrder)
-  return nextOrder
-}
-
-function countStructuredValues(values) {
-  if (!Array.isArray(values)) return 0
-  return values.reduce((count, value) => count + (cleanText(value) ? 1 : 0), 0)
-}
-
-function dominantEffectGroup(counts) {
-  const groups = ['body', 'mind', 'mood']
-  const maximum = Math.max(...groups.map((group) => counts[group] || 0))
-  if (maximum <= 0) return 'neutral'
-  return groups.find((group) => (counts[group] || 0) === maximum) || 'neutral'
-}
-
-function collectTerpeneLabels(index, terpenes, order) {
-  if (!terpenes || typeof terpenes !== 'object' || Array.isArray(terpenes)) return order
-  let nextOrder = order
-  for (const label of Object.keys(terpenes)) {
-    nextOrder = addRankedValue(index, label, nextOrder)
-  }
-  return nextOrder
-}
-
-function safeInteger(value) {
+function safeInteger(value, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) {
   const number = Number(value)
   if (!Number.isFinite(number)) return null
-  return Math.max(0, Math.floor(number))
+  return Math.min(max, Math.max(min, Math.floor(number)))
 }
 
-function sanitizeRunSummary(summary) {
-  if (!summary || typeof summary !== 'object' || Array.isArray(summary)) return null
-  const safe = {}
-  for (const field of RUN_SUMMARY_FIELDS) {
-    const value = summary[field]
-    if (typeof value === 'string') {
-      const text = cleanText(value)
-      if (text) safe[field] = text
-    } else if (typeof value === 'number') {
-      const number = safeInteger(value)
-      if (number !== null) safe[field] = number
-    }
-  }
-  return Object.keys(safe).length > 0 ? safe : null
-}
-
-function sanitizePreviousRuns(previousRuns = []) {
-  if (!Array.isArray(previousRuns)) return []
-  return previousRuns
-    .map(sanitizeRunSummary)
-    .filter(Boolean)
-    .slice(-PERSONALIZATION_LIMITS.previousRuns)
-}
-
-export function createEmptyWeedGoblinsPersonalizationSnapshot() {
-  return {
-    productNames: [],
-    productCategories: [],
-    effectTags: [],
-    terpeneLabels: [],
-    effectTraitFlavor: '',
-    terpeneEnvironmentFlavor: '',
-    fictionalLocationNames: [],
-    entryCount: 0,
-    previousRuns: [],
-  }
-}
-
-export function buildWeedGoblinsPersonalizationSnapshot({
-  entries = [],
-  previousRuns = [],
-} = {}) {
-  const snapshot = createEmptyWeedGoblinsPersonalizationSnapshot()
-  if (!Array.isArray(entries)) {
-    snapshot.previousRuns = sanitizePreviousRuns(previousRuns)
-    return snapshot
-  }
-
-  snapshot.entryCount = entries.length
-  const cannabisEntries = entries.filter(isCannabisJournalEntry)
-
-  const productNames = new Map()
-  const productCategories = new Map()
-  const effectTags = new Map()
-  const terpeneLabels = new Map()
-  const dispensaryNames = new Map()
-  const effectGroupCounts = { body: 0, mind: 0, mood: 0 }
-  let productOrder = 0
-  let categoryOrder = 0
-  let effectOrder = 0
-  let terpeneOrder = 0
-  let dispensaryOrder = 0
-
-  for (const entry of cannabisEntries) {
-    productOrder = addRankedValue(productNames, entry?.product_name, productOrder)
-    categoryOrder = addRankedValue(productCategories, entry?.category, categoryOrder)
-    dispensaryOrder = addRankedValue(
-      dispensaryNames,
-      entry?.dispensary_name,
-      dispensaryOrder,
-    )
-    effectOrder = collectArrayValues(effectTags, entry?.body_tags, effectOrder)
-    effectOrder = collectArrayValues(effectTags, entry?.mind_tags, effectOrder)
-    effectOrder = collectArrayValues(effectTags, entry?.mood_tags, effectOrder)
-    effectGroupCounts.body += countStructuredValues(entry?.body_tags)
-    effectGroupCounts.mind += countStructuredValues(entry?.mind_tags)
-    effectGroupCounts.mood += countStructuredValues(entry?.mood_tags)
-    terpeneOrder = collectTerpeneLabels(terpeneLabels, entry?.terpenes, terpeneOrder)
-  }
-
-  snapshot.productNames = rankedValues(
-    productNames,
-    PERSONALIZATION_LIMITS.productNames,
-  )
-  snapshot.productCategories = rankedValues(
-    productCategories,
-    PERSONALIZATION_LIMITS.productCategories,
-  )
-  snapshot.effectTags = rankedValues(
-    effectTags,
-    PERSONALIZATION_LIMITS.effectTags,
-  )
-  snapshot.terpeneLabels = rankedValues(
-    terpeneLabels,
-    PERSONALIZATION_LIMITS.terpeneLabels,
-  )
-  snapshot.effectTraitFlavor = buildEffectTraitFlavor(
-    snapshot.effectTags,
-    dominantEffectGroup(effectGroupCounts),
-  )
-  snapshot.terpeneEnvironmentFlavor = buildTerpeneEnvironmentFlavor(
-    snapshot.terpeneLabels,
-  )
-  snapshot.fictionalLocationNames = rankedValues(
-    dispensaryNames,
-    PERSONALIZATION_LIMITS.fictionalLocationNames,
-  ).map(fictionalizeDispensaryName)
-  snapshot.previousRuns = sanitizePreviousRuns(previousRuns)
-  return snapshot
-}
-
-export function weedGoblinsRunStorageKey(userId) {
-  const safeUserId = cleanText(userId)
-  return safeUserId
-    ? `${WEED_GOBLINS_RUNS_STORAGE_PREFIX}:${safeUserId}`
-    : WEED_GOBLINS_RUNS_STORAGE_PREFIX
-}
-
-function readRunSummaries(storage, userId) {
-  if (!storage || typeof storage.getItem !== 'function') return []
+function readJson(storage, key, fallback) {
+  if (!storage || typeof storage.getItem !== 'function') return fallback
   try {
-    const raw = storage.getItem(weedGoblinsRunStorageKey(userId))
-    return raw ? JSON.parse(raw) : []
+    const raw = storage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
   } catch {
-    return []
+    return fallback
   }
+}
+
+function writeJson(storage, key, value) {
+  if (!storage || typeof storage.setItem !== 'function') return
+  storage.setItem(key, JSON.stringify(value))
 }
 
 async function resolveLocalStore(explicitStore) {
@@ -418,13 +45,138 @@ async function resolveLocalStore(explicitStore) {
   return module.localStore
 }
 
-async function resolveLocalUserId(localStore, explicitUserId) {
-  let resolvedUserId = cleanText(explicitUserId)
-  if (!resolvedUserId) {
-    const authResult = await localStore.auth.getUser()
-    resolvedUserId = cleanText(authResult?.data?.user?.id)
+async function resolveUserId(store, explicitUserId) {
+  const supplied = cleanText(explicitUserId, 100)
+  if (supplied) return supplied
+  const result = await store.auth.getUser()
+  return cleanText(result?.data?.user?.id, 100)
+}
+
+function sanitizeRewards(value) {
+  if (!Array.isArray(value)) return []
+  return [...new Set(value.map((reward) => cleanText(reward, 100)).filter((reward) => VALID_REWARDS.has(reward)))]
+}
+
+function sanitizeChapterThreeBranches(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const groveState = cleanText(value.groveState, 60)
+  return {
+    groveState: VALID_GROVE_STATES.has(groveState) ? groveState : 'drained',
+    falseCureKnown: value.falseCureKnown === true,
+    kipWarningHeeded: value.kipWarningHeeded === true,
+    stalkerOutcome: cleanText(value.stalkerOutcome, 100) || 'unresolved',
+    nurseryOutcome: cleanText(value.nurseryOutcome, 100) || 'unresolved',
+    nightlyDrawOutcome: cleanText(value.nightlyDrawOutcome, 100) || 'unresolved',
+    bramblekinAllied: value.bramblekinAllied === true,
+    majorTruth: cleanText(value.majorTruth, 240) || 'The Cultivator is feeding through a deeper root network.',
+    rememberedConsequence: cleanText(value.rememberedConsequence, 300),
   }
-  return resolvedUserId
+}
+
+function sanitizeChapterThreeRunSummary(summary) {
+  if (!summary || summary.adventureId !== CHAPTER_THREE.adventureId) return null
+  const metadata = attachWeedGoblinsProgressionMetadata(summary)
+  const safe = {
+    adventureId: CHAPTER_THREE.adventureId,
+    seed: cleanText(metadata.seed, 200),
+    gameId: cleanText(metadata.gameId, 80),
+    chapterId: cleanText(metadata.chapterId, 80),
+    chapterNumber: safeInteger(metadata.chapterNumber, { min: 1, max: 99 }) ?? 3,
+    chapterTitle: cleanText(metadata.chapterTitle, 120),
+    questId: cleanText(metadata.questId, 80),
+    questNumber: safeInteger(metadata.questNumber, { min: 1, max: 99 }) ?? 1,
+    questTitle: cleanText(metadata.questTitle, 120),
+    backgroundId: cleanText(metadata.backgroundId, 80),
+    ending: cleanText(metadata.ending, 100),
+    outcomeSummary: cleanText(metadata.outcomeSummary, 300),
+    trouble: safeInteger(metadata.trouble, { min: 0, max: 3 }) ?? 0,
+    manaRemaining: safeInteger(metadata.manaRemaining, { min: 0, max: 20 }) ?? 0,
+    complicationCount: safeInteger(metadata.complicationCount, { min: 0, max: 1000 }) ?? 0,
+    narrationTier: cleanText(metadata.narrationTier, 80) || 'normal',
+    reason: cleanText(metadata.reason, 160),
+    rootcoinRemaining: safeInteger(metadata.rootcoinRemaining, { min: 0, max: 99 }) ?? 0,
+    wound: CHAPTER_THREE_WOUNDS.includes(metadata.wound) ? metadata.wound : 'None',
+    chapterThreeBranches: sanitizeChapterThreeBranches(metadata.chapterThreeBranches),
+    chapterThreeRewards: sanitizeRewards(metadata.chapterThreeRewards),
+  }
+  for (const key of Object.keys(safe)) {
+    if (safe[key] === '' || safe[key] === null || safe[key] === undefined) delete safe[key]
+  }
+  return safe
+}
+
+function sanitizeChapterThreeCampaign(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const completedRunCount = safeInteger(value.completedRunCount, { min: 0, max: 100000 }) ?? 0
+  if (completedRunCount <= 0 && !cleanText(value.lastRunSeed, 200)) return null
+  return {
+    completedRunCount,
+    lastRunSeed: cleanText(value.lastRunSeed, 200),
+    lastEnding: cleanText(value.lastEnding, 100),
+    groveState: VALID_GROVE_STATES.has(cleanText(value.groveState, 60)) ? cleanText(value.groveState, 60) : 'drained',
+    latestBranches: sanitizeChapterThreeBranches(value.latestBranches) || sanitizeChapterThreeBranches({}),
+    rewards: sanitizeRewards(value.rewards),
+    rootcoin: safeInteger(value.rootcoin, { min: 0, max: 99 }) ?? 0,
+    wound: CHAPTER_THREE_WOUNDS.includes(value.wound) ? value.wound : 'None',
+  }
+}
+
+function campaignStateWithChapterThree(baseCampaign, storedCampaign) {
+  const chapterThree = sanitizeChapterThreeCampaign(storedCampaign?.chapterThree)
+  return chapterThree ? { ...baseCampaign, chapterThree } : baseCampaign
+}
+
+function enrichChapterThreeHistory(baseHistory, storage, userId) {
+  if (!Array.isArray(baseHistory)) return []
+  const raw = readJson(storage, prior.weedGoblinsRunStorageKey(userId), [])
+  if (!Array.isArray(raw)) return baseHistory
+  const chapterThreeBySeed = new Map(
+    raw
+      .filter((run) => run?.adventureId === CHAPTER_THREE.adventureId)
+      .map(sanitizeChapterThreeRunSummary)
+      .filter(Boolean)
+      .map((run) => [cleanText(run.seed, 200), run]),
+  )
+  return baseHistory.map((run) => {
+    if (run?.adventureId !== CHAPTER_THREE.adventureId) return run
+    return chapterThreeBySeed.get(cleanText(run.seed, 200)) || run
+  })
+}
+
+function mergeChapterThreeHistory(baseHistory, summary) {
+  const withoutSameSeed = baseHistory.filter((run) => !(
+    run?.adventureId === CHAPTER_THREE.adventureId
+    && summary.seed
+    && cleanText(run.seed, 200) === summary.seed
+  ))
+  return [...withoutSameSeed, summary].slice(-10)
+}
+
+function advanceChapterThreeCampaign(baseCampaign, priorCampaign, summary, wasExistingSeed) {
+  const previous = sanitizeChapterThreeCampaign(priorCampaign?.chapterThree) || {
+    completedRunCount: 0,
+    lastRunSeed: '',
+    lastEnding: '',
+    groveState: 'drained',
+    latestBranches: sanitizeChapterThreeBranches({}),
+    rewards: [],
+    rootcoin: 0,
+    wound: 'None',
+  }
+  const branches = sanitizeChapterThreeBranches(summary.chapterThreeBranches) || previous.latestBranches
+  return {
+    ...baseCampaign,
+    chapterThree: {
+      completedRunCount: previous.completedRunCount + (wasExistingSeed ? 0 : 1),
+      lastRunSeed: summary.seed || previous.lastRunSeed,
+      lastEnding: summary.ending || previous.lastEnding,
+      groveState: branches.groveState,
+      latestBranches: branches,
+      rewards: sanitizeRewards([...previous.rewards, ...sanitizeRewards(summary.chapterThreeRewards)]),
+      rootcoin: safeInteger(summary.rootcoinRemaining, { min: 0, max: 99 }) ?? previous.rootcoin,
+      wound: CHAPTER_THREE_WOUNDS.includes(summary.wound) ? summary.wound : previous.wound,
+    },
+  }
 }
 
 export async function saveWeedGoblinsRunSummary({
@@ -434,46 +186,81 @@ export async function saveWeedGoblinsRunSummary({
   userId = null,
 } = {}) {
   const localStore = await resolveLocalStore(store)
-  const resolvedUserId = await resolveLocalUserId(localStore, userId)
+  const resolvedUserId = await resolveUserId(localStore, userId)
+  const campaignKey = resolvedUserId ? prior.weedGoblinsCampaignStorageKey(resolvedUserId) : null
+  const priorCampaign = campaignKey ? readJson(storage, campaignKey, {}) : {}
+
+  if (runSummary?.adventureId !== CHAPTER_THREE.adventureId) {
+    const result = await prior.saveWeedGoblinsRunSummary({ runSummary, store: localStore, storage, userId: resolvedUserId })
+    const chapterThree = sanitizeChapterThreeCampaign(priorCampaign?.chapterThree)
+    if (!chapterThree || !resolvedUserId) return result
+    const campaignState = { ...result.campaignState, chapterThree }
+    writeJson(storage, campaignKey, campaignState)
+    return { ...result, campaignState }
+  }
+
   if (!resolvedUserId) throw new Error('A local user is required to save Weed Goblins history.')
   if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function') {
     throw new Error('Writable local storage is required to save Weed Goblins history.')
   }
+  const safeSummary = sanitizeChapterThreeRunSummary(runSummary)
+  if (!safeSummary) throw new Error('A completed Chapter 3 run summary is required.')
 
-  const safeSummary = sanitizeRunSummary(
-    attachWeedGoblinsProgressionMetadata(runSummary),
-  )
-  if (!safeSummary) throw new Error('A completed Weed Goblins run summary is required.')
+  const historyBefore = readJson(storage, prior.weedGoblinsRunStorageKey(resolvedUserId), [])
+  const wasExistingSeed = Boolean(safeSummary.seed) && Array.isArray(historyBefore) && historyBefore.some((run) => (
+    run?.adventureId === CHAPTER_THREE.adventureId
+    && cleanText(run.seed, 200) === safeSummary.seed
+  ))
 
-  const previousRuns = sanitizePreviousRuns(readRunSummaries(storage, resolvedUserId))
-  const history = sanitizePreviousRuns([...previousRuns, safeSummary])
-  storage.setItem(weedGoblinsRunStorageKey(resolvedUserId), JSON.stringify(history))
+  const base = await prior.saveWeedGoblinsRunSummary({
+    runSummary,
+    store: localStore,
+    storage,
+    userId: resolvedUserId,
+  })
+  const enriched = enrichChapterThreeHistory(base.history, storage, resolvedUserId)
+  const history = mergeChapterThreeHistory(enriched, safeSummary)
+  writeJson(storage, prior.weedGoblinsRunStorageKey(resolvedUserId), history)
 
-  return {
-    summary: safeSummary,
-    history,
-  }
+  const campaignState = advanceChapterThreeCampaign(base.campaignState, priorCampaign, safeSummary, wasExistingSeed)
+  writeJson(storage, campaignKey, campaignState)
+  return { summary: safeSummary, history, campaignState }
 }
 
-export async function readWeedGoblinsPersonalizationSnapshot({
+export async function readWeedGoblinsCampaignState({
   store = null,
   storage = typeof localStorage === 'undefined' ? null : localStorage,
   userId = null,
 } = {}) {
   const localStore = await resolveLocalStore(store)
-  const resolvedUserId = await resolveLocalUserId(localStore, userId)
+  const resolvedUserId = await resolveUserId(localStore, userId)
+  const base = await prior.readWeedGoblinsCampaignState({ store: localStore, storage, userId: resolvedUserId })
+  if (!resolvedUserId) return base
+  const stored = readJson(storage, prior.weedGoblinsCampaignStorageKey(resolvedUserId), {})
+  return campaignStateWithChapterThree(base, stored)
+}
 
-  if (!resolvedUserId) return createEmptyWeedGoblinsPersonalizationSnapshot()
+export async function readWeedGoblinsLocalContext({
+  store = null,
+  storage = typeof localStorage === 'undefined' ? null : localStorage,
+  userId = null,
+} = {}) {
+  const localStore = await resolveLocalStore(store)
+  const resolvedUserId = await resolveUserId(localStore, userId)
+  const base = await prior.readWeedGoblinsLocalContext({ store: localStore, storage, userId: resolvedUserId })
+  if (!resolvedUserId) return base
+  const storedCampaign = readJson(storage, prior.weedGoblinsCampaignStorageKey(resolvedUserId), {})
+  return {
+    ...base,
+    snapshot: {
+      ...base.snapshot,
+      previousRuns: enrichChapterThreeHistory(base.snapshot?.previousRuns || [], storage, resolvedUserId),
+    },
+    campaignState: campaignStateWithChapterThree(base.campaignState, storedCampaign),
+  }
+}
 
-  const result = await localStore
-    .from('entries')
-    .select('*')
-    .eq('user_id', resolvedUserId)
-
-  if (result?.error) throw result.error
-
-  return buildWeedGoblinsPersonalizationSnapshot({
-    entries: result?.data || [],
-    previousRuns: readRunSummaries(storage, resolvedUserId),
-  })
+export async function readWeedGoblinsPersonalizationSnapshot(options = {}) {
+  const context = await readWeedGoblinsLocalContext(options)
+  return context.snapshot
 }

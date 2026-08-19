@@ -11,15 +11,15 @@ const GUIDES = [
     name: 'Bud Tendar',
     shortName: 'Bud',
     accent: '#C9A84C',
-    catchphrase: "Let's make every trip count.",
-    miniBio: 'Bud has spent years on the other side of the counter and now he is on yours. He knows the menus, the prices, and exactly how to get you the most for what you spend. With Bud, you stop guessing and start shopping with a plan.',
-    tag: 'DISPENSARY AND DEALS',
+    catchphrase: "Let's make your own history useful.",
+    miniBio: 'Bud is practical and direct. He helps you look back at what you logged, pull up recent product entries, and keep the conversation focused on your own journal.',
+    tag: 'PRACTICAL JOURNAL REVIEW',
     bullets: [
-      'Tracks dispensary prices and deals near you',
-      'Remembers what worked and what to avoid',
-      'Helps you plan every trip before you go',
+      'Reviews products you already logged',
+      'Helps you find recent entries and details',
+      'Does not tell you what to buy or use',
     ],
-    selectionConfirmation: 'Good choice. I am going to learn your preferences fast, keep an eye on prices, and make sure every trip counts. Ready when you are.',
+    selectionConfirmation: 'Good choice. We will keep this practical. You log it, and I will help you look back at what you actually recorded.',
     selectionConfirmationSub: null,
   },
   {
@@ -27,15 +27,15 @@ const GUIDES = [
     name: 'Sunny Day',
     shortName: 'Sunny',
     accent: '#FF7F5C',
-    catchphrase: 'Well... how are you, really?',
-    miniBio: 'Sunny is not here to just log your data. She wants to know how you are doing -- the real version, not the quick one. She remembers what you share and checks in like a friend who genuinely means it. Southern warmth, genuine curiosity, and nowhere else to be.',
-    tag: 'CONVERSATION AND EMOTIONAL TRACKING',
+    catchphrase: 'Well... what did you log?',
+    miniBio: 'Sunny is warm, conversational, and easygoing. She helps you revisit what is already in your journal without adding outside information or assumptions.',
+    tag: 'WARM JOURNAL REVIEW',
     bullets: [
-      'Checks in on how you are actually doing',
-      'Tracks emotional patterns over time',
-      'Remembers what you share session to session',
+      'Looks back at your recent product logs',
+      'Keeps the conversation grounded in your entries',
+      'Does not invent information you did not log',
     ],
-    selectionConfirmation: 'Oh... well. You picked me. I am so glad... I really am. We are going to figure some things out together, you and me. Take your time getting settled. I will be right here.',
+    selectionConfirmation: 'Oh... well. You picked me. I am so glad. You bring the journal, and we will look at what you actually recorded together.',
     selectionConfirmationSub: null,
   },
   {
@@ -43,15 +43,15 @@ const GUIDES = [
     name: 'Lucky Larry',
     shortName: 'Larry',
     accent: '#C17A3A',
-    catchphrase: 'I probably got a story about that.',
-    miniBio: 'Larry has been around this world longer than most apps have existed. He knows the history, the folklore, and the real stories behind what you are smoking. Nothing surprises him. Some of what he tells you is even true.',
-    tag: 'STRAIN HISTORY AND CULTURE',
+    catchphrase: 'I probably got a way to look back at that.',
+    miniBio: 'Larry keeps the conversation laid-back and story-like while staying grounded in your own logged history. He does not add strain lore or outside cannabis knowledge.',
+    tag: 'LAID-BACK JOURNAL REVIEW',
     bullets: [
-      'Deep knowledge of strain history and folklore',
-      'Dry, unhurried observations on what you log',
-      'Helps you stop rebuying the wrong thing',
+      'Reviews products and details you already logged',
+      'Keeps the tone dry and unhurried',
+      'Stays inside your own journal history',
     ],
-    selectionConfirmation: 'Alright. Larry. You made a solid call. I have been around long enough to know what I am doing. We are going to figure out what works for you. It will take a little time. That is fine. I got time.',
+    selectionConfirmation: 'Alright. Larry. You made a solid call. We will take our time and work with what you actually logged. I got time.',
     selectionConfirmationSub: null,
   },
   {
@@ -59,13 +59,13 @@ const GUIDES = [
     name: 'Herb N. Spices',
     shortName: 'Herb',
     accent: '#4ECDC4',
-    catchphrase: 'The chemistry explains everything.',
-    miniBio: 'Herb tracks terpene response patterns and gets genuinely excited about it. He says little out loud but thinks a great deal. If you want to understand why something worked -- not just that it worked -- Herb is your guide.',
-    tag: 'TERPENE SCIENCE AND EDUCATION',
+    catchphrase: 'Let us look at what you actually recorded.',
+    miniBio: 'Herb is detail-focused. He helps you pull structured details from your own entries, such as product information, mood, and effect tags, without adding outside cannabis science.',
+    tag: 'DETAIL-FOCUSED JOURNAL REVIEW',
     bullets: [
-      'Builds your personal terpene response profile',
-      'Explains the science behind what you feel',
-      'Quietly noting patterns while you use the app',
+      'Pulls structured details from your entries',
+      'Reviews recent product logs and recorded tags',
+      'Does not add outside cannabis science',
     ],
     selectionConfirmation: 'Okay. Good. Let us get started.',
     selectionConfirmationSub: 'genuinely excited. playing it very cool.',
@@ -75,15 +75,15 @@ const GUIDES = [
     name: 'Mary Jayne',
     shortName: 'Mary',
     accent: '#B088B0',
-    catchphrase: 'I am not being nosy. It is all useful.',
-    miniBio: 'Mary Jayne tracks the full picture -- what you used, how you felt, how you slept, what your body did with it. She asks questions that might feel personal. She acknowledges that. The answers make the data useful. She is entirely on your side.',
-    tag: 'WELLNESS AND SELF-CARE',
+    catchphrase: 'If you logged it, we can look back at it.',
+    miniBio: 'Mary Jayne is calm and personal. She helps you revisit products, notes, mood, and effect tags you recorded without turning your journal into medical advice.',
+    tag: 'CALM JOURNAL REVIEW',
     bullets: [
-      'Tracks sleep, mood, and physical response',
-      'Connects usage patterns to wellness outcomes',
-      'Supports tolerance breaks and intentional use',
+      'Reviews products and notes you logged',
+      'Helps you revisit mood and effect tags you recorded',
+      'Does not turn entries into medical advice',
     ],
-    selectionConfirmation: 'Good. I am glad you chose me. Here is how this works: you tell me what happened, I help you understand it. The more honest you are in your logs, the more useful I can be. I am on your side. That is the whole thing.',
+    selectionConfirmation: 'Good. I am glad you chose me. You tell the journal what happened, and I will help you look back at what you recorded. I am on your side. That is the whole thing.',
     selectionConfirmationSub: null,
   },
   {
@@ -245,10 +245,10 @@ function LocationPrefsScreen({ onSave, saving, saveError }) {
     <div style={{ minHeight: '100dvh', backgroundColor: S.bg, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
       <div style={{ flex: 1, overflowY: 'auto', padding: '48px 24px 180px', boxSizing: 'border-box', maxWidth: '420px', width: '100%', margin: '0 auto' }}>
         <h1 style={{ fontFamily: fontPlayfair, fontSize: '26px', fontWeight: '600', color: S.textPrimary, margin: '0 0 10px 0', lineHeight: '1.2' }}>
-          Where do you shop?
+          Where do you usually shop?
         </h1>
         <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, margin: '0 0 36px 0', lineHeight: '1.6' }}>
-          This helps us find dispensaries near you.
+          These optional preferences are saved with your local profile. They do not enable product recommendations or purchasing.
         </p>
 
         <div style={{ marginBottom: '28px' }}>
@@ -353,7 +353,6 @@ function GuidesOverview({ onSelect, onBack }) {
                   e.currentTarget.style.borderColor = S.border
                 }}
               >
-                {/* Right arrow */}
                 <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: S.border, display: 'flex', alignItems: 'center' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -385,16 +384,12 @@ function GuidesOverview({ onSelect, onBack }) {
   )
 }
 
-// ── Step 2: Individual guide detail ──────────────────────────────────────────
-
 function GuideDetail({ guide, onBack, onChoose, saving, saveError }) {
   const isStoner = guide.id === 'stoner'
   const chooseLabel = isStoner ? 'This is how I want it' : `Choose ${guide.shortName} as my guide`
 
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: S.bg, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-
-      {/* Top half — accent wash (or plain dark for stoner) */}
       <div style={{
         position: 'relative',
         background: isStoner
@@ -422,7 +417,6 @@ function GuideDetail({ guide, onBack, onChoose, saving, saveError }) {
         </p>
       </div>
 
-      {/* Bottom half — bio + bullets + buttons */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '28px 24px 160px', boxSizing: 'border-box' }}>
         <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, margin: '0 0 24px 0', lineHeight: '1.75' }}>
           {guide.miniBio}
@@ -440,7 +434,6 @@ function GuideDetail({ guide, onBack, onChoose, saving, saveError }) {
         )}
       </div>
 
-      {/* Fixed bottom buttons */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 24px 32px', backgroundColor: S.bg, borderTop: `1px solid ${S.border}`, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {saveError && <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.error, margin: '0 0 2px 0', lineHeight: '1.5', textAlign: 'center' }}>{saveError}</p>}
 
@@ -481,13 +474,9 @@ function GuideDetail({ guide, onBack, onChoose, saving, saveError }) {
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-
 export default function Onboarding() {
   const navigate      = useNavigate()
   const [searchParams] = useSearchParams()
-
-  // ?step=list → jump straight to guide list (guide-change flow from settings)
   const isGuideChangeOnly = searchParams.get('step') === 'list'
 
   const [view,       setView]       = useState(() => isGuideChangeOnly ? 'list' : 'intro')
@@ -556,7 +545,6 @@ export default function Onboarding() {
     navigate('/pin-setup')
   }
 
-  // Handle ?step=location deep-link from confirmation screen destination
   if (searchParams.get('step') === 'location' || showLocation) {
     return (
       <LocationPrefsScreen
@@ -567,7 +555,6 @@ export default function Onboarding() {
     )
   }
 
-  // Confirmation screen
   if (confirming) {
     return (
       <ConfirmationScreen
@@ -578,7 +565,6 @@ export default function Onboarding() {
     )
   }
 
-  // Guide detail view
   if (view === 'detail' && detailGuide) {
     return (
       <GuideDetail
@@ -591,7 +577,6 @@ export default function Onboarding() {
     )
   }
 
-  // All-guides list view
   if (view === 'list') {
     return (
       <GuidesOverview
@@ -601,7 +586,6 @@ export default function Onboarding() {
     )
   }
 
-  // Intro screen
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: S.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px 48px', boxSizing: 'border-box' }}>
       <div style={{ width: '100%', maxWidth: '420px', textAlign: 'center' }}>
@@ -610,7 +594,7 @@ export default function Onboarding() {
         </h1>
         <div style={{ width: '40px', height: '1px', backgroundColor: S.gold, margin: '32px auto', opacity: 0.5 }} />
         <p style={{ fontFamily: fontInter, fontSize: '16px', color: S.textSecondary, lineHeight: '1.75', margin: '0 0 48px 0' }}>
-          You are about to meet six guides. Each one has a different personality and unlocks a different layer of the app. Browse them all, then pick the one that fits.
+          You are about to meet six guide options. Five use different personalities to help you review the same local journal. S.T.O.N.E.R. keeps the experience to logging only. You can switch anytime.
         </p>
         <button
           style={goldBtnStyle()}

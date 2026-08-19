@@ -176,7 +176,7 @@ export default function Signup() {
     if (error) {
       const msg = error.message.toLowerCase()
       if (msg.includes('already registered') || msg.includes('already exists')) {
-        setLocalOnlyError('An account with this email already exists. Try signing in instead.')
+        setLocalOnlyError('A local profile with this email already exists on this device. Open it instead.')
       } else if (msg.includes('weak') || msg.includes('password')) {
         setLocalOnlyError('Password is too weak. Try a stronger password.')
       } else if (msg.includes('local')) {
@@ -232,7 +232,7 @@ export default function Signup() {
             lineHeight: '1.2',
           }}
         >
-          Create your account.
+          Create your local profile.
         </h1>
 
         <p
@@ -245,7 +245,7 @@ export default function Signup() {
             textAlign: 'center',
           }}
         >
-          Free forever. Your journal stays on this device.
+          Saved only on this device. Your journal stays here.
         </p>
 
         <div
@@ -319,7 +319,7 @@ export default function Signup() {
             onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = '#D4B460' }}
             onMouseLeave={(e) => { if (!loading) e.currentTarget.style.backgroundColor = loading ? '#8A7030' : '#C9A84C' }}
           >
-            {loading ? 'Creating account…' : 'Create your account'}
+            {loading ? 'Creating local profile…' : 'Create local profile'}
           </button>
 
           {localOnlyError && (
@@ -347,7 +347,7 @@ export default function Signup() {
             textAlign: 'center',
           }}
         >
-          Already have an account?{' '}
+          Already have a local profile on this device?{' '}
           <button
             onClick={() => navigate('/login')}
             style={{
@@ -362,7 +362,7 @@ export default function Signup() {
               textUnderlineOffset: '3px',
             }}
           >
-            Sign in
+            Open it
           </button>
         </p>
       </div>

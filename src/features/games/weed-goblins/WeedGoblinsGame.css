@@ -1,0 +1,523 @@
+.weed-goblins-v2 {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(84, 105, 58, 0.14), transparent 32rem),
+    #071007;
+  color: #eef2e7;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.weed-goblins-v2 button,
+.weed-goblins-v2 input {
+  font: inherit;
+}
+
+.weed-goblins-v2 button {
+  min-height: 44px;
+}
+
+.weed-goblins-v2__topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 8px 16px;
+  background: rgba(7, 16, 7, 0.94);
+  border-bottom: 1px solid #263426;
+  backdrop-filter: blur(12px);
+}
+
+.weed-goblins-v2__topbar > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+
+.weed-goblins-v2__topbar span {
+  color: #95a68b;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.weed-goblins-v2__topbar strong {
+  margin-top: 3px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.weed-goblins-v2__topbar button {
+  width: fit-content;
+  color: #dbe6d4;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.weed-goblins-v2__topbar > button:first-child {
+  justify-self: start;
+  padding: 8px 0;
+}
+
+.weed-goblins-v2__e-button {
+  justify-self: end;
+  width: 42px !important;
+  height: 42px;
+  min-height: 42px !important;
+  border: 1px solid #53694a !important;
+  border-radius: 999px !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+
+.weed-goblins-v2__page {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: 20px 18px 72px;
+}
+
+.weed-goblins-v2__status {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 26px;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.weed-goblins-v2__status > div {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 82px;
+  padding: 8px 10px;
+  background: #101b10;
+  border: 1px solid #293829;
+  border-radius: 10px;
+}
+
+.weed-goblins-v2__status span {
+  color: #8fa087;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.weed-goblins-v2__status strong {
+  color: #f2f4eb;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.weed-goblins-v2__story {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.weed-goblins-v2__narration {
+  color: #e8ecdf;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(17px, 2.2vw, 19px);
+  line-height: 1.72;
+}
+
+.weed-goblins-v2__narration p {
+  margin: 0 0 1em;
+}
+
+.weed-goblins-v2__narration p:last-child {
+  margin-bottom: 0;
+}
+
+.weed-goblins-v2__player-action {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0;
+  padding: 12px 14px;
+  background: #132013;
+  border-left: 3px solid #839a65;
+  border-radius: 0 8px 8px 0;
+}
+
+.weed-goblins-v2__player-action span {
+  color: #91a08b;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.weed-goblins-v2__player-action strong {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.weed-goblins-v2__roll-record {
+  padding: 12px 14px;
+  background: #111a11;
+  border: 1px solid #334433;
+  border-radius: 10px;
+}
+
+.weed-goblins-v2__roll-record.is-dm {
+  border-style: dashed;
+}
+
+.weed-goblins-v2__roll-record-label {
+  margin-bottom: 5px;
+  color: #a9b69f;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.weed-goblins-v2__roll-record-math {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.weed-goblins-v2__roll-record-result {
+  margin-top: 4px;
+  color: #dbe4d1;
+  font-size: 13px;
+}
+
+.weed-goblins-v2__selection,
+.weed-goblins-v2__identity,
+.weed-goblins-v2__actions,
+.weed-goblins-v2__ruling,
+.weed-goblins-v2__freeform,
+.weed-goblins-v2__slice-end {
+  margin-top: 34px;
+  padding-top: 24px;
+  border-top: 1px solid #283728;
+}
+
+.weed-goblins-v2 h2 {
+  margin: 0 0 14px;
+  color: #f4f5ef;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.weed-goblins-v2__choice-grid,
+.weed-goblins-v2__action-list {
+  display: grid;
+  gap: 10px;
+}
+
+.weed-goblins-v2__choice-grid button,
+.weed-goblins-v2__action-list button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  width: 100%;
+  padding: 13px 14px;
+  color: #eff2e9;
+  text-align: left;
+  background: #101a10;
+  border: 1px solid #394b39;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.weed-goblins-v2__choice-grid button:hover:not(:disabled),
+.weed-goblins-v2__action-list button:hover:not(:disabled) {
+  background: #172317;
+  border-color: #708467;
+}
+
+.weed-goblins-v2__choice-grid button:active:not(:disabled),
+.weed-goblins-v2__action-list button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.weed-goblins-v2__choice-grid button.is-selected {
+  background: #1b2918;
+  border-color: #91aa72;
+  box-shadow: 0 0 0 1px #91aa72 inset;
+}
+
+.weed-goblins-v2__choice-grid button span,
+.weed-goblins-v2__action-list button span {
+  color: #a6b29f;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.weed-goblins-v2__choice-grid button strong,
+.weed-goblins-v2__action-list button strong {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.weed-goblins-v2__identity label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 16px;
+  color: #b7c2b0;
+  font-size: 13px;
+}
+
+.weed-goblins-v2__identity input,
+.weed-goblins-v2__freeform input {
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  color: #f3f5ee;
+  background: #0e170e;
+  border: 1px solid #3a4a3a;
+  border-radius: 9px;
+  outline: none;
+}
+
+.weed-goblins-v2__identity input:focus,
+.weed-goblins-v2__freeform input:focus,
+.weed-goblins-v2 button:focus-visible {
+  outline: 2px solid #a5be82;
+  outline-offset: 2px;
+}
+
+.weed-goblins-v2__primary,
+.weed-goblins-v2__roll-button,
+.weed-goblins-v2__freeform button {
+  margin-top: 14px;
+  padding: 10px 16px;
+  color: #091009;
+  font-weight: 750;
+  background: #a5be82;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.weed-goblins-v2 button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.weed-goblins-v2__ruling {
+  padding: 20px;
+  background: #111b11;
+  border: 1px solid #4b6048;
+  border-radius: 13px;
+}
+
+.weed-goblins-v2__ruling dl {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.weed-goblins-v2__ruling dl > div {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 8px;
+}
+
+.weed-goblins-v2__ruling dt {
+  color: #93a38d;
+  font-size: 12px;
+}
+
+.weed-goblins-v2__ruling dd {
+  margin: 0;
+  color: #e6eadf;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.weed-goblins-v2__eyebrow {
+  color: #9aac8f;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+
+.weed-goblins-v2__freeform label {
+  display: block;
+  margin-bottom: 8px;
+  color: #b2bdae;
+  font-size: 12px;
+}
+
+.weed-goblins-v2__freeform > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.weed-goblins-v2__freeform button {
+  margin-top: 0;
+}
+
+.weed-goblins-v2__error {
+  margin-top: 24px;
+  padding: 11px 13px;
+  color: #ffe9e3;
+  background: #391d17;
+  border: 1px solid #8b4a3d;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.weed-goblins-v2__slice-end {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: #dfe8d6;
+}
+
+.weed-goblins-v2__slice-end span {
+  color: #96a590;
+  font-size: 12px;
+}
+
+.weed-goblins-v2__sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(0, 0, 0, 0.64);
+}
+
+.weed-goblins-v2__sheet {
+  width: min(100%, 520px);
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 20px;
+  color: #eef2e7;
+  background: #0d160d;
+  border-left: 1px solid #344434;
+}
+
+.weed-goblins-v2__sheet > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.weed-goblins-v2__sheet h2 {
+  margin: 3px 0 0;
+  font-size: 26px;
+}
+
+.weed-goblins-v2__sheet > header button {
+  width: 44px;
+  color: #e7ebdf;
+  font-size: 30px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.weed-goblins-v2__sheet-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.weed-goblins-v2__sheet-grid section {
+  padding: 14px;
+  background: #121d12;
+  border: 1px solid #2c3d2c;
+  border-radius: 10px;
+}
+
+.weed-goblins-v2__sheet-grid h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.weed-goblins-v2__sheet-grid p,
+.weed-goblins-v2__sheet-grid li,
+.weed-goblins-v2__sheet-grid dd,
+.weed-goblins-v2__sheet-grid dt {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.weed-goblins-v2__sheet-grid dl {
+  margin: 0;
+}
+
+.weed-goblins-v2__sheet-grid dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid #233123;
+}
+
+.weed-goblins-v2__sheet-grid dl > div:last-child {
+  border-bottom: 0;
+}
+
+.weed-goblins-v2__sheet-grid dt {
+  color: #94a48e;
+}
+
+.weed-goblins-v2__sheet-grid dd {
+  margin: 0;
+  text-align: right;
+}
+
+.weed-goblins-v2__sheet-grid ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.weed-goblins-v2__restart {
+  width: 100%;
+  margin-top: 20px;
+  color: #d8ded3;
+  background: transparent;
+  border: 1px solid #566856;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.weed-goblins-v2__loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: #bac5b4;
+}
+
+@media (min-width: 700px) {
+  .weed-goblins-v2__page {
+    padding-top: 34px;
+  }
+
+  .weed-goblins-v2__choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weed-goblins-v2 *,
+  .weed-goblins-v2 *::before,
+  .weed-goblins-v2 *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

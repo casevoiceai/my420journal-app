@@ -109,8 +109,6 @@ function NumPad({ onDigit, onDelete }) {
   )
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-
 export default function PinEntry() {
   const navigate = useNavigate()
   const [pin, setPin] = useState('')
@@ -120,12 +118,18 @@ export default function PinEntry() {
   const [locked, setLocked] = useState(false)
   const [shake, setShake] = useState(false)
   const [profile, setProfile] = useState(isDevMode() ? DEV_PROFILE : null)
+  const [localUser, setLocalUser] = useState(null)
+  const [recoveryMode, setRecoveryMode] = useState(false)
+  const [recoveryPassword, setRecoveryPassword] = useState('')
+  const [recoveryError, setRecoveryError] = useState('')
+  const [recovering, setRecovering] = useState(false)
 
   useEffect(() => {
     if (isDevMode()) { navigate('/home'); return }
     async function load() {
       const { data: { user } } = await localStore.auth.getUser()
       if (!user) { navigate('/login'); return }
+      setLocalUser(user)
       const { data } = await localStore
         .from('user_profiles')
         .select('guide_selected, guide_name')
@@ -143,12 +147,40 @@ export default function PinEntry() {
     : meta?.name
   const guideAccent = meta?.accent ?? S.gold
 
-  async function sendResetEmail() {
-    if (isDevMode()) return
-    const { data: { user } } = await localStore.auth.getUser()
-    if (user?.email) {
-      await localStore.auth.resetPasswordForEmail(user.email)
+  function openRecovery() {
+    setRecoveryMode(true)
+    setRecoveryPassword('')
+    setRecoveryError('')
+    setError('')
+    setMessage('')
+  }
+
+  async function handleRecover(e) {
+    e.preventDefault()
+    if (!localUser?.email) {
+      setRecoveryError('Local profile information is unavailable on this device.')
+      return
     }
+    if (!recoveryPassword) {
+      setRecoveryError('Enter your local profile password.')
+      return
+    }
+
+    setRecovering(true)
+    setRecoveryError('')
+    const { error: signInError } = await localStore.auth.signInWithPassword({
+      email: localUser.email,
+      password: recoveryPassword,
+    })
+    setRecovering(false)
+
+    if (signInError) {
+      setRecoveryError('That password did not match this local profile.')
+      return
+    }
+
+    clearPin()
+    navigate('/pin-setup', { replace: true, state: { isReset: true } })
   }
 
   async function handleDigit(d) {
@@ -169,15 +201,13 @@ export default function PinEntry() {
           setAttempts(newAttempts)
           setPin('')
 
-          // Shake animation
           setShake(true)
           setTimeout(() => setShake(false), 400)
 
           if (newAttempts >= 3) {
             setLocked(true)
             setError('Too many attempts.')
-            await sendResetEmail()
-            setMessage('We sent a reset link to your email. Check your inbox.')
+            setMessage('Verify your local profile password to reset your PIN.')
           } else {
             setError(`Incorrect PIN. ${3 - newAttempts} attempt${3 - newAttempts === 1 ? '' : 's'} remaining.`)
           }
@@ -192,10 +222,85 @@ export default function PinEntry() {
     setError('')
   }
 
-  async function handleForgot() {
-    setLocked(true)
-    await sendResetEmail()
-    setMessage('We sent a reset link to your email. After clicking it, come back to set a new PIN.')
+  if (recoveryMode) {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        backgroundColor: S.bg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        boxSizing: 'border-box',
+      }}>
+        <div style={{ width: '100%', maxWidth: '380px' }}>
+          <h1 style={{
+            fontFamily: fontPlayfair,
+            fontSize: '28px',
+            fontWeight: '600',
+            color: S.textPrimary,
+            margin: '0 0 12px 0',
+            lineHeight: '1.2',
+            textAlign: 'center',
+          }}>
+            Reset your PIN.
+          </h1>
+          <p style={{
+            fontFamily: fontInter,
+            fontSize: '14px',
+            color: S.textSecondary,
+            margin: '0 0 28px 0',
+            lineHeight: '1.6',
+            textAlign: 'center',
+          }}>
+            Verify the password for the local profile stored on this device. No reset email is sent.
+          </p>
+
+          <form onSubmit={handleRecover}>
+            <label style={{ display: 'block', fontFamily: fontInter, fontSize: '11px', fontWeight: '600', color: S.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '7px' }}>
+              Local profile email
+            </label>
+            <input
+              value={localUser?.email || ''}
+              readOnly
+              style={{ width: '100%', height: '50px', backgroundColor: S.surface, border: `1px solid ${S.border}`, borderRadius: '8px', padding: '0 14px', boxSizing: 'border-box', fontFamily: fontInter, fontSize: '15px', color: S.textSecondary, marginBottom: '18px' }}
+            />
+
+            <label style={{ display: 'block', fontFamily: fontInter, fontSize: '11px', fontWeight: '600', color: S.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '7px' }}>
+              Local profile password
+            </label>
+            <input
+              type="password"
+              value={recoveryPassword}
+              onChange={(e) => { setRecoveryPassword(e.target.value); setRecoveryError('') }}
+              autoComplete="current-password"
+              style={{ width: '100%', height: '50px', backgroundColor: S.surface, border: `1px solid ${recoveryError ? S.error : S.border}`, borderRadius: '8px', padding: '0 14px', boxSizing: 'border-box', fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, outline: 'none', marginBottom: recoveryError ? '8px' : '18px' }}
+            />
+
+            {recoveryError && (
+              <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.error, margin: '0 0 18px 0', lineHeight: '1.5' }}>
+                {recoveryError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={recovering}
+              style={{ width: '100%', height: '54px', backgroundColor: recovering ? `${S.gold}70` : S.gold, color: S.bg, border: 'none', borderRadius: '10px', fontFamily: fontInter, fontSize: '15px', fontWeight: '700', cursor: recovering ? 'not-allowed' : 'pointer', marginBottom: '12px' }}
+            >
+              {recovering ? 'Verifying...' : 'Verify and reset PIN'}
+            </button>
+          </form>
+
+          <button
+            onClick={() => { setRecoveryMode(false); setLocked(false); setAttempts(0); setPin(''); setError(''); setMessage('') }}
+            style={{ width: '100%', background: 'none', border: 'none', fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, cursor: 'pointer', padding: '10px' }}
+          >
+            Back to PIN entry
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -221,7 +326,6 @@ export default function PinEntry() {
         boxSizing: 'border-box',
       }}>
         <div style={{ width: '100%', maxWidth: '360px', textAlign: 'center' }}>
-          {/* Guide name chip */}
           {guideName && (
             <p style={{
               fontFamily: fontInter,
@@ -273,23 +377,21 @@ export default function PinEntry() {
 
           {!locked && <NumPad onDigit={handleDigit} onDelete={handleDelete} />}
 
-          {!locked && !message && (
-            <button
-              onClick={handleForgot}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontFamily: fontInter,
-                fontSize: '12px',
-                color: S.textSecondary,
-                cursor: 'pointer',
-                marginTop: '20px',
-                padding: '8px',
-              }}
-            >
-              Forgot my code
-            </button>
-          )}
+          <button
+            onClick={openRecovery}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontFamily: fontInter,
+              fontSize: '12px',
+              color: S.textSecondary,
+              cursor: 'pointer',
+              marginTop: '20px',
+              padding: '8px',
+            }}
+          >
+            Forgot my PIN
+          </button>
         </div>
       </div>
     </>

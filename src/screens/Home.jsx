@@ -15,7 +15,7 @@ const fontInter    = "'Inter', sans-serif"
 const fontPlayfair = "'Playfair Display', serif"
 
 const GUIDE_META = {
-  bud:    { name: 'Bud Tendar',       accent: '#C9A84C', greeting: "What are we shopping for?"         },
+  bud:    { name: 'Bud Tendar',       accent: '#C9A84C', greeting: "What are we logging?"              },
   sunny:  { name: 'Sunny Day',        accent: '#FF7F5C', greeting: 'Ready when you are.'               },
   larry:  { name: 'Lucky Larry',      accent: '#C17A3A', greeting: 'What did you get?'                 },
   herb:   { name: 'Herb N. Spices',   accent: '#4ECDC4', greeting: 'Log something. I will look at it.' },
@@ -113,6 +113,25 @@ export default function Home() {
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = S.surface }}
         >
           Talk to Your Guide
+        </button>
+
+        {/* Phase 1 games — full width */}
+        <button
+          onClick={() => navigate('/games')}
+          style={{
+            width: '100%', height: '76px',
+            backgroundColor: S.surface,
+            border: `1px solid ${S.gold}`,
+            borderRadius: '12px', cursor: 'pointer',
+            fontFamily: fontPlayfair, fontSize: '18px', fontWeight: '600',
+            color: S.gold,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background-color 0.12s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${S.gold}14` }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = S.surface }}
+        >
+          Play Games
         </button>
 
         {/* Quick Log + Full Log */}

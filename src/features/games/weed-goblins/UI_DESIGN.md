@@ -1,41 +1,170 @@
-# Weed Goblins Interface Design
+# Weed Goblins — RPG UI Design v2
 
-## Locked presentation
+Status: CONTROLLING for the RPG vertical slice. Supersedes the messenger/chat UI.
 
-Weed Goblins is presented as a compact tabletop fantasy adventure. It must read immediately as a game, not as a private text conversation or a generic chat screen.
+## Design goal
 
-The screen always exposes four layers:
+The screen should feel like a readable fantasy adventure that tightens into a tabletop RPG interface when dice/combat matter. It must not look like Eliza and the player are texting each other.
 
-1. The quest header names Weed Goblins, the current chapter, quest, and scene.
-2. The objective states what the Goblin King stole and that the player must take it back.
-3. The character bar shows Strength, Defense, Mana, and Trouble whenever a background has been selected.
-4. The adventure log records Eliza's narration, the player's moves, rolls, and outcomes.
+## Main exploration screen
 
-Fantasy presentation uses dark woodland color, warm gold accents, serif story text, bordered panels, and a visible d20. No contact name, avatar, message status, phone-chat composer, or speech-bubble layout belongs in this game.
+Use a centered adventure-book reading column on the existing dark my420journal shell.
 
-## Player actions
+Top bar:
 
-Every deterministic engine action must remain visible as a full action card in every active scene. Free-text support adds a custom-action field below those cards. It never replaces or hides the built-in actions.
+- Back to Games control
+- Chapter label and location
+- compact E character-sheet button
 
-Each action card includes:
+Do not show online status, typing indicator, avatar conversation chrome, microphone, message bubbles, or fake timestamps.
 
-- the action name;
-- its immediate fictional intent;
-- the relevant check, Mana cost, advantage, or no-roll consequence;
-- a clear pressed, disabled, and keyboard-focus state.
+The primary content area contains sequential story entries:
 
-Selecting a card must immediately record the player's move in the adventure log and advance the engine. A failure to resolve must produce a visible error and restore the available actions. No interaction failure may be swallowed silently.
+- Eliza narration in normal paragraphs
+- committed player action as a compact labeled choice/action record, not a chat bubble
+- roll/ruling cards only when mechanics occur
+- contextual CYOA buttons below the current scene
+- a plain freeform action field below the buttons
 
-## Dice
+Only the current unresolved interaction is actionable. Prior history remains scrollable and readable but inert.
 
-A pending roll appears as a dedicated d20 control inside the adventure log. The player explicitly activates it. The resolved face then shows the selected number before the narrated outcome.
+## Typography/prose rendering
 
-Fixed engine actions that already resolve their check immediately may keep the final die attached to their narrated result. Free-text checks retain the explicit setup, roll, result, and outcome sequence.
+Narration uses normal paragraphs with comfortable line length and spacing. Never render each sentence as its own block.
 
-## Narration typography
+The UI must not encourage micro-paragraph generation. A narration entry can contain multiple paragraphs, but paragraph boundaries come from authored/narrator content, not automatic sentence splitting.
 
-Narration uses ordinary periods, commas, colons, and semicolons. Generated narration must not contain em dashes or en dashes. The Worker prompt prohibits them and client validation rejects them before display.
+## Choice presentation
 
-## Responsive behavior
+Normally show 3–4 contextual action buttons. Buttons should be short concrete actions or actual dialogue, for example:
 
-On phones, actions stack as full-width cards and the status bar uses four compact columns. On larger screens, actions use a two-column grid and the adventure is centered in a bounded game frame. The story log and action panel may scroll independently so controls remain reachable on short screens.
+- Follow them before they reach the bridge
+- Check the campsite and tracks first
+- Take the high trail above the gorge
+
+Do not use abstract repeated buttons such as Attack, Defend, Magic, Search, Continue.
+
+Freeform remains available under choices as an escape hatch. No microphone in v2.
+
+## Distributed character creation
+
+Character details appear only when relevant to play.
+
+After the first route choice, ask for name and race in the story flow. When equipment matters, show the six weapon choices. Before the first substantial uncertain check, show the three background choices with concise mechanical summaries.
+
+Do not show a separate character-creation page or a multi-question form.
+
+## Ruling and dice card
+
+Before a player roll, show a compact ruling card with:
+
+- action
+- relevant stat or capability
+- DC/target if the character knows it
+- advantage/disadvantage and reason
+- Mana/item cost if any
+- success stakes
+- failure risk
+
+Then show a single `Roll D20` control.
+
+After commit, reveal:
+
+- die result
+- modifier
+- total
+- target
+- success/failure
+
+If a successful attack deals damage, show a separate player-controlled damage roll afterward.
+
+Enemy/DM rolls animate visibly but have no player roll button. Clearly label them as DM rolls.
+
+## Combat mode
+
+Combat remains on the same page and in the same reading history. Do not switch to a dashboard.
+
+When combat is active, add a compact status strip:
+
+Player:
+- HP / Max HP
+- Mana / Max Mana
+- wound/condition when relevant
+- position
+
+Enemy:
+- name/type
+- descriptive health state, not exact HP
+- known/estimated Guard if learned
+- position
+- visible condition/morale when perceivable
+- telegraphed intent when perceivable
+
+Contextual actions remain below the current combat beat. Choices must change with position, alarm state, enemy intent, weapon, background, Mana, and prior actions.
+
+## Enemy information
+
+Do not expose exact enemy HP by default. Use descriptive states such as Unhurt, Hurt, Badly Wounded, Near Defeat, Down.
+
+Exact enemy Guard is learned through fighting, observation, or investigation rather than always shown from the first frame.
+
+## E character sheet
+
+The E control opens an overlay/drawer with these sections:
+
+1. Character
+   - name, race, Level, background
+   - Strength, Defense, Guard
+   - HP/Max HP, Mana/Max Mana
+   - wound/injury detail, conditions
+2. Gear & Pack
+   - permanent weapon and condition
+   - protective gear and condition
+   - significant pack slots
+   - story items, Rootcoin
+3. Abilities
+   - background signature
+   - race traits
+   - permanent unlocks
+4. Threads
+   - unresolved known obligations/objectives/promises
+5. Discoveries
+   - meaningful learned information and rumor/confirmed state
+6. People / Factions / Map
+   - descriptive relationship states
+   - faction knowledge/reputation where known
+   - discovered geography only
+
+The E sheet is not the main game screen.
+
+## Mobile behavior
+
+Mobile is the primary layout. Reading column fills the viewport with comfortable side padding. Choice buttons are full-width/tappable. Dice/ruling cards stack vertically. E opens as a full-height sheet or drawer.
+
+Desktop may widen the reading column modestly but should remain a reading experience, not become a multi-column dashboard.
+
+## Accessibility
+
+- minimum comfortable tap targets
+- high contrast
+- visible focus states
+- dice result always represented in text, not animation alone
+- status changes announced accessibly where practical
+- reduced-motion preference disables decorative roll animation
+
+## Forbidden legacy UI
+
+The following are explicitly superseded and must not appear in v2:
+
+- incoming/outgoing message bubbles
+- `Eliza is typing`
+- chat composer with send-arrow chrome
+- microphone/voice button
+- fake online/presence indicators
+- transcript as authoritative state
+- permanent `Attack / Defend / Magic` action bar
+- automatic one-sentence-per-paragraph rendering
+
+## Founder validation boundary
+
+The opening reading cadence and distributed creation through route → name/race → weapon were founder-approved in live play. Combat presentation, dice feel, and the Rattlebridge consequence flow remain subject to founder play validation after implementation.

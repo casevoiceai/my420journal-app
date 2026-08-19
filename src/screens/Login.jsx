@@ -97,12 +97,10 @@ function InputField({ label, type, value, onChange, placeholder, autoComplete })
 
 export default function Login() {
   const navigate = useNavigate()
-  const [email,     setEmail]     = useState(TEST_CONVENIENCE_ENABLED ? TEST_EMAIL : '')
-  const [password,  setPassword]  = useState(TEST_CONVENIENCE_ENABLED ? TEST_PASSWORD : '')
-  const [loading,   setLoading]   = useState(false)
-  const [error,     setError]     = useState('')
-  const [resetSent, setResetSent] = useState(false)
-  const [resetting, setResetting] = useState(false)
+  const [email,    setEmail]    = useState(TEST_CONVENIENCE_ENABLED ? TEST_EMAIL : '')
+  const [password, setPassword] = useState(TEST_CONVENIENCE_ENABLED ? TEST_PASSWORD : '')
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState('')
 
   async function handleSignIn(e) {
     e.preventDefault()
@@ -111,19 +109,8 @@ export default function Login() {
     const signIn = localStore.auth['signIn' + 'WithPassword']
     const { error: err } = await signIn.call(localStore.auth, { email: email.trim(), password })
     setLoading(false)
-    if (err) { setError(err.message || 'Sign in failed. Check your credentials.'); return }
+    if (err) { setError(err.message || 'Could not open the local profile. Check the email and password saved on this device.'); return }
     navigate(hasPin() ? '/pin' : '/home', { replace: true })
-  }
-
-  async function handleForgotPassword() {
-    if (!email.trim()) { setError('Enter your email address above first.'); return }
-    setError('')
-    setResetting(true)
-    const reset = localStore.auth['resetPassword' + 'ForEmail']
-    const { error: err } = await reset.call(localStore.auth, email.trim())
-    setResetting(false)
-    if (err) { setError(err.message || 'Local-only password reset is unavailable. Create a new local profile or use your PIN reset.'); return }
-    setResetSent(true)
   }
 
   return (
@@ -138,10 +125,10 @@ export default function Login() {
           fontFamily: fontPlayfair, fontSize: '26px', fontWeight: '600',
           color: S.textPrimary, margin: '0 0 8px 0', lineHeight: '1.2',
         }}>
-          Welcome back.
+          Open your local profile.
         </h1>
         <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, margin: '0 0 36px 0', lineHeight: '1.5' }}>
-          Sign in to your journal.
+          Use the email and password saved on this device.
         </p>
 
         <form onSubmit={handleSignIn} noValidate>
@@ -162,12 +149,6 @@ export default function Login() {
             </p>
           )}
 
-          {resetSent && !error && (
-            <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: '0 0 14px 0', lineHeight: '1.5' }}>
-              Password local reset notice sent. Check your inbox.
-            </p>
-          )}
-
           <button
             type="submit"
             disabled={loading}
@@ -183,28 +164,25 @@ export default function Login() {
             onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.backgroundColor = S.goldHover; e.currentTarget.style.transform = 'translateY(-1px)' } }}
             onMouseLeave={(e) => { if (!loading) { e.currentTarget.style.backgroundColor = S.gold; e.currentTarget.style.transform = 'translateY(0)' } }}
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Opening...' : 'Open local profile'}
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-          <button
-            onClick={handleForgotPassword}
-            disabled={resetting}
-            style={{
-              background: 'none', border: 'none', cursor: resetting ? 'default' : 'pointer',
-              fontFamily: fontInter, fontSize: '13px', color: S.textSecondary,
-              padding: '4px', opacity: resetting ? 0.6 : 1,
-            }}
-          >
-            {resetting ? 'Sending...' : 'Forgot password?'}
-          </button>
-        </div>
+        <p style={{
+          fontFamily: fontInter,
+          fontSize: '12px',
+          color: S.textSecondary,
+          margin: '0 0 18px 0',
+          lineHeight: '1.5',
+          textAlign: 'center',
+        }}>
+          Email password recovery is not available in this Phase 1 local-only build. Keep your local-profile password somewhere you can retrieve it.
+        </p>
 
         <p style={{ textAlign: 'center', fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0 }}>
-          New here?{' '}
+          New on this device?{' '}
           <Link to="/signup" style={{ color: S.gold, textDecoration: 'none', fontWeight: '500' }}>
-            Create an account
+            Create a local profile
           </Link>
         </p>
 

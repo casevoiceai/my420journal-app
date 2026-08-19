@@ -1,6 +1,6 @@
-import { submitContribution } from './sharedAggregateApi'
-import { mapEntryToSharedContribution } from './sharedContributionMapper'
-import { getSharedPrivacyState, markSharedSyncComplete } from './sharedPrivacy'
+import { submitContribution } from './sharedAggregateApi.js'
+import { mapEntryToSharedContribution } from './sharedContributionMapper.js'
+import { getSharedPrivacyState, markSharedSyncComplete } from './sharedPrivacy.js'
 
 const QUEUE_KEY = 'my420journal_shared_contribution_queue_v1'
 const MAX_QUEUE_AGE_MS = 7 * 24 * 60 * 60 * 1000
@@ -172,6 +172,7 @@ export async function submitEntryContribution(entry, options = {}) {
     const sharedState = getSharedPrivacyState(options.sharedState || {})
 
     if (sharedState.shared_opt_in_enabled !== true) {
+      clearSharedContributionQueue()
       return { ok: true, status: 'shared_opt_in_disabled', skipped: true }
     }
 

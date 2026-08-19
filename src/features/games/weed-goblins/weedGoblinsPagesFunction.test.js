@@ -1,33 +1,50 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { onRequest } from '../../../../functions/api/weed-goblins-narration.js'
-import { buildPrivateTestingCookie } from '../../../../server/private-testing-access.js'
+import {
+  isAllowedWeedGoblinsNarrationOrigin,
+  onRequest,
+} from '../../../../functions/api/weed-goblins-narration.js'
+import {
+  PRIVATE_TESTING_COOKIE,
+  createPrivateTestingSession,
+} from '../../../../server/private-testing-access.js'
 
-const TEST_ACCESS_CODE = 'journal-test-access-code'
+const ACCESS_CODE = 'journal-private-test-code'
 const env = {
-  JOURNAL_ACCESS_CODE: TEST_ACCESS_CODE,
+  JOURNAL_ACCESS_CODE: ACCESS_CODE,
   WEED_GOBLINS_NARRATION_WORKER_URL: 'https://private-worker.example.test',
   WEED_GOBLINS_PROXY_SECRET: 'private-shared-secret',
 }
-const testerCookie = (await buildPrivateTestingCookie(TEST_ACCESS_CODE)).split(';')[0]
 
-function makeRequest(origin = 'https://my420journal.app', { authorized = true } = {}) {
+async function makeRequest(origin = 'https://my420journal.app', {
+  authorized = true,
+  method = 'POST',
+} = {}) {
   const headers = {
     Origin: origin,
     'Content-Type': 'application/json',
     'CF-Connecting-IP': '203.0.113.42',
   }
-  if (authorized) headers.Cookie = testerCookie
+  if (authorized) {
+    const session = await createPrivateTestingSession(ACCESS_CODE)
+    headers.Cookie = `${PRIVATE_TESTING_COOKIE}=${session}`
+  }
 
   return new Request('https://my420journal.app/api/weed-goblins-narration', {
-    method: 'POST',
+    method,
     headers,
-    body: JSON.stringify({ moment: 'natural-one-complication' }),
+    body: method === 'POST'
+      ? JSON.stringify({
+          moment: 'natural-one-complication',
+          fictionalStolenItem: 'the Northern Lights Field Reliquary',
+          playerAction: 'I cross the bridge quietly.',
+        })
+      : undefined,
   })
 }
 
-test('rejects a request without a valid tester session before forwarding', async () => {
+test('rejects a request without a valid private-testing session', async () => {
   const originalFetch = globalThis.fetch
   let fetchCalls = 0
   globalThis.fetch = async () => {
@@ -36,18 +53,17 @@ test('rejects a request without a valid tester session before forwarding', async
   }
   try {
     const response = await onRequest({
-      request: makeRequest('https://my420journal.app', { authorized: false }),
+      request: await makeRequest('https://my420journal.app', { authorized: false }),
       env,
     })
     assert.equal(response.status, 401)
     assert.equal(fetchCalls, 0)
-    assert.deepEqual(await response.json(), { error: 'Private testing access required' })
   } finally {
     globalThis.fetch = originalFetch
   }
 })
 
-test('rejects an unapproved Origin before forwarding', async () => {
+test('rejects an unapproved Origin', async () => {
   const originalFetch = globalThis.fetch
   let fetchCalls = 0
   globalThis.fetch = async () => {
@@ -56,7 +72,7 @@ test('rejects an unapproved Origin before forwarding', async () => {
   }
   try {
     const response = await onRequest({
-      request: makeRequest('https://example.com'),
+      request: await makeRequest('https://example.com'),
       env,
     })
     assert.equal(response.status, 403)
@@ -66,84 +82,62 @@ test('rejects an unapproved Origin before forwarding', async () => {
   }
 })
 
-test('accepts only the two locked production origins', async () => {
-  const originalFetch = globalThis.fetch
-  const origins = []
-  globalThis.fetch = async (_url, init) => {
-    origins.push({
-      authorization: init.headers.Authorization,
-      sourceAddress: init.headers['X-Weed-Goblins-Source-IP'],
-    })
-    return new Response(JSON.stringify({ text: 'I record a harmless scheduling problem.' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
-  try {
-    for (const origin of ['https://my420journal.app', 'https://my420journal.com']) {
-      const response = await onRequest({ request: makeRequest(origin), env })
-      assert.equal(response.status, 200)
-      assert.equal((await response.json()).text, 'I record a harmless scheduling problem.')
-    }
-    assert.deepEqual(origins, [
-      {
-        authorization: 'Bearer private-shared-secret',
-        sourceAddress: '203.0.113.42',
-      },
-      {
-        authorization: 'Bearer private-shared-secret',
-        sourceAddress: '203.0.113.42',
-      },
-    ])
-  } finally {
-    globalThis.fetch = originalFetch
-  }
+test('keeps the locked production and preview origin checks intact', () => {
+  assert.equal(isAllowedWeedGoblinsNarrationOrigin('https://my420journal.app'), true)
+  assert.equal(isAllowedWeedGoblinsNarrationOrigin('https://my420journal.com'), true)
+  assert.equal(isAllowedWeedGoblinsNarrationOrigin('https://example.com'), false)
+
+  const previewHost = 'my420journal-app.pages.dev'
+  assert.equal(
+    isAllowedWeedGoblinsNarrationOrigin(
+      'https://feature-weed-goblins-session-zero.my420journal-app.pages.dev',
+      previewHost,
+    ),
+    true,
+  )
+  assert.equal(
+    isAllowedWeedGoblinsNarrationOrigin('https://my420journal-app.pages.dev', previewHost),
+    false,
+  )
+  assert.equal(
+    isAllowedWeedGoblinsNarrationOrigin('https://my420journal-app.pages.dev.evil.example', previewHost),
+    false,
+  )
+  assert.equal(
+    isAllowedWeedGoblinsNarrationOrigin(
+      'http://feature-weed-goblins-session-zero.my420journal-app.pages.dev',
+      previewHost,
+    ),
+    false,
+  )
 })
 
-test('passes a clean rate-limit response and Retry-After header through unchanged', async () => {
+test('authorized POST is refused for Phase 1 and never forwards the request body upstream', async () => {
   const originalFetch = globalThis.fetch
-  globalThis.fetch = async () => new Response(JSON.stringify({
-    error: 'Free-text narration rate limit reached. Please try again later.',
-    retry_after_seconds: 900,
-  }), {
-    status: 429,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Retry-After': '900',
-    },
-  })
+  let fetchCalls = 0
+  globalThis.fetch = async () => {
+    fetchCalls += 1
+    throw new Error('must not forward')
+  }
 
   try {
-    const response = await onRequest({ request: makeRequest(), env })
-    assert.equal(response.status, 429)
-    assert.equal(response.headers.get('Retry-After'), '900')
+    const response = await onRequest({ request: await makeRequest(), env })
+    assert.equal(response.status, 503)
+    assert.equal(fetchCalls, 0)
     assert.deepEqual(await response.json(), {
-      error: 'Free-text narration rate limit reached. Please try again later.',
-      retry_after_seconds: 900,
+      error: 'Live narration is disabled for Phase 1 external testing.',
+      status: 'phase1_live_narration_disabled',
     })
   } finally {
     globalThis.fetch = originalFetch
   }
 })
 
-test('keeps Worker URL and secret server-side and returns generic connection errors', async () => {
-  const originalFetch = globalThis.fetch
-  let target
-  let authorization
-  globalThis.fetch = async (url, init) => {
-    target = url
-    authorization = init.headers.Authorization
-    throw new Error(`could not reach ${url}`)
-  }
-  try {
-    const response = await onRequest({ request: makeRequest(), env })
-    const text = await response.text()
-    assert.equal(target, env.WEED_GOBLINS_NARRATION_WORKER_URL)
-    assert.equal(authorization, `Bearer ${env.WEED_GOBLINS_PROXY_SECRET}`)
-    assert.equal(response.status, 502)
-    assert.equal(text.includes(env.WEED_GOBLINS_NARRATION_WORKER_URL), false)
-    assert.equal(text.includes(env.WEED_GOBLINS_PROXY_SECRET), false)
-  } finally {
-    globalThis.fetch = originalFetch
-  }
+test('non-POST methods remain rejected before the Phase 1 disabled response', async () => {
+  const response = await onRequest({
+    request: await makeRequest('https://my420journal.app', { method: 'GET' }),
+    env,
+  })
+  assert.equal(response.status, 405)
+  assert.deepEqual(await response.json(), { error: 'Method not allowed' })
 })

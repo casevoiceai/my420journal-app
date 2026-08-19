@@ -63,7 +63,7 @@ export function HeroSection() {
             textShadow: '0 2px 18px rgba(0,0,0,0.4)',
           }}>
             Log what you tried. See what actually worked. <br />
-            Nothing leaves your device unless you choose to share it.
+            Your private journal entries are stored on your device. Optional Shared Journey contributions have a separate data flow described in the Privacy Policy.
           </p>
           <div className="marketing-hero-actions" style={{
             display: 'flex',

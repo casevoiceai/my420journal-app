@@ -5,12 +5,9 @@ import { onRequest } from '../../functions/api/shared/[[path]].js'
 import { buildPrivateTestingCookie } from '../../server/private-testing-access.js'
 
 const TEST_ACCESS_CODE = 'journal-access-test-secret'
-const TEST_PROXY_SECRET = 'journal-shared-proxy-test-secret'
 const testerCookie = (await buildPrivateTestingCookie(TEST_ACCESS_CODE)).split(';')[0]
 const env = {
   JOURNAL_ACCESS_CODE: TEST_ACCESS_CODE,
-  JOURNAL_SHARED_PROXY_SECRET: TEST_PROXY_SECRET,
-  SHARED_AGGREGATE_WORKER_URL: 'https://shared-worker.example.test',
 }
 
 function makeRequest(path, {
@@ -33,94 +30,90 @@ function makeRequest(path, {
   })
 }
 
-test('shared signals proxy rejects requests without a tester session before forwarding', async () => {
+async function withBlockedFetch(run) {
   const originalFetch = globalThis.fetch
   let fetchCalls = 0
   globalThis.fetch = async () => {
     fetchCalls += 1
     throw new Error('must not forward')
   }
-
   try {
+    await run(() => fetchCalls)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+}
+
+test('shared proxy rejects requests without a tester session and never forwards', async () => {
+  await withBlockedFetch(async (fetchCalls) => {
     const response = await onRequest({
       request: makeRequest('aggregates', { authorized: false }),
       env,
       params: { path: ['aggregates'] },
     })
-
     assert.equal(response.status, 401)
-    assert.equal(fetchCalls, 0)
-  } finally {
-    globalThis.fetch = originalFetch
-  }
+    assert.equal(fetchCalls(), 0)
+  })
 })
 
-test('shared signals proxy forwards only the approved route with server-side authorization', async () => {
-  const originalFetch = globalThis.fetch
-  let target
-  let authorization
-  globalThis.fetch = async (url, init) => {
-    target = String(url)
-    authorization = init.headers.Authorization
-    return new Response(JSON.stringify({ ok: true, effects: [] }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
-
-  try {
+test('authorized aggregate reads are disabled for Phase 1 and never forwarded', async () => {
+  await withBlockedFetch(async (fetchCalls) => {
     const response = await onRequest({
       request: makeRequest('aggregates?product_key=test'),
       env,
       params: { path: ['aggregates'] },
     })
-
-    assert.equal(response.status, 200)
-    assert.equal(target, 'https://shared-worker.example.test/aggregates?product_key=test')
-    assert.equal(authorization, `Bearer ${TEST_PROXY_SECRET}`)
-  } finally {
-    globalThis.fetch = originalFetch
-  }
+    assert.equal(response.status, 503)
+    assert.equal(fetchCalls(), 0)
+    assert.deepEqual(await response.json(), {
+      error: 'Shared Journey is disabled for Phase 1 external testing.',
+      status: 'phase1_shared_disabled',
+    })
+  })
 })
 
-test('shared signals proxy can reuse the existing server-only narration credential during secret migration', async () => {
-  const originalFetch = globalThis.fetch
-  let authorization
-  globalThis.fetch = async (_url, init) => {
-    authorization = init.headers.Authorization
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
-
-  try {
+test('authorized contribution writes are disabled for Phase 1 and never forwarded', async () => {
+  await withBlockedFetch(async (fetchCalls) => {
     const response = await onRequest({
-      request: makeRequest('aggregates?product_key=test'),
-      env: {
-        JOURNAL_ACCESS_CODE: TEST_ACCESS_CODE,
-        WEED_GOBLINS_PROXY_SECRET: 'existing-server-only-secret',
-        SHARED_AGGREGATE_WORKER_URL: 'https://shared-worker.example.test',
-      },
-      params: { path: ['aggregates'] },
+      request: makeRequest('contributions', {
+        method: 'POST',
+        body: { product_key: 'test' },
+      }),
+      env,
+      params: { path: ['contributions'] },
     })
-
-    assert.equal(response.status, 200)
-    assert.equal(authorization, 'Bearer existing-server-only-secret')
-  } finally {
-    globalThis.fetch = originalFetch
-  }
+    assert.equal(response.status, 503)
+    assert.equal(fetchCalls(), 0)
+  })
 })
 
-test('shared signals proxy does not expose the Worker admin purge route', async () => {
-  const originalFetch = globalThis.fetch
-  let fetchCalls = 0
-  globalThis.fetch = async () => {
-    fetchCalls += 1
-    throw new Error('must not forward')
-  }
+test('shared proxy still rejects an unapproved write Origin before the Phase 1 disabled response', async () => {
+  await withBlockedFetch(async (fetchCalls) => {
+    const response = await onRequest({
+      request: makeRequest('contributions', {
+        method: 'POST',
+        origin: 'https://example.com',
+        body: {},
+      }),
+      env,
+      params: { path: ['contributions'] },
+    })
+    assert.equal(response.status, 403)
+    assert.equal(fetchCalls(), 0)
+  })
+})
 
-  try {
+test('shared proxy still rejects the wrong method before the Phase 1 disabled response', async () => {
+  const response = await onRequest({
+    request: makeRequest('aggregates', { method: 'POST', body: {} }),
+    env,
+    params: { path: ['aggregates'] },
+  })
+  assert.equal(response.status, 405)
+})
+
+test('shared proxy does not expose the Worker admin purge route', async () => {
+  await withBlockedFetch(async (fetchCalls) => {
     const response = await onRequest({
       request: makeRequest('admin/purge-opted-out', {
         method: 'POST',
@@ -129,10 +122,7 @@ test('shared signals proxy does not expose the Worker admin purge route', async 
       env,
       params: { path: ['admin', 'purge-opted-out'] },
     })
-
     assert.equal(response.status, 404)
-    assert.equal(fetchCalls, 0)
-  } finally {
-    globalThis.fetch = originalFetch
-  }
+    assert.equal(fetchCalls(), 0)
+  })
 })

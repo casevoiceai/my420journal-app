@@ -1,13 +1,141 @@
+import {
+  CHAPTER_ONE_ROOMS,
+  createWeedGoblinsRoomState,
+  visitWeedGoblinsRoom,
+} from './weedGoblinsRooms.js'
+import { CHAPTER_ONE_REWARDS, CHAPTER_ONE_SCENE_TEXT, SESSION_ZERO_QUESTIONS, SESSION_ZERO_WELCOME as STATIC_SESSION_ZERO_WELCOME } from './weedGoblinsChapterOne.js'
+
 export const WEED_GOBLINS_NARRATOR_NAME = 'Eliza'
 
-export const WEED_GOBLINS_INTRODUCTION =
-  `Welcome to the Goblin Highlands. I'll be your narrator. I'm ${WEED_GOBLINS_NARRATOR_NAME}. I watch your boot stop beside one fresh goblin footprint pressed deep into the mud as the keep's gate closes above it.`
+export const WEED_GOBLINS_INTRODUCTION = CHAPTER_ONE_SCENE_TEXT.windcutTrail[0]
 
 export const WEED_GOBLINS_RETURNING_LINE =
   "You've been to the Goblin Highlands before. Last time you [outcome]. I'm curious whether you'll make the same choices."
 
+export const SESSION_ZERO_WELCOME = STATIC_SESSION_ZERO_WELCOME
+
+const SESSION_RACE_QUESTION = 'Human, dwarf, elf, or gnome?'
+const SESSION_WEAPON_QUESTION = SESSION_ZERO_QUESTIONS.weapon
+const SESSION_CLASS_QUESTION = SESSION_ZERO_QUESTIONS.background
+const SESSION_PRONOUN_QUESTION = SESSION_ZERO_QUESTIONS.pronoun
+const SESSION_LOOK_QUESTION = SESSION_ZERO_QUESTIONS.look
+
+export const PLAYER_NAME_SUGGESTIONS = Object.freeze([
+  'Fenna Duskrow',
+  'Corvin Ashwell',
+  'Rell Marrowlight',
+  'Sable Underhollow',
+])
+
+export const PLAYER_RACES = Object.freeze({
+  human: Object.freeze({
+    id: 'human',
+    label: 'Human',
+    flavor: 'Adaptable enough to fit wherever this story needs you to.',
+    reaction: 'Human. Ground you can stand on, more or less.',
+  }),
+  dwarf: Object.freeze({
+    id: 'dwarf',
+    label: 'Dwarf',
+    flavor: 'Built low, built to last, and built to hold a grudge as long as a mountain does.',
+    reaction: "Dwarf. I'd hate to be the door between you and wherever you're going.",
+  }),
+  elf: Object.freeze({
+    id: 'elf',
+    label: 'Elf',
+    flavor: "Quiet feet, quicker eyes, and a patience most things your age haven't earned yet.",
+    reaction: "Elf. You're already listening to something I haven't said yet.",
+  }),
+  gnome: Object.freeze({
+    id: 'gnome',
+    label: 'Gnome',
+    flavor: 'Small enough to slip through gaps nobody else bothers checking.',
+    reaction: "Gnome. Small target, and somehow that's never once made you careful.",
+  }),
+})
+
+export const PLAYER_WEAPONS = Object.freeze({
+  sword: Object.freeze({
+    id: 'sword',
+    label: 'Sword',
+    value: 'Sword',
+    flavor: 'Reliable, balanced, exactly as complicated as it needs to be.',
+    reaction: "A sword rides easy on your hip, like it's been there longer than you have.",
+  }),
+  bow: Object.freeze({
+    id: 'bow',
+    label: 'Bow',
+    value: 'Bow',
+    flavor: "Distance is a kind of honesty. You'd rather end a fight before it starts.",
+    reaction: 'A bow, restrung recently. You checked the tension twice before deciding it was fine.',
+  }),
+  battleAxe: Object.freeze({
+    id: 'battle-axe',
+    label: 'Battle Axe',
+    value: 'Battle Axe',
+    flavor: "Heavy, loud, and entirely uninterested in being anyone's second choice.",
+    reaction: 'The axe leaves a groove in the dirt when you set it down for a second.',
+  }),
+  boStaff: Object.freeze({
+    id: 'bo-staff',
+    label: 'Bo Staff',
+    value: 'Bo Staff',
+    flavor: 'Old discipline. Every strike already three moves planned.',
+    reaction: 'You spin the staff once, out of habit more than need.',
+  }),
+  mace: Object.freeze({
+    id: 'mace',
+    label: 'Mace',
+    value: 'Mace',
+    flavor: 'Blunt, direct, and heavier than it looks.',
+    reaction: 'The mace is heavier than it looks, and you clearly stopped noticing that a while ago.',
+  }),
+  daggers: Object.freeze({
+    id: 'daggers',
+    label: 'Daggers',
+    value: 'Daggers',
+    flavor: "Quick, close, and gone before anyone's sure what happened.",
+    reaction: 'Two daggers. I only spotted where you keep the second one because I was watching for it.',
+  }),
+})
+
+export const PLAYER_PRONOUN_OPTIONS = Object.freeze([
+  Object.freeze({ id: 'he', label: 'He', value: 'He' }),
+  Object.freeze({ id: 'she', label: 'She', value: 'She' }),
+  Object.freeze({ id: 'they', label: 'They', value: 'They' }),
+  Object.freeze({ id: 'skip', label: 'Skip this', value: null }),
+])
+
+export const PLAYER_LOOK_OPTIONS = Object.freeze([
+  Object.freeze({
+    id: 'tall-weathered',
+    label: 'Tall and weathered, hair silvered early, eyes the color of wet slate.',
+  }),
+  Object.freeze({
+    id: 'broad-scarred',
+    label: 'Broad-built and scarred, dark hair kept short, eyes a startling amber.',
+  }),
+  Object.freeze({
+    id: 'small-quick',
+    label: 'Small and quick, hair the color of dry grass, eyes that catch light strangely, faintly glowing at dusk.',
+  }),
+  Object.freeze({
+    id: 'heavyset-steady',
+    label: 'Heavyset and steady, hair long and braided, eyes a deep, ordinary brown that misses nothing.',
+  }),
+])
+
+export const WEAPON_FLAVOR_PHRASES = Object.freeze({
+  Sword: 'a clean cut',
+  Bow: 'an arrow finds its mark',
+  'Battle Axe': 'a heavy swing crushes through',
+  'Bo Staff': 'a precise, practiced strike',
+  Mace: 'a blunt crack connects',
+  Daggers: 'a quick double strike flickers in and out',
+})
+
 export const GOBLIN_KING_TAUNT_FALLBACK =
-  'I watch the Goblin King lean back on his throne and say, "You may begin whenever you are ready to disappoint yourself," with the confidence of someone who has already prepared the paperwork.'
+  "The Goblin King leans back on his throne in the Stash Hall. Crates are stacked behind him, one marked with a seal he clearly didn't design himself. 'You may begin,' he says, 'whenever you are ready to disappoint yourself.'"
 
 export const DIFFICULTY = Object.freeze({
   easy: 9,
@@ -34,38 +162,40 @@ export const NATURAL_ONE_COMPLICATIONS = Object.freeze([
   'A goblin stamps your sleeve TEMPORARY ASSISTANT. The stamp is permanent for the rest of the afternoon.',
   "The field reliquary acquires a dent shaped exactly like a goblin's opinion. Its contents remain secure.",
   'You reach the correct tactical position one minute after it stops being the correct tactical position.',
+  'The picture tribute ledger flips itself to a page consisting entirely of accusing little arrows.',
+  'One carved face on the stash latch bites your glove and then looks smug about the paperwork.',
 ])
 
 export const BACKGROUNDS = Object.freeze({
-  hauler: Object.freeze({
-    id: 'hauler',
-    name: 'Highlands Hauler',
+  tracker: Object.freeze({
+    id: 'tracker',
+    name: 'Highland Tracker',
     flavor:
-      "At the road's edge, I watch you settle empty carrying straps across your shoulders before the climb; steep ground has never stopped you from hauling what matters home.",
+      "At the road's edge, I watch you crouch beside the fresh goblin footprint and measure its stride; the trail into the Highlands has never hidden itself from you for long.",
     strength: 3,
     defense: 1,
     manaPool: 2,
-    ability: 'Shoulder Through',
+    ability: 'Push Through',
   }),
-  keeper: Object.freeze({
-    id: 'keeper',
-    name: 'Cautious Keeper',
+  warden: Object.freeze({
+    id: 'warden',
+    name: 'Trail Warden',
     flavor:
-      "At the road's edge, I watch you test every buckle and latch before following the Goblin King's trail; one overlooked detail is all a thief needs.",
+      "At the road's edge, I watch you check every strap and buckle before Rattlebridge comes into view; a warden who is careless at the crossing does not stay a warden long.",
     strength: 1,
     defense: 3,
     manaPool: 2,
-    ability: 'Nothing Gets Past Me',
+    ability: 'Hold the Line',
   }),
-  adept: Object.freeze({
-    id: 'adept',
-    name: 'Fog-Table Adept',
+  diviner: Object.freeze({
+    id: 'diviner',
+    name: 'Fen Diviner',
     flavor:
-      "At the road's edge, I watch you spread a weathered map across a stone as its ink shifts toward the Highlands; strange theories are useful when they point somewhere real.",
+      "At the road's edge, I watch you unfold a map that has never once agreed with the terrain it describes; it points toward the Highlands anyway, and that has been enough before.",
     strength: 1,
     defense: 2,
     manaPool: 4,
-    ability: 'Several Theories at Once',
+    ability: 'Read the Wrong Map Right',
   }),
 })
 
@@ -79,36 +209,44 @@ export const FIXED_TEST_ADVENTURE = Object.freeze({
     'the Brass-Latched Research Case',
   ]),
   goblinNames: Object.freeze([
-    'Crankle Moss-Tooth',
-    'Nib Wickerboot',
-    'Professor Grub',
-    'Skrint Approximately',
+    'Bracken Toewiggle',
+    'Marrow Pinchfinger',
+    'Grix Kettlebottom',
+    'Old Sump',
   ]),
   routes: Object.freeze({
-    ridge: Object.freeze({
-      id: 'ridge',
-      name: 'The Direct Ridge',
-      stat: 'strength',
-      dc: DIFFICULTY.standard,
-      successText: 'You move the stone gate before it finishes objecting.',
-      failureText: 'The stone gate wins the first argument.',
-    }),
-    fen: Object.freeze({
-      id: 'fen',
-      name: 'The Suspicious Fen',
+    quiet: Object.freeze({
+      id: 'quiet',
+      name: 'The Quiet Crossing',
       stat: 'defense',
       dc: DIFFICULTY.standard,
-      successText: 'You cross without allowing the fen to reorganize your belongings.',
-      failureText: 'The fen keeps one boot for administrative reasons.',
+      successText: 'You cross Rattlebridge without waking a single bottle-cap alarm.',
+      failureText: 'One bottle cap sings out before you can silence it.',
+    }),
+    loud: Object.freeze({
+      id: 'loud',
+      name: 'The Direct Crossing',
+      stat: 'strength',
+      dc: DIFFICULTY.standard,
+      successText: 'You cross Rattlebridge fast enough that the alarm lines never finish deciding what they heard.',
+      failureText: "Rattlebridge's alarm lines finish deciding before you're halfway across.",
     }),
   }),
 })
 
 const SCENES = Object.freeze({
+  sessionWelcome: 'session-zero-welcome',
+  sessionName: 'session-zero-name',
+  sessionRace: 'session-zero-race',
+  sessionWeapon: 'session-zero-weapon',
   background: 'choose-background',
+  sessionPronoun: 'session-zero-pronoun',
+  sessionLook: 'session-zero-look',
   route: 'choose-route',
   goblin: 'goblin-encounter',
   midpoint: 'midpoint',
+  camp: 'highland-camp',
+  latch: 'stash-latch',
   boss: 'goblin-king',
   ending: 'ending',
 })
@@ -147,6 +285,88 @@ function drawFromList(list, rngState) {
 
 function normalizeText(value) {
   return String(value ?? '').trim().replace(/\s+/g, ' ')
+}
+
+
+function isNameHelpRequest(value) {
+  const text = normalizeText(value).toLowerCase()
+  if (!text) return true
+  return /\b(?:help|suggest|suggestion|name idea|name ideas|not sure|don't know|do not know)\b/.test(text)
+}
+
+function weaponFlavorSentence(weapon) {
+  const phrase = WEAPON_FLAVOR_PHRASES[weapon] || 'a direct strike'
+  return `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}.`
+}
+
+function finalizeSessionZero(state, playerLook, actionId) {
+  const returningLine = normalizeText(state.returningLine)
+  const narration = [...state.narration, WEED_GOBLINS_INTRODUCTION]
+  if (returningLine) narration.push(returningLine)
+
+  return cloneState(state, {
+    playerLook,
+    returningLine: null,
+    sceneId: SCENES.route,
+    flags: { sessionZeroComplete: true },
+    history: [
+      ...state.history,
+      {
+        type: 'session-choice',
+        sceneId: SCENES.sessionLook,
+        actionId,
+        playerLook,
+      },
+    ],
+    narration,
+  })
+}
+
+export function isWeedGoblinsSessionTextScene(state) {
+  return Boolean(
+    state
+      && state.status !== 'completed'
+      && [SCENES.sessionName, SCENES.sessionLook].includes(state.sceneId),
+  )
+}
+
+export function advanceWeedGoblinsSessionText(state, value) {
+  if (!state || typeof state !== 'object') throw new Error('A run state is required.')
+  if (state.status === 'completed') throw new Error('This run is already complete.')
+
+  if (state.sceneId === SCENES.sessionName) {
+    const playerName = normalizeText(value).slice(0, 160)
+    if (playerName.length < 2 || isNameHelpRequest(playerName)) {
+      return cloneState(state, { flags: { nameSuggestionsVisible: true } })
+    }
+    return cloneState(state, {
+      playerName,
+      sceneId: SCENES.sessionRace,
+      flags: { nameSuggestionsVisible: false },
+      history: [
+        ...state.history,
+        {
+          type: 'session-choice',
+          sceneId: SCENES.sessionName,
+          actionId: 'session:name:custom',
+          playerName,
+        },
+      ],
+      narration: [
+        ...state.narration,
+        `${playerName}. Written down.`,
+        SESSION_RACE_QUESTION,
+      ],
+    })
+  }
+
+  if (state.sceneId === SCENES.sessionLook) {
+    const playerLook = normalizeText(value).slice(0, 160)
+    if (!playerLook) throw new Error('A character look is required.')
+    return finalizeSessionZero(state, playerLook, 'session:look:custom')
+  }
+
+  throw new Error(`Session text input is not available in scene ${state.sceneId}.`)
 }
 
 function normalizePriorCompletedRunCount(value) {
@@ -246,9 +466,35 @@ function appendEvent(state, event, narrationLine) {
   })
 }
 
+function enterRoom(state, roomId) {
+  if (state.currentRoomId === roomId) return state
+  return cloneState(state, {
+    currentRoomId: roomId,
+    roomState: visitWeedGoblinsRoom(state.roomState, roomId),
+  })
+}
+
+function enterHighlandCamp(state) {
+  return enterRoom(
+    cloneState(state, { sceneId: SCENES.camp }),
+    CHAPTER_ONE_ROOMS.highlandCamp.id,
+  )
+}
+
+function enterStashLatch(state) {
+  return enterRoom(
+    cloneState(state, { sceneId: SCENES.latch }),
+    CHAPTER_ONE_ROOMS.kingsStashHall.id,
+  )
+}
+
 function enterGoblinKingScene(state) {
-  return appendEvent(
+  const inStashHall = enterRoom(
     cloneState(state, { sceneId: SCENES.boss }),
+    CHAPTER_ONE_ROOMS.kingsStashHall.id,
+  )
+  return appendEvent(
+    inStashHall,
     {
       type: 'taunt',
       sceneId: SCENES.boss,
@@ -292,11 +538,13 @@ function spendMana(state, amount, actionId) {
 }
 
 function selectComplication(state, actionId) {
-  if (actionId === 'route:ridge') return NATURAL_ONE_COMPLICATIONS[0]
-  if (actionId === 'route:fen') return NATURAL_ONE_COMPLICATIONS[1]
+  if (actionId === 'route:loud') return NATURAL_ONE_COMPLICATIONS[0]
+  if (actionId === 'route:quiet') return NATURAL_ONE_COMPLICATIONS[1]
   if (String(actionId).startsWith('goblin:')) return NATURAL_ONE_COMPLICATIONS[2]
   if (String(actionId).startsWith('midpoint:')) return NATURAL_ONE_COMPLICATIONS[3]
   if (String(actionId).startsWith('boss:')) return NATURAL_ONE_COMPLICATIONS[4]
+  if (String(actionId).startsWith('camp:')) return NATURAL_ONE_COMPLICATIONS[5]
+  if (String(actionId).startsWith('latch:')) return NATURAL_ONE_COMPLICATIONS[6]
   return NATURAL_ONE_COMPLICATIONS[state.complicationCount % NATURAL_ONE_COMPLICATIONS.length]
 }
 
@@ -390,12 +638,24 @@ function resolveCheck(
 
 function endingNarration(ending, state) {
   if (ending === ENDINGS.recovery) {
-    return `You recover ${state.stolenItem}. The Goblin King has several objections. None are operational.`
+    return `You recover ${state.stolenItem} from the King's Stash Hall. The Goblin King insists he is a king. His fear, and the black-root seal stamped on every crate around you, say otherwise.`
   }
   if (ending === ENDINGS.bargain) {
-    return `You leave with ${state.stolenItem} and a formal agreement the goblins insist is customary. It is not customary.`
+    return `You leave the Stash Hall with ${state.stolenItem} and a bargain the goblins insist is customary. A tribute crate marked with the same black-root seal is already being carried off toward some place called the Hollow Market.`
   }
-  return `You escape the Highlands without ${state.stolenItem}. This is a defeat. It is also useful information for next time.`
+  return `You escape the Highlands without ${state.stolenItem}. A black-root seal on the nearest crate is the last thing you see before the trail closes behind you, someone else's tribute, headed somewhere you don't yet have a name for.`
+}
+
+function stolenItemConditionForRun(state, ending) {
+  if (ending === ENDINGS.escape) return 'not-recovered'
+  return state.trouble >= 2 ? 'altered' : 'intact'
+}
+
+function chapterOneRewardsForRun(state) {
+  const rewards = [CHAPTER_ONE_REWARDS.blackRootSeal]
+  if (state.flags.goblinFavor) rewards.push(CHAPTER_ONE_REWARDS.goblinFavor)
+  if (state.flags.hasHighlandCharm) rewards.push(CHAPTER_ONE_REWARDS.highlandCharm)
+  return rewards
 }
 
 function completeRun(state, ending, reason = null) {
@@ -410,6 +670,13 @@ function completeRun(state, ending, reason = null) {
     stolenItem: state.stolenItem,
     routeId: state.flags.routeId,
     midpointChoice: state.flags.midpointChoice,
+    chapterOneBranches: {
+      nibTreatment: state.flags.nibTreatment || 'ignored',
+      tributeArrangement: state.flags.tributeArrangement || 'unknown',
+      kingTreatment: state.flags.kingTreatment || 'unresolved',
+      stolenItemCondition: stolenItemConditionForRun(state, ending),
+    },
+    chapterOneRewards: chapterOneRewardsForRun(state),
     ending,
     outcomeSummary:
       ending === ENDINGS.recovery
@@ -463,9 +730,6 @@ export function createWeedGoblinsRun({
   const environmentThemeFlavor = normalizeText(journalSnapshot?.terpeneEnvironmentFlavor)
 
   const returningLine = buildReturningNarration(previousRuns)
-  const narration = returningLine
-    ? [returningLine, WEED_GOBLINS_INTRODUCTION]
-    : [WEED_GOBLINS_INTRODUCTION]
 
   return {
     version: 1,
@@ -474,7 +738,15 @@ export function createWeedGoblinsRun({
     seed: String(seed),
     rngState,
     status: 'active',
-    sceneId: SCENES.background,
+    sceneId: SCENES.sessionWelcome,
+    currentRoomId: CHAPTER_ONE_ROOMS.windcutTrail.id,
+    roomState: createWeedGoblinsRoomState(CHAPTER_ONE_ROOMS.windcutTrail.id),
+    playerName: null,
+    playerRace: null,
+    playerWeapon: null,
+    playerPronoun: null,
+    playerLook: null,
+    returningLine,
     background: null,
     stats: { strength: 0, defense: 0, manaPool: 0, maxMana: 0 },
     trouble: 0,
@@ -490,12 +762,21 @@ export function createWeedGoblinsRun({
       routeId: null,
       midpointChoice: null,
       goblinAlly: false,
+      goblinFavor: false,
+      hasHighlandCharm: false,
+      blackRootSealKnown: false,
+      nibTreatment: null,
+      tributeArrangement: null,
+      kingTreatment: null,
+      latchOutcome: null,
       bossDcModifier: 0,
+      sessionZeroComplete: false,
+      nameSuggestionsVisible: false,
     },
     ending: null,
     runSummary: null,
     history: [],
-    narration,
+    narration: [...SESSION_ZERO_WELCOME],
   }
 }
 
@@ -503,13 +784,200 @@ function optionalManaCost(options) {
   return options.useManaAdvantage === true || options.useManaReroll === true ? 1 : 0
 }
 
+function noRollPreview() {
+  return Object.freeze({
+    requiresRoll: false,
+    stat: null,
+    dc: null,
+    statBonus: 0,
+    requiredDie: null,
+    manaCost: 0,
+    advantage: false,
+  })
+}
+
+function checkPreview(state, { stat, dc, manaCost = 0 }) {
+  const statBonus = Number(state?.stats?.[stat]) || 0
+  return Object.freeze({
+    requiresRoll: true,
+    stat,
+    dc,
+    statBonus,
+    requiredDie: Math.min(20, Math.max(2, dc - statBonus)),
+    manaCost,
+    advantage: manaCost > 0,
+  })
+}
+
+function bossCheckDc(state) {
+  return Math.max(
+    DIFFICULTY.easy,
+    DIFFICULTY.goblinKing + state.flags.bossDcModifier,
+  )
+}
+
+export function getWeedGoblinsActionCheckPreview(state, actionId, options = {}) {
+  if (!state || typeof state !== 'object') throw new Error('A run state is required.')
+  const id = String(actionId ?? '')
+
+  if (id.startsWith('session:') || id.startsWith('background:')) return noRollPreview()
+
+  if (state.sceneId === SCENES.route) {
+    const routeId = id.split(':')[1]
+    const route = state.adventure.routes[routeId]
+    if (!route) return noRollPreview()
+    return checkPreview(state, {
+      stat: route.stat,
+      dc: route.dc,
+      manaCost: optionalManaCost(options),
+    })
+  }
+
+  if (state.sceneId === SCENES.goblin) {
+    if (id === 'goblin:channel') {
+      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: 1 })
+    }
+    if (id === 'goblin:strike') {
+      return checkPreview(state, {
+        stat: 'strength',
+        dc: DIFFICULTY.standard,
+        manaCost: optionalManaCost(options),
+      })
+    }
+    if (id === 'goblin:guard') {
+      return checkPreview(state, {
+        stat: 'defense',
+        dc: DIFFICULTY.standard,
+        manaCost: optionalManaCost(options),
+      })
+    }
+    return noRollPreview()
+  }
+
+  if (state.sceneId === SCENES.midpoint) {
+    if (['midpoint:help', 'midpoint:bait-nib', 'midpoint:skip'].includes(id)) return noRollPreview()
+    if (id === 'midpoint:read-runes') {
+      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: 1 })
+    }
+    if (id === 'midpoint:take-charm') {
+      return checkPreview(state, {
+        stat: 'defense',
+        dc: DIFFICULTY.easy,
+        manaCost: optionalManaCost(options),
+      })
+    }
+    if (id.startsWith('free-text:midpoint:')) {
+      const style = id.slice('free-text:midpoint:'.length)
+      const manaCost = style === 'mana' ? 1 : 0
+      const stat = style === 'strength' ? 'strength' : 'defense'
+      return checkPreview(state, { stat, dc: DIFFICULTY.standard, manaCost })
+    }
+    return noRollPreview()
+  }
+
+  if (state.sceneId === SCENES.camp) {
+    if (['camp:question-grubbin', 'camp:ask-old-tatter', 'camp:move-on'].includes(id)) {
+      return noRollPreview()
+    }
+    if (id === 'camp:force-ledger') {
+      return checkPreview(state, { stat: 'strength', dc: DIFFICULTY.standard, manaCost: optionalManaCost(options) })
+    }
+    if (['camp:expose-tribute', 'camp:protect-tribute'].includes(id)) {
+      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: optionalManaCost(options) })
+    }
+    return noRollPreview()
+  }
+
+  if (state.sceneId === SCENES.latch) {
+    if (id === 'latch:use-charm') return noRollPreview()
+    if (id === 'latch:channel') {
+      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: 1 })
+    }
+    if (id === 'latch:force') {
+      return checkPreview(state, { stat: 'strength', dc: DIFFICULTY.standard, manaCost: optionalManaCost(options) })
+    }
+    if (id === 'latch:read-face') {
+      return checkPreview(state, { stat: 'defense', dc: DIFFICULTY.standard, manaCost: optionalManaCost(options) })
+    }
+    return noRollPreview()
+  }
+
+  if (state.sceneId === SCENES.boss) {
+    if (id === 'boss:bargain') return noRollPreview()
+    const dc = bossCheckDc(state)
+    if (id === 'boss:spell') {
+      return checkPreview(state, { stat: 'defense', dc, manaCost: 2 })
+    }
+    if (id === 'boss:overpower') {
+      return checkPreview(state, {
+        stat: 'strength',
+        dc,
+        manaCost: optionalManaCost(options),
+      })
+    }
+    if (id === 'boss:outlast') {
+      return checkPreview(state, {
+        stat: 'defense',
+        dc,
+        manaCost: optionalManaCost(options),
+      })
+    }
+  }
+
+  return noRollPreview()
+}
+
 export function getAvailableActions(state) {
   if (!state || state.status === 'completed') return []
+
+
+  if (state.sceneId === SCENES.sessionWelcome) {
+    return [{ id: 'session:continue', label: 'Continue' }]
+  }
+
+  if (state.sceneId === SCENES.sessionName) {
+    if (!state.flags.nameSuggestionsVisible) return []
+    return PLAYER_NAME_SUGGESTIONS.map((name, index) => ({
+      id: `session:name:${index}`,
+      label: name,
+    }))
+  }
+
+  if (state.sceneId === SCENES.sessionRace) {
+    return Object.values(PLAYER_RACES).map((race) => ({
+      id: `session:race:${race.id}`,
+      label: race.label,
+      detail: race.flavor,
+    }))
+  }
+
+  if (state.sceneId === SCENES.sessionWeapon) {
+    return Object.values(PLAYER_WEAPONS).map((weapon) => ({
+      id: `session:weapon:${weapon.id}`,
+      label: weapon.label,
+      detail: weapon.flavor,
+    }))
+  }
+
 
   if (state.sceneId === SCENES.background) {
     return Object.values(BACKGROUNDS).map((background) => ({
       id: `background:${background.id}`,
       label: background.name,
+    }))
+  }
+
+  if (state.sceneId === SCENES.sessionPronoun) {
+    return PLAYER_PRONOUN_OPTIONS.map((option) => ({
+      id: `session:pronoun:${option.id}`,
+      label: option.label,
+    }))
+  }
+
+  if (state.sceneId === SCENES.sessionLook) {
+    return PLAYER_LOOK_OPTIONS.map((option) => ({
+      id: `session:look:${option.id}`,
+      label: option.label,
     }))
   }
 
@@ -534,20 +1002,46 @@ export function getAvailableActions(state) {
 
   if (state.sceneId === SCENES.midpoint) {
     const actions = [
-      { id: 'midpoint:help', label: 'Help the stranded goblin clerk' },
-      { id: 'midpoint:take-charm', label: 'Take the unattended brass charm' },
+      { id: 'midpoint:help', label: 'Keep Nib safe and help with the snapped tripwire' },
+      { id: 'midpoint:bait-nib', label: 'Use Nib as bait to draw the patrol away' },
+      { id: 'midpoint:take-charm', label: 'Take the unattended highland charm' },
       { id: 'midpoint:skip', label: 'Keep moving' },
     ]
     if (state.stats.manaPool >= 1) {
-      actions.push({ id: 'midpoint:read-runes', label: 'Spend 1 Mana for advantage while reading the gate runes' })
+      actions.push({ id: 'midpoint:read-runes', label: 'Spend 1 Mana for advantage while reading the old trail-runes at Cloudberry Shelf' })
+    }
+    return actions
+  }
+
+  if (state.sceneId === SCENES.camp) {
+    return [
+      { id: 'camp:expose-tribute', label: 'Use the picture ledger to expose the tribute arrangement' },
+      { id: 'camp:protect-tribute', label: 'Alter the picture ledger to protect the tribute arrangement' },
+      { id: 'camp:question-grubbin', label: 'Ask Grubbin why the best goods leave camp' },
+      { id: 'camp:ask-old-tatter', label: 'Ask Old Tatter about the black-root seal' },
+      { id: 'camp:move-on', label: 'Leave the ledger alone and head for the Stash Hall' },
+      { id: 'camp:force-ledger', label: 'Pull the tribute ledger loose and take the evidence with you' },
+    ]
+  }
+
+  if (state.sceneId === SCENES.latch) {
+    const actions = [
+      { id: 'latch:read-face', label: 'Read the carved faces and set the latch correctly' },
+      { id: 'latch:force', label: 'Force the carved-face latch open' },
+    ]
+    if (state.stats.manaPool >= 1) {
+      actions.push({ id: 'latch:channel', label: 'Spend 1 Mana for advantage while reading the latch' })
+    }
+    if (state.flags.hasHighlandCharm) {
+      actions.push({ id: 'latch:use-charm', label: 'Fit the highland charm into the latch' })
     }
     return actions
   }
 
   if (state.sceneId === SCENES.boss) {
     const actions = [
-      { id: 'boss:overpower', label: 'Overpower the Goblin King' },
-      { id: 'boss:outlast', label: 'Outlast the Goblin King' },
+      { id: 'boss:overpower', label: 'Humiliate the Goblin King and take it back' },
+      { id: 'boss:outlast', label: 'Spare the Goblin King, but make him surrender it' },
     ]
     if (state.stats.manaPool >= 2) {
       actions.push({ id: 'boss:spell', label: 'Spend 2 Mana for advantage on a decisive theory' })
@@ -568,14 +1062,97 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
     throw new Error(`Action ${actionId} is not available in scene ${state.sceneId}.`)
   }
 
+  if (state.sceneId === SCENES.sessionWelcome) {
+    return cloneState(state, {
+      sceneId: SCENES.sessionName,
+      history: [
+        ...state.history,
+        { type: 'session-choice', sceneId: SCENES.sessionWelcome, actionId },
+      ],
+    })
+  }
+
+  if (state.sceneId === SCENES.sessionName) {
+    const suggestionIndex = Number(actionId.split(':')[2])
+    const playerName = PLAYER_NAME_SUGGESTIONS[suggestionIndex]
+    if (!playerName) throw new Error('Unknown Session Zero name suggestion.')
+    return cloneState(state, {
+      playerName,
+      sceneId: SCENES.sessionRace,
+      flags: { nameSuggestionsVisible: false },
+      history: [
+        ...state.history,
+        {
+          type: 'session-choice',
+          sceneId: SCENES.sessionName,
+          actionId,
+          playerName,
+        },
+      ],
+      narration: [
+        ...state.narration,
+        `${playerName}. Written down.`,
+        SESSION_RACE_QUESTION,
+      ],
+    })
+  }
+
+  if (state.sceneId === SCENES.sessionRace) {
+    const raceId = actionId.slice('session:race:'.length)
+    const race = PLAYER_RACES[raceId]
+    if (!race) throw new Error('Unknown Session Zero race.')
+    return cloneState(state, {
+      playerRace: race.label,
+      sceneId: SCENES.sessionWeapon,
+      history: [
+        ...state.history,
+        {
+          type: 'session-choice',
+          sceneId: SCENES.sessionRace,
+          actionId,
+          playerRace: race.label,
+        },
+      ],
+      narration: [
+        ...state.narration,
+        race.reaction,
+        SESSION_WEAPON_QUESTION,
+      ],
+    })
+  }
+
+  if (state.sceneId === SCENES.sessionWeapon) {
+    const weaponId = actionId.slice('session:weapon:'.length)
+    const weapon = Object.values(PLAYER_WEAPONS).find((candidate) => candidate.id === weaponId)
+    if (!weapon) throw new Error('Unknown Session Zero weapon.')
+    return cloneState(state, {
+      playerWeapon: weapon.value,
+      sceneId: SCENES.background,
+      history: [
+        ...state.history,
+        {
+          type: 'session-choice',
+          sceneId: SCENES.sessionWeapon,
+          actionId,
+          playerWeapon: weapon.value,
+        },
+      ],
+      narration: [
+        ...state.narration,
+        weapon.reaction,
+        SESSION_CLASS_QUESTION,
+      ],
+    })
+  }
+
   if (state.sceneId === SCENES.background) {
     const backgroundId = actionId.split(':')[1]
     const background = BACKGROUNDS[backgroundId]
     const traitText = backgroundTraitText(state.characterTraitFlavor)
-    return appendEvent(
+    const afterClassChoice = appendEvent(
       cloneState(state, {
         background,
-        sceneId: SCENES.route,
+        sceneId: SCENES.sessionPronoun,
         stats: {
           strength: background.strength,
           defense: background.defense,
@@ -583,9 +1160,39 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
           maxMana: background.manaPool,
         },
       }),
-      { type: 'choice', sceneId: SCENES.background, actionId, backgroundId },
+      { type: 'session-choice', sceneId: SCENES.background, actionId, backgroundId },
       `${background.name}. ${background.flavor}${traitText}`,
     )
+    return cloneState(afterClassChoice, {
+      narration: [...afterClassChoice.narration, SESSION_PRONOUN_QUESTION],
+    })
+  }
+
+  if (state.sceneId === SCENES.sessionPronoun) {
+    const pronounId = actionId.slice('session:pronoun:'.length)
+    const option = PLAYER_PRONOUN_OPTIONS.find((candidate) => candidate.id === pronounId)
+    if (!option) throw new Error('Unknown Session Zero pronoun option.')
+    return cloneState(state, {
+      playerPronoun: option.value,
+      sceneId: SCENES.sessionLook,
+      history: [
+        ...state.history,
+        {
+          type: 'session-choice',
+          sceneId: SCENES.sessionPronoun,
+          actionId,
+          playerPronoun: option.value,
+        },
+      ],
+      narration: [...state.narration, SESSION_LOOK_QUESTION],
+    })
+  }
+
+  if (state.sceneId === SCENES.sessionLook) {
+    const lookId = actionId.slice('session:look:'.length)
+    const option = PLAYER_LOOK_OPTIONS.find((candidate) => candidate.id === lookId)
+    if (!option) throw new Error('Unknown Session Zero look option.')
+    return finalizeSessionZero(state, option.label, actionId)
   }
 
   if (state.sceneId === SCENES.route) {
@@ -605,7 +1212,10 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
       },
     )
     if (result.state.status === 'completed') return result.state
-    return cloneState(result.state, { sceneId: SCENES.goblin })
+    return enterRoom(
+      cloneState(result.state, { sceneId: SCENES.goblin }),
+      CHAPTER_ONE_ROOMS.rattlebridge.id,
+    )
   }
 
   if (state.sceneId === SCENES.goblin) {
@@ -619,49 +1229,82 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
         failureText: `${state.goblinName} rejects the theory on procedural grounds and keeps the useful side of the path.`,
       })
       if (result.state.status === 'completed') return result.state
-      return cloneState(result.state, { sceneId: SCENES.midpoint })
+      return enterRoom(
+        cloneState(result.state, { sceneId: SCENES.midpoint }),
+        CHAPTER_ONE_ROOMS.cloudberryShelf.id,
+      )
     }
 
-    const stat = actionId === 'goblin:strike' ? 'strength' : 'defense'
+    const isStrike = actionId === 'goblin:strike'
+    const stat = isStrike ? 'strength' : 'defense'
+    const weaponFlavor = weaponFlavorSentence(state.playerWeapon)
     const result = resolveCheck(state, {
       actionId,
       stat,
       dc: DIFFICULTY.standard,
-      successText: `${state.goblinName} yields the path with theatrical reluctance.`,
-      failureText: `${state.goblinName} lands a surprisingly organized counterargument.`,
+      successText: isStrike
+        ? `${weaponFlavor} ${state.goblinName} yields the path with theatrical reluctance.`
+        : `${state.goblinName} yields the path with theatrical reluctance.`,
+      failureText: isStrike
+        ? `${weaponFlavor} ${state.goblinName} lands a surprisingly organized counterargument.`
+        : `${state.goblinName} lands a surprisingly organized counterargument.`,
       manaCost: optionalManaCost(options),
     })
     if (result.state.status === 'completed') return result.state
-    return cloneState(result.state, { sceneId: SCENES.midpoint })
+    return enterRoom(
+      cloneState(result.state, { sceneId: SCENES.midpoint }),
+      CHAPTER_ONE_ROOMS.cloudberryShelf.id,
+    )
   }
 
   if (state.sceneId === SCENES.midpoint) {
     if (actionId === 'midpoint:help') {
-      return enterGoblinKingScene(
+      return enterHighlandCamp(
         appendEvent(
           cloneState(state, {
-            flags: { midpointChoice: 'help', goblinAlly: true },
+            flags: {
+              midpointChoice: 'help',
+              goblinAlly: true,
+              goblinFavor: true,
+              nibTreatment: 'safe',
+            },
           }),
           { type: 'choice', sceneId: SCENES.midpoint, actionId },
-          'You help the goblin clerk recover a stack of forms. The clerk is moved. Mostly because the forms were numbered.',
+          'You keep Nib out of the patrol path and help untangle the snapped tripwire. He immediately starts practicing how he will describe this during his promotion review.',
+        ),
+      )
+    }
+
+    if (actionId === 'midpoint:bait-nib') {
+      return enterHighlandCamp(
+        appendEvent(
+          cloneState(state, {
+            flags: {
+              midpointChoice: 'bait-nib',
+              nibTreatment: 'bait',
+              bossDcModifier: -1,
+            },
+          }),
+          { type: 'choice', sceneId: SCENES.midpoint, actionId },
+          'Nib draws the patrol away while loudly insisting this absolutely counts toward a promotion. The path to Highland Camp opens behind him.',
         ),
       )
     }
 
     if (actionId === 'midpoint:read-runes') {
       const result = resolveCheck(
-        cloneState(state, { flags: { midpointChoice: 'read-runes' } }),
+        cloneState(state, { flags: { midpointChoice: 'read-runes', nibTreatment: 'ignored' } }),
         {
           actionId,
           stat: 'defense',
           dc: DIFFICULTY.standard,
           manaCost: 1,
-          successText: 'The runes explain the throne mechanism in unnecessary detail. I approve of the detail.',
-          failureText: 'The runes include a footnote you interpret as optional. The throne mechanism does not.',
+          successText: "The old trail-runes at Cloudberry Shelf explain the Stash Hall's entrance in unnecessary detail. The goblins included a diagram and then argued with it in the margin.",
+          failureText: 'The runes include a footnote you interpret as optional. The entrance does not.',
         },
       )
       if (result.state.status === 'completed') return result.state
-      return enterGoblinKingScene(
+      return enterHighlandCamp(
         cloneState(result.state, {
           flags: { bossDcModifier: result.success ? -2 : 1 },
         }),
@@ -670,42 +1313,142 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
 
     if (actionId === 'midpoint:take-charm') {
       const result = resolveCheck(
-        cloneState(state, { flags: { midpointChoice: 'take-charm' } }),
+        cloneState(state, { flags: { midpointChoice: 'take-charm', nibTreatment: 'ignored' } }),
         {
           actionId,
           stat: 'defense',
           dc: DIFFICULTY.easy,
-          successText: 'You take the charm without activating the small but judgmental bell.',
-          failureText: 'The bell announces your decision to the entire administrative wing.',
+          successText: 'You lift the unattended highland charm without waking the small but judgmental bell beside it.',
+          failureText: 'The bell announces your interest in the highland charm to everyone with ears and several things without them.',
           manaCost: optionalManaCost(options),
         },
       )
       if (result.state.status === 'completed') return result.state
-      return enterGoblinKingScene(
+      return enterHighlandCamp(
         cloneState(result.state, {
-          flags: { bossDcModifier: result.success ? -1 : 1 },
+          flags: {
+            hasHighlandCharm: result.success,
+            bossDcModifier: result.success ? -1 : 1,
+          },
         }),
       )
     }
 
-    return enterGoblinKingScene(
+    return enterHighlandCamp(
       appendEvent(
-        cloneState(state, { flags: { midpointChoice: 'skip' } }),
+        cloneState(state, { flags: { midpointChoice: 'skip', nibTreatment: 'ignored' } }),
         { type: 'choice', sceneId: SCENES.midpoint, actionId },
-        'You continue without interfering. This is a valid choice. I have no additional comment. I have several comments.',
+        'You leave Nib, the charm, and the trail-runes where they are and keep moving toward Highland Camp.',
       ),
+    )
+  }
+
+  if (state.sceneId === SCENES.camp) {
+    if (actionId === 'camp:question-grubbin') {
+      return enterStashLatch(
+        appendEvent(
+          cloneState(state, {
+            flags: { tributeArrangement: 'exposed', blackRootSealKnown: true },
+          }),
+          { type: 'choice', sceneId: SCENES.camp, actionId },
+          "Grubbin, the stash keeper, points at the picture ledger and complains that the King keeps sending the best goods away as tribute. Every outgoing crate carries the same black-root seal.",
+        ),
+      )
+    }
+
+    if (actionId === 'camp:ask-old-tatter') {
+      return enterStashLatch(
+        appendEvent(
+          cloneState(state, { flags: { tributeArrangement: 'unknown', blackRootSealKnown: true } }),
+          { type: 'choice', sceneId: SCENES.camp, actionId },
+          "Old Tatter turns the ledger over once, taps the black-root seal with a scarred finger, and identifies it as an old tribute mark from beyond the Highlands.",
+        ),
+      )
+    }
+
+    if (actionId === 'camp:move-on') {
+      return enterStashLatch(
+        appendEvent(
+          cloneState(state, { flags: { tributeArrangement: 'unknown' } }),
+          { type: 'choice', sceneId: SCENES.camp, actionId },
+          "You leave Grubbin, Old Tatter, and the picture ledger to their argument and take the uphill path to the King's Stash Hall.",
+        ),
+      )
+    }
+
+    const exposing = actionId === 'camp:expose-tribute' || actionId === 'camp:force-ledger'
+    const protecting = actionId === 'camp:protect-tribute'
+    const result = resolveCheck(state, {
+      actionId,
+      stat: actionId === 'camp:force-ledger' ? 'strength' : 'defense',
+      dc: DIFFICULTY.standard,
+      successText: exposing
+        ? 'The picture tribute ledger gives up its pattern: the best goods are leaving Highland Camp under the black-root seal.'
+        : 'You alter the picture ledger just enough that the tribute arrangement becomes somebody else’s administrative problem.',
+      failureText: exposing
+        ? 'The picture ledger refuses to become evidence neatly, but the black-root seal on its cover is impossible to miss.'
+        : 'Your attempt to protect the tribute arrangement leaves a correction so obvious that Grubbin winces professionally.',
+      manaCost: optionalManaCost(options),
+    })
+    if (result.state.status === 'completed') return result.state
+    return enterStashLatch(
+      cloneState(result.state, {
+        flags: {
+          tributeArrangement: protecting ? 'protected' : 'exposed',
+          blackRootSealKnown: true,
+          goblinFavor: protecting && result.success ? true : result.state.flags.goblinFavor,
+          bossDcModifier: result.state.flags.bossDcModifier + (result.success ? -1 : 1),
+        },
+      }),
+    )
+  }
+
+  if (state.sceneId === SCENES.latch) {
+    if (actionId === 'latch:use-charm') {
+      return enterGoblinKingScene(
+        appendEvent(
+          cloneState(state, { flags: { latchOutcome: 'charm', bossDcModifier: state.flags.bossDcModifier - 1 } }),
+          { type: 'choice', sceneId: SCENES.latch, actionId },
+          'The highland charm fits into the carved-face latch like the goblins designed a master key and then forgot to mention it.',
+        ),
+      )
+    }
+
+    const isForce = actionId === 'latch:force'
+    const isMana = actionId === 'latch:channel'
+    const result = resolveCheck(state, {
+      actionId,
+      stat: isForce ? 'strength' : 'defense',
+      dc: DIFFICULTY.standard,
+      manaCost: isMana ? 1 : optionalManaCost(options),
+      successText: isForce
+        ? 'The carved-face latch gives way with all four faces looking personally offended.'
+        : 'You rotate the carved faces into the one expression the goblins apparently consider trustworthy. The latch clicks open.',
+      failureText: isForce
+        ? 'The carved faces hold. One of them appears to enjoy this more than the others.'
+        : 'The carved faces settle into the wrong order and a tiny wooden tongue sticks out from the center of the latch.',
+    })
+    if (result.state.status === 'completed') return result.state
+    return enterGoblinKingScene(
+      cloneState(result.state, {
+        flags: {
+          latchOutcome: result.success ? 'opened-cleanly' : 'opened-with-trouble',
+          bossDcModifier: result.state.flags.bossDcModifier + (result.success ? -1 : 1),
+        },
+      }),
     )
   }
 
   if (state.sceneId === SCENES.boss) {
     if (actionId === 'boss:bargain') {
-      return completeRun(state, ENDINGS.bargain, 'goblin clerk testimony')
+      return completeRun(
+        cloneState(state, { flags: { kingTreatment: 'spared', goblinFavor: true } }),
+        ENDINGS.bargain,
+        'goblin ally testimony',
+      )
     }
 
-    const dc = Math.max(
-      DIFFICULTY.easy,
-      DIFFICULTY.goblinKing + state.flags.bossDcModifier,
-    )
+    const dc = bossCheckDc(state)
 
     if (actionId === 'boss:spell') {
       const result = resolveCheck(state, {
@@ -717,21 +1460,44 @@ export function advanceWeedGoblinsRun(state, actionId, options = {}) {
         failureText: 'The Goblin King identifies a missing label on the diagram and remains in control of the room.',
       })
       if (result.state.status === 'completed') return result.state
-      if (result.success) return completeRun(result.state, ENDINGS.recovery, 'mana-assisted victory')
+      if (result.success) {
+        return completeRun(
+          cloneState(result.state, { flags: { kingTreatment: 'spared' } }),
+          ENDINGS.recovery,
+          'mana-assisted victory',
+        )
+      }
       return result.state
     }
 
-    const stat = actionId === 'boss:overpower' ? 'strength' : 'defense'
+    const isOverpower = actionId === 'boss:overpower'
+    const stat = isOverpower ? 'strength' : 'defense'
+    const weaponFlavor = weaponFlavorSentence(state.playerWeapon)
     const result = resolveCheck(state, {
       actionId,
       stat,
       dc,
-      successText: 'The Goblin King is defeated within the accepted fictional meaning of defeated.',
-      failureText: 'The Goblin King remains king for at least one more action.',
+      successText: isOverpower
+        ? `${weaponFlavor} The Goblin King is defeated within the accepted fictional meaning of defeated.`
+        : 'The Goblin King is defeated within the accepted fictional meaning of defeated.',
+      failureText: isOverpower
+        ? `${weaponFlavor} The Goblin King remains king for at least one more action.`
+        : 'The Goblin King remains king for at least one more action.',
       manaCost: optionalManaCost(options),
     })
     if (result.state.status === 'completed') return result.state
-    if (result.success) return completeRun(result.state, ENDINGS.recovery, `${stat} victory`)
+    if (result.success) {
+      return completeRun(
+        cloneState(result.state, {
+          flags: {
+            kingTreatment: isOverpower ? 'humiliated' : 'spared',
+            goblinFavor: isOverpower ? result.state.flags.goblinFavor : true,
+          },
+        }),
+        ENDINGS.recovery,
+        `${stat} victory`,
+      )
+    }
     return result.state
   }
 
@@ -761,7 +1527,7 @@ export function advanceWeedGoblinsFreeTextMidpointCheck(state, style) {
   })
 
   if (result.state.status === 'completed') return result.state
-  return enterGoblinKingScene(result.state)
+  return enterHighlandCamp(result.state)
 }
 
 export function playWeedGoblinsActions(initialState, actions) {

@@ -6,12 +6,13 @@ import { isDevMode, DEV_PROFILE } from '../lib/dev'
 import SharedOptInPanel from '../components/SharedOptInPanel'
 
 const GUIDE_META = {
-  bud:   { name: 'Bud Tendar',     accent: '#C9A84C', description: 'Dispensary deals and trip planning.' },
-  sunny: { name: 'Sunny Day',      accent: '#FF7F5C', description: 'Conversation and emotional tracking.' },
-  larry: { name: 'Lucky Larry',    accent: '#C17A3A', description: 'Strain history and cannabis culture.' },
-  herb:  { name: 'Herb N. Spices', accent: '#4ECDC4', description: 'Terpene science and education.' },
-  mary:  { name: 'Mary Jayne',     accent: '#B088B0', description: 'Wellness, sleep, and self-care.' },
-  unit:  { name: null,             accent: '#888888', description: 'No guide. Minimal interface.' },
+  bud:    { name: 'Bud Tendar',     accent: '#C9A84C', description: 'Practical review of your own journal history.' },
+  sunny:  { name: 'Sunny Day',      accent: '#FF7F5C', description: 'Warm, conversational review of what you logged.' },
+  larry:  { name: 'Lucky Larry',    accent: '#C17A3A', description: 'Laid-back review grounded in your own entries.' },
+  herb:   { name: 'Herb N. Spices', accent: '#4ECDC4', description: 'Detail-focused review of recorded entry fields and tags.' },
+  mary:   { name: 'Mary Jayne',     accent: '#B088B0', description: 'Calm review of products, notes, mood, and effect tags you recorded.' },
+  stoner: { name: null,             accent: '#C9A84C', description: 'No guide. Logging only.' },
+  unit:   { name: null,             accent: '#888888', description: 'No guide. Minimal interface.' },
 }
 
 const S = {
@@ -48,8 +49,6 @@ function SectionHeading({ children }) {
 function Divider() {
   return <div style={{ width: '100%', height: '1px', backgroundColor: S.border, margin: '32px 0' }} />
 }
-
-// ── Inline mini numpad for PIN verification/change inside Settings ────────────
 
 function MiniPinDots({ value }) {
   return (
@@ -105,9 +104,6 @@ function MiniNumPad({ onDigit, onDelete }) {
   )
 }
 
-// ── PIN management panel ──────────────────────────────────────────────────────
-
-// pinPhase: 'idle' | 'verify' | 'options' | 'change_new' | 'change_confirm' | 'done_remove' | 'done_change'
 function PinManager({ onDone }) {
   const navigate = useNavigate()
   const pinActive = hasPin()
@@ -134,7 +130,6 @@ function PinManager({ onDone }) {
     )
   }
 
-  // Current PIN entry
   if (pinPhase === 'verify') {
     function handleVerifyDigit(d) {
       if (pin.length >= 4) return
@@ -172,7 +167,6 @@ function PinManager({ onDone }) {
     )
   }
 
-  // Options after verified
   if (pinPhase === 'options') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -212,7 +206,6 @@ function PinManager({ onDone }) {
     )
   }
 
-  // Change: enter new PIN
   if (pinPhase === 'change_new') {
     function handleNewDigit(d) {
       if (newPin.length >= 4) return
@@ -234,7 +227,6 @@ function PinManager({ onDone }) {
     )
   }
 
-  // Change: confirm new PIN
   if (pinPhase === 'change_confirm') {
     function handleConfirmDigit(d) {
       if (confirmPin.length >= 4) return
@@ -278,7 +270,6 @@ function PinManager({ onDone }) {
     return <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.success, margin: 0 }}>PIN updated.</p>
   }
 
-  // idle with active PIN
   return (
     <button
       onClick={() => { setPinPhase('verify'); setPin(''); setPinError('') }}
@@ -293,8 +284,6 @@ function PinManager({ onDone }) {
     </button>
   )
 }
-
-// ── Notification Settings component ──────────────────────────────────────────
 
 const CHECKIN_OPTIONS = ['15 min', '30 min', '45 min', '1 hour', 'Off']
 const POSTUPDATE_OPTIONS = ['2 hours', '4 hours', '8 hours', 'Next morning', 'Off']
@@ -440,8 +429,6 @@ function NotificationSettings() {
     </div>
   )
 }
-
-// ── Main Settings screen ──────────────────────────────────────────────────────
 
 export default function Settings() {
   const navigate = useNavigate()
@@ -595,7 +582,7 @@ export default function Settings() {
             fontFamily: fontPlayfair, fontSize: '28px', fontWeight: '600',
             color: S.textPrimary, margin: '0 0 24px 0', lineHeight: '1.2',
           }}>
-            Privacy Receipt
+            Backup Receipt
           </h1>
 
           <div style={{
@@ -606,16 +593,16 @@ export default function Settings() {
             marginBottom: '24px',
           }}>
             <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
-              Everything in this app stays on this device only.
+              Your private journal entries in this build are stored locally on this device.
             </p>
             <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
-              No data was sent to any server.
+              Shared Journey contributions are disabled for Phase 1 external testing.
             </p>
             <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
-              No account exists on any server.
+              Your local profile is stored in this browser, not as a Vogtcom server account.
             </p>
             <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: 0 }}>
-              The only copy of your journal is on this device.
+              The file you downloaded is a copy of the local journal data included by this backup tool.
             </p>
           </div>
 
@@ -628,7 +615,7 @@ export default function Settings() {
               cursor: 'pointer',
             }}
           >
-            I understand. I'm done.
+            Done
           </button>
         </div>
       </div>
@@ -656,7 +643,6 @@ export default function Settings() {
           Settings
         </h1>
 
-        {/* ── YOUR GUIDE ──────────────────────────────────────────────────── */}
         <SectionHeading>Your Guide</SectionHeading>
 
         {profile && !isToolMode && (
@@ -686,12 +672,11 @@ export default function Settings() {
               TOOL MODE
             </p>
             <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, margin: 0, lineHeight: '1.4' }}>
-              No guide. All five tool layers accessible.
+              No guide personality. Minimal journal interface.
             </p>
           </div>
         )}
 
-        {/* Change guide / Choose a guide button */}
         <button
           onClick={isToolMode ? disableToolMode : () => navigate('/onboarding?step=list')}
           style={{
@@ -707,7 +692,6 @@ export default function Settings() {
           {isToolMode ? 'Choose a guide' : 'Change guide'}
         </button>
 
-        {/* Tool Mode toggle */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '14px 0', borderTop: `1px solid ${S.border}`,
@@ -717,7 +701,7 @@ export default function Settings() {
               Tool Mode
             </p>
             <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0, lineHeight: '1.4' }}>
-              Just the tools. No narrative.
+              No guide personality. Minimal journal interface.
             </p>
           </div>
           <button
@@ -744,12 +728,10 @@ export default function Settings() {
 
         <Divider />
 
-        {/* ── PRIVACY ─────────────────────────────────────────────────────── */}
         <SectionHeading>Privacy</SectionHeading>
 
         <SharedOptInPanel profile={profile} onProfileChange={setProfile} />
 
-        {/* App PIN row */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '14px 0', borderBottom: `1px solid ${S.border}`, marginBottom: '20px',
@@ -764,12 +746,10 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* PIN manager (inline numpad / options) */}
         <PinManager key={pinRefresh} onDone={() => setPinRefresh((n) => n + 1)} />
 
         <Divider />
 
-        {/* ── NOTIFICATIONS ───────────────────────────────────────────────── */}
         <SectionHeading>Backup</SectionHeading>
         <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: '0 0 16px 0' }}>
           Download a local JSON backup of the journal data stored on this device.
@@ -827,14 +807,18 @@ export default function Settings() {
 
         <Divider />
         <SectionHeading>Notifications</SectionHeading>
-        <NotificationSettings />
+        <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: '0 0 12px 0' }}>
+          Notification scheduling is not active in this Phase 1 build. The controls below are a disabled interface preview only.
+        </p>
+        <div aria-disabled="true" style={{ opacity: 0.45, pointerEvents: 'none' }}>
+          <NotificationSettings />
+        </div>
 
         <Divider />
 
-        {/* ── ACCOUNT ─────────────────────────────────────────────────────── */}
-        <SectionHeading>Account</SectionHeading>
+        <SectionHeading>Local Profile</SectionHeading>
         <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: 0 }}>
-          More account settings coming soon.
+          This profile and its credentials are stored locally in this browser. Additional local-profile settings can be added later.
         </p>
 
       </div>
