@@ -6,6 +6,7 @@ import {
   ensureAnonymousLocalProfile,
   migrateExistingLocalProfile,
 } from './localProfile.js'
+import { localStore } from './localStore.js'
 
 class MemoryStorage {
   constructor() {
@@ -28,7 +29,7 @@ function setup() {
   globalThis.localStorage = new MemoryStorage()
 }
 
-test('migrates the active legacy profile without changing its id or journal rows', () => {
+test('migrates the active legacy profile without changing its id or journal rows', async () => {
   setup()
   localStorage.setItem(USERS_KEY, JSON.stringify([
     {
@@ -47,6 +48,7 @@ test('migrates the active legacy profile without changing its id or journal rows
   const result = migrateExistingLocalProfile()
   const users = JSON.parse(localStorage.getItem(USERS_KEY))
   const entries = JSON.parse(localStorage.getItem(ENTRIES_KEY))
+  const { data: { session } } = await localStore.auth.getSession()
 
   assert.equal(result.migrated, true)
   assert.equal(result.profile.id, 'user_existing')
@@ -55,16 +57,19 @@ test('migrates the active legacy profile without changing its id or journal rows
   assert.equal('email' in users[0], false)
   assert.equal('credential_salt' in users[0], false)
   assert.equal('credential_hash' in users[0], false)
+  assert.equal(session.user.id, 'user_existing')
+  assert.equal(session.user.email, null)
   assert.deepEqual(entries, [
     { id: 'entry_1', user_id: 'user_existing', product_name: 'Example' },
   ])
 })
 
-test('creates an anonymous local profile when the device has no profile', () => {
+test('creates an anonymous local profile when the device has no profile', async () => {
   setup()
 
   const result = ensureAnonymousLocalProfile()
   const users = JSON.parse(localStorage.getItem(USERS_KEY))
+  const { data: { session } } = await localStore.auth.getSession()
 
   assert.equal(result.created, true)
   assert.equal(users.length, 1)
@@ -72,6 +77,7 @@ test('creates an anonymous local profile when the device has no profile', () => 
   assert.equal(users[0].profile_type, 'anonymous_local')
   assert.equal(localStorage.getItem(ACTIVE_USER_KEY), result.profile.id)
   assert.equal('email' in users[0], false)
+  assert.equal(session.user.id, result.profile.id)
 })
 
 test('keeps an existing anonymous active profile unchanged', () => {
