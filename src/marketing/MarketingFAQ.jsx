@@ -32,7 +32,7 @@ const faqs = [
   },
   {
     question: 'Do I need an account?',
-    answer: 'The current private-testing build still uses a local-only profile flow on the device. That flow is being revised so the private journal does not require a traditional name-and-email cloud account.',
+    answer: 'No name, email address, or password is required for the private journal. My420Journal creates an anonymous local profile ID on the device so your entries and settings stay linked together. That local profile is not a cloud account and does not sync across devices.',
   },
 ]
 

@@ -1,18 +1,20 @@
-# my420journal local-first buildttt
+# My420Journal local-first build
 
 This source build keeps journal, profile, guide, and entry data on the device through browser localStorage.
 
-What changed:
+Current private-core architecture:
 
 - Journal entries are stored locally.
 - User profile and guide settings are stored locally.
-- Local sign up and sign in are handled on the device.
-- External app data calls are disabled.
-- Old external backend folders, migrations, and hosted function files were removed.
-- The stale prebuilt output folder was removed so it cannot ship old generated code.
+- The private journal does not require a name, email address, or password.
+- A random device-local profile ID keeps entries and settings linked together.
+- Existing active private-testing profiles preserve their internal user ID while old local email/password fields are removed during migration.
+- PIN support remains available as an additional in-app privacy control.
+- Shared Journey / Layer 2 is disabled pending redesign and review.
+- No backup or cross-device sync is included in this build.
 
 Important:
 
 - This is a local-first source build, not a production privacy audit.
 - Browser localStorage can be cleared by the user or the browser.
-- No backup or sync is included in this build.
+- Local-first storage reduces server-side exposure but does not make data on a device impossible to access.
