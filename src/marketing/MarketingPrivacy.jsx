@@ -24,10 +24,11 @@ const sections = [
     ],
   },
   {
-    heading: 'LOCAL PROFILE CREDENTIALS DURING PRIVATE TESTING',
+    heading: 'LOCAL PROFILE — NO EMAIL OR PASSWORD REQUIRED',
     paragraphs: [
-      'The current private-testing build uses a local-only profile flow. If a tester creates a local profile, the email address and a salted password digest are stored on that device. Vogtcom does not receive those local profile credentials through the local profile system.',
-      'This local profile flow is being revised. It should not be understood as a cloud account or cross-device sync service.',
+      'The private journal uses an anonymous local profile ID on the device. A name, email address, and password are not required to create or reopen the private journal.',
+      'For an older private-testing profile that is already active on a device, My420Journal preserves the existing internal profile ID so its journal rows remain linked, while removing the old locally stored email and password-digest fields from that active profile. If more than one older local profile exists and no active profile is known, the user must choose which existing journal to resume; the others are preserved rather than deleted.',
+      'The local profile is not a cloud account and does not provide cross-device sync.',
     ],
   },
   {
