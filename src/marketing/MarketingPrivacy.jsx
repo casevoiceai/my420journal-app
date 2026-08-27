@@ -5,98 +5,77 @@ const sections = [
   {
     heading: 'WHO WE ARE',
     paragraphs: [
-      '420journal.app is a product of Vogtcom LLC, a Pennsylvania limited liability company based in Carbondale, Pennsylvania.',
+      'My420Journal is a product of Vogtcom LLC, a Pennsylvania limited liability company. The canonical public website is my420journal.com.',
       'Contact: vogtcomllc@gmail.com',
-      '420journal.app is a private cannabis session journal. You log what you used, how you used it, and how it made you feel, in Body, Mind, and Mood terms. Your journal lives on your device.',
     ],
   },
   {
     heading: 'THE SHORT VERSION',
     paragraphs: [
-      'Your journal data lives on your device. Nothing leaves your device without your permission. We do not sell your data. We do not share your individual session data with anyone. If you choose to turn on Shared Journey View, an anonymized signal from your sessions may contribute to a shared community pool, but your identity, your device, and your individual entries are never shown to anyone. You can opt out at any time.',
-      'This is a cannabis product. Cannabis is legal for adults in Pennsylvania and in many other states. It remains federally illegal in the United States. You are responsible for knowing and following the laws in your jurisdiction.',
+      'My420Journal is currently in a limited private testing phase. The private journal is designed to keep journal entries, notes, profile settings, and guide settings on the device in browser local storage.',
+      'Shared Journey / Layer 2 is disabled while its privacy architecture is redesigned and reviewed. The current build does not intentionally submit new journal contributions to the shared-data service.',
     ],
   },
   {
-    heading: 'WHAT DATA WE COLLECT AND WHERE IT GOES',
-    subsections: [
-      {
-        heading: 'Your journal data',
-        paragraphs: [
-          'Everything you log in the app, products used, dose, method, effects, notes, session ratings, is stored only on your device in local storage. It does not go to any Vogtcom server automatically. You can download a local backup of your own data at any time from Settings.',
-        ],
-      },
-      {
-        heading: 'Shared Journey View (opt-in only)',
-        paragraphs: [
-          'This feature is off by default. If you turn it on, entries you save going forward can contribute an anonymized signal to a shared community pool. Entries from before you opted in are not included.',
-          'A contribution is first held in an individual staging record associated with a random contributor identifier, not your name or email address. After roughly 3 days, the contribution is folded into anonymous aggregate counts and the original individual staging record is removed from the active database. Once it has been aggregated, the contribution is no longer linked to your random contributor identifier and cannot be viewed or separated as an individual record.',
-          "Cloudflare's infrastructure may retain standard backups containing deleted staging data for a limited period after the staging record is removed from the active database. Any such backups are subject to Cloudflare's normal backup-retention and deletion processes and are not used to provide Shared Journey results.",
-          "The public Shared Journey feature only ever displays combined results and never an individual entry. Staff with direct database access could technically view an individual staged contribution during the brief window before it is folded into anonymous aggregates; after folding, no technical means exists to link an aggregate count back to a specific contributor.",
-          'A minimum number of contributors is required before any signal is shown for a given product or area. This exists to make it harder for a small group of contributions to be traced back to any one person.',
-          'If you opt out, future contributions stop immediately and any contributions still held in individual staging are removed. Contributions already folded into anonymous aggregate counts cannot be separated or removed because the system no longer retains an identifier linking those counts to you.',
-        ],
-      },
-      {
-        heading: 'The dispensary data layer',
-        paragraphs: [
-          'Dispensaries that subscribe to mydispensarydata.com receive access to the same kind of aggregate signals described above. They do not receive individual user data, your name, your device identifier, or anything that could identify you personally. They receive only combined counts and percentages.',
-        ],
-      },
-      {
-        heading: 'What we do not collect',
-        paragraphs: [
-          'We do not collect your individual journal entries on any Vogtcom server unless you opt in to Shared Journey View.',
-          'We do not require an account to use the app.',
-          'We do not use advertising trackers in the journal.',
-          'We do not sell your individual data.',
-          'We do not share your individual data with dispensaries or any other third party.',
-        ],
-      },
-    ],
-  },
-  {
-    heading: 'FEDERAL LAW NOTICE',
+    heading: 'LOCAL JOURNAL DATA',
     paragraphs: [
-      'Cannabis is classified as a Schedule I controlled substance under federal law in the United States, regardless of state law. Your journal data exists on your device. If your device is seized pursuant to a legal process, data on your device may be accessible to law enforcement. You are responsible for knowing and following the cannabis laws in your jurisdiction. This app is intended for adults 21 and over.',
+      'Journal entries and private notes are stored on the device in browser local storage. They are not automatically copied to a Vogtcom journal server.',
+      'Browser local storage can be cleared by the user, browser, operating system, or device-management tools. Data on a device may also be accessible to another person with access to that device or through lawful device access. Local-first design reduces data exposure; it does not make device data impossible to access.',
     ],
   },
   {
-    heading: 'YOUR RIGHTS',
+    heading: 'LOCAL PROFILE CREDENTIALS DURING PRIVATE TESTING',
     paragraphs: [
-      'Your journal data belongs to you. We do not claim any rights to it. To delete your journal data, use the delete or clear function within the app.',
-      'If you have turned on Shared Journey View, you can turn it off at any time in Settings. Doing so stops future contributions and removes contributions that are still held in individual staging. Contributions already folded into anonymous aggregate counts cannot be separated or removed because they are no longer linked to your random contributor identifier. Your journal data stored on your device is not affected by this setting.',
-      'California residents have rights under the California Consumer Privacy Act regarding personal information. Because we do not store your individual journal data on any Vogtcom server unless you opt in, most CCPA rights apply specifically to the Shared Journey View feature, where you have the right to opt out at any time as described above.',
+      'The current private-testing build uses a local-only profile flow. If a tester creates a local profile, the email address and a salted password digest are stored on that device. Vogtcom does not receive those local profile credentials through the local profile system.',
+      'This local profile flow is being revised. It should not be understood as a cloud account or cross-device sync service.',
     ],
   },
   {
-    heading: 'AGE RESTRICTION',
+    heading: 'SHARED JOURNEY / LAYER 2',
     paragraphs: [
-      'This app is intended for adults 21 and over. By using this app you confirm that you are 21 or older and that cannabis use is legal in your jurisdiction.',
+      'Shared Journey / Layer 2 is currently OFF. The opt-in control and shared-results experience are unavailable in the current build, and new shared contributions are blocked by the application submission path.',
+      'If a tester previously opted in, the application disables that local opt-in when the app starts, clears pending shared-contribution retries, and attempts to send an opt-out deletion request using the previously generated anonymous contributor identifier. The current cleanup service schedules deletion after an accepted opt-out request.',
+      'The Layer 2 source code and service history are being preserved for redesign and review. No claim is made that the previous Layer 2 implementation achieved legal anonymization.',
     ],
   },
   {
-    heading: 'CHILDREN',
+    heading: 'PARTNERS',
     paragraphs: [
-      'This app is not directed at anyone under 21 and not intended for anyone under 18. We do not knowingly collect personal information from minors. If you believe a minor has used this app, contact us at vogtcomllc@gmail.com.',
+      'No active partner data program is being offered in the current private-testing build. The partner program is on hold while Layer 2 is redesigned and reviewed.',
+      'A dispensary, cannabis brand, or other partner does not receive access to a user\'s raw private journal or private notes through the private journal system.',
     ],
   },
   {
-    heading: 'COOKIES AND TRACKING',
+    heading: 'TRACKING',
     paragraphs: [
-      'We do not use advertising cookies or third-party tracking pixels in the journal.',
+      'The private journal is not designed to use advertising trackers to build an advertising profile from private journal activity.',
+      'Future public-site analytics, referral measurement, partner attribution, or age-assurance tools must remain separated from private journal contents and will require their own privacy review before activation.',
     ],
   },
   {
-    heading: 'CHANGES TO THIS POLICY',
+    heading: 'AGE AND LOCATION',
     paragraphs: [
-      'We will update this policy when our practices change and update the date at the top when we do.',
+      'Cannabis and cannabis-related rules vary by location and use case. My420Journal does not treat a user\'s location choice as proof that any cannabis activity is lawful.',
+      'The current private-testing age flow is being revised into a market-specific age-assurance system. My420Journal does not currently require Vogtcom to store a government ID image as part of the private journal.',
     ],
   },
   {
-    heading: 'CONTACT US',
+    heading: 'YOUR CONTROLS',
     paragraphs: [
-      <>Vogtcom LLC<br />Carbondale, Pennsylvania<br />vogtcomllc@gmail.com</>,
+      'Users can delete journal entries through the app. Because the private journal is local-first, clearing browser site data can also remove local journal data.',
+      'A PIN can be used as an additional in-app privacy control. A PIN does not replace device security and does not make data immune from device-level access.',
+    ],
+  },
+  {
+    heading: 'CHANGES TO THIS NOTICE',
+    paragraphs: [
+      'This notice will be updated when the product architecture, data flows, or public availability change. My420Journal remains in private testing while the current redesign is underway.',
+    ],
+  },
+  {
+    heading: 'CONTACT',
+    paragraphs: [
+      'Vogtcom LLC — Carbondale, Pennsylvania — vogtcomllc@gmail.com',
     ],
   },
 ]
@@ -138,9 +117,9 @@ export default function MarketingPrivacy() {
               lineHeight: 1.04,
               letterSpacing: '-0.03em',
             }}>
-              MY420JOURNAL PRIVACY POLICY
+              MY420JOURNAL PRIVACY NOTICE
             </h1>
-            <PolicyParagraph>Last updated: August 7, 2026</PolicyParagraph>
+            <PolicyParagraph>Last updated: August 27, 2026</PolicyParagraph>
 
             {sections.map((section) => (
               <section key={section.heading} style={{ marginTop: '34px' }}>
@@ -155,26 +134,8 @@ export default function MarketingPrivacy() {
                 }}>
                   {section.heading}
                 </h2>
-
-                {section.paragraphs?.map((paragraph, index) => (
+                {section.paragraphs.map((paragraph, index) => (
                   <PolicyParagraph key={`${section.heading}-${index}`}>{paragraph}</PolicyParagraph>
-                ))}
-
-                {section.subsections?.map((subsection) => (
-                  <section key={subsection.heading} style={{ marginTop: '26px' }}>
-                    <h3 style={{
-                      margin: '0 0 12px 0',
-                      color: S.textPrimary,
-                      fontFamily: marketingFonts.playfair,
-                      fontSize: '24px',
-                      lineHeight: 1.25,
-                    }}>
-                      {subsection.heading}
-                    </h3>
-                    {subsection.paragraphs.map((paragraph, index) => (
-                      <PolicyParagraph key={`${subsection.heading}-${index}`}>{paragraph}</PolicyParagraph>
-                    ))}
-                  </section>
                 ))}
               </section>
             ))}

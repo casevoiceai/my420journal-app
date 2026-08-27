@@ -3,32 +3,36 @@ import { marketingFonts, marketingPage, marketingPalette as S } from './marketin
 
 const faqs = [
   {
-    question: 'Is this actually free?',
-    answer: 'Yes. No subscription, no freemium tier, no moment where the features you actually need cost extra. The app is free. It stays free. Revenue comes from dispensary partnerships, not from you.',
+    question: 'Is My420Journal free?',
+    answer: 'The private journal is currently planned as a free consumer product. My420Journal is still in limited private testing, so public availability and future optional services are not yet being promised here.',
   },
   {
-    question: 'Who can see my journal?',
-    answer: 'Nobody. Your entries are stored on your device. The people who built this app cannot see them. Your dispensary cannot see them. We collect anonymous behavioral signals only, aggregated, never individual, to help dispensaries understand what their customers respond to in general. Your specific entries, your specific data, and your identity are never transmitted, sold, or shared.',
+    question: 'Who can see my private journal?',
+    answer: 'The private journal is designed to stay on your device. Vogtcom, dispensaries, cannabis brands, and partners do not receive access to your raw private journal or private notes through the private journal system.',
   },
   {
-    question: 'Do I need to know anything about terpenes to use this?',
-    answer: 'No. Log what you felt in your own words. Your guide does the pattern work. If you want to learn about terpenes, Herb N. Spices is the guide for that. If you just want to remember what you liked and find it at a good price, Bud Tendar handles that. You do not need to know the science to benefit from it.',
+    question: 'Is Shared Journey available?',
+    answer: 'No. Shared Journey / Layer 2 is turned off while its privacy architecture is redesigned and reviewed. New shared contributions are blocked in the current build.',
   },
   {
-    question: 'Is this legal where I live?',
-    answer: 'my420journal is a journaling application. It does not sell cannabis, connect you to dispensaries, or facilitate any purchase. Using a journaling app is legal everywhere. What you journal about is governed by the laws of wherever you are. That part is yours to navigate.',
+    question: 'Do I need to understand terpenes to use this?',
+    answer: 'No. My420Journal is meant to help you record product information and your own observations. Terpene information can be part of the record when you want it, but it is not required to keep a useful journal.',
   },
   {
-    question: "What is the guide's name?",
-    answer: 'You will find out when you sign up. There are five of them. You choose one. It is worth the thirty seconds it takes to meet them.',
+    question: 'Does My420Journal tell me what cannabis to buy or use?',
+    answer: 'No. My420Journal is a personal record, not a cannabis recommendation, medical treatment, or purchasing service. It helps you look back at information and observations you recorded yourself.',
   },
   {
-    question: 'How is my data stored?',
-    answer: 'On your device. Locally. The OCR scanning that reads your labels and receipts processes images on your device and discards them immediately after extraction. Nothing is sent to any server. This is not a policy we can change later, it is how the app is built.',
+    question: 'Is cannabis legal where I live?',
+    answer: 'Cannabis laws and program rules vary by country, state, activity, and use case. My420Journal does not treat access to the journal as proof that cannabis activity is lawful. Users are responsible for following the rules that apply where they are.',
   },
   {
-    question: 'Can I switch guides after I choose one?',
-    answer: 'Yes. Your default guide is the one the app opens to, but all five are accessible any time with one tap. Your data is the same regardless of which guide you are talking to. Only the voice changes.',
+    question: 'How is my journal stored?',
+    answer: 'The current private-testing build stores journal data in browser local storage on the device. Browser or device actions can clear that storage, and local-first storage does not make data immune from someone who has access to the device.',
+  },
+  {
+    question: 'Do I need an account?',
+    answer: 'The current private-testing build still uses a local-only profile flow on the device. That flow is being revised so the private journal does not require a traditional name-and-email cloud account.',
   },
 ]
 
@@ -42,9 +46,7 @@ export function FAQSection({ id = undefined, tone = 'base' }) {
     >
       <div
         className="marketing-section-inner"
-        style={{
-          maxWidth: marketingPage.contentWidth,
-        }}
+        style={{ maxWidth: marketingPage.contentWidth }}
       >
         <h1 style={{
           margin: '0 0 18px 0',
@@ -62,7 +64,7 @@ export function FAQSection({ id = undefined, tone = 'base' }) {
           fontSize: '17px',
           lineHeight: 1.7,
         }}>
-          Clear answers about privacy, storage, legality, guides, and how the app works.
+          Clear answers about privacy, storage, legality, and the current private-testing build.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -108,14 +110,4 @@ export default function MarketingFAQ() {
       <FAQSection id="faq" tone="base" />
     </MarketingLayout>
   )
-}
-
-const eyebrowStyle = {
-  margin: '0 0 14px 0',
-  color: S.gold,
-  fontFamily: marketingFonts.inter,
-  fontSize: '12px',
-  fontWeight: 800,
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
 }

@@ -2,24 +2,9 @@ import { isPrivateTestingSessionValid } from '../../../server/private-testing-ac
 
 const DEFAULT_WORKER_URL = 'https://my420journal-shared-worker.casevoice-ai.workers.dev'
 const MAX_REQUEST_BYTES = 64 * 1024
-const ALLOWED_PATHS = new Map([
-  ['contributors/opt-in', 'POST'],
-  ['contributors/opt-out', 'POST'],
-  ['contributions', 'POST'],
-  ['aggregates', 'GET'],
-])
 const ALLOWED_ORIGINS = new Set([
   'https://my420journal.app',
   'https://my420journal.com',
-])
-const BLOCKED_RESPONSE_HEADERS = new Set([
-  'connection',
-  'content-encoding',
-  'content-length',
-  'keep-alive',
-  'transfer-encoding',
-  'access-control-allow-origin',
-  'access-control-allow-credentials',
 ])
 
 function jsonResponse(body, status = 200) {
@@ -48,83 +33,67 @@ export async function onRequest({ request, env, params }) {
 
   const pathParts = Array.isArray(params?.path) ? params.path : [params?.path]
   const relativePath = pathParts.filter(Boolean).join('/')
-  const expectedMethod = ALLOWED_PATHS.get(relativePath)
-  if (!expectedMethod) {
-    return jsonResponse({ error: 'Not found' }, 404)
+
+  // Layer 2 is globally disabled. The only remaining public-facing operation is
+  // opt-out deletion so an already opted-in tester can request removal.
+  if (relativePath !== 'contributors/opt-out') {
+    return jsonResponse({
+      error: 'Shared Journey is disabled pending redesign and review',
+      shared_journey_enabled: false,
+    }, 410)
   }
 
-  if (request.method !== expectedMethod) {
+  if (request.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
-  if (request.method !== 'GET') {
-    const origin = request.headers.get('Origin') || ''
-    if (!ALLOWED_ORIGINS.has(origin)) {
-      return jsonResponse({ error: 'Origin not allowed' }, 403)
-    }
+  const origin = request.headers.get('Origin') || ''
+  if (!ALLOWED_ORIGINS.has(origin)) {
+    return jsonResponse({ error: 'Origin not allowed' }, 403)
+  }
+
+  let body
+  try {
+    body = await request.text()
+  } catch {
+    return jsonResponse({ error: 'Unable to read request body' }, 400)
+  }
+
+  if (byteLength(body) > MAX_REQUEST_BYTES) {
+    return jsonResponse({ error: 'Request too large' }, 413)
   }
 
   const proxySecret = String(
     env?.JOURNAL_SHARED_PROXY_SECRET ?? env?.WEED_GOBLINS_PROXY_SECRET ?? '',
   ).trim()
   if (!proxySecret) {
-    return jsonResponse({ error: 'Shared signals proxy is not configured' }, 500)
+    return jsonResponse({ error: 'Shared signals cleanup service is not configured' }, 500)
   }
 
   const workerBaseUrl = String(env?.SHARED_AGGREGATE_WORKER_URL ?? DEFAULT_WORKER_URL).replace(/\/+$/, '')
-  const incomingUrl = new URL(request.url)
-  const upstreamUrl = new URL(`${workerBaseUrl}/${relativePath}`)
-  upstreamUrl.search = incomingUrl.search
-
-  let body
-  if (request.method !== 'GET') {
-    const declaredLength = Number(request.headers.get('Content-Length') || 0)
-    if (declaredLength > MAX_REQUEST_BYTES) {
-      return jsonResponse({ error: 'Request too large' }, 413)
-    }
-
-    try {
-      body = await request.text()
-    } catch {
-      return jsonResponse({ error: 'Unable to read request body' }, 400)
-    }
-
-    if (byteLength(body) > MAX_REQUEST_BYTES) {
-      return jsonResponse({ error: 'Request too large' }, 413)
-    }
-  }
+  const upstreamUrl = `${workerBaseUrl}/contributors/opt-out`
 
   let upstream
   try {
-    const headers = {
-      Authorization: `Bearer ${proxySecret}`,
-      Accept: 'application/json',
-    }
-    const contentType = request.headers.get('Content-Type')
-    if (contentType) headers['Content-Type'] = contentType
-
-    upstream = await fetch(upstreamUrl.toString(), {
-      method: request.method,
-      headers,
+    upstream = await fetch(upstreamUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${proxySecret}`,
+        'Content-Type': request.headers.get('Content-Type') || 'application/json',
+        Accept: 'application/json',
+      },
       body,
     })
   } catch {
-    return jsonResponse({ error: 'Unable to reach shared signals service' }, 502)
+    return jsonResponse({ error: 'Unable to reach shared signals cleanup service' }, 502)
   }
 
-  const responseHeaders = new Headers({ 'Cache-Control': 'no-store' })
-  for (const [name, value] of upstream.headers.entries()) {
-    if (!BLOCKED_RESPONSE_HEADERS.has(name.toLowerCase())) {
-      responseHeaders.set(name, value)
-    }
-  }
-  if (!responseHeaders.has('Content-Type')) {
-    responseHeaders.set('Content-Type', 'application/json; charset=utf-8')
+  let payload = null
+  try {
+    payload = await upstream.json()
+  } catch {
+    payload = { ok: upstream.ok }
   }
 
-  return new Response(upstream.body, {
-    status: upstream.status,
-    statusText: upstream.statusText,
-    headers: responseHeaders,
-  })
+  return jsonResponse(payload, upstream.status)
 }
