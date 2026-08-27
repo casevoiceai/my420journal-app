@@ -1,0 +1,81 @@
+name: Weed Goblins production cutover stage 1
+
+on:
+  push:
+    branches:
+      - remove-anthropic/weed-goblins-workers-ai
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-guarded:
+    runs-on: ubuntu-24.04
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROD_WORKER_URL: https://my420journal-weed-goblins-narration.casevoice-ai.workers.dev
+    steps:
+      - name: Check out staging-proven feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require Cloudflare credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || exit 41
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || exit 42
+
+      - name: Validate production config shape
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: |
+          grep -q '"binding": "AI"' wrangler.jsonc
+          grep -q '"exports"' wrangler.jsonc
+          grep -q '"storage": "sqlite"' wrangler.jsonc
+          if grep -q '"migrations"' wrangler.jsonc; then exit 43; fi
+          if grep -qiE 'anthropic|claude' index.js; then exit 44; fi
+
+      - name: Deploy production narration Worker
+        id: deploy
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: |
+          set -o pipefail
+          npx wrangler@latest deploy 2>&1 | tee /tmp/prod-deploy.log
+          grep -q 'env.AI' /tmp/prod-deploy.log || { echo 'AI_BINDING_NOT_CONFIRMED'; exit 45; }
+          echo 'PRODUCTION_WORKERS_AI_DEPLOY_OK'
+
+      - name: Verify production authorization wall
+        shell: bash
+        run: |
+          status=$(curl --silent --show-error --max-time 60 --output /tmp/u.json --write-out '%{http_code}' --request POST "$PROD_WORKER_URL" --header 'Content-Type: application/json' --data '{"moment":"natural-one-complication","outcome":"complication"}')
+          test "$status" = '401' || { echo "PRODUCTION_AUTH_WALL_HTTP_$status"; cat /tmp/u.json; exit 51; }
+          echo 'PRODUCTION_AUTH_WALL_OK'
+
+      - name: Confirm rollback secrets remain present
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: |
+          npx wrangler@latest secret list > /tmp/secrets.json
+          grep -q 'WEED_GOBLINS_ANTHROPIC_API_KEY' /tmp/secrets.json || exit 52
+          grep -q 'WEED_GOBLINS_PROXY_SECRET' /tmp/secrets.json || exit 53
+          grep -q 'WEED_GOBLINS_RATE_LIMIT_SALT' /tmp/secrets.json || exit 54
+          echo 'ROLLBACK_SECRETS_RETAINED'
+
+      - name: Roll back if post-deploy verification failed
+        if: failure() && steps.deploy.outcome == 'success'
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: npx wrangler@latest rollback --message 'Automated rollback after failed Weed Goblins production verification'
+
+      - name: Remove temporary production deployment workflow
+        if: success()
+        shell: bash
+        run: |
+          git rm .github/workflows/weed-goblins-production-cutover-stage1.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Remove temporary Weed Goblins production deployment workflow'
+          git push origin HEAD:${GITHUB_REF_NAME}
