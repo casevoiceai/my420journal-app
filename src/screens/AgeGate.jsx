@@ -7,6 +7,7 @@ import {
   getCountryOption,
   isMarketEnabled,
 } from '../lib/marketConfig'
+import { scrubLegacyShoppingLocationFields } from '../lib/privacyMigrations'
 import {
   clearResidenceState,
   getStoredMarketConfig,
@@ -119,6 +120,8 @@ export default function AgeGate() {
     let cancelled = false
 
     async function restore() {
+      scrubLegacyShoppingLocationFields()
+
       const stored = getStoredMarketConfig()
       if (!stored.config) {
         if (!cancelled) setStep('country')
