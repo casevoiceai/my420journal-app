@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  activateLegacyLocalProfile,
   ensureAnonymousLocalProfile,
   migrateExistingLocalProfile,
 } from './localProfile.js'
@@ -92,7 +93,7 @@ test('keeps an existing anonymous active profile unchanged', () => {
   assert.deepEqual(users, [user])
 })
 
-test('preserves extra legacy profiles if the active pointer is missing', () => {
+test('requires a choice when multiple legacy profiles exist without an active pointer', () => {
   setup()
   localStorage.setItem(USERS_KEY, JSON.stringify([
     { id: 'newest', email: 'newest@example.com', credential_hash: 'a', credential_salt: 'b' },
@@ -100,13 +101,21 @@ test('preserves extra legacy profiles if the active pointer is missing', () => {
   ]))
 
   const result = ensureAnonymousLocalProfile()
-  const users = JSON.parse(localStorage.getItem(USERS_KEY))
+  const usersBeforeChoice = JSON.parse(localStorage.getItem(USERS_KEY))
 
-  assert.equal(result.profile.id, 'newest')
-  assert.equal(result.profile.multiple_profiles_detected, true)
-  assert.equal(users.length, 2)
-  assert.equal(users[0].id, 'newest')
-  assert.equal(users[0].profile_type, 'anonymous_local')
-  assert.equal(users[1].id, 'older')
-  assert.equal(users[1].email, 'older@example.com')
+  assert.equal(result.profile, null)
+  assert.equal(result.status, 'legacy_profile_choice_required')
+  assert.deepEqual(result.choices.map((choice) => choice.id), ['newest', 'older'])
+  assert.equal(localStorage.getItem(ACTIVE_USER_KEY), null)
+  assert.equal(usersBeforeChoice[0].email, 'newest@example.com')
+  assert.equal(usersBeforeChoice[1].email, 'older@example.com')
+
+  const selected = activateLegacyLocalProfile('older')
+  const usersAfterChoice = JSON.parse(localStorage.getItem(USERS_KEY))
+
+  assert.equal(selected.profile.id, 'older')
+  assert.equal(localStorage.getItem(ACTIVE_USER_KEY), 'older')
+  assert.equal(usersAfterChoice[0].email, 'newest@example.com')
+  assert.equal('email' in usersAfterChoice[1], false)
+  assert.equal(usersAfterChoice[1].profile_type, 'anonymous_local')
 })
