@@ -35,13 +35,20 @@ function sanitizeUser(user) {
   }
 }
 
-function publicProfile(user, extra = {}) {
+function publicProfile(user) {
   if (!user) return null
   return {
     id: user.id,
     created_at: user.created_at,
     profile_type: user.profile_type || 'anonymous_local',
-    ...extra,
+  }
+}
+
+function legacyProfileChoice(user, index) {
+  return {
+    id: user.id,
+    label: user.email || `Local journal ${index + 1}`,
+    created_at: user.created_at || null,
   }
 }
 
@@ -83,6 +90,29 @@ export function migrateExistingLocalProfile() {
   }
 }
 
+export function activateLegacyLocalProfile(profileId) {
+  if (typeof localStorage === 'undefined') {
+    return { profile: null, migrated: false, status: 'storage_unavailable' }
+  }
+
+  const users = readUsers()
+  const index = users.findIndex((user) => user?.id === profileId)
+  if (index < 0) {
+    return { profile: null, migrated: false, status: 'profile_not_found' }
+  }
+
+  const sanitized = sanitizeUser(users[index])
+  users[index] = sanitized
+  writeUsers(users)
+  localStorage.setItem(ACTIVE_USER_KEY, sanitized.id)
+
+  return {
+    profile: publicProfile(sanitized),
+    migrated: true,
+    status: 'legacy_profile_selected',
+  }
+}
+
 export function ensureAnonymousLocalProfile() {
   if (typeof localStorage === 'undefined') {
     return { profile: null, created: false, migrated: false, status: 'storage_unavailable' }
@@ -98,20 +128,21 @@ export function ensureAnonymousLocalProfile() {
 
   const users = readUsers()
 
-  if (users.length > 0) {
-    // If an old active-user pointer disappeared but local profiles remain, keep
-    // all rows intact and resume the newest stored profile rather than deleting data.
-    const chosen = users[0]
-    const sanitized = sanitizeUser(chosen)
-    users[0] = sanitized
-    writeUsers(users)
-    localStorage.setItem(ACTIVE_USER_KEY, sanitized.id)
-
+  if (users.length === 1) {
+    const activated = activateLegacyLocalProfile(users[0].id)
     return {
-      profile: publicProfile(sanitized, { multiple_profiles_detected: users.length > 1 }),
+      ...activated,
       created: false,
-      migrated: true,
-      status: users.length > 1 ? 'legacy_profiles_preserved_newest_resumed' : 'legacy_profile_resumed',
+    }
+  }
+
+  if (users.length > 1) {
+    return {
+      profile: null,
+      created: false,
+      migrated: false,
+      status: 'legacy_profile_choice_required',
+      choices: users.map(legacyProfileChoice),
     }
   }
 
