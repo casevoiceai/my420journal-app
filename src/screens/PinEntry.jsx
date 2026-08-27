@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
-import { verifyPin, clearPin } from '../lib/pin'
+import { hasPin, isPinUnlocked, verifyPin } from '../lib/pin'
 import { isDevMode, DEV_PROFILE } from '../lib/dev'
 
 const S = {
@@ -109,8 +109,6 @@ function NumPad({ onDigit, onDelete }) {
   )
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-
 export default function PinEntry() {
   const navigate = useNavigate()
   const [pin, setPin] = useState('')
@@ -123,6 +121,8 @@ export default function PinEntry() {
 
   useEffect(() => {
     if (isDevMode()) { navigate('/home'); return }
+    if (!hasPin() || isPinUnlocked()) { navigate('/home', { replace: true }); return }
+
     async function load() {
       const { data: { user } } = await localStore.auth.getUser()
       if (!user) { navigate('/login'); return }
@@ -143,14 +143,6 @@ export default function PinEntry() {
     : meta?.name
   const guideAccent = meta?.accent ?? S.gold
 
-  async function sendResetEmail() {
-    if (isDevMode()) return
-    const { data: { user } } = await localStore.auth.getUser()
-    if (user?.email) {
-      await localStore.auth.resetPasswordForEmail(user.email)
-    }
-  }
-
   async function handleDigit(d) {
     if (locked) return
     if (pin.length >= 4) return
@@ -163,21 +155,18 @@ export default function PinEntry() {
       setTimeout(async () => {
         const correct = await verifyPin(next)
         if (correct) {
-          navigate('/home')
+          navigate('/home', { replace: true })
         } else {
           const newAttempts = attempts + 1
           setAttempts(newAttempts)
           setPin('')
-
-          // Shake animation
           setShake(true)
           setTimeout(() => setShake(false), 400)
 
           if (newAttempts >= 3) {
             setLocked(true)
             setError('Too many attempts.')
-            await sendResetEmail()
-            setMessage('We sent a reset link to your email. Check your inbox.')
+            setMessage('My420Journal has no email or cloud PIN recovery. Close this tab and reopen the journal to try again.')
           } else {
             setError(`Incorrect PIN. ${3 - newAttempts} attempt${3 - newAttempts === 1 ? '' : 's'} remaining.`)
           }
@@ -190,12 +179,6 @@ export default function PinEntry() {
     if (locked) return
     setPin((p) => p.slice(0, -1))
     setError('')
-  }
-
-  async function handleForgot() {
-    setLocked(true)
-    await sendResetEmail()
-    setMessage('We sent a reset link to your email. After clicking it, come back to set a new PIN.')
   }
 
   return (
@@ -221,7 +204,6 @@ export default function PinEntry() {
         boxSizing: 'border-box',
       }}>
         <div style={{ width: '100%', maxWidth: '360px', textAlign: 'center' }}>
-          {/* Guide name chip */}
           {guideName && (
             <p style={{
               fontFamily: fontInter,
@@ -272,24 +254,6 @@ export default function PinEntry() {
           )}
 
           {!locked && <NumPad onDigit={handleDigit} onDelete={handleDelete} />}
-
-          {!locked && !message && (
-            <button
-              onClick={handleForgot}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontFamily: fontInter,
-                fontSize: '12px',
-                color: S.textSecondary,
-                cursor: 'pointer',
-                marginTop: '20px',
-                padding: '8px',
-              }}
-            >
-              Forgot my code
-            </button>
-          )}
         </div>
       </div>
     </>
