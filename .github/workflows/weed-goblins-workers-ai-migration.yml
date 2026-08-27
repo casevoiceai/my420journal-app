@@ -1,0 +1,16 @@
+name: Weed Goblins migration probe
+
+on:
+  push:
+    branches:
+      - remove-anthropic/weed-goblins-workers-ai
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm Actions can run on feature branch
+        run: echo "Weed Goblins migration workflow is ready"
