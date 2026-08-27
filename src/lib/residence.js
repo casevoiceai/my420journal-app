@@ -38,6 +38,8 @@ export function saveResidenceSelection(country, region = null) {
   const config = getMarketConfig(country, region)
   const previous = readState()
   const sameMarket = previous?.market_id === config.id
+  const assuranceStillCompatible = sameMarket
+    && previous?.age_assurance?.market_config_version === MARKET_CONFIG_VERSION
 
   const next = {
     version: MARKET_CONFIG_VERSION,
@@ -45,7 +47,7 @@ export function saveResidenceSelection(country, region = null) {
     home_region: config.region,
     market_id: config.id,
     selected_at: sameMarket && previous?.selected_at ? previous.selected_at : nowIso(),
-    age_assurance: sameMarket ? previous?.age_assurance || null : null,
+    age_assurance: assuranceStillCompatible ? previous.age_assurance : null,
   }
 
   writeState(next)
@@ -58,7 +60,7 @@ export function markAgeAssurance(config, mode = config?.ageAssuranceMode) {
   }
 
   const current = readState()
-  if (!current || current.market_id !== config.id) {
+  if (!current || current.market_id !== config.id || current.version !== MARKET_CONFIG_VERSION) {
     return { ok: false, state: current, error: 'Residence must be selected before age assurance.' }
   }
 
@@ -67,6 +69,7 @@ export function markAgeAssurance(config, mode = config?.ageAssuranceMode) {
     version: MARKET_CONFIG_VERSION,
     age_assurance: {
       version: AGE_ASSURANCE_VERSION,
+      market_config_version: MARKET_CONFIG_VERSION,
       status: 'confirmed',
       mode,
       threshold: config.ageThreshold,
@@ -82,9 +85,11 @@ export function markAgeAssurance(config, mode = config?.ageAssuranceMode) {
 export function isAgeAssuranceCurrent(config, state = readState()) {
   const assurance = state?.age_assurance
   if (!config || !state || !assurance) return false
-  return state.market_id === config.id
+  return state.version === MARKET_CONFIG_VERSION
+    && state.market_id === config.id
     && assurance.market_id === config.id
     && assurance.version === AGE_ASSURANCE_VERSION
+    && assurance.market_config_version === MARKET_CONFIG_VERSION
     && assurance.status === 'confirmed'
     && assurance.threshold === config.ageThreshold
     && assurance.mode === config.ageAssuranceMode
