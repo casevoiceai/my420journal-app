@@ -2,6 +2,7 @@ import {
   AGE_ASSURANCE_VERSION,
   MARKET_CONFIG_VERSION,
   getMarketConfig,
+  isMarketEnabled,
 } from './marketConfig.js'
 
 const STORAGE_KEY = 'my420journal_market_v1'
@@ -95,6 +96,10 @@ export function isAgeAssuranceCurrent(config, state = readState()) {
     && assurance.mode === config.ageAssuranceMode
 }
 
+export function hasCurrentMarketAccess(config, state) {
+  return isMarketEnabled(config) && isAgeAssuranceCurrent(config, state)
+}
+
 export function getStoredMarketConfig() {
   const state = readState()
   if (!state?.home_country) return { state, config: null }
@@ -102,4 +107,9 @@ export function getStoredMarketConfig() {
     state,
     config: getMarketConfig(state.home_country, state.home_region),
   }
+}
+
+export function hasStoredMarketAccess() {
+  const { state, config } = getStoredMarketConfig()
+  return hasCurrentMarketAccess(config, state)
 }
