@@ -1,0 +1,24 @@
+name: Weed Goblins V3 Founder Preview Verify
+
+on:
+  push:
+    branches:
+      - feature/weed-goblins-v3-starter-lands
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run V3 Starter Lands tests
+        run: node --test src/features/games/weed-goblins/v3/*.test.js
+      - name: Run existing regression suite
+        run: npm test
+      - name: Build production bundle
+        run: npm run build

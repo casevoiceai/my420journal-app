@@ -59,7 +59,7 @@ export async function onRequest({ request, env }) {
     headers: {
       'Cache-Control': 'no-store, max-age=0',
       'Set-Cookie': cookie,
-      Location: '/app',
+      Location: '/games/weed-goblins',
     },
   })
 }

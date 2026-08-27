@@ -1,0 +1,99 @@
+.wg3 {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, rgba(105, 126, 70, 0.16), transparent 34rem), #071007;
+  color: #edf2e8;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.wg3 *, .wg3 *::before, .wg3 *::after { box-sizing: border-box; }
+.wg3 button, .wg3 input { font: inherit; }
+.wg3 button { min-height: 48px; }
+
+.wg3-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 1fr minmax(120px, 1.2fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  padding: 8px 16px;
+  background: rgba(7, 16, 7, 0.96);
+  border-bottom: 1px solid #31422f;
+  backdrop-filter: blur(12px);
+}
+
+.wg3-topbar > div { display: flex; flex-direction: column; line-height: 1.2; }
+.wg3-topbar__location { text-align: center; align-items: center; }
+.wg3-topbar span, .wg3-eyebrow { color: #a7b89c; font-size: 13px; letter-spacing: 0.07em; text-transform: uppercase; }
+.wg3-topbar strong { margin-top: 3px; font-size: 15px; }
+.wg3-topbar button { color: #ecf1e7; background: #172317; border: 1px solid #52664d; border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+
+.wg3-page { width: min(100%, 800px); margin: 0 auto; padding: 22px 18px 80px; }
+.wg3-orientation { margin-bottom: 28px; padding: 14px 16px; background: #111d11; border: 1px solid #344633; border-radius: 12px; }
+.wg3-orientation span { display: block; margin-bottom: 4px; color: #a8b79f; font-size: 14px; }
+.wg3-orientation strong { font-size: 17px; line-height: 1.45; }
+
+.wg3-story, .wg3-reader, .wg3-question { color: #edf0e7; font-family: Georgia, "Times New Roman", serif; font-size: clamp(18px, 2.4vw, 21px); line-height: 1.72; }
+.wg3-story h2, .wg3-reader h2, .wg3-question h2 { margin: 0 0 18px; color: #f7f8f2; font-size: clamp(27px, 5vw, 38px); line-height: 1.15; }
+.wg3-story p, .wg3-reader p { margin: 0 0 1.05em; }
+
+.wg3-eliza { display: grid; grid-template-columns: 44px 1fr; gap: 13px; margin: 30px 0; padding: 16px; background: #132014; border: 1px solid #40513d; border-radius: 13px; }
+.wg3-eliza__badge { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid #8ca374; border-radius: 999px; font-family: Georgia, "Times New Roman", serif; font-size: 23px; font-weight: 700; }
+.wg3-eliza strong { font-size: 16px; }
+.wg3-eliza p { margin: 4px 0 0; color: #e0e9da; font-size: 17px; line-height: 1.55; }
+.wg3-instruction { margin: 20px 0 14px; color: #cbd7c5; font-size: 17px; line-height: 1.5; }
+
+.wg3-choice-grid, .wg3-answer-list { display: grid; gap: 12px; }
+.wg3-choice-grid button, .wg3-answer-list button { width: 100%; padding: 16px; color: #f2f5ed; text-align: left; background: #101b10; border: 1px solid #425540; border-radius: 12px; cursor: pointer; }
+.wg3-choice-grid button:hover, .wg3-answer-list button:hover { background: #182718; border-color: #829877; }
+.wg3-choice-grid button.is-selected { border-color: #a7c184; box-shadow: 0 0 0 1px #a7c184 inset; }
+.wg3-choice-grid strong { display: block; margin-bottom: 5px; font-size: 18px; }
+.wg3-choice-grid span { display: block; color: #c3d0bd; font-size: 16px; line-height: 1.45; }
+.wg3-choice-grid em { display: inline-block; margin-top: 8px; color: #9fb88a; font-size: 14px; font-style: normal; }
+.wg3-answer-list button { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 17px; line-height: 1.45; }
+
+.wg3-reader { margin-top: 8px; }
+.wg3-hook { margin: -6px 0 28px !important; color: #bed0b2; font-style: italic; }
+.wg3-lore-section { margin: 30px 0; padding-top: 4px; }
+.wg3-lore-section h3 { margin: 0 0 10px; color: #dce7d5; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 18px; letter-spacing: 0.03em; }
+.wg3-text-button { margin: 0 0 24px; padding: 8px 0; color: #bed2af; background: transparent; border: 0; cursor: pointer; font-size: 16px; }
+
+.wg3-primary { margin-top: 22px; padding: 13px 18px; color: #0a1108; background: #b5ce90; border: 0; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 17px; }
+.wg3-primary:hover { filter: brightness(1.06); }
+.wg3-confirm-zone { margin-top: 34px; padding: 19px; background: #132013; border: 1px solid #52664d; border-radius: 13px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.wg3-confirm-zone p { margin: 0; color: #d9e2d4; font-size: 16px; line-height: 1.55; }
+
+.wg3-mechanics { display: grid; gap: 0; margin: 28px 0; background: #101a10; border: 1px solid #394b38; border-radius: 12px; overflow: hidden; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.wg3-mechanics > div { display: grid; grid-template-columns: minmax(120px, 0.8fr) 1.6fr; gap: 12px; padding: 13px 15px; border-bottom: 1px solid #2b3b2b; }
+.wg3-mechanics > div:last-child { border-bottom: 0; }
+.wg3-mechanics dt { color: #aebea5; font-size: 15px; }
+.wg3-mechanics dd { margin: 0; color: #eef2e9; font-size: 16px; line-height: 1.45; }
+
+.wg3-name label { display: block; margin: 0 0 8px; color: #d7e1d1; font-size: 16px; }
+.wg3-name input { width: 100%; min-height: 52px; padding: 12px 14px; color: #f7f8f3; background: #0d170d; border: 1px solid #52624f; border-radius: 10px; font-size: 18px; }
+.wg3-name input:focus, .wg3 button:focus-visible { outline: 3px solid #abc58a; outline-offset: 2px; }
+.wg3-question .wg3-eyebrow { display: block; margin-bottom: 9px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.wg3-question h2 { font-size: clamp(24px, 4.3vw, 32px); }
+
+.wg3-founder-stop { margin-top: 34px; padding: 18px; background: #1b2112; border: 1px solid #7c8348; border-radius: 12px; }
+.wg3-founder-stop strong { font-size: 18px; }
+.wg3-founder-stop p { margin: 7px 0 0; color: #dce2cf; font-size: 16px; line-height: 1.55; }
+.wg3-error { margin-top: 24px; padding: 13px 15px; color: #ffece7; background: #3d1e18; border: 1px solid #925247; border-radius: 10px; font-size: 16px; }
+
+.wg3-drawer-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; justify-content: flex-end; background: rgba(0, 0, 0, 0.68); }
+.wg3-drawer { width: min(100%, 540px); height: 100%; overflow-y: auto; padding: 22px; color: #eef2e8; background: #0c160c; border-left: 1px solid #42513f; }
+.wg3-drawer header { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 24px; }
+.wg3-drawer h2 { margin: 5px 0 0; font-family: Georgia, "Times New Roman", serif; font-size: 30px; }
+.wg3-drawer section { margin: 18px 0; padding: 15px; background: #121e12; border: 1px solid #30412f; border-radius: 10px; }
+.wg3-drawer h3 { margin: 0 0 9px; font-size: 17px; }
+.wg3-drawer p, .wg3-drawer li { font-size: 16px; line-height: 1.5; }
+.wg3-drawer ul { padding-left: 22px; }
+.wg3-close { width: 48px; color: #eef2e8; background: transparent; border: 0; font-size: 32px; cursor: pointer; }
+.wg3-danger-link { width: 100%; margin-top: 18px; color: #ead8d2; background: transparent; border: 1px solid #74554d; border-radius: 9px; cursor: pointer; }
+.wg3-loading { min-height: 100vh; display: grid; place-items: center; background: #071007; color: #d9e2d4; font-size: 18px; }
+
+@media (min-width: 700px) { .wg3-page { padding-top: 34px; } .wg3-choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .wg3-topbar { grid-template-columns: 1fr auto; } .wg3-topbar__location { display: none !important; } .wg3-page { padding-left: 15px; padding-right: 15px; } .wg3-story, .wg3-reader, .wg3-question { font-size: 18px; line-height: 1.68; } .wg3-mechanics > div { grid-template-columns: 105px 1fr; } }
+@media (prefers-reduced-motion: reduce) { .wg3 *, .wg3 *::before, .wg3 *::after { scroll-behavior: auto !important; transition: none !important; } }
