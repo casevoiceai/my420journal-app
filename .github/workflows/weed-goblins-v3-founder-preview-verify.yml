@@ -18,7 +18,18 @@ jobs:
       - run: npm ci
       - name: Run V3 Starter Lands tests
         run: node --test src/features/games/weed-goblins/v3/*.test.js
-      - name: Run existing regression suite
-        run: npm test
+      - name: Run existing regression suite with diagnostics
+        shell: bash
+        run: |
+          set +e
+          npm test 2>&1 | tee regression.log
+          status=${PIPESTATUS[0]}
+          {
+            echo '## Existing regression suite output'
+            echo '```text'
+            tail -n 220 regression.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $status
       - name: Build production bundle
         run: npm run build
