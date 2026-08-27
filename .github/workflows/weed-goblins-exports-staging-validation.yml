@@ -1,0 +1,88 @@
+name: Weed Goblins exports staging validation
+
+on:
+  push:
+    branches:
+      - remove-anthropic/weed-goblins-workers-ai
+
+permissions:
+  contents: write
+
+jobs:
+  validate-staging:
+    runs-on: ubuntu-24.04
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_STAGING_PROXY_SECRET }}
+      STAGING_WORKER_URL: https://my420journal-weed-goblins-narration-staging.casevoice-ai.workers.dev
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || exit 41
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || exit 42
+          test -n "$STAGING_PROXY_SECRET" || exit 43
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Test and build
+        shell: bash
+        run: |
+          npm ci
+          npm test
+          npm run build
+          git diff --check
+
+      - name: Create isolated staging config
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+          const config = JSON.parse(fs.readFileSync('wrangler.jsonc', 'utf8'))
+          config.name = 'my420journal-weed-goblins-narration-staging'
+          config.workers_dev = true
+          fs.writeFileSync('wrangler.staging.jsonc', JSON.stringify(config, null, 2) + '\n')
+          NODE
+          grep -q '"exports"' wrangler.staging.jsonc
+          grep -q '"storage": "sqlite"' wrangler.staging.jsonc
+          if grep -q '"migrations"' wrangler.staging.jsonc; then exit 44; fi
+
+      - name: Deploy exact config to existing staging Worker
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: npx wrangler@latest deploy --config wrangler.staging.jsonc
+
+      - name: Smoke staging narration
+        shell: bash
+        run: |
+          unauth=$(curl --silent --show-error --max-time 60 --output /tmp/u.json --write-out '%{http_code}' --request POST "$STAGING_WORKER_URL" --header 'Content-Type: application/json' --data '{"moment":"natural-one-complication","outcome":"complication"}')
+          test "$unauth" = '401' || { echo "UNAUTH_$unauth"; exit 51; }
+          status=$(curl --silent --show-error --max-time 60 --output /tmp/r.json --write-out '%{http_code}' --request POST "$STAGING_WORKER_URL" --header 'Content-Type: application/json' --header "Authorization: Bearer $STAGING_PROXY_SECRET" --data '{"moment":"natural-one-complication","outcome":"complication","sceneId":"choose-route","actionId":"route:ridge","stat":"strength","dc":12,"rolls":[1],"selectedRoll":1,"troubleBefore":0,"troubleAfter":2,"fictionalStolenItem":"the Amber Field Satchel","fictionalGoblinName":"Professor Grub","narrationTier":"normal"}')
+          test "$status" = '200' || { echo "STAGING_$status"; cat /tmp/r.json; exit 52; }
+          node <<'NODE'
+          const fs = require('fs')
+          const j = JSON.parse(fs.readFileSync('/tmp/r.json', 'utf8'))
+          if (!j.text || j.model !== '@cf/meta/llama-3.3-70b-instruct-fp8-fast') process.exit(53)
+          console.log('EXPORTS_STAGING_SMOKE_OK')
+          NODE
+
+      - name: Remove temporary validation workflow
+        if: success()
+        shell: bash
+        run: |
+          git rm .github/workflows/weed-goblins-exports-staging-validation.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Remove temporary Weed Goblins exports staging validation'
+          git push origin HEAD:${GITHUB_REF_NAME}
