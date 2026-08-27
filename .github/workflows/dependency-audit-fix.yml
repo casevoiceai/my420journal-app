@@ -1,0 +1,56 @@
+name: Dependency audit fix
+
+on:
+  push:
+    branches:
+      - security/dependency-audit-fix
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout security branch
+        uses: actions/checkout@v4
+        with:
+          ref: security/dependency-audit-fix
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Apply safe npm audit fixes
+        run: npm audit fix
+
+      - name: Show dependency changes
+        run: git diff -- package.json package-lock.json
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit dependency-only repair
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "No dependency file changes to commit."
+            exit 0
+          fi
+          git config user.name "casevoiceai"
+          git config user.email "casevoice.ai@gmail.com"
+          git add package.json package-lock.json
+          git commit -m "Fix audited dependency vulnerabilities"
+          git push origin HEAD:security/dependency-audit-fix
