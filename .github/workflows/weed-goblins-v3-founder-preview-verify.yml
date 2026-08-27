@@ -16,8 +16,22 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Run V3 Starter Lands tests
-        run: node --test src/features/games/weed-goblins/v3/*.test.js
+      - name: Run V3 Starter Lands tests with diagnostics
+        id: v3
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          node --test src/features/games/weed-goblins/v3/*.test.js 2>&1 | tee v3.log
+          status=${PIPESTATUS[0]}
+          exit $status
+      - name: Upload V3 diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weed-goblins-v3-test-log
+          path: v3.log
+          retention-days: 1
       - name: Run existing regression suite with diagnostics
         id: regression
         continue-on-error: true
@@ -35,7 +49,9 @@ jobs:
           path: regression.log
           retention-days: 1
       - name: Build production bundle
+        id: build
+        continue-on-error: true
         run: npm run build
-      - name: Fail if existing regression suite failed
-        if: steps.regression.outcome == 'failure'
+      - name: Fail if verification failed
+        if: steps.v3.outcome == 'failure' || steps.regression.outcome == 'failure' || steps.build.outcome == 'failure'
         run: exit 1
