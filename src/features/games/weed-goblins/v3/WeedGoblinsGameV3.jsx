@@ -41,16 +41,24 @@ function StoryPassage({ title = null, children, content = null }) {
   )
 }
 
-function ElizaAside({ children }) {
+function SpeakerAside({ name, badge, children }) {
   return (
     <aside className="wg3-eliza">
-      <div className="wg3-eliza__badge">E</div>
+      <div className="wg3-eliza__badge">{badge}</div>
       <div>
-        <strong>Eliza</strong>
+        <strong>{name}</strong>
         <p>{children}</p>
       </div>
     </aside>
   )
+}
+
+function ElizaAside({ children }) {
+  return <SpeakerAside name="Eliza" badge="E">{children}</SpeakerAside>
+}
+
+function SableAside({ children }) {
+  return <SpeakerAside name="Sable Merrow" badge="S">{children}</SpeakerAside>
 }
 
 function ChoiceGrid({ items, previewId, onPreview, inspectedIds = [], noun = 'choice' }) {
@@ -204,7 +212,7 @@ function ArmoryBrowser({ state, apply }) {
           <button type="button" className="wg3-text-button" onClick={() => apply((current) => ({ ...current, previewing: { ...current.previewing, weaponId: null } }))}>← Back to weapon racks</button>
           <h2>{preview.label}</h2>
           <StoryPassage content={preview.story} />
-          <ElizaAside>{preview.sable[sableBanterIndex({ seed: state.seed, weaponId: preview.id, inspectedCount, variantCount: preview.sable.length })]}</ElizaAside>
+          <SableAside>{preview.sable[sableBanterIndex({ seed: state.seed, weaponId: preview.id, inspectedCount, variantCount: preview.sable.length })]}</SableAside>
           <MechanicsSummary rows={[
             ['Damage', preview.damage],
             ['Combat identity', preview.identity],
