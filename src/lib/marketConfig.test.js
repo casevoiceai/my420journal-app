@@ -9,6 +9,7 @@ import {
 import {
   clearResidenceState,
   getResidenceState,
+  hasCurrentMarketAccess,
   isAgeAssuranceCurrent,
   markAgeAssurance,
   saveResidenceSelection,
@@ -117,4 +118,18 @@ test('age assurance fails closed when its market configuration version is stale'
   }
 
   assert.equal(isAgeAssuranceCurrent(config, stale), false)
+  assert.equal(hasCurrentMarketAccess(config, stale), false)
+})
+
+test('private-route market access requires both an enabled market and current age assurance', () => {
+  setup()
+  const pa = saveResidenceSelection('US', 'PA')
+  assert.equal(hasCurrentMarketAccess(pa.config, pa.state), false)
+
+  markAgeAssurance(pa.config)
+  assert.equal(hasCurrentMarketAccess(pa.config, getResidenceState()), true)
+
+  const ct = getMarketConfig('US', 'CT')
+  assert.equal(hasCurrentMarketAccess(ct, getResidenceState()), false)
+  assert.equal(hasCurrentMarketAccess(null, null), false)
 })
