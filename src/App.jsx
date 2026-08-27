@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { localStore } from './lib/localStore'
 import { clearPin, hasPin } from './lib/pin'
 import { isDevMode } from './lib/dev'
+import { hasStoredMarketAccess } from './lib/residence'
 import AgeGate from './screens/AgeGate'
 import Signup from './screens/Signup'
 import Login from './screens/Login'
@@ -271,6 +272,12 @@ function RecoveryHandler() {
   return null
 }
 
+function MarketAccessGuard() {
+  if (isDevMode()) return <Outlet />
+  if (!hasStoredMarketAccess()) return <Navigate to="/app" replace />
+  return <Outlet />
+}
+
 function HomeGuard() {
   const navigate = useNavigate()
   const [ready, setReady] = useState(isDevMode())
@@ -309,34 +316,38 @@ export default function App() {
         <Route path="/partners"          element={<MarketingPartners />} />
         <Route path="/privacy"           element={<MarketingPrivacy />} />
         <Route path="/app"               element={<AgeGate />} />
-        <Route path="/signup"            element={<Signup />} />
-        <Route path="/login"             element={<Login />} />
-        <Route path="/forgot-password"   element={<ForgotPassword />} />
-        <Route path="/onboarding"        element={<Onboarding />} />
-        <Route path="/pin-setup"         element={<PinSetup />} />
-        <Route path="/pin"               element={<PinEntry />} />
-        <Route path="/home"              element={<HomeGuard />} />
-        <Route path="/dashboard"         element={<Navigate to="/home" replace />} />
-        <Route path="/entries/new"       element={<NewEntry />} />
-        <Route path="/entries/sleep/:id" element={<SleepEntryDetail />} />
-        <Route path="/entries/:id"       element={<EntryDetail />} />
-        <Route path="/entries/:id/edit"  element={<EditEntry />} />
-        <Route path="/stash"             element={<Stash />} />
-        <Route path="/stash/:id"         element={<StashDetail />} />
-        <Route path="/strains"           element={<Strains />} />
-        <Route path="/strains/:id"       element={<StrainDetail />} />
-        <Route path="/insights"          element={<Insights />} />
-        <Route path="/shared-signals"    element={<SharedSignals />} />
-        <Route path="/profile"           element={<Profile />} />
-        <Route path="/settings"          element={<Settings />} />
-        <Route path="/quick"             element={<QuickEntry />} />
-        <Route path="/journal"           element={<Journal />} />
-        <Route path="/guide"             element={<Guide />} />
-        <Route path="/games/weed-goblins" element={<WeedGoblinsChat />} />
-        <Route path="/notes/new"         element={<NoteEntry />} />
-        <Route path="/checkin"           element={<CheckIn />} />
-        <Route path="/update/:entryId"   element={<PostUseUpdate />} />
-        <Route path="*"                  element={<Navigate to="/" replace />} />
+
+        <Route element={<MarketAccessGuard />}>
+          <Route path="/signup"            element={<Signup />} />
+          <Route path="/login"             element={<Login />} />
+          <Route path="/forgot-password"   element={<ForgotPassword />} />
+          <Route path="/onboarding"        element={<Onboarding />} />
+          <Route path="/pin-setup"         element={<PinSetup />} />
+          <Route path="/pin"               element={<PinEntry />} />
+          <Route path="/home"              element={<HomeGuard />} />
+          <Route path="/dashboard"         element={<Navigate to="/home" replace />} />
+          <Route path="/entries/new"       element={<NewEntry />} />
+          <Route path="/entries/sleep/:id" element={<SleepEntryDetail />} />
+          <Route path="/entries/:id"       element={<EntryDetail />} />
+          <Route path="/entries/:id/edit"  element={<EditEntry />} />
+          <Route path="/stash"             element={<Stash />} />
+          <Route path="/stash/:id"         element={<StashDetail />} />
+          <Route path="/strains"           element={<Strains />} />
+          <Route path="/strains/:id"       element={<StrainDetail />} />
+          <Route path="/insights"          element={<Insights />} />
+          <Route path="/shared-signals"    element={<SharedSignals />} />
+          <Route path="/profile"           element={<Profile />} />
+          <Route path="/settings"          element={<Settings />} />
+          <Route path="/quick"             element={<QuickEntry />} />
+          <Route path="/journal"           element={<Journal />} />
+          <Route path="/guide"             element={<Guide />} />
+          <Route path="/games/weed-goblins" element={<WeedGoblinsChat />} />
+          <Route path="/notes/new"         element={<NoteEntry />} />
+          <Route path="/checkin"           element={<CheckIn />} />
+          <Route path="/update/:entryId"   element={<PostUseUpdate />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <BottomNav />
       <DevBar />
