@@ -10,7 +10,7 @@ import {
 const SECRET = 'test-shared-secret'
 const env = {
   WEED_GOBLINS_PROXY_SECRET: SECRET,
-  WEED_GOBLINS_ANTHROPIC_API_KEY: 'test-api-key',
+  AI: { async run() { throw new Error('test must inject model runner') } },
   WEED_GOBLINS_RATE_LIMIT_SALT: 'test-rate-limit-salt',
   FREE_TEXT_RATE_LIMITER: {
     getByName() {
@@ -61,10 +61,8 @@ function request(moment, outcome, extra = {}) {
   })
 }
 
-function anthropicResponse() {
-  return new Response(JSON.stringify({
-    content: [{ type: 'text', text: 'I record the supplied result without altering it.' }],
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+function workersAiResponse() {
+  return { response: 'I record the supplied result without altering it.' }
 }
 
 const PAIRS = [
@@ -86,22 +84,22 @@ for (const [moment, outcome] of PAIRS) {
     const response = await handleNarrationWorkerRequest(
       request(moment, outcome),
       env,
-      async (_url, init) => {
-        forwarded = JSON.parse(init.body)
-        return anthropicResponse()
+      async (_model, input) => {
+        forwarded = input
+        return workersAiResponse()
       },
     )
 
     assert.equal(response.status, 200)
-    assert.equal(forwarded.messages[0].content.includes(`"moment":"${moment}"`), true)
-    assert.equal(forwarded.messages[0].content.includes(`"outcome":"${outcome}"`), true)
-    assert.equal(forwarded.messages[0].content.includes('"storySoFar"'), true)
-    assert.equal(forwarded.messages[0].content.includes('"choiceContext"'), true)
-    assert.equal(forwarded.messages[0].content.includes('"continuityAnchors":["The Direct Ridge"]'), true)
+    assert.equal(forwarded.messages[1].content.includes(`"moment":"${moment}"`), true)
+    assert.equal(forwarded.messages[1].content.includes(`"outcome":"${outcome}"`), true)
+    assert.equal(forwarded.messages[1].content.includes('"storySoFar"'), true)
+    assert.equal(forwarded.messages[1].content.includes('"choiceContext"'), true)
+    assert.equal(forwarded.messages[1].content.includes('"continuityAnchors":["The Direct Ridge"]'), true)
   })
 }
 
-test('rejects mismatched new pairs before Anthropic', async () => {
+test('rejects mismatched new pairs before Workers AI invocation', async () => {
   let fetchCalls = 0
   const mismatches = [
     ['premise-statement', 'intro'],
@@ -122,7 +120,7 @@ test('rejects mismatched new pairs before Anthropic', async () => {
       env,
       async () => {
         fetchCalls += 1
-        return anthropicResponse()
+        return workersAiResponse()
       },
     )
     assert.equal(response.status, 400, `${moment}/${outcome}`)

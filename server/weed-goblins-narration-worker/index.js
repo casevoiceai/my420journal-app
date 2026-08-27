@@ -1,6 +1,4 @@
-const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages'
-const ANTHROPIC_VERSION = '2023-06-01'
-export const WEED_GOBLINS_MODEL = 'claude-haiku-4-5-20251001'
+export const WEED_GOBLINS_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 const MAX_REQUEST_BYTES = 16_384
 const RUN_ENDING_OUTCOMES = Object.freeze(['recovery', 'bargain', 'escape'])
 export const FREE_TEXT_RATE_LIMIT = 30
@@ -446,18 +444,13 @@ function eventPrompt(context) {
 }
 
 function extractText(payload) {
-  const blocks = Array.isArray(payload?.content) ? payload.content : []
-  return blocks
-    .filter((block) => block?.type === 'text' && typeof block.text === 'string')
-    .map((block) => block.text)
-    .join('')
-    .trim()
+  return typeof payload?.response === 'string' ? payload.response.trim() : ''
 }
 
 export async function handleNarrationWorkerRequest(
   request,
   env,
-  fetchImpl = fetch,
+  runModelImpl = null,
   now = Date.now(),
 ) {
   if (!(await isAuthorizedNarrationRequest(request, env?.WEED_GOBLINS_PROXY_SECRET))) {
@@ -468,7 +461,8 @@ export async function handleNarrationWorkerRequest(
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
-  if (!env?.WEED_GOBLINS_ANTHROPIC_API_KEY) {
+  const runModel = runModelImpl ?? (env?.AI?.run ? env.AI.run.bind(env.AI) : null)
+  if (!runModel) {
     return jsonResponse({ error: 'Narration service is not configured' }, 500)
   }
 
@@ -527,42 +521,21 @@ export async function handleNarrationWorkerRequest(
     }
   }
 
-  let anthropicResponse
+  let modelResponse
   try {
-    anthropicResponse = await fetchImpl(ANTHROPIC_MESSAGES_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': env.WEED_GOBLINS_ANTHROPIC_API_KEY,
-        'anthropic-version': ANTHROPIC_VERSION,
-      },
-      body: JSON.stringify({
-        model: WEED_GOBLINS_MODEL,
-        max_tokens: 96,
-        temperature: 0.7,
-        system: WEED_GOBLINS_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: eventPrompt(context) }],
-      }),
+    modelResponse = await runModel(WEED_GOBLINS_MODEL, {
+      max_tokens: 96,
+      temperature: 0.7,
+      messages: [
+        { role: 'system', content: WEED_GOBLINS_SYSTEM_PROMPT },
+        { role: 'user', content: eventPrompt(context) },
+      ],
     })
   } catch {
     return jsonResponse({ error: 'Unable to reach narration model' }, 502)
   }
 
-  let payload
-  try {
-    payload = await anthropicResponse.json()
-  } catch {
-    return jsonResponse({ error: 'Invalid narration model response' }, 502)
-  }
-
-  if (!anthropicResponse.ok) {
-    return jsonResponse(
-      { error: 'Narration model request failed' },
-      anthropicResponse.status >= 400 ? anthropicResponse.status : 502,
-    )
-  }
-
-  const text = extractText(payload)
+  const text = extractText(modelResponse)
   if (!text) {
     return jsonResponse({ error: 'Narration model returned no text' }, 502)
   }

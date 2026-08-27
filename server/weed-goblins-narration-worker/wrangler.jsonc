@@ -4,6 +4,9 @@
   "main": "index.js",
   "compatibility_date": "2026-08-06",
   "compatibility_flags": ["nodejs_compat"],
+  "ai": {
+    "binding": "AI"
+  },
   "durable_objects": {
     "bindings": [
       {
@@ -12,12 +15,12 @@
       }
     ]
   },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["WeedGoblinsFreeTextRateLimiter"]
+  "exports": {
+    "WeedGoblinsFreeTextRateLimiter": {
+      "type": "durable-object",
+      "storage": "sqlite"
     }
-  ],
+  },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1
