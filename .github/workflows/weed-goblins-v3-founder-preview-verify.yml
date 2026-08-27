@@ -19,17 +19,23 @@ jobs:
       - name: Run V3 Starter Lands tests
         run: node --test src/features/games/weed-goblins/v3/*.test.js
       - name: Run existing regression suite with diagnostics
+        id: regression
+        continue-on-error: true
         shell: bash
         run: |
           set +e
           npm test 2>&1 | tee regression.log
           status=${PIPESTATUS[0]}
-          {
-            echo '## Existing regression suite output'
-            echo '```text'
-            tail -n 220 regression.log
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
           exit $status
+      - name: Upload regression diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weed-goblins-v3-regression-log
+          path: regression.log
+          retention-days: 1
       - name: Build production bundle
         run: npm run build
+      - name: Fail if existing regression suite failed
+        if: steps.regression.outcome == 'failure'
+        run: exit 1
