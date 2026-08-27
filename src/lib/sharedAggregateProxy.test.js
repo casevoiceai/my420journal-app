@@ -15,7 +15,7 @@ const env = {
 
 function makeRequest(path, {
   method = 'GET',
-  origin = 'https://my420journal.app',
+  origin = 'https://my420journal.com',
   authorized = true,
   body,
 } = {}) {
@@ -26,14 +26,14 @@ function makeRequest(path, {
     headers['Content-Type'] = 'application/json'
   }
 
-  return new Request(`https://my420journal.app/api/shared/${path}`, {
+  return new Request(`https://my420journal.com/api/shared/${path}`, {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   })
 }
 
-test('shared signals proxy rejects requests without a tester session before forwarding', async () => {
+test('shared proxy rejects requests without a tester session before any forwarding', async () => {
   const originalFetch = globalThis.fetch
   let fetchCalls = 0
   globalThis.fetch = async () => {
@@ -55,17 +55,12 @@ test('shared signals proxy rejects requests without a tester session before forw
   }
 })
 
-test('shared signals proxy forwards only the approved route with server-side authorization', async () => {
+test('shared proxy blocks aggregate reads while Layer 2 is disabled', async () => {
   const originalFetch = globalThis.fetch
-  let target
-  let authorization
-  globalThis.fetch = async (url, init) => {
-    target = String(url)
-    authorization = init.headers.Authorization
-    return new Response(JSON.stringify({ ok: true, effects: [] }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+  let fetchCalls = 0
+  globalThis.fetch = async () => {
+    fetchCalls += 1
+    throw new Error('must not forward')
   }
 
   try {
@@ -75,18 +70,46 @@ test('shared signals proxy forwards only the approved route with server-side aut
       params: { path: ['aggregates'] },
     })
 
-    assert.equal(response.status, 200)
-    assert.equal(target, 'https://shared-worker.example.test/aggregates?product_key=test')
-    assert.equal(authorization, `Bearer ${TEST_PROXY_SECRET}`)
+    assert.equal(response.status, 410)
+    const payload = await response.json()
+    assert.equal(payload.shared_journey_enabled, false)
+    assert.equal(fetchCalls, 0)
   } finally {
     globalThis.fetch = originalFetch
   }
 })
 
-test('shared signals proxy can reuse the existing server-only narration credential during secret migration', async () => {
+test('shared proxy blocks new contributions while Layer 2 is disabled', async () => {
   const originalFetch = globalThis.fetch
+  let fetchCalls = 0
+  globalThis.fetch = async () => {
+    fetchCalls += 1
+    throw new Error('must not forward')
+  }
+
+  try {
+    const response = await onRequest({
+      request: makeRequest('contributions', {
+        method: 'POST',
+        body: { product_key: 'test' },
+      }),
+      env,
+      params: { path: ['contributions'] },
+    })
+
+    assert.equal(response.status, 410)
+    assert.equal(fetchCalls, 0)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('shared proxy keeps opt-out cleanup available', async () => {
+  const originalFetch = globalThis.fetch
+  let target
   let authorization
-  globalThis.fetch = async (_url, init) => {
+  globalThis.fetch = async (url, init) => {
+    target = String(url)
     authorization = init.headers.Authorization
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
@@ -96,23 +119,49 @@ test('shared signals proxy can reuse the existing server-only narration credenti
 
   try {
     const response = await onRequest({
-      request: makeRequest('aggregates?product_key=test'),
-      env: {
-        JOURNAL_ACCESS_CODE: TEST_ACCESS_CODE,
-        WEED_GOBLINS_PROXY_SECRET: 'existing-server-only-secret',
-        SHARED_AGGREGATE_WORKER_URL: 'https://shared-worker.example.test',
-      },
-      params: { path: ['aggregates'] },
+      request: makeRequest('contributors/opt-out', {
+        method: 'POST',
+        body: { anonymous_contributor_id: 'anon_test' },
+      }),
+      env,
+      params: { path: ['contributors', 'opt-out'] },
     })
 
     assert.equal(response.status, 200)
-    assert.equal(authorization, 'Bearer existing-server-only-secret')
+    assert.equal(target, 'https://shared-worker.example.test/contributors/opt-out')
+    assert.equal(authorization, `Bearer ${TEST_PROXY_SECRET}`)
   } finally {
     globalThis.fetch = originalFetch
   }
 })
 
-test('shared signals proxy does not expose the Worker admin purge route', async () => {
+test('shared proxy rejects cross-origin opt-out cleanup requests', async () => {
+  const originalFetch = globalThis.fetch
+  let fetchCalls = 0
+  globalThis.fetch = async () => {
+    fetchCalls += 1
+    throw new Error('must not forward')
+  }
+
+  try {
+    const response = await onRequest({
+      request: makeRequest('contributors/opt-out', {
+        method: 'POST',
+        origin: 'https://example.invalid',
+        body: { anonymous_contributor_id: 'anon_test' },
+      }),
+      env,
+      params: { path: ['contributors', 'opt-out'] },
+    })
+
+    assert.equal(response.status, 403)
+    assert.equal(fetchCalls, 0)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('shared proxy blocks the Worker admin purge route', async () => {
   const originalFetch = globalThis.fetch
   let fetchCalls = 0
   globalThis.fetch = async () => {
@@ -130,7 +179,7 @@ test('shared signals proxy does not expose the Worker admin purge route', async 
       params: { path: ['admin', 'purge-opted-out'] },
     })
 
-    assert.equal(response.status, 404)
+    assert.equal(response.status, 410)
     assert.equal(fetchCalls, 0)
   } finally {
     globalThis.fetch = originalFetch
