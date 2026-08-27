@@ -15,6 +15,14 @@ test('Starter Lands contains the full browseable character foundations', () => {
   assert.equal(SABLE_MERROW.name, 'Sable Merrow')
 })
 
+test('each ancestry preview supports the founder-locked four-to-six-minute reading target', () => {
+  for (const ancestry of STARTER_ANCESTRIES) {
+    const text = [ancestry.hook, ...ancestry.sections.map((section) => `${section[0]} ${section[1]}`)].join(' ')
+    const wordCount = text.trim().split(/\s+/).length
+    assert.ok(wordCount >= 700, `${ancestry.label} ancestry preview has only ${wordCount} words; target is at least 700`)
+  }
+})
+
 test('prologue is substantial and frames Eliza as DM without chat-bubble pacing', () => {
   const text = STARTER_LANDS_PROLOGUE.paragraphs.join(' ')
   assert.ok(text.split(/\s+/).length >= 550)
