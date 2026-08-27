@@ -1,0 +1,104 @@
+name: Weed Goblins Workers AI staging validation
+
+on:
+  push:
+    branches:
+      - remove-anthropic/weed-goblins-workers-ai
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-and-smoke-staging:
+    runs-on: ubuntu-24.04
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_PROXY_SECRET: ${{ secrets.WEED_GOBLINS_STAGING_PROXY_SECRET }}
+      STAGING_RATE_LIMIT_SALT: ${{ secrets.WEED_GOBLINS_STAGING_RATE_LIMIT_SALT }}
+      STAGING_WORKER_URL: https://my420journal-weed-goblins-narration-staging.casevoice-ai.workers.dev
+    steps:
+      - name: Check out migration branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Require staging credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'CLOUDFLARE_API_TOKEN_MISSING'; exit 41; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'CLOUDFLARE_ACCOUNT_ID_MISSING'; exit 42; }
+          test -n "$STAGING_PROXY_SECRET" || { echo 'WEED_GOBLINS_STAGING_PROXY_SECRET_MISSING'; exit 43; }
+          test -n "$STAGING_RATE_LIMIT_SALT" || { echo 'WEED_GOBLINS_STAGING_RATE_LIMIT_SALT_MISSING'; exit 44; }
+          echo 'Required staging credentials are present.'
+
+      - name: Create isolated staging Wrangler config
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+          const config = JSON.parse(fs.readFileSync('wrangler.jsonc', 'utf8'))
+          config.name = 'my420journal-weed-goblins-narration-staging'
+          config.workers_dev = true
+          fs.writeFileSync('wrangler.staging.jsonc', JSON.stringify(config, null, 2) + '\n')
+          NODE
+          grep -q '"binding": "AI"' wrangler.staging.jsonc
+          if grep -qiE 'anthropic|claude' wrangler.staging.jsonc; then
+            echo 'Forbidden provider reference in staging config'
+            exit 45
+          fi
+
+      - name: Set staging Worker secrets
+        working-directory: server/weed-goblins-narration-worker
+        shell: bash
+        run: |
+          printf '%s' "$STAGING_PROXY_SECRET" | npx wrangler@latest secret put WEED_GOBLINS_PROXY_SECRET --config wrangler.staging.jsonc
+          printf '%s' "$STAGING_RATE_LIMIT_SALT" | npx wrangler@latest secret put WEED_GOBLINS_RATE_LIMIT_SALT --config wrangler.staging.jsonc
+
+      - name: Deploy Workers AI staging Worker only
+        working-directory: server/weed-goblins-narration-worker
+        run: npx wrangler@latest deploy --config wrangler.staging.jsonc
+
+      - name: Smoke test staging authorization and Workers AI narration
+        shell: bash
+        run: |
+          unauth_status=$(curl --silent --show-error --max-time 60 \
+            --output /tmp/weed-goblins-unauth.json \
+            --write-out '%{http_code}' \
+            --request POST "$STAGING_WORKER_URL" \
+            --header 'Content-Type: application/json' \
+            --data '{"moment":"natural-one-complication","outcome":"complication"}')
+          test "$unauth_status" = '401' || { echo "UNAUTHORIZED_SMOKE_HTTP_$unauth_status"; cat /tmp/weed-goblins-unauth.json; exit 51; }
+
+          status=$(curl --silent --show-error --max-time 60 \
+            --output /tmp/weed-goblins-staging-response.json \
+            --write-out '%{http_code}' \
+            --request POST "$STAGING_WORKER_URL" \
+            --header 'Content-Type: application/json' \
+            --header "Authorization: Bearer $STAGING_PROXY_SECRET" \
+            --data '{"moment":"natural-one-complication","outcome":"complication","sceneId":"choose-route","actionId":"route:ridge","stat":"strength","dc":12,"rolls":[1],"selectedRoll":1,"troubleBefore":0,"troubleAfter":2,"fictionalStolenItem":"the Amber Field Satchel","fictionalGoblinName":"Professor Grub","narrationTier":"normal"}')
+          test "$status" = '200' || { echo "STAGING_SMOKE_HTTP_$status"; cat /tmp/weed-goblins-staging-response.json; exit 52; }
+          node <<'NODE'
+          const fs = require('fs')
+          const j = JSON.parse(fs.readFileSync('/tmp/weed-goblins-staging-response.json', 'utf8'))
+          if (!j.text || typeof j.text !== 'string') process.exit(53)
+          if (j.model !== '@cf/meta/llama-3.3-70b-instruct-fp8-fast') process.exit(54)
+          if (/anthropic|claude/i.test(JSON.stringify(j))) process.exit(55)
+          console.log('STAGING_WORKERS_AI_SMOKE_OK')
+          console.log(`MODEL=${j.model}`)
+          NODE
+
+      - name: Remove temporary staging workflow after success
+        shell: bash
+        run: |
+          git rm .github/workflows/weed-goblins-workers-ai-staging-validate.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Remove temporary Weed Goblins staging validation workflow'
+          git push origin HEAD:${GITHUB_REF_NAME}
