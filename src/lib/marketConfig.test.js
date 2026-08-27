@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  MARKET_CONFIG_VERSION,
   getMarketConfig,
   isMarketEnabled,
 } from './marketConfig.js'
@@ -82,6 +83,7 @@ test('age assurance stores a confirmation result, not date of birth', () => {
   assert.equal(state.age_assurance.status, 'confirmed')
   assert.equal(state.age_assurance.threshold, 21)
   assert.equal(state.age_assurance.mode, 'confirmation')
+  assert.equal(state.age_assurance.market_config_version, MARKET_CONFIG_VERSION)
   assert.equal(isAgeAssuranceCurrent(config, state), true)
   assert.equal('birth_date' in state.age_assurance, false)
   assert.equal('dob' in state.age_assurance, false)
@@ -98,4 +100,21 @@ test('changing residence clears an earlier age assurance', () => {
 
   clearResidenceState()
   assert.equal(getResidenceState(), null)
+})
+
+test('age assurance fails closed when its market configuration version is stale', () => {
+  setup()
+  const { config } = saveResidenceSelection('US', 'MA')
+  markAgeAssurance(config)
+
+  const state = getResidenceState()
+  const stale = {
+    ...state,
+    age_assurance: {
+      ...state.age_assurance,
+      market_config_version: MARKET_CONFIG_VERSION - 1,
+    },
+  }
+
+  assert.equal(isAgeAssuranceCurrent(config, stale), false)
 })
