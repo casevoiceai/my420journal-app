@@ -7,7 +7,7 @@ const accessFunctionSource = readFileSync(
   'utf8',
 )
 
-test('successful private testing access redirects into the app, not the marketing splash', () => {
-  assert.match(accessFunctionSource, /Location:\s*['"]\/app['"]/)
+test('V3 founder preview access redirects directly to Weed Goblins, not the marketing splash', () => {
+  assert.match(accessFunctionSource, /Location:\s*['"]\/games\/weed-goblins['"]/)
   assert.doesNotMatch(accessFunctionSource, /Location:\s*['"]\/['"]\s*,/)
 })
