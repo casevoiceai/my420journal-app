@@ -11,7 +11,7 @@ function gateHeaders() {
   return {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store, max-age=0',
-    'X-Robots-Tag': 'noindex, nofollow, noarchive',
+    'X-Robots-Tag': 'noindex, nofollow,noarchive',
     'X-Content-Type-Options': 'nosniff',
     'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
   }
@@ -59,7 +59,7 @@ export async function onRequest({ request, env }) {
     headers: {
       'Cache-Control': 'no-store, max-age=0',
       'Set-Cookie': cookie,
-      Location: '/app',
+      Location: '/games/weed-goblins',
     },
   })
 }
