@@ -71,7 +71,7 @@ function createMemoryRateLimiterNamespace() {
 function createEnv(overrides = {}) {
   return {
     WEED_GOBLINS_PROXY_SECRET: SECRET,
-    WEED_GOBLINS_ANTHROPIC_API_KEY: 'test-api-key',
+    AI: { async run() { throw new Error('test must inject model runner') } },
     WEED_GOBLINS_RATE_LIMIT_SALT: 'test-rate-limit-salt',
     FREE_TEXT_RATE_LIMITER: createMemoryRateLimiterNamespace(),
     ...overrides,
@@ -80,10 +80,8 @@ function createEnv(overrides = {}) {
 
 const env = createEnv()
 
-function anthropicResponse(text) {
-  return new Response(JSON.stringify({
-    content: [{ type: 'text', text }],
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+function workersAiResponse(text) {
+  return { response: text }
 }
 
 test('rejects missing or wrong authorization before any forwarding', async () => {
@@ -109,26 +107,25 @@ test('rejects missing or wrong authorization before any forwarding', async () =>
   assert.equal(fetchCalls, 0)
 })
 
-test('forwards only an authorized valid natural-one request to Anthropic', async () => {
+test('forwards only an authorized valid natural-one request to Workers AI', async () => {
   let forwarded
   const response = await handleNarrationWorkerRequest(
     request(),
     env,
-    async (url, init) => {
-      forwarded = { url, init, body: JSON.parse(init.body) }
-      return anthropicResponse(
+    async (model, input) => {
+      forwarded = { model, input }
+      return workersAiResponse(
         'I note that the gate has reassigned your route to the longer route.',
       )
     },
   )
 
   assert.equal(response.status, 200)
-  assert.equal(forwarded.url, 'https://api.anthropic.com/v1/messages')
-  assert.equal(forwarded.init.headers['x-api-key'], 'test-api-key')
-  assert.equal(forwarded.body.model, WEED_GOBLINS_MODEL)
-  assert.equal(forwarded.body.system, WEED_GOBLINS_SYSTEM_PROMPT)
-  assert.equal(forwarded.body.messages[0].role, 'user')
-  assert.equal(forwarded.body.messages[0].content.includes('"outcome":"complication"'), true)
+  assert.equal(forwarded.model, WEED_GOBLINS_MODEL)
+  assert.equal(forwarded.input.messages[0].role, 'system')
+  assert.equal(forwarded.input.messages[0].content, WEED_GOBLINS_SYSTEM_PROMPT)
+  assert.equal(forwarded.input.messages[1].role, 'user')
+  assert.equal(forwarded.input.messages[1].content.includes('"outcome":"complication"'), true)
   assert.equal(JSON.stringify(forwarded).includes(SECRET), false)
 })
 
@@ -146,19 +143,19 @@ test('accepts ordinary-failure with outcome failure and forwards the paired cont
       },
     }),
     env,
-    async (_url, init) => {
-      forwarded = JSON.parse(init.body)
-      return anthropicResponse(
+    async (_model, input) => {
+      forwarded = input
+      return workersAiResponse(
         'I record that the gate holds, and your direct route now costs time and one measure of Trouble.',
       )
     },
   )
 
   assert.equal(response.status, 200)
-  assert.match(forwarded.messages[0].content, /single ordinary failure line/)
-  assert.equal(forwarded.messages[0].content.includes('"moment":"ordinary-failure"'), true)
-  assert.equal(forwarded.messages[0].content.includes('"outcome":"failure"'), true)
-  assert.equal(forwarded.messages[0].content.includes('"selectedRoll":7'), true)
+  assert.match(forwarded.messages[1].content, /single ordinary failure line/)
+  assert.equal(forwarded.messages[1].content.includes('"moment":"ordinary-failure"'), true)
+  assert.equal(forwarded.messages[1].content.includes('"outcome":"failure"'), true)
+  assert.equal(forwarded.messages[1].content.includes('"selectedRoll":7'), true)
 })
 
 test('accepts a pre-roll player-action setup and preserves untrusted action context as data', async () => {
@@ -180,18 +177,18 @@ test('accepts a pre-roll player-action setup and preserves untrusted action cont
       },
     }),
     env,
-    async (_url, init) => {
-      forwarded = JSON.parse(init.body)
-      return anthropicResponse(
+    async (_model, input) => {
+      forwarded = input
+      return workersAiResponse(
         'I take "I shove the goblin into the paperwork cart" as your move, and the uncertain footing calls for a roll.',
       )
     },
   )
 
   assert.equal(response.status, 200)
-  assert.match(forwarded.messages[0].content, /single player action setup line/)
-  assert.match(forwarded.messages[0].content, /I shove the goblin into the paperwork cart/)
-  assert.equal(forwarded.messages[0].content.includes('"selectedRoll":null'), true)
+  assert.match(forwarded.messages[1].content, /single player action setup line/)
+  assert.match(forwarded.messages[1].content, /I shove the goblin into the paperwork cart/)
+  assert.equal(forwarded.messages[1].content.includes('"selectedRoll":null'), true)
 })
 
 test('uses a salted SHA-256 source key without retaining the raw IP', async () => {
@@ -219,7 +216,7 @@ test('limits the two free-text moments to 30 combined calls per hour per source'
   let fetchCalls = 0
   const fetchImpl = async () => {
     fetchCalls += 1
-    return anthropicResponse('I keep the specific player action moving through the scene.')
+    return workersAiResponse('I keep the specific player action moving through the scene.')
   }
 
   for (let index = 0; index < FREE_TEXT_RATE_LIMIT; index += 1) {
@@ -280,7 +277,7 @@ test('limits the two free-text moments to 30 combined calls per hour per source'
 test('starts a fresh free-text allowance after the one-hour window', async () => {
   const rateLimitedEnv = createEnv()
   const startedAt = Date.parse('2026-08-07T18:00:00.000Z')
-  const fetchImpl = async () => anthropicResponse(
+  const fetchImpl = async () => workersAiResponse(
     'I keep the specific player action moving through the scene.',
   )
 
@@ -333,12 +330,12 @@ test('starts a fresh free-text allowance after the one-hour window', async () =>
 test('does not apply the free-text limiter to any other narration moment', async () => {
   const nonFreeTextEnv = {
     WEED_GOBLINS_PROXY_SECRET: SECRET,
-    WEED_GOBLINS_ANTHROPIC_API_KEY: 'test-api-key',
+    AI: { async run() { throw new Error('test must inject model runner') } },
   }
   const response = await handleNarrationWorkerRequest(
     request(),
     nonFreeTextEnv,
-    async () => anthropicResponse(
+    async () => workersAiResponse(
       'I note that the gate has reassigned your route to the longer route.',
     ),
   )
@@ -346,11 +343,11 @@ test('does not apply the free-text limiter to any other narration moment', async
   assert.equal(response.status, 200)
 })
 
-test('enforces supported moment and outcome pairings before Anthropic forwarding', async () => {
+test('enforces supported moment and outcome pairings before Workers AI invocation', async () => {
   let fetchCalls = 0
   const fetchImpl = async () => {
     fetchCalls += 1
-    return anthropicResponse('I should not be reached.')
+    return workersAiResponse('I should not be reached.')
   }
 
   const crossedNatural = await handleNarrationWorkerRequest(
