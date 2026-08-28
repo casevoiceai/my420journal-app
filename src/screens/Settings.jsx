@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { hasPin, verifyPin, clearPin, storePin } from '../lib/pin'
+import { restoreSanitizedLegacyBackup } from '../lib/privacyMigrations'
 import { isDevMode, DEV_PROFILE } from '../lib/dev'
 import SharedOptInPanel from '../components/SharedOptInPanel'
 
@@ -556,19 +557,11 @@ export default function Settings() {
           return
         }
 
-        const entries = Object.entries(parsed.data)
-        const invalidKey = entries.find(([key, value]) =>
-          !key.startsWith('my420journal_local_v1') || typeof value !== 'string'
-        )
-
-        if (invalidKey) {
-          setRestoreError('This backup file has an invalid format. Nothing was imported.')
+        const restored = restoreSanitizedLegacyBackup(localStorage, parsed.data)
+        if (!restored.ok) {
+          setRestoreError('This backup could not be safely imported. Nothing was imported.')
           return
         }
-
-        entries.forEach(([key, value]) => {
-          localStorage.setItem(key, value)
-        })
 
         setRestoreStatus('Backup imported. Your local journal data has been restored on this device.')
         setRestoreError('')
