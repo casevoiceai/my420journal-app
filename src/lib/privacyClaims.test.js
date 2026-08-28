@@ -58,6 +58,11 @@ const bannedClaims = [
   'as a hard rule across this app, not as a policy I could soften later.',
   'remembering what worked should not depend on guesswork.',
   'It is a hard rule built into how the app works, not a policy we can quietly change later.',
+  'Stop guessing at the dispensary.',
+  'Start your research',
+  'Small habits.',
+  'Better visits.',
+  'Strain - Dose - Method - Mood',
 ]
 
 test('retired absolute and unimplemented feature claims do not return', () => {
@@ -89,4 +94,9 @@ test('current disclosures describe the implemented privacy boundaries', () => {
   assert.equal(about.includes('does not independently analyze your journal history'), true)
   assert.equal(about.includes('Some optional features use network services'), true)
   assert.equal(about.includes('This is an engineering principle.'), true)
+  assert.equal(hero.includes('Remember what you tried.'), true)
+  assert.equal(hero.includes('Open My420Journal'), true)
+  assert.equal(features.includes('Small details.'), true)
+  assert.equal(features.includes('Your history.'), true)
+  assert.equal(process.includes('Product - Amount - Method - Mood'), true)
 })
