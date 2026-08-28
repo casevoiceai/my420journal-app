@@ -1,0 +1,210 @@
+name: Marketing shell claim correction
+
+on:
+  push:
+    branches:
+      - privacy/marketing-shell-claim-drift
+    paths:
+      - .github/workflows/marketing-shell-claim-correction.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-validate-and-commit:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout correction branch
+        uses: actions/checkout@v4
+        with:
+          ref: privacy/marketing-shell-claim-drift
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply exact public claim corrections
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_count(pathname, old, new, expected=1):
+              path = Path(pathname)
+              text = path.read_text()
+              count = text.count(old)
+              if count != expected:
+                  raise SystemExit(f'{pathname}: expected {expected} occurrence(s), found {count}: {old!r}')
+              path.write_text(text.replace(old, new))
+
+          replace_count(
+              'src/marketing/MarketingLayout.jsx',
+              "const disclaimerText = 'my420journal is a private journaling tool for adults in jurisdictions where cannabis is legal. It does not sell cannabis, provide medical advice, or connect you to any dispensary for purchase. Your entries stay on your device unless you choose to share anonymized signals through the opt-in Shared Signals feature.'",
+              "const disclaimerText = 'My420Journal is a private, local-first journaling tool for adults in reviewed markets. It does not sell cannabis, provide medical advice, or connect users to dispensaries for purchases. Journal entries and private notes are stored locally in this browser. Some optional features use network services, and Shared Journey / Layer 2 is currently off. See the Privacy Notice for details.'",
+          )
+          replace_count('src/marketing/MarketingLayout.jsx', 'Already have an account? Sign in', 'Open my journal')
+          replace_count('src/marketing/MarketingLayout.jsx', 'A private cannabis journal for people who want to remember what worked.', 'A private cannabis journal for people who want to remember what they recorded.')
+          replace_count('src/marketing/MarketingLayout.jsx', 'Local-first, your data stays on your device.', 'Local-first private journal; optional network features are disclosed separately.')
+
+          replace_count('src/marketing/MarketingProcess.jsx', "title: 'Meet Your Guide'", "title: 'Use Your Guide'")
+          replace_count('src/marketing/MarketingProcess.jsx', 'Ask your guide what stands out in your own entries.', 'Talk through what you choose to enter in the guide conversation.', expected=2)
+          replace_count('src/marketing/MarketingProcess.jsx', 'No outside data. No assumptions.', 'The guide does not independently read or analyze your journal history.', expected=2)
+          replace_count('src/marketing/MarketingProcess.jsx', "They never know more than what you've logged.", 'Guide choice changes tone and conversation style, not access to different journal data.', expected=2)
+          replace_count('src/marketing/MarketingProcess.jsx', "title: 'Learn What Works'", "title: 'Review Your Patterns'")
+          replace_count('src/marketing/MarketingProcess.jsx', 'Track patterns pulled from your own entries.', 'See simple counts calculated from entries stored on this device.', expected=2)
+          replace_count('src/marketing/MarketingProcess.jsx', 'No guesswork. No starting from scratch every time.', 'Compare the products, times, and effect tags you recorded.', expected=2)
+          replace_count('src/marketing/MarketingProcess.jsx', "See what worked and what's worth another try.", 'The app shows your history; it does not tell you what to buy or use.', expected=2)
+
+          about_replacements = [
+              (
+                  'I watched that happen with cannabis use specifically. A product would work well, and a month later the details were gone. What strain? What dose? What time of day? What mood it was meant to help with? The information that actually mattered never made it past that one evening.',
+                  'I watched that happen with cannabis use specifically. I would have an experience worth remembering, and a month later the details were gone. What product? What amount did I record? What time of day? What mood did I note? The details I wanted to remember never made it past that one evening.',
+              ),
+              (
+                  'as a hard rule across this app, not as a policy I could soften later.',
+                  'as a privacy engineering principle: keep the private journal local-first, minimize collection, and disclose optional network features instead of hiding them.',
+              ),
+              (
+                  'You can log an experience while the details are still fresh. You can scan a label instead of typing everything manually. You can return later and look for patterns across your own history.',
+                  'You can log an experience while the details are still fresh. In the current build, label details are entered manually; camera label scanning is not available yet. You can return later and review simple patterns calculated from entries stored on your device.',
+              ),
+              (
+                  'Instead of one AI trying to know everything about you, my420journal gives you a choice of guides. Each one has a different focus and a different way of talking to you, so you pick the voice that actually fits how you want to journal.',
+                  'My420Journal gives you a choice of guide personalities. Each one changes the tone and conversation style, so you can pick the voice that fits how you want to journal. In the current build, choosing a guide does not give it independent access to your journal history or unlock different app features.',
+              ),
+              (
+                  '<span className="origin-story-guide-name">Bud Tendar</span> is the dispensary-savvy one. He talks deals, trip planning, and budget, in a warm, knowledgeable-friend kind of way. Short answers, no lectures.',
+                  '<span className="origin-story-guide-name">Bud Tendar</span> is the practical, trip-focused one. He keeps the conversation centered on what you choose to enter. In the current build, he does not pull live deals, prices, nearby options, or purchasing recommendations.',
+              ),
+              (
+                  '<span className="origin-story-guide-name">Sunny Day</span> is there for conversation. She checks in on how you are actually doing, not just what you logged, with an easy, unhurried warmth.',
+                  '<span className="origin-story-guide-name">Sunny Day</span> brings a warm, emotionally attentive check-in style. She encourages reflection on what you choose to share without independently inferring emotional patterns.',
+              ),
+              (
+                  '<span className="origin-story-guide-name">Lucky Larry</span> is the old head. He has been around cannabis culture since the 1970s and talks strain history and folklore like a guy who has a story for everything, because he does. Dry, unhurried, never in a rush to finish a sentence.',
+                  '<span className="origin-story-guide-name">Lucky Larry</span> brings a dry, unhurried cannabis-culture storytelling style. The current build does not give him a live strain-history database or independent analysis of your journal.',
+              ),
+              (
+                  '<span className="origin-story-guide-name">Herb N. Spices</span> is the science one. Terpenes, cannabinoids, pattern analysis. He says little out loud and thinks in the details, because for him the chemistry explains everything.',
+                  '<span className="origin-story-guide-name">Herb N. Spices</span> brings a terpene-focused, chemistry-minded style. He does not independently analyze your journal history or build an automated terpene-response profile.',
+              ),
+              (
+                  '<span className="origin-story-guide-name">Mary Jayne</span> focuses on wellness, sleep, and self-care. She asks one honest question at a time and never plays doctor. Just direct, personal, and to the point.',
+                  '<span className="origin-story-guide-name">Mary Jayne</span> brings a wellness and self-care conversation style. She keeps attention on observations you choose to record and does not diagnose, prescribe, or infer medical outcomes.',
+              ),
+              (
+                  'Just a clean, private log that records exactly what you tell it and nothing more, for people who already know what they want and just need a place to put it.',
+                  'Just a clean, private local log with no guide conversation, for people who already know what they want to record.',
+              ),
+              (
+                  'That privacy-first principle shaped the app from the beginning. Your entries stay on your device unless you deliberately choose otherwise. The app does not need to know more than you decide to tell it.',
+                  'That privacy-first principle shaped the app from the beginning. Journal entries and private notes are stored locally in the browser rather than automatically copied to a Vogtcom journal server. Some optional features use network services and are described in the Privacy Notice.',
+              ),
+              (
+                  'my420journal exists because remembering what worked should not depend on guesswork.',
+                  'my420journal exists because remembering your own recorded experience should not depend on memory alone.',
+              ),
+              (
+                  'No Trace Ever is the privacy architecture behind every product built by Vogtcom LLC.',
+                  "No Trace Ever is the privacy engineering principle behind My420Journal's private journal design.",
+              ),
+              (
+                  'For us as a company, it means a simple rule: if we do not need your personal data to make the app work, we do not collect it, store it, or send it anywhere.',
+                  'For this product, it means minimizing data collection, keeping private journal entries local-first, and disclosing any optional feature that needs a network service.',
+              ),
+              (
+                  'Your journal entries stay on your device. They are not stored on our servers.',
+                  'Your journal entries and private notes are stored in this browser and are not automatically copied to a Vogtcom journal server.',
+              ),
+              (
+                  'We do not sell, share, or transmit your personal data to advertisers, dispensaries, or data brokers.',
+                  'We do not sell private journal data to advertisers, dispensaries, or data brokers.',
+              ),
+              (
+                  'Nothing you write is used to build a profile on you.',
+                  'Private journal text is not used to build an advertising profile on you.',
+              ),
+              (
+                  '<strong>This is not a marketing claim.</strong>',
+                  '<strong>This is an engineering principle.</strong>',
+              ),
+              (
+                  'It is a hard rule built into how the app works, not a policy we can quietly change later.',
+                  'It does not mean every optional feature is offline. Weed Goblins uses network services, and browser-provided speech recognition may process speech according to the browser and platform. Those boundaries are described in the Privacy Notice.',
+              ),
+          ]
+          for old, new in about_replacements:
+              replace_count('src/marketing/MarketingAbout.jsx', old, new)
+
+          test_path = Path('src/lib/privacyClaims.test.js')
+          text = test_path.read_text()
+          replace_count(
+              'src/lib/privacyClaims.test.js',
+              "const hero = read('../marketing/MarketingHero.jsx')\nconst features = read('../marketing/MarketingFeatures.jsx')",
+              "const hero = read('../marketing/MarketingHero.jsx')\nconst layout = read('../marketing/MarketingLayout.jsx')\nconst process = read('../marketing/MarketingProcess.jsx')\nconst about = read('../marketing/MarketingAbout.jsx')\nconst features = read('../marketing/MarketingFeatures.jsx')",
+          )
+          replace_count(
+              'src/lib/privacyClaims.test.js',
+              "const allClaims = [hero, features, privacy, faq, settings, onboarding, newEntry, guide, home, readme].join(String.fromCharCode(10))",
+              "const allClaims = [hero, layout, process, about, features, privacy, faq, settings, onboarding, newEntry, guide, home, readme].join(String.fromCharCode(10))",
+          )
+          replace_count(
+              'src/lib/privacyClaims.test.js',
+              "  'Log something. I will look at it.',\n]",
+              "  'Log something. I will look at it.',\n  'Already have an account? Sign in',\n  'opt-in Shared Signals feature.',\n  'Ask your guide what stands out in your own entries.',\n  \"They never know more than what you've logged.\",\n  'Learn What Works',\n  \"See what worked and what's worth another try.\",\n  'You can scan a label instead of typing everything manually.',\n  'He talks deals, trip planning, and budget',\n  'Terpenes, cannabinoids, pattern analysis.',\n  'as a hard rule across this app, not as a policy I could soften later.',\n  'remembering what worked should not depend on guesswork.',\n  'It is a hard rule built into how the app works, not a policy we can quietly change later.',\n]",
+          )
+          replace_count(
+              'src/lib/privacyClaims.test.js',
+              "  assert.equal(home.includes('What are we logging today?'), true)\n})",
+              "  assert.equal(home.includes('What are we logging today?'), true)\n  assert.equal(layout.includes('Open my journal'), true)\n  assert.equal(layout.includes('Shared Journey / Layer 2 is currently off'), true)\n  assert.equal(process.includes('does not independently read or analyze your journal history'), true)\n  assert.equal(process.includes('does not tell you what to buy or use'), true)\n  assert.equal(about.includes('camera label scanning is not available yet'), true)\n  assert.equal(about.includes('does not pull live deals, prices, nearby options, or purchasing recommendations'), true)\n  assert.equal(about.includes('does not independently analyze your journal history'), true)\n  assert.equal(about.includes('Some optional features use network services'), true)\n  assert.equal(about.includes('This is an engineering principle.'), true)\n})",
+          )
+          PY
+
+      - name: Verify exact correction scope
+        shell: bash
+        run: |
+          git diff --check
+          changed="$(git status --porcelain | cut -c4- | sort)"
+          expected="$(printf '%s\n' src/lib/privacyClaims.test.js src/marketing/MarketingAbout.jsx src/marketing/MarketingLayout.jsx src/marketing/MarketingProcess.jsx | sort)"
+          printf '%s\n' "$changed"
+          test "$changed" = "$expected"
+
+      - name: Guard retired public claims
+        shell: bash
+        run: |
+          ! grep -R --exclude='privacyClaims.test.js' -F 'Already have an account? Sign in' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'opt-in Shared Signals feature.' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'Ask your guide what stands out in your own entries.' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F "They never know more than what you've logged." src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'You can scan a label instead of typing everything manually.' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'He talks deals, trip planning, and budget' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'Terpenes, cannabinoids, pattern analysis.' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'It is a hard rule built into how the app works, not a policy we can quietly change later.' src README.md
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit all dependencies
+        run: npm audit --audit-level=high
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit validated public claim corrections and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/lib/privacyClaims.test.js src/marketing/MarketingAbout.jsx src/marketing/MarketingLayout.jsx src/marketing/MarketingProcess.jsx
+          git rm .github/workflows/marketing-shell-claim-correction.yml
+          git commit -m 'Correct global marketing shell claim drift'
+          git push origin HEAD:privacy/marketing-shell-claim-drift
