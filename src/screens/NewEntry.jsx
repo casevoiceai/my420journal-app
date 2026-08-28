@@ -148,14 +148,9 @@ function sortedByFavorite(list, favs) {
   })
 }
 
-async function placesAutocomplete(input, coords, radius = 64000) {
+async function placesAutocomplete(input) {
   try {
-    const body = {
-      input, type: 'autocomplete',
-      lat: coords?.lat ?? 41.5748,
-      lng: coords?.lng ?? -75.5022,
-      radius,
-    }
+    const body = { input, type: 'autocomplete' }
     const response = await localStore.tools.invoke('place-lookup', { body })
     if (response.error) return { status: 'ERROR', predictions: [] }
     const predictions = response?.data?.predictions || []
@@ -164,10 +159,6 @@ async function placesAutocomplete(input, coords, radius = 64000) {
   } catch {
     return { status: 'ERROR', predictions: [] }
   }
-}
-
-function getUserCoords() {
-  return Promise.resolve(null)
 }
 
 async function placesDetails(placeId) {
@@ -348,9 +339,6 @@ function DispensarySelector({ accent, value, onChange, category }) {
   const [favs, setFavs]               = useState(() => loadFavorites())
   const [blocked, setBlocked]         = useState(() => loadBlocked())
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [coords, setCoords]           = useState(null)
-  const [gpsCoords, setGpsCoords]     = useState(null)
-  const [travelRadius]                = useState(64000)
   const debounceRef  = useRef(null)
   const nameInputRef = useRef(null)
   const cityInputRef = useRef(null)
@@ -358,18 +346,6 @@ function DispensarySelector({ accent, value, onChange, category }) {
   const wrapperRef   = useRef(null)
 
   const fieldLabel = DISPENSARY_LABEL_MAP[category] || 'DISPENSARY'
-
-  // Get GPS once on mount as a soft location bias
-  useEffect(() => {
-    async function init() {
-      const gps = await getUserCoords()
-      if (gps) setGpsCoords(gps)
-    }
-    init()
-  }, [])
-
-  // Use GPS as soft location bias only. City text in the search query handles filtering.
-  useEffect(() => { setCoords(gpsCoords) }, [gpsCoords])
 
   function buildSearchInput(name) {
     const loc = [city.trim(), stateAbbr.trim()].filter(Boolean).join(' ')
@@ -379,7 +355,7 @@ function DispensarySelector({ accent, value, onChange, category }) {
 
   async function runSearch(nameVal) {
     setSearching(true)
-    const res = await placesAutocomplete(buildSearchInput(nameVal), coords, travelRadius)
+    const res = await placesAutocomplete(buildSearchInput(nameVal))
     setSearching(false)
     setPredictions(res.predictions)
     setDropdownOpen(res.predictions.length > 0)
@@ -391,7 +367,7 @@ function DispensarySelector({ accent, value, onChange, category }) {
     if (nameQuery.length < 2 && !city.trim()) { setPredictions([]); setDropdownOpen(false); return }
     debounceRef.current = setTimeout(() => runSearch(nameQuery), 300)
     return () => clearTimeout(debounceRef.current)
-  }, [nameQuery, city, stateAbbr, value, coords]) // eslint-disable-line
+  }, [nameQuery, city, stateAbbr, value]) // eslint-disable-line
 
   useEffect(() => {
     function onDown(e) {
