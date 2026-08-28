@@ -134,8 +134,22 @@ const RESERVED_COUNTRIES = {
     accessStatus: 'not_reviewed',
     ageThreshold: null,
     ageAssuranceMode: null,
-    holdReason: 'This location is not configured for the current private test.',
+    holdReason: 'This market is not configured for the current private test.',
   },
+}
+
+export function getConfiguredMarketConfigById(marketId) {
+  if (typeof marketId !== 'string' || !marketId) return null
+
+  for (const config of Object.values(REVIEWED_US_MARKETS)) {
+    if (config.id === marketId) return { ...config }
+  }
+
+  for (const config of Object.values(RESERVED_COUNTRIES)) {
+    if (config.id === marketId) return { ...config }
+  }
+
+  return null
 }
 
 export function getCountryOption(countryCode) {
