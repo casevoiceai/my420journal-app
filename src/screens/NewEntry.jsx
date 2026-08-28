@@ -1398,7 +1398,7 @@ export default function NewEntry() {
 
       <div style={{ padding: '24px 20px 0', textAlign: 'center' }}>
         <h2 style={{ fontFamily: fontPlayfair, fontSize: '22px', fontWeight: '600', color: S.textPrimary, margin: '0 0 6px 0', lineHeight: '1.2' }}>What did you get?</h2>
-        <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: '0 0 20px 0', lineHeight: '1.5' }}>Speak it, scan it, or type it.</p>
+        <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: '0 0 20px 0', lineHeight: '1.5' }}>Speak it or type it. Camera scanning is not available yet.</p>
       </div>
 
       <CaptureSheet

@@ -37,46 +37,46 @@ const GREETINGS = {
   bud: [
     "Hey. What are we logging?",
     "Good to see you. What did you get?",
-    "Hey. I pulled up a few options near you.",
+    "Hey. Ready to talk through what you logged?",
     "Back again. What happened?",
-    "Hey. Earlier than usual. Good trip?",
-    "Alright. I know what you like. What do you need?",
+    "Hey. Back for another entry?",
+    "Alright. What do you want to look at today?",
   ],
   sunny: [
     "Hey! You came back! What happened, tell me everything!",
     "Hi! Before we log -- how are you actually doing today?",
-    "Hey, I was just thinking about you...",
+    "Hey. What is on your mind today?",
     "Hey you. I have a question and I need you to be honest with me.",
     "Hey. How are you? The real version.",
-    "Hi. I have been thinking about something you said.",
+    "Hi. Tell me what is on your mind today.",
   ],
   larry: [
     "Hey. What did you get?",
     "Back again. What are we looking at?",
-    "Hey. I was thinking about something.",
-    "You are back. I have thoughts on what you logged.",
-    "Hey. Long time. What happened?",
+    "Hey. What are we talking about today?",
+    "You are back. What are we looking at today?",
+    "Hey. Back again. What happened?",
     "A hundred sessions. What do you need?",
   ],
   herb: [
     "Hey. What are we logging?",
     "Hey. What did you get this time?",
-    "Hey. I noticed something. Want to hear it?",
-    "Good. You are back. I have been looking at your log.",
-    "Hey. Want to pull up your full terpene history?",
+    "Hey. Want to talk terpenes?",
+    "Good. You are back. What are we logging?",
+    "Hey. Want to talk through the terpene details you have in front of you?",
     "A hundred sessions. Do you know what we have now?",
   ],
   mary: [
     "Hey. What are we tracking today?",
     "Hey. Before we log -- how did you sleep?",
     "Hey. How are you feeling overall?",
-    "Hey. Can we talk about something I noticed?",
-    "You look better than last week. Am I right?",
+    "Hey. What do you want to check in on today?",
+    "How are you feeling today?",
     "A hundred sessions. You have told me a lot.",
   ],
 }
 
-const HERB_T0_THOUGHT = "(already thinking about your terpene profile)"
+const HERB_T0_THOUGHT = "(ready to talk terpenes when you are)"
 
 const UNIT_RESPONSES = ["Logged.", "Noted.", "Confirmed."]
 
