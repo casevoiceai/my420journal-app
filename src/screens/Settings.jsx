@@ -7,7 +7,7 @@ import { isDevMode, DEV_PROFILE } from '../lib/dev'
 import SharedOptInPanel from '../components/SharedOptInPanel'
 
 const GUIDE_META = {
-  bud:   { name: 'Bud Tendar',     accent: '#C9A84C', description: 'Dispensary deals and trip planning.' },
+  bud:   { name: 'Bud Tendar',     accent: '#C9A84C', description: 'Dispensary history and trip recall.' },
   sunny: { name: 'Sunny Day',      accent: '#FF7F5C', description: 'Conversation and emotional tracking.' },
   larry: { name: 'Lucky Larry',    accent: '#C17A3A', description: 'Strain history and cannabis culture.' },
   herb:  { name: 'Herb N. Spices', accent: '#4ECDC4', description: 'Terpene science and education.' },
@@ -599,16 +599,16 @@ export default function Settings() {
             marginBottom: '24px',
           }}>
             <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
-              Everything in this app stays on this device only.
+              Your journal entries and private notes are stored in this browser on this device.
             </p>
             <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
-              No data was sent to any server.
+              This backup was created from local browser storage; the backup tool did not upload it to a journal server.
             </p>
             <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
-              No account exists on any server.
+              The private journal uses an anonymous local profile, not an email/password cloud account.
             </p>
             <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: 0 }}>
-              The only copy of your journal is on this device.
+              The downloaded backup is now a separate copy under your control.
             </p>
           </div>
 
@@ -825,9 +825,9 @@ export default function Settings() {
         <Divider />
 
         {/* ── ACCOUNT ─────────────────────────────────────────────────────── */}
-        <SectionHeading>Account</SectionHeading>
+        <SectionHeading>Local profile</SectionHeading>
         <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: 0 }}>
-          More account settings coming soon.
+          This journal uses an anonymous local profile on this device. There is no email/password cloud account or cross-device sync.
         </p>
 
       </div>

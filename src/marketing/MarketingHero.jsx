@@ -62,8 +62,8 @@ export function HeroSection() {
             lineHeight: 1.55,
             textShadow: '0 2px 18px rgba(0,0,0,0.4)',
           }}>
-            Log what you tried. See what actually worked. <br />
-            Nothing leaves your device unless you choose to share it.
+            Log what you tried. See what your own notes show. <br />
+            Your private journal is stored locally in this browser.
           </p>
           <div className="marketing-hero-actions" style={{
             display: 'flex',

@@ -11,6 +11,10 @@ const faqs = [
     answer: 'The private journal is designed to stay on your device. Vogtcom, dispensaries, cannabis brands, and partners do not receive access to your raw private journal or private notes through the private journal system.',
   },
   {
+    question: 'Does My420Journal use the internet?',
+    answer: 'The private journal is stored locally and is not cloud-synced, but some optional features use network services. Weed Goblins sends limited game and narration context, including certain structured context derived from the local journal, through a server-side Cloudflare Workers AI path when you play. Browser voice input uses the browser speech-recognition implementation, whose processing depends on the browser and platform. Shared Journey remains off.',
+  },
+  {
     question: 'Is Shared Journey available?',
     answer: 'No. Shared Journey / Layer 2 is turned off while its privacy architecture is redesigned and reviewed. New shared contributions are blocked in the current build.',
   },

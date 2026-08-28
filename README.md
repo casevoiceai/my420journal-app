@@ -11,7 +11,9 @@ Current private-core architecture:
 - Existing active private-testing profiles preserve their internal user ID while old local email/password fields are removed during migration.
 - PIN support remains available as an additional in-app privacy control.
 - Shared Journey / Layer 2 is disabled pending redesign and review.
-- No backup or cross-device sync is included in this build.
+- Local JSON backup export/import is included. No cloud backup or cross-device sync is included.
+- Weed Goblins is an optional network feature that uses a same-origin server proxy and Cloudflare Workers AI for narration. Its local adapter excludes raw journal notes and raw dispensary names, but limited structured or game-derived context can be sent when the game is used.
+- Voice entry uses browser SpeechRecognition when available. Processing behavior depends on the browser/platform and is not guaranteed to be device-only.
 
 Important:
 

@@ -24,6 +24,15 @@ const sections = [
     ],
   },
   {
+    heading: 'OPTIONAL NETWORK FEATURES',
+    paragraphs: [
+      'The private journal is local-first, but not every optional feature is offline. Weed Goblins uses a same-origin server path and Cloudflare Workers AI to generate game narration when a tester chooses to play.',
+      'When Weed Goblins is used, the app can derive limited structured game context from local journal history, including product-derived game labels, product categories, effect tags, terpene labels, fictionalized dispensary labels, entry count, and prior game-run summaries. The game adapter excludes raw journal notes and raw dispensary names from that context. Player-entered game text can also be included in narration requests.',
+      'The game request reaches server-side and Cloudflare infrastructure. Source IP information is processed for request security and rate limiting; the narration worker derives a salted source key for its in-memory limiter rather than retaining the raw IP in that limiter.',
+      'Voice entry uses the browser SpeechRecognition implementation when the browser provides it. Speech-processing behavior depends on the browser and platform and is not represented as device-only. The transcript can be reviewed or edited before it is saved to the local journal.',
+    ],
+  },
+  {
     heading: 'LOCAL PROFILE — NO EMAIL OR PASSWORD REQUIRED',
     paragraphs: [
       'The private journal uses an anonymous local profile ID on the device. A name, email address, and password are not required to create or reopen the private journal.',
@@ -57,13 +66,14 @@ const sections = [
     heading: 'AGE AND LOCATION',
     paragraphs: [
       'Cannabis and cannabis-related rules vary by location and use case. My420Journal does not treat a user\'s location choice as proof that any cannabis activity is lawful.',
-      'The current private-testing age flow is being revised into a market-specific age-assurance system. My420Journal does not currently require Vogtcom to store a government ID image as part of the private journal.',
+      'In the current private-testing build, My420Journal asks for coarse residence information — country and, for reviewed U.S. markets, state — to select a versioned market configuration and stores an age-confirmation result rather than an exact date of birth. The market and age flow does not request a street address, government ID image, or precise device GPS.',
     ],
   },
   {
     heading: 'YOUR CONTROLS',
     paragraphs: [
       'Users can delete journal entries through the app. Because the private journal is local-first, clearing browser site data can also remove local journal data.',
+      'Users can export and import a local JSON backup. A downloaded backup is a separate copy controlled by the user and is not removed when an in-app entry is deleted.',
       'A PIN can be used as an additional in-app privacy control. A PIN does not replace device security and does not make data immune from device-level access.',
     ],
   },
