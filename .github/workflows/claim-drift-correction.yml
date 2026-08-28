@@ -29,295 +29,157 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          from textwrap import dedent
 
-          def replace_once(pathname, old, new):
+          def replace_count(pathname, old, new, expected=1):
               path = Path(pathname)
               text = path.read_text()
               count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{pathname}: expected exact block once, found {count}: {old[:100]!r}')
+              if count != expected:
+                  raise SystemExit(f'{pathname}: expected {expected} occurrence(s), found {count}: {old[:120]!r}')
               path.write_text(text.replace(old, new))
 
-          replace_once(
-              'src/marketing/MarketingHero.jsx',
-              """            Log what you tried. See what actually worked. <br />
-            Nothing leaves your device unless you choose to share it.
-          """,
-              """            Log what you tried. See what your own notes show. <br />
-            Your private journal is stored locally in this browser.
-          """,
-          )
+          # Marketing hero: remove absolute device-only claim without changing the page structure.
+          replace_count('src/marketing/MarketingHero.jsx', 'Log what you tried. See what actually worked.', 'Log what you tried. See what your own notes show.')
+          replace_count('src/marketing/MarketingHero.jsx', 'Nothing leaves your device unless you choose to share it.', 'Your private journal is stored locally in this browser.')
 
-          replace_once(
-              'src/marketing/MarketingFeatures.jsx',
-              """const featureCards = [
-            {
-              title: 'Scan any label',
-              mobileLines: [
-                'Point your camera at any label and let it capture the details.',
-                'It reads the strain, dose, and method automatically.',
-                'No manual typing, no guessing at what you jotted down later.',
-              ],
-              desktopLines: [
-                'Point your camera at any label and let it capture the details.',
-                'It reads the strain, dose, and method automatically.',
-                'No manual typing, no guessing at what you jotted down later.',
-              ],
-              image: featureCard1Image,
-            },
-            {
-              title: 'Log by voice',
-              mobileLines: [
-                'Say what happened out loud and let it become the entry.',
-                'Your words get logged exactly as spoken, hands free.',
-                "No typing, no forms, no digging for your phone's keyboard.",
-              ],
-              desktopLines: [
-                'Say what happened out loud and let it become the entry.',
-                'Your words get logged exactly as spoken, hands free.',
-                "No typing, no forms, no digging for your phone's keyboard.",
-              ],
-              image: featureCard2Image,
-            },
-            {
-              title: 'Nothing stored without your choice',
-              mobileLines: [
-                'Nothing saves anywhere until you decide it should.',
-                "You control exactly what gets kept and what doesn't.",
-                'Delete any entry, any time. No trace, ever.',
-              ],
-              desktopLines: [
-                'Nothing saves anywhere until you decide it should.',
-                "You control exactly what gets kept and what doesn't.",
-                'Delete any entry, any time. No trace, ever.',
-              ],
-              image: featureCard3Image,
-            },
+          # Marketing feature cards: advertise only implemented behavior.
+          replace_count('src/marketing/MarketingFeatures.jsx', "title: 'Scan any label'", "title: 'Log the details'")
+          replace_count('src/marketing/MarketingFeatures.jsx', 'Point your camera at any label and let it capture the details.', 'Record the product, amount, method, and details you care about.', 2)
+          replace_count('src/marketing/MarketingFeatures.jsx', 'It reads the strain, dose, and method automatically.', 'Manual entry is available now in the current private-testing build.', 2)
+          replace_count('src/marketing/MarketingFeatures.jsx', 'No manual typing, no guessing at what you jotted down later.', 'Camera label scanning is not available yet.', 2)
+          replace_count('src/marketing/MarketingFeatures.jsx', "title: 'Log by voice'", "title: 'Draft by voice'")
+          replace_count('src/marketing/MarketingFeatures.jsx', 'Say what happened out loud and let it become the entry.', 'On supported browsers, speak a draft instead of typing it.', 2)
+          replace_count('src/marketing/MarketingFeatures.jsx', 'Your words get logged exactly as spoken, hands free.', 'Review or edit the transcript before you save the entry.', 2)
+          replace_count('src/marketing/MarketingFeatures.jsx', "No typing, no forms, no digging for your phone's keyboard.", 'Speech recognition is provided by your browser and can vary by browser or device.', 2)
+          replace_count('src/marketing/MarketingFeatures.jsx', "title: 'Nothing stored without your choice'", "title: 'Keep control of your journal'")
+          replace_count('src/marketing/MarketingFeatures.jsx', 'Nothing saves anywhere until you decide it should.', 'Journal entries are stored in browser local storage on this device.', 2)
+          replace_count('src/marketing/MarketingFeatures.jsx', "You control exactly what gets kept and what doesn't.", 'You can delete entries from this browser when you choose.', 2)
+          replace_count('src/marketing/MarketingFeatures.jsx', 'Delete any entry, any time. No trace, ever.', 'Downloaded backup files are separate copies that stay under your control.', 2)
+
+          # Privacy notice: disclose optional network features and current Phase 2 age/location behavior.
+          privacy_anchor = "  {\n    heading: 'LOCAL PROFILE — NO EMAIL OR PASSWORD REQUIRED',"
+          network_section = (
+              "  {\n"
+              "    heading: 'OPTIONAL NETWORK FEATURES',\n"
+              "    paragraphs: [\n"
+              "      'The private journal is local-first, but not every optional feature is offline. Weed Goblins uses a same-origin server path and Cloudflare Workers AI to generate game narration when a tester chooses to play.',\n"
+              "      'When Weed Goblins is used, the app can derive limited structured game context from local journal history, including product-derived game labels, product categories, effect tags, terpene labels, fictionalized dispensary labels, entry count, and prior game-run summaries. The game adapter excludes raw journal notes and raw dispensary names from that context. Player-entered game text can also be included in narration requests.',\n"
+              "      'The game request reaches server-side and Cloudflare infrastructure. Source IP information is processed for request security and rate limiting; the narration worker derives a salted source key for its in-memory limiter rather than retaining the raw IP in that limiter.',\n"
+              "      'Voice entry uses the browser SpeechRecognition implementation when the browser provides it. Speech-processing behavior depends on the browser and platform and is not represented as device-only. The transcript can be reviewed or edited before it is saved to the local journal.',\n"
+              "    ],\n"
+              "  },\n"
+          )
+          replace_count('src/marketing/MarketingPrivacy.jsx', privacy_anchor, network_section + privacy_anchor)
+          replace_count(
+              'src/marketing/MarketingPrivacy.jsx',
+              'The current private-testing age flow is being revised into a market-specific age-assurance system. My420Journal does not currently require Vogtcom to store a government ID image as part of the private journal.',
+              'In the current private-testing build, My420Journal asks for coarse residence information — country and, for reviewed U.S. markets, state — to select a versioned market configuration and stores an age-confirmation result rather than an exact date of birth. The market and age flow does not request a street address, government ID image, or precise device GPS.',
+          )
+          controls_old = "      'Users can delete journal entries through the app. Because the private journal is local-first, clearing browser site data can also remove local journal data.',\n      'A PIN can be used as an additional in-app privacy control. A PIN does not replace device security and does not make data immune from device-level access.',"
+          controls_new = "      'Users can delete journal entries through the app. Because the private journal is local-first, clearing browser site data can also remove local journal data.',\n      'Users can export and import a local JSON backup. A downloaded backup is a separate copy controlled by the user and is not removed when an in-app entry is deleted.',\n      'A PIN can be used as an additional in-app privacy control. A PIN does not replace device security and does not make data immune from device-level access.',"
+          replace_count('src/marketing/MarketingPrivacy.jsx', controls_old, controls_new)
+
+          # FAQ: make the network boundary visible without weakening the local-journal statement.
+          faq_anchor = "  {\n    question: 'Is Shared Journey available?',"
+          network_faq = (
+              "  {\n"
+              "    question: 'Does My420Journal use the internet?',\n"
+              "    answer: 'The private journal is stored locally and is not cloud-synced, but some optional features use network services. Weed Goblins sends limited game and narration context, including certain structured context derived from the local journal, through a server-side Cloudflare Workers AI path when you play. Browser voice input uses the browser speech-recognition implementation, whose processing depends on the browser and platform. Shared Journey remains off.',\n"
+              "  },\n"
+          )
+          replace_count('src/marketing/MarketingFAQ.jsx', faq_anchor, network_faq + faq_anchor)
+
+          # README: local backups exist; optional network paths are explicit.
+          readme_old = '- Shared Journey / Layer 2 is disabled pending redesign and review.\n- No backup or cross-device sync is included in this build.'
+          readme_new = (
+              '- Shared Journey / Layer 2 is disabled pending redesign and review.\n'
+              '- Local JSON backup export/import is included. No cloud backup or cross-device sync is included.\n'
+              '- Weed Goblins is an optional network feature that uses a same-origin server proxy and Cloudflare Workers AI for narration. Its local adapter excludes raw journal notes and raw dispensary names, but limited structured or game-derived context can be sent when the game is used.\n'
+              '- Voice entry uses browser SpeechRecognition when available. Processing behavior depends on the browser/platform and is not guaranteed to be device-only.'
+          )
+          replace_count('README.md', readme_old, readme_new)
+
+          # Settings: correct Bud's factual role, backup receipt, and retired cloud-account promise.
+          replace_count('src/screens/Settings.jsx', 'Dispensary deals and trip planning.', 'Dispensary history and trip recall.')
+          replace_count('src/screens/Settings.jsx', 'Everything in this app stays on this device only.', 'Your journal entries and private notes are stored in this browser on this device.')
+          replace_count('src/screens/Settings.jsx', 'No data was sent to any server.', 'This backup was created from local browser storage; the backup tool did not upload it to a journal server.')
+          replace_count('src/screens/Settings.jsx', 'No account exists on any server.', 'The private journal uses an anonymous local profile, not an email/password cloud account.')
+          replace_count('src/screens/Settings.jsx', 'The only copy of your journal is on this device.', 'The downloaded backup is now a separate copy under your control.')
+          replace_count('src/screens/Settings.jsx', '<SectionHeading>Account</SectionHeading>', '<SectionHeading>Local profile</SectionHeading>')
+          replace_count('src/screens/Settings.jsx', 'More account settings coming soon.', 'This journal uses an anonymous local profile on this device. There is no email/password cloud account or cross-device sync.')
+
+          # Bud Tendar: preserve the guide persona while removing nonexistent price/deal/recommendation functions.
+          bud_replacements = [
+              ("Let's make every trip count.", "Let's make every trip easier to remember."),
+              ('Bud has spent years on the other side of the counter and now he is on yours. He knows the menus, the prices, and exactly how to get you the most for what you spend. With Bud, you stop guessing and start shopping with a plan.', 'Bud is the guide for keeping your dispensary and product history organized. He helps you look back at what you picked up, where it came from, and what your own journal says about past experiences. With Bud, the next trip starts with your own record instead of memory alone.'),
+              ('DISPENSARY AND DEALS', 'DISPENSARY HISTORY'),
+              ('Tracks dispensary prices and deals near you', 'Keeps your dispensary and product history organized'),
+              ('Remembers what worked and what to avoid', 'Keeps your own notes about each product easy to review'),
+              ('Helps you plan every trip before you go', 'Helps you review your past entries before the next trip'),
+              ('Good choice. I am going to learn your preferences fast, keep an eye on prices, and make sure every trip counts. Ready when you are.', 'Good choice. I will help keep your dispensary and product history organized so your own notes are easy to check before the next trip. Ready when you are.'),
           ]
-          """,
-              """const featureCards = [
-            {
-              title: 'Log the details',
-              mobileLines: [
-                'Record the product, amount, method, and details you care about.',
-                'Manual entry is available now in the current private-testing build.',
-                'Camera label scanning is not available yet.',
-              ],
-              desktopLines: [
-                'Record the product, amount, method, and details you care about.',
-                'Manual entry is available now in the current private-testing build.',
-                'Camera label scanning is not available yet.',
-              ],
-              image: featureCard1Image,
-            },
-            {
-              title: 'Draft by voice',
-              mobileLines: [
-                'On supported browsers, speak a draft instead of typing it.',
-                'Review or edit the transcript before you save the entry.',
-                'Speech recognition is provided by your browser and can vary by browser or device.',
-              ],
-              desktopLines: [
-                'On supported browsers, speak a draft instead of typing it.',
-                'Review or edit the transcript before you save the entry.',
-                'Speech recognition is provided by your browser and can vary by browser or device.',
-              ],
-              image: featureCard2Image,
-            },
-            {
-              title: 'Keep control of your journal',
-              mobileLines: [
-                'Journal entries are stored in browser local storage on this device.',
-                'You can delete entries from this browser when you choose.',
-                'Downloaded backup files are separate copies that stay under your control.',
-              ],
-              desktopLines: [
-                'Journal entries are stored in browser local storage on this device.',
-                'You can delete entries from this browser when you choose.',
-                'Downloaded backup files are separate copies that stay under your control.',
-              ],
-              image: featureCard3Image,
-            },
-          ]
-          """,
-          )
+          for old, new in bud_replacements:
+              replace_count('src/screens/Onboarding.jsx', old, new)
 
-          replace_once(
-              'src/marketing/MarketingPrivacy.jsx',
-              """  {
-            heading: 'LOCAL JOURNAL DATA',
-            paragraphs: [
-              'Journal entries and private notes are stored on the device in browser local storage. They are not automatically copied to a Vogtcom journal server.',
-              'Browser local storage can be cleared by the user, browser, operating system, or device-management tools. Data on a device may also be accessible to another person with access to that device or through lawful device access. Local-first design reduces data exposure; it does not make device data impossible to access.',
-            ],
-          },
-          """,
-              """  {
-            heading: 'LOCAL JOURNAL DATA',
-            paragraphs: [
-              'Journal entries and private notes are stored on the device in browser local storage. They are not automatically copied to a Vogtcom journal server.',
-              'Browser local storage can be cleared by the user, browser, operating system, or device-management tools. Data on a device may also be accessible to another person with access to that device or through lawful device access. Local-first design reduces data exposure; it does not make device data impossible to access.',
-            ],
-          },
-          {
-            heading: 'OPTIONAL NETWORK FEATURES',
-            paragraphs: [
-              'The private journal is local-first, but not every optional feature is offline. Weed Goblins uses a same-origin server path and Cloudflare Workers AI to generate game narration when a tester chooses to play.',
-              'When Weed Goblins is used, the app can derive limited structured game context from local journal history, including product-derived game labels, product categories, effect tags, terpene labels, fictionalized dispensary labels, entry count, and prior game-run summaries. The game adapter excludes raw journal notes and raw dispensary names from that context. Player-entered game text can also be included in narration requests.',
-              'The game request reaches server-side and Cloudflare infrastructure. Source IP information is processed for request security and rate limiting; the narration worker derives a salted source key for its in-memory limiter rather than retaining the raw IP in that limiter.',
-              'Voice entry uses the browser SpeechRecognition implementation when the browser provides it. Speech-processing behavior depends on the browser and platform and is not represented as device-only. The transcript can be reviewed or edited before it is saved to the local journal.',
-            ],
-          },
-          """,
-          )
+          # New Entry already labels the scan screen as coming soon; make the header equally truthful.
+          replace_count('src/screens/NewEntry.jsx', 'Speak it, scan it, or type it.', 'Speak it or type it. Camera scanning is not available yet.')
 
-          replace_once(
-              'src/marketing/MarketingPrivacy.jsx',
-              """      'The current private-testing age flow is being revised into a market-specific age-assurance system. My420Journal does not currently require Vogtcom to store a government ID image as part of the private journal.',
-          """,
-              """      'In the current private-testing build, My420Journal asks for coarse residence information — country and, for reviewed U.S. markets, state — to select a versioned market configuration and stores an age-confirmation result rather than an exact date of birth. The market and age flow does not request a street address, government ID image, or precise device GPS.',
-          """,
-          )
-
-          replace_once(
-              'src/marketing/MarketingPrivacy.jsx',
-              """      'Users can delete journal entries through the app. Because the private journal is local-first, clearing browser site data can also remove local journal data.',
-              'A PIN can be used as an additional in-app privacy control. A PIN does not replace device security and does not make data immune from device-level access.',
-          """,
-              """      'Users can delete journal entries through the app. Because the private journal is local-first, clearing browser site data can also remove local journal data.',
-              'Users can export and import a local JSON backup. A downloaded backup is a separate copy controlled by the user and is not removed when an in-app entry is deleted.',
-              'A PIN can be used as an additional in-app privacy control. A PIN does not replace device security and does not make data immune from device-level access.',
-          """,
-          )
-
-          replace_once(
-              'src/marketing/MarketingFAQ.jsx',
-              """  {
-            question: 'Who can see my private journal?',
-            answer: 'The private journal is designed to stay on your device. Vogtcom, dispensaries, cannabis brands, and partners do not receive access to your raw private journal or private notes through the private journal system.',
-          },
-          """,
-              """  {
-            question: 'Who can see my private journal?',
-            answer: 'The private journal is designed to stay on your device. Vogtcom, dispensaries, cannabis brands, and partners do not receive access to your raw private journal or private notes through the private journal system.',
-          },
-          {
-            question: 'Does My420Journal use the internet?',
-            answer: 'The private journal is stored locally and is not cloud-synced, but some optional features use network services. Weed Goblins sends limited game and narration context, including certain structured context derived from the local journal, through a server-side Cloudflare Workers AI path when you play. Browser voice input uses the browser speech-recognition implementation, whose processing depends on the browser and platform. Shared Journey remains off.',
-          },
-          """,
-          )
-
-          replace_once(
-              'README.md',
-              """- Shared Journey / Layer 2 is disabled pending redesign and review.
-          - No backup or cross-device sync is included in this build.
-          """,
-              """- Shared Journey / Layer 2 is disabled pending redesign and review.
-          - Local JSON backup export/import is included. No cloud backup or cross-device sync is included.
-          - Weed Goblins is an optional network feature that uses a same-origin server proxy and Cloudflare Workers AI for narration. Its local adapter excludes raw journal notes and raw dispensary names, but limited structured or game-derived context can be sent when the game is used.
-          - Voice entry uses browser SpeechRecognition when available. Processing behavior depends on the browser/platform and is not guaranteed to be device-only.
-          """,
-          )
-
-          replace_once(
-              'src/screens/Settings.jsx',
-              """  bud:   { name: 'Bud Tendar',     accent: '#C9A84C', description: 'Dispensary deals and trip planning.' },
-          """,
-              """  bud:   { name: 'Bud Tendar',     accent: '#C9A84C', description: 'Dispensary history and trip recall.' },
-          """,
-          )
-
-          replace_once(
-              'src/screens/Settings.jsx',
-              """              Everything in this app stays on this device only.
-            </p>
-            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
-              No data was sent to any server.
-            </p>
-            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
-              No account exists on any server.
-            </p>
-            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: 0 }}>
-              The only copy of your journal is on this device.
-          """,
-              """              Your journal entries and private notes are stored in this browser on this device.
-            </p>
-            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
-              This backup was created from local browser storage; the backup tool did not upload it to a journal server.
-            </p>
-            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: '0 0 14px 0' }}>
-              The private journal uses an anonymous local profile, not an email/password cloud account.
-            </p>
-            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, lineHeight: '1.6', margin: 0 }}>
-              The downloaded backup is now a separate copy under your control.
-          """,
-          )
-
-          replace_once(
-              'src/screens/Settings.jsx',
-              """        {/* ── ACCOUNT ─────────────────────────────────────────────────────── */}
-            <SectionHeading>Account</SectionHeading>
-            <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: 0 }}>
-              More account settings coming soon.
-          """,
-              """        {/* ── LOCAL PROFILE ──────────────────────────────────────────────── */}
-            <SectionHeading>Local profile</SectionHeading>
-            <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: 0 }}>
-              This journal uses an anonymous local profile on this device. There is no email/password cloud account or cross-device sync.
-          """,
-          )
-
-          replace_once(
-              'src/screens/Onboarding.jsx',
-              """  {
-            id: 'bud',
-            name: 'Bud Tendar',
-            shortName: 'Bud',
-            accent: '#C9A84C',
-            catchphrase: "Let's make every trip count.",
-            miniBio: 'Bud has spent years on the other side of the counter and now he is on yours. He knows the menus, the prices, and exactly how to get you the most for what you spend. With Bud, you stop guessing and start shopping with a plan.',
-            tag: 'DISPENSARY AND DEALS',
-            bullets: [
-              'Tracks dispensary prices and deals near you',
-              'Remembers what worked and what to avoid',
-              'Helps you plan every trip before you go',
-            ],
-            selectionConfirmation: 'Good choice. I am going to learn your preferences fast, keep an eye on prices, and make sure every trip counts. Ready when you are.',
-            selectionConfirmationSub: null,
-          },
-          """,
-              """  {
-            id: 'bud',
-            name: 'Bud Tendar',
-            shortName: 'Bud',
-            accent: '#C9A84C',
-            catchphrase: "Let's make every trip easier to remember.",
-            miniBio: 'Bud is the guide for keeping your dispensary and product history organized. He helps you look back at what you picked up, where it came from, and what your own journal says about past experiences. With Bud, the next trip starts with your own record instead of memory alone.',
-            tag: 'DISPENSARY HISTORY',
-            bullets: [
-              'Keeps your dispensary and product history organized',
-              'Keeps your own notes about each product easy to review',
-              'Helps you review your past entries before the next trip',
-            ],
-            selectionConfirmation: 'Good choice. I will help keep your dispensary and product history organized so your own notes are easy to check before the next trip. Ready when you are.',
-            selectionConfirmationSub: null,
-          },
-          """,
-          )
-
-          replace_once(
-              'src/screens/NewEntry.jsx',
-              """>Speak it, scan it, or type it.</p>
-          """,
-              """>Speak it or type it. Camera scanning is not available yet.</p>
-          """,
-          )
-
+          # Claim regression test prevents the retired absolutes and nonexistent features from returning.
           test_path = Path('src/lib/privacyClaims.test.js')
           if test_path.exists():
               raise SystemExit('src/lib/privacyClaims.test.js already exists unexpectedly')
-          test_path.write_text("""import test from 'node:test'\nimport assert from 'node:assert/strict'\nimport fs from 'node:fs'\n\nfunction read(relativePath) {\n  return fs.readFileSync(new URL(relativePath, import.meta.url), 'utf8')\n}\n\nconst hero = read('../marketing/MarketingHero.jsx')\nconst features = read('../marketing/MarketingFeatures.jsx')\nconst privacy = read('../marketing/MarketingPrivacy.jsx')\nconst faq = read('../marketing/MarketingFAQ.jsx')\nconst settings = read('../screens/Settings.jsx')\nconst onboarding = read('../screens/Onboarding.jsx')\nconst newEntry = read('../screens/NewEntry.jsx')\nconst readme = read('../../README.md')\nconst allClaims = [hero, features, privacy, faq, settings, onboarding, newEntry, readme].join('\\n')\n\nconst bannedClaims = [\n  'Nothing leaves your device unless you choose to share it.',\n  'Scan any label',\n  'It reads the strain, dose, and method automatically.',\n  'logged exactly as spoken',\n  'No trace, ever.',\n  'Everything in this app stays on this device only.',\n  'No data was sent to any server.',\n  'The only copy of your journal is on this device.',\n  'Dispensary deals and trip planning.',\n  'Tracks dispensary prices and deals near you',\n  'keep an eye on prices',\n  'No backup or cross-device sync is included in this build.',\n]\n\ntest('retired absolute and unimplemented feature claims do not return', () => {\n  for (const claim of bannedClaims) {\n    assert.equal(allClaims.includes(claim), false, `retired claim returned: ${claim}`)\n  }\n})\n\ntest('current disclosures describe the implemented privacy boundaries', () => {\n  assert.equal(privacy.includes("heading: 'OPTIONAL NETWORK FEATURES'"), true)\n  assert.equal(privacy.includes('Shared Journey / Layer 2 is currently OFF.'), true)\n  assert.equal(privacy.includes('precise device GPS'), true)\n  assert.equal(features.includes('Camera label scanning is not available yet.'), true)\n  assert.equal(readme.includes('Local JSON backup export/import is included.'), true)\n  assert.equal(settings.includes('anonymous local profile'), true)\n  assert.equal(onboarding.includes("tag: 'DISPENSARY HISTORY'"), true)\n  assert.equal(newEntry.includes('Camera scanning is not available yet.'), true)\n})\n""")
+          test_path.write_text(dedent("""\
+          import test from 'node:test'
+          import assert from 'node:assert/strict'
+          import fs from 'node:fs'
+
+          function read(relativePath) {
+            return fs.readFileSync(new URL(relativePath, import.meta.url), 'utf8')
+          }
+
+          const hero = read('../marketing/MarketingHero.jsx')
+          const features = read('../marketing/MarketingFeatures.jsx')
+          const privacy = read('../marketing/MarketingPrivacy.jsx')
+          const faq = read('../marketing/MarketingFAQ.jsx')
+          const settings = read('../screens/Settings.jsx')
+          const onboarding = read('../screens/Onboarding.jsx')
+          const newEntry = read('../screens/NewEntry.jsx')
+          const readme = read('../../README.md')
+          const allClaims = [hero, features, privacy, faq, settings, onboarding, newEntry, readme].join('\n')
+
+          const bannedClaims = [
+            'Nothing leaves your device unless you choose to share it.',
+            'Scan any label',
+            'It reads the strain, dose, and method automatically.',
+            'logged exactly as spoken',
+            'No trace, ever.',
+            'Everything in this app stays on this device only.',
+            'No data was sent to any server.',
+            'The only copy of your journal is on this device.',
+            'Dispensary deals and trip planning.',
+            'Tracks dispensary prices and deals near you',
+            'keep an eye on prices',
+            'No backup or cross-device sync is included in this build.',
+          ]
+
+          test('retired absolute and unimplemented feature claims do not return', () => {
+            for (const claim of bannedClaims) {
+              assert.equal(allClaims.includes(claim), false, `retired claim returned: ${claim}`)
+            }
+          })
+
+          test('current disclosures describe the implemented privacy boundaries', () => {
+            assert.equal(privacy.includes("heading: 'OPTIONAL NETWORK FEATURES'"), true)
+            assert.equal(privacy.includes('Shared Journey / Layer 2 is currently OFF.'), true)
+            assert.equal(privacy.includes('precise device GPS'), true)
+            assert.equal(features.includes('Camera label scanning is not available yet.'), true)
+            assert.equal(readme.includes('Local JSON backup export/import is included.'), true)
+            assert.equal(settings.includes('anonymous local profile'), true)
+            assert.equal(onboarding.includes("tag: 'DISPENSARY HISTORY'"), true)
+            assert.equal(newEntry.includes('Camera scanning is not available yet.'), true)
+          })
+          """))
 
           package_path = Path('package.json')
           package_text = package_path.read_text()
