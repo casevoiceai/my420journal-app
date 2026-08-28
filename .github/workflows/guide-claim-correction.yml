@@ -1,0 +1,163 @@
+name: Guide claim correction
+
+on:
+  push:
+    branches:
+      - privacy/claim-drift-corrections
+    paths:
+      - .github/workflows/guide-claim-correction.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-validate-and-commit:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout claim-drift branch
+        uses: actions/checkout@v4
+        with:
+          ref: privacy/claim-drift-corrections
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply exact guide capability copy corrections
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_count(pathname, old, new, expected=1):
+              path = Path(pathname)
+              text = path.read_text()
+              count = text.count(old)
+              if count != expected:
+                  raise SystemExit(f'{pathname}: expected {expected} occurrence(s), found {count}: {old!r}')
+              path.write_text(text.replace(old, new))
+
+          guide_replacements = [
+              ('Hey. I pulled up a few options near you.', 'Hey. Ready to talk through what you logged?'),
+              ('Hey. Earlier than usual. Good trip?', 'Hey. Back for another entry?'),
+              ('Alright. I know what you like. What do you need?', 'Alright. What do you want to look at today?'),
+              ('Hey, I was just thinking about you...', 'Hey. What is on your mind today?'),
+              ('Hi. I have been thinking about something you said.', 'Hi. Tell me what is on your mind today.'),
+              ('Hey. I was thinking about something.', 'Hey. What are we talking about today?'),
+              ('You are back. I have thoughts on what you logged.', 'You are back. What are we looking at today?'),
+              ('Hey. Long time. What happened?', 'Hey. Back again. What happened?'),
+              ('Hey. I noticed something. Want to hear it?', 'Hey. Want to talk terpenes?'),
+              ('Good. You are back. I have been looking at your log.', 'Good. You are back. What are we logging?'),
+              ('Hey. Want to pull up your full terpene history?', 'Hey. Want to talk through the terpene details you have in front of you?'),
+              ('Hey. Can we talk about something I noticed?', 'Hey. What do you want to check in on today?'),
+              ('You look better than last week. Am I right?', 'How are you feeling today?'),
+              ('(already thinking about your terpene profile)', '(ready to talk terpenes when you are)'),
+          ]
+          for old, new in guide_replacements:
+              replace_count('src/screens/Guide.jsx', old, new)
+
+          replace_count('src/screens/Home.jsx', 'What are we shopping for?', 'What are we logging today?')
+          replace_count('src/screens/Home.jsx', 'Log something. I will look at it.', 'What are we logging today?')
+
+          settings_replacements = [
+              ('Dispensary history and trip recall.', 'Practical trip-and-history tone.'),
+              ('Conversation and emotional tracking.', 'Warm emotional check-in tone.'),
+              ('Strain history and cannabis culture.', 'Cannabis-culture storytelling tone.'),
+              ('Terpene science and education.', 'Terpene-focused science tone.'),
+              ('Wellness, sleep, and self-care.', 'Wellness and self-care conversation tone.'),
+          ]
+          for old, new in settings_replacements:
+              replace_count('src/screens/Settings.jsx', old, new)
+
+          onboarding_replacements = [
+              ('Bud is the guide for keeping your dispensary and product history organized. He helps you look back at what you picked up, where it came from, and what your own journal says about past experiences. With Bud, the next trip starts with your own record instead of memory alone.', 'Bud brings a practical, trip-focused voice to the journal. His conversations are for talking through what you choose to enter and keeping the focus on your own product and dispensary record. In the current build, Bud does not pull live menus, prices, deals, nearby options, or purchasing recommendations.'),
+              ('DISPENSARY HISTORY', 'PRACTICAL TRIP JOURNAL'),
+              ('Keeps your dispensary and product history organized', 'Practical, trip-focused conversation style'),
+              ('Keeps your own notes about each product easy to review', 'Keeps the focus on information you choose to enter'),
+              ('Helps you review your past entries before the next trip', 'No live prices, deals, nearby options, or purchase recommendations'),
+              ('Good choice. I will help keep your dispensary and product history organized so your own notes are easy to check before the next trip. Ready when you are.', 'Good choice. I will keep the conversation practical and focused on the information you choose to enter. Ready when you are.'),
+              ('Sunny is not here to just log your data. She wants to know how you are doing -- the real version, not the quick one. She remembers what you share and checks in like a friend who genuinely means it. Southern warmth, genuine curiosity, and nowhere else to be.', 'Sunny brings a warm, emotionally attentive voice to the guide conversation. She is for users who want prompts that feel personal and reflective. In the current build, Sunny does not independently analyze emotional patterns or remember facts outside the local guide conversation.'),
+              ('CONVERSATION AND EMOTIONAL TRACKING', 'REFLECTIVE CHECK-IN STYLE'),
+              ('Checks in on how you are actually doing', 'Warm, emotionally attentive conversation style'),
+              ('Tracks emotional patterns over time', 'Encourages reflection on what you choose to share'),
+              ('Remembers what you share session to session', 'Does not diagnose or independently infer emotional patterns'),
+              ('Oh... well. You picked me. I am so glad... I really am. We are going to figure some things out together, you and me. Take your time getting settled. I will be right here.', 'Oh... well. You picked me. I am so glad. Tell me what is on your mind, and we will take it one entry at a time. I will be right here.'),
+              ('Larry has been around this world longer than most apps have existed. He knows the history, the folklore, and the real stories behind what you are smoking. Nothing surprises him. Some of what he tells you is even true.', 'Larry is the cannabis-culture storytelling personality in the guide interface: dry, unhurried, and a little skeptical. The current private-testing build does not give Larry a live strain-history database or independent analysis of your journal.'),
+              ('STRAIN HISTORY AND CULTURE', 'CULTURE AND STORYTELLING STYLE'),
+              ('Deep knowledge of strain history and folklore', 'Dry, unhurried cannabis-culture voice'),
+              ('Dry, unhurried observations on what you log', 'Conversation stays centered on what you choose to enter'),
+              ('Helps you stop rebuying the wrong thing', 'No live strain database or purchasing recommendations'),
+              ('Alright. Larry. You made a solid call. I have been around long enough to know what I am doing. We are going to figure out what works for you. It will take a little time. That is fine. I got time.', 'Alright. Larry. Solid call. Keep your notes clear, tell me what happened, and we will take it one entry at a time. I got time.'),
+              ('Herb tracks terpene response patterns and gets genuinely excited about it. He says little out loud but thinks a great deal. If you want to understand why something worked -- not just that it worked -- Herb is your guide.', 'Herb is the terpene-and-science personality in the guide interface. He keeps the conversation curious and chemistry-minded without claiming to diagnose why a product affected you. In the current build, he does not build a terpene-response profile or independently analyze your journal history.'),
+              ('TERPENE SCIENCE AND EDUCATION', 'TERPENE-FOCUSED SCIENCE STYLE'),
+              ('Builds your personal terpene response profile', 'Terpene-focused, chemistry-minded conversation style'),
+              ('Explains the science behind what you feel', 'Keeps science discussion tied to information you choose to enter'),
+              ('Quietly noting patterns while you use the app', 'Does not diagnose effects or build an automated terpene-response profile'),
+              ('Mary Jayne tracks the full picture -- what you used, how you felt, how you slept, what your body did with it. She asks questions that might feel personal. She acknowledges that. The answers make the data useful. She is entirely on your side.', 'Mary Jayne brings a wellness and self-care tone to the guide conversation. She is for reflecting on sleep, mood, and physical observations you choose to record. In the current build, she does not independently connect cannabis use to health outcomes or provide medical advice.'),
+              ('WELLNESS AND SELF-CARE', 'WELLNESS AND SELF-CARE STYLE'),
+              ('Tracks sleep, mood, and physical response', 'Wellness and self-care conversation style'),
+              ('Connects usage patterns to wellness outcomes', 'Keeps attention on observations you choose to record'),
+              ('Supports tolerance breaks and intentional use', 'Does not diagnose, prescribe, or infer medical outcomes'),
+              ('Good. I am glad you chose me. Here is how this works: you tell me what happened, I help you understand it. The more honest you are in your logs, the more useful I can be. I am on your side. That is the whole thing.', 'Good. I am glad you chose me. Tell me what happened, and we will keep the conversation grounded in what you choose to record. I am on your side. That is the whole thing.'),
+              ('You are about to meet six guides. Each one has a different personality and unlocks a different layer of the app. Browse them all, then pick the one that fits.', 'You are about to meet six guides. Each one gives the journal a different personality and conversation style. In the current private-testing build, choosing a guide does not unlock different app features or give the guide independent access to your journal history. Browse them all, then pick the one that fits.'),
+          ]
+          for old, new in onboarding_replacements:
+              replace_count('src/screens/Onboarding.jsx', old, new)
+
+          test_path = Path('src/lib/privacyClaims.test.js')
+          text = test_path.read_text()
+          replace_count('src/lib/privacyClaims.test.js', "const newEntry = read('../screens/NewEntry.jsx')\nconst readme = read('../../README.md')\nconst allClaims = [hero, features, privacy, faq, settings, onboarding, newEntry, readme].join(String.fromCharCode(10))", "const newEntry = read('../screens/NewEntry.jsx')\nconst guide = read('../screens/Guide.jsx')\nconst home = read('../screens/Home.jsx')\nconst readme = read('../../README.md')\nconst allClaims = [hero, features, privacy, faq, settings, onboarding, newEntry, guide, home, readme].join(String.fromCharCode(10))")
+          replace_count('src/lib/privacyClaims.test.js', "  'No backup or cross-device sync is included in this build.',\n]", "  'No backup or cross-device sync is included in this build.',\n  'I pulled up a few options near you.',\n  'I know what you like. What do you need?',\n  'I have been looking at your log.',\n  'Want to pull up your full terpene history?',\n  '(already thinking about your terpene profile)',\n  'You look better than last week. Am I right?',\n  'Tracks emotional patterns over time',\n  'Builds your personal terpene response profile',\n  'Connects usage patterns to wellness outcomes',\n  'unlocks a different layer of the app',\n  'What are we shopping for?',\n  'Log something. I will look at it.',\n]")
+          replace_count('src/lib/privacyClaims.test.js', "  assert.equal(newEntry.includes('Camera scanning is not available yet.'), true)\n})", "  assert.equal(newEntry.includes('Camera scanning is not available yet.'), true)\n  assert.equal(onboarding.includes('choosing a guide does not unlock different app features'), true)\n  assert.equal(onboarding.includes('does not build a terpene-response profile'), true)\n  assert.equal(settings.includes('Practical trip-and-history tone.'), true)\n  assert.equal(guide.includes('Ready to talk through what you logged?'), true)\n  assert.equal(home.includes('What are we logging today?'), true)\n})")
+          PY
+
+      - name: Verify exact addendum file scope
+        shell: bash
+        run: |
+          git diff --check
+          changed="$(git status --porcelain | cut -c4- | sort)"
+          expected="$(printf '%s\n' src/lib/privacyClaims.test.js src/screens/Guide.jsx src/screens/Home.jsx src/screens/Onboarding.jsx src/screens/Settings.jsx | sort)"
+          printf '%s\n' "$changed"
+          test "$changed" = "$expected"
+
+      - name: Guard retired guide claims
+        shell: bash
+        run: |
+          ! grep -R --exclude='privacyClaims.test.js' -F 'I pulled up a few options near you.' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'I know what you like. What do you need?' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'I have been looking at your log.' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'Want to pull up your full terpene history?' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F '(already thinking about your terpene profile)' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'Tracks emotional patterns over time' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'Builds your personal terpene response profile' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'Connects usage patterns to wellness outcomes' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'unlocks a different layer of the app' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'What are we shopping for?' src README.md
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit all dependencies
+        run: npm audit --audit-level=high
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit validated guide claim corrections and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/lib/privacyClaims.test.js src/screens/Guide.jsx src/screens/Home.jsx src/screens/Onboarding.jsx src/screens/Settings.jsx
+          git rm .github/workflows/guide-claim-correction.yml
+          git commit -m 'Correct unimplemented guide capability claims'
+          git push origin HEAD:privacy/claim-drift-corrections
