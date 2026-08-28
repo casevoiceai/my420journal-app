@@ -137,7 +137,7 @@ jobs:
           const onboarding = read('../screens/Onboarding.jsx')
           const newEntry = read('../screens/NewEntry.jsx')
           const readme = read('../../README.md')
-          const allClaims = [hero, features, privacy, faq, settings, onboarding, newEntry, readme].join('\n')
+          const allClaims = [hero, features, privacy, faq, settings, onboarding, newEntry, readme].join(String.fromCharCode(10))
 
           const bannedClaims = [
             'Nothing leaves your device unless you choose to share it.',
