@@ -69,8 +69,10 @@ jobs:
       - name: Verify exact changed-file scope before validation
         run: |
           git diff --check
-          printf '%s\n' "$(git diff --name-only | sort)"
-          test "$(git diff --name-only | sort)" = "$(printf '%s\n' package.json src/lib/newEntryPrivacyBoundary.test.js src/screens/NewEntry.jsx | sort)"
+          changed="$(git status --porcelain | cut -c4- | sort)"
+          expected="$(printf '%s\n' package.json src/lib/newEntryPrivacyBoundary.test.js src/screens/NewEntry.jsx | sort)"
+          printf '%s\n' "$changed"
+          test "$changed" = "$expected"
           ! grep -q 'navigator\.geolocation' src/screens/NewEntry.jsx
           ! grep -q 'getCurrentPosition' src/screens/NewEntry.jsx
 
