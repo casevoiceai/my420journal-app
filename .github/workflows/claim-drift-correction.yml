@@ -39,11 +39,9 @@ jobs:
                   raise SystemExit(f'{pathname}: expected {expected} occurrence(s), found {count}: {old[:120]!r}')
               path.write_text(text.replace(old, new))
 
-          # Marketing hero: remove absolute device-only claim without changing the page structure.
           replace_count('src/marketing/MarketingHero.jsx', 'Log what you tried. See what actually worked.', 'Log what you tried. See what your own notes show.')
           replace_count('src/marketing/MarketingHero.jsx', 'Nothing leaves your device unless you choose to share it.', 'Your private journal is stored locally in this browser.')
 
-          # Marketing feature cards: advertise only implemented behavior.
           replace_count('src/marketing/MarketingFeatures.jsx', "title: 'Scan any label'", "title: 'Log the details'")
           replace_count('src/marketing/MarketingFeatures.jsx', 'Point your camera at any label and let it capture the details.', 'Record the product, amount, method, and details you care about.', 2)
           replace_count('src/marketing/MarketingFeatures.jsx', 'It reads the strain, dose, and method automatically.', 'Manual entry is available now in the current private-testing build.', 2)
@@ -57,7 +55,6 @@ jobs:
           replace_count('src/marketing/MarketingFeatures.jsx', "You control exactly what gets kept and what doesn't.", 'You can delete entries from this browser when you choose.', 2)
           replace_count('src/marketing/MarketingFeatures.jsx', 'Delete any entry, any time. No trace, ever.', 'Downloaded backup files are separate copies that stay under your control.', 2)
 
-          # Privacy notice: disclose optional network features and current Phase 2 age/location behavior.
           privacy_anchor = "  {\n    heading: 'LOCAL PROFILE — NO EMAIL OR PASSWORD REQUIRED',"
           network_section = (
               "  {\n"
@@ -80,7 +77,6 @@ jobs:
           controls_new = "      'Users can delete journal entries through the app. Because the private journal is local-first, clearing browser site data can also remove local journal data.',\n      'Users can export and import a local JSON backup. A downloaded backup is a separate copy controlled by the user and is not removed when an in-app entry is deleted.',\n      'A PIN can be used as an additional in-app privacy control. A PIN does not replace device security and does not make data immune from device-level access.',"
           replace_count('src/marketing/MarketingPrivacy.jsx', controls_old, controls_new)
 
-          # FAQ: make the network boundary visible without weakening the local-journal statement.
           faq_anchor = "  {\n    question: 'Is Shared Journey available?',"
           network_faq = (
               "  {\n"
@@ -90,7 +86,6 @@ jobs:
           )
           replace_count('src/marketing/MarketingFAQ.jsx', faq_anchor, network_faq + faq_anchor)
 
-          # README: local backups exist; optional network paths are explicit.
           readme_old = '- Shared Journey / Layer 2 is disabled pending redesign and review.\n- No backup or cross-device sync is included in this build.'
           readme_new = (
               '- Shared Journey / Layer 2 is disabled pending redesign and review.\n'
@@ -100,7 +95,6 @@ jobs:
           )
           replace_count('README.md', readme_old, readme_new)
 
-          # Settings: correct Bud's factual role, backup receipt, and retired cloud-account promise.
           replace_count('src/screens/Settings.jsx', 'Dispensary deals and trip planning.', 'Dispensary history and trip recall.')
           replace_count('src/screens/Settings.jsx', 'Everything in this app stays on this device only.', 'Your journal entries and private notes are stored in this browser on this device.')
           replace_count('src/screens/Settings.jsx', 'No data was sent to any server.', 'This backup was created from local browser storage; the backup tool did not upload it to a journal server.')
@@ -109,7 +103,6 @@ jobs:
           replace_count('src/screens/Settings.jsx', '<SectionHeading>Account</SectionHeading>', '<SectionHeading>Local profile</SectionHeading>')
           replace_count('src/screens/Settings.jsx', 'More account settings coming soon.', 'This journal uses an anonymous local profile on this device. There is no email/password cloud account or cross-device sync.')
 
-          # Bud Tendar: preserve the guide persona while removing nonexistent price/deal/recommendation functions.
           bud_replacements = [
               ("Let's make every trip count.", "Let's make every trip easier to remember."),
               ('Bud has spent years on the other side of the counter and now he is on yours. He knows the menus, the prices, and exactly how to get you the most for what you spend. With Bud, you stop guessing and start shopping with a plan.', 'Bud is the guide for keeping your dispensary and product history organized. He helps you look back at what you picked up, where it came from, and what your own journal says about past experiences. With Bud, the next trip starts with your own record instead of memory alone.'),
@@ -122,10 +115,8 @@ jobs:
           for old, new in bud_replacements:
               replace_count('src/screens/Onboarding.jsx', old, new)
 
-          # New Entry already labels the scan screen as coming soon; make the header equally truthful.
           replace_count('src/screens/NewEntry.jsx', 'Speak it, scan it, or type it.', 'Speak it or type it. Camera scanning is not available yet.')
 
-          # Claim regression test prevents the retired absolutes and nonexistent features from returning.
           test_path = Path('src/lib/privacyClaims.test.js')
           if test_path.exists():
               raise SystemExit('src/lib/privacyClaims.test.js already exists unexpectedly')
@@ -200,11 +191,11 @@ jobs:
 
       - name: Guard retired claims before running suite
         run: |
-          ! grep -R -F 'Nothing leaves your device unless you choose to share it.' src README.md
-          ! grep -R -F 'No trace, ever.' src README.md
-          ! grep -R -F 'Tracks dispensary prices and deals near you' src README.md
-          ! grep -R -F 'Everything in this app stays on this device only.' src README.md
-          ! grep -R -F 'No data was sent to any server.' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'Nothing leaves your device unless you choose to share it.' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'No trace, ever.' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'Tracks dispensary prices and deals near you' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'Everything in this app stays on this device only.' src README.md
+          ! grep -R --exclude='privacyClaims.test.js' -F 'No data was sent to any server.' src README.md
 
       - name: Install dependencies
         run: npm ci
