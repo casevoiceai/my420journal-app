@@ -21,6 +21,10 @@ function byteLength(value) {
   return new TextEncoder().encode(value).byteLength
 }
 
+function isSharedJourneyEnabled(env) {
+  return String(env?.SHARED_JOURNEY_ENABLED ?? '').trim().toLowerCase() === 'true'
+}
+
 export async function onRequest({ request, env, params }) {
   const accessCode = String(env?.JOURNAL_ACCESS_CODE ?? '').trim()
   const hasTesterSession = accessCode
@@ -33,14 +37,24 @@ export async function onRequest({ request, env, params }) {
 
   const pathParts = Array.isArray(params?.path) ? params.path : [params?.path]
   const relativePath = pathParts.filter(Boolean).join('/')
+  const sharedJourneyEnabled = isSharedJourneyEnabled(env)
 
-  // Layer 2 is globally disabled. The only remaining public-facing operation is
-  // opt-out deletion so an already opted-in tester can request removal.
-  if (relativePath !== 'contributors/opt-out') {
+  // Defense in depth: missing, blank, malformed, or false config means OFF.
+  // Opt-out cleanup remains reachable even while Shared Journey is disabled.
+  if (!sharedJourneyEnabled && relativePath !== 'contributors/opt-out') {
     return jsonResponse({
       error: 'Shared Journey is disabled pending redesign and review',
       shared_journey_enabled: false,
     }, 410)
+  }
+
+  // V2 re-enable is intentionally impossible from configuration alone.
+  // Non-cleanup routes stay closed until their V2 handlers and privacy tests exist.
+  if (relativePath !== 'contributors/opt-out') {
+    return jsonResponse({
+      error: 'Shared Journey V2 route is not implemented',
+      shared_journey_enabled: sharedJourneyEnabled,
+    }, 501)
   }
 
   if (request.method !== 'POST') {
