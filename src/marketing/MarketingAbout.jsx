@@ -59,7 +59,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 I spent years as a freelance graphic designer and starving fine artist, working with the general public in retail sales management and customer service. Later I went back to school for fine art and mental health counseling. Different fields, but they all taught me the same thing. People remember experiences in fragments. Those fragments fade fast unless something catches them.
               </p>
               <p>
-                I watched that happen with cannabis use specifically. A product would work well, and a month later the details were gone. What strain? What dose? What time of day? What mood it was meant to help with? The information that actually mattered never made it past that one evening.
+                I watched that happen with cannabis use specifically. I would have an experience worth remembering, and a month later the details were gone. What product? What amount did I record? What time of day? What mood did I note? The details I wanted to remember never made it past that one evening.
               </p>
               <p>
                 my420journal was built to solve that. Not for me alone.
@@ -123,7 +123,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 >
                   No Trace Ever
                 </button>{' '}
-                as a hard rule across this app, not as a policy I could soften later.
+                as a privacy engineering principle: keep the private journal local-first, minimize collection, and disclose optional network features instead of hiding them.
               </p>
               <p>
                 And I vowed I would never build "Hy" again.
@@ -142,10 +142,10 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 The idea was not to build another cannabis marketplace, social network, or recommendation engine. It was to create a personal journal that helps adults record what they tried, how it felt, and what they learned over time.
               </p>
               <p>
-                You can log an experience while the details are still fresh. You can scan a label instead of typing everything manually. You can return later and look for patterns across your own history.
+                You can log an experience while the details are still fresh. In the current build, label details are entered manually; camera label scanning is not available yet. You can return later and review simple patterns calculated from entries stored on your device.
               </p>
               <p>
-                Instead of one AI trying to know everything about you, my420journal gives you a choice of guides. Each one has a different focus and a different way of talking to you, so you pick the voice that actually fits how you want to journal.
+                My420Journal gives you a choice of guide personalities. Each one changes the tone and conversation style, so you can pick the voice that fits how you want to journal. In the current build, choosing a guide does not give it independent access to your journal history or unlock different app features.
               </p>
               <p>
                 None of them push you. None of them judge what you log or how much you use. They are here to help you remember, not to decide anything for you.
@@ -164,19 +164,19 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
             </div>
             <div className="origin-story-copy">
               <p>
-                <span className="origin-story-guide-name">Bud Tendar</span> is the dispensary-savvy one. He talks deals, trip planning, and budget, in a warm, knowledgeable-friend kind of way. Short answers, no lectures.
+                <span className="origin-story-guide-name">Bud Tendar</span> is the practical, trip-focused one. He keeps the conversation centered on what you choose to enter. In the current build, he does not pull live deals, prices, nearby options, or purchasing recommendations.
               </p>
               <p>
-                <span className="origin-story-guide-name">Sunny Day</span> is there for conversation. She checks in on how you are actually doing, not just what you logged, with an easy, unhurried warmth.
+                <span className="origin-story-guide-name">Sunny Day</span> brings a warm, emotionally attentive check-in style. She encourages reflection on what you choose to share without independently inferring emotional patterns.
               </p>
               <p>
-                <span className="origin-story-guide-name">Lucky Larry</span> is the old head. He has been around cannabis culture since the 1970s and talks strain history and folklore like a guy who has a story for everything, because he does. Dry, unhurried, never in a rush to finish a sentence.
+                <span className="origin-story-guide-name">Lucky Larry</span> brings a dry, unhurried cannabis-culture storytelling style. The current build does not give him a live strain-history database or independent analysis of your journal.
               </p>
               <p>
-                <span className="origin-story-guide-name">Herb N. Spices</span> is the science one. Terpenes, cannabinoids, pattern analysis. He says little out loud and thinks in the details, because for him the chemistry explains everything.
+                <span className="origin-story-guide-name">Herb N. Spices</span> brings a terpene-focused, chemistry-minded style. He does not independently analyze your journal history or build an automated terpene-response profile.
               </p>
               <p>
-                <span className="origin-story-guide-name">Mary Jayne</span> focuses on wellness, sleep, and self-care. She asks one honest question at a time and never plays doctor. Just direct, personal, and to the point.
+                <span className="origin-story-guide-name">Mary Jayne</span> brings a wellness and self-care conversation style. She keeps attention on observations you choose to record and does not diagnose, prescribe, or infer medical outcomes.
               </p>
               <p>
                 And then there is:
@@ -186,7 +186,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 <br />
                 No guide voice. No check-ins. No opinions.
                 <br />
-                Just a clean, private log that records exactly what you tell it and nothing more, for people who already know what they want and just need a place to put it.
+                Just a clean, private local log with no guide conversation, for people who already know what they want to record.
               </p>
               <p>
                 Five personalities and one no-personality mode, because a journal should meet you where you are, not decide who you should be.
@@ -205,10 +205,10 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 Your journal is not built for advertisers, dispensaries, or data brokers. It is built for you.
               </p>
               <p>
-                That privacy-first principle shaped the app from the beginning. Your entries stay on your device unless you deliberately choose otherwise. The app does not need to know more than you decide to tell it.
+                That privacy-first principle shaped the app from the beginning. Journal entries and private notes are stored locally in the browser rather than automatically copied to a Vogtcom journal server. Some optional features use network services and are described in the Privacy Notice.
               </p>
               <p>
-                my420journal exists because remembering what worked should not depend on guesswork.
+                my420journal exists because remembering your own recorded experience should not depend on memory alone.
               </p>
               <p className="origin-story-closing">
                 Log it. Track it. Remember it.
@@ -247,27 +247,27 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
             </h2>
             <div className="origin-story-modal-body">
               <p>
-                No Trace Ever is the privacy architecture behind every product built by Vogtcom LLC.
+                No Trace Ever is the privacy engineering principle behind My420Journal's private journal design.
               </p>
               <p>
-                For us as a company, it means a simple rule: if we do not need your personal data to make the app work, we do not collect it, store it, or send it anywhere.
+                For this product, it means minimizing data collection, keeping private journal entries local-first, and disclosing any optional feature that needs a network service.
               </p>
               <p>
                 For you as a user, it means:
               </p>
               <p>
-                Your journal entries stay on your device. They are not stored on our servers.
+                Your journal entries and private notes are stored in this browser and are not automatically copied to a Vogtcom journal server.
               </p>
               <p>
-                We do not sell, share, or transmit your personal data to advertisers, dispensaries, or data brokers.
+                We do not sell private journal data to advertisers, dispensaries, or data brokers.
               </p>
               <p>
-                Nothing you write is used to build a profile on you.
+                Private journal text is not used to build an advertising profile on you.
               </p>
               <p>
-                <strong>This is not a marketing claim.</strong>
+                <strong>This is an engineering principle.</strong>
                 <br />
-                It is a hard rule built into how the app works, not a policy we can quietly change later.
+                It does not mean every optional feature is offline. Weed Goblins uses network services, and browser-provided speech recognition may process speech according to the browser and platform. Those boundaries are described in the Privacy Notice.
               </p>
             </div>
           </div>

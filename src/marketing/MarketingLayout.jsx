@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
-const disclaimerText = 'my420journal is a private journaling tool for adults in jurisdictions where cannabis is legal. It does not sell cannabis, provide medical advice, or connect you to any dispensary for purchase. Your entries stay on your device unless you choose to share anonymized signals through the opt-in Shared Signals feature.'
+const disclaimerText = 'My420Journal is a private, local-first journaling tool for adults in reviewed markets. It does not sell cannabis, provide medical advice, or connect users to dispensaries for purchases. Journal entries and private notes are stored locally in this browser. Some optional features use network services, and Shared Journey / Layer 2 is currently off. See the Privacy Notice for details.'
 
 const sectionTabs = [
   { label: 'Home', href: '/#home' },
@@ -90,7 +90,7 @@ export default function MarketingLayout({ children }) {
                 textAlign: 'center',
               }}
             >
-              Already have an account? Sign in
+              Open my journal
             </Link>
             <a
               href="/#contact"
@@ -222,11 +222,11 @@ export default function MarketingLayout({ children }) {
           }}>
             <FooterColumn
               heading="MY420JOURNAL"
-              lines={['A private cannabis journal for people who want to remember what worked.']}
+              lines={['A private cannabis journal for people who want to remember what they recorded.']}
             />
             <FooterColumn
               heading="WHAT THIS IS"
-              lines={['A private journaling tool', 'Free, always', 'Local-first, your data stays on your device.']}
+              lines={['A private journaling tool', 'Free, always', 'Local-first private journal; optional network features are disclosed separately.']}
             />
             <FooterColumn
               heading="WHAT THIS IS NOT"
