@@ -68,8 +68,8 @@ export function FeatureGrid() {
               textAlign: 'center',
             }}
           >
-            <span>Small habits.</span>{' '}
-            <span>Better visits.</span>
+            <span>Small details.</span>{' '}
+            <span>Your history.</span>
           </h2>
         </div>
 

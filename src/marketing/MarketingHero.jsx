@@ -53,7 +53,7 @@ export function HeroSection() {
             fontWeight: 700,
             textShadow: '0 4px 24px rgba(0,0,0,0.4)',
           }}>
-            Stop guessing at the dispensary.
+            Remember what you tried.
           </h1>
           <p style={{
             margin: '0 0 30px 0',
@@ -62,8 +62,8 @@ export function HeroSection() {
             lineHeight: 1.55,
             textShadow: '0 2px 18px rgba(0,0,0,0.4)',
           }}>
-            Log what you tried. See what your own notes show. <br />
-            Your private journal is stored locally in this browser.
+            Record product details and your own observations. <br />
+            Your journal entries and private notes are stored locally in this browser.
           </p>
           <div className="marketing-hero-actions" style={{
             display: 'flex',
@@ -77,7 +77,7 @@ export function HeroSection() {
               to="/app"
               style={primaryButtonStyle}
             >
-              Start your research
+              Open My420Journal
             </Link>
             <a
               href="#process"
@@ -91,7 +91,7 @@ export function HeroSection() {
                 textShadow: '0 2px 12px rgba(0,0,0,0.4)',
               }}
             >
-              Learn how it works below
+              See how the journal works
             </a>
           </div>
         </div>
