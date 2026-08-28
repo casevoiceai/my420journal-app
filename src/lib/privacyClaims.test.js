@@ -7,6 +7,9 @@ function read(relativePath) {
 }
 
 const hero = read('../marketing/MarketingHero.jsx')
+const layout = read('../marketing/MarketingLayout.jsx')
+const process = read('../marketing/MarketingProcess.jsx')
+const about = read('../marketing/MarketingAbout.jsx')
 const features = read('../marketing/MarketingFeatures.jsx')
 const privacy = read('../marketing/MarketingPrivacy.jsx')
 const faq = read('../marketing/MarketingFAQ.jsx')
@@ -16,7 +19,7 @@ const newEntry = read('../screens/NewEntry.jsx')
 const guide = read('../screens/Guide.jsx')
 const home = read('../screens/Home.jsx')
 const readme = read('../../README.md')
-const allClaims = [hero, features, privacy, faq, settings, onboarding, newEntry, guide, home, readme].join(String.fromCharCode(10))
+const allClaims = [hero, layout, process, about, features, privacy, faq, settings, onboarding, newEntry, guide, home, readme].join(String.fromCharCode(10))
 
 const bannedClaims = [
   'Nothing leaves your device unless you choose to share it.',
@@ -43,6 +46,18 @@ const bannedClaims = [
   'unlocks a different layer of the app',
   'What are we shopping for?',
   'Log something. I will look at it.',
+  'Already have an account? Sign in',
+  'opt-in Shared Signals feature.',
+  'Ask your guide what stands out in your own entries.',
+  "They never know more than what you've logged.",
+  'Learn What Works',
+  "See what worked and what's worth another try.",
+  'You can scan a label instead of typing everything manually.',
+  'He talks deals, trip planning, and budget',
+  'Terpenes, cannabinoids, pattern analysis.',
+  'as a hard rule across this app, not as a policy I could soften later.',
+  'remembering what worked should not depend on guesswork.',
+  'It is a hard rule built into how the app works, not a policy we can quietly change later.',
 ]
 
 test('retired absolute and unimplemented feature claims do not return', () => {
@@ -65,4 +80,13 @@ test('current disclosures describe the implemented privacy boundaries', () => {
   assert.equal(settings.includes('Practical trip-and-history tone.'), true)
   assert.equal(guide.includes('Ready to talk through what you logged?'), true)
   assert.equal(home.includes('What are we logging today?'), true)
+  assert.equal(layout.includes('Open my journal'), true)
+  assert.equal(layout.includes('Shared Journey / Layer 2 is currently off'), true)
+  assert.equal(process.includes('does not independently read or analyze your journal history'), true)
+  assert.equal(process.includes('does not tell you what to buy or use'), true)
+  assert.equal(about.includes('camera label scanning is not available yet'), true)
+  assert.equal(about.includes('does not pull live deals, prices, nearby options, or purchasing recommendations'), true)
+  assert.equal(about.includes('does not independently analyze your journal history'), true)
+  assert.equal(about.includes('Some optional features use network services'), true)
+  assert.equal(about.includes('This is an engineering principle.'), true)
 })
