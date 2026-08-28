@@ -13,8 +13,10 @@ const faq = read('../marketing/MarketingFAQ.jsx')
 const settings = read('../screens/Settings.jsx')
 const onboarding = read('../screens/Onboarding.jsx')
 const newEntry = read('../screens/NewEntry.jsx')
+const guide = read('../screens/Guide.jsx')
+const home = read('../screens/Home.jsx')
 const readme = read('../../README.md')
-const allClaims = [hero, features, privacy, faq, settings, onboarding, newEntry, readme].join(String.fromCharCode(10))
+const allClaims = [hero, features, privacy, faq, settings, onboarding, newEntry, guide, home, readme].join(String.fromCharCode(10))
 
 const bannedClaims = [
   'Nothing leaves your device unless you choose to share it.',
@@ -29,6 +31,18 @@ const bannedClaims = [
   'Tracks dispensary prices and deals near you',
   'keep an eye on prices',
   'No backup or cross-device sync is included in this build.',
+  'I pulled up a few options near you.',
+  'I know what you like. What do you need?',
+  'I have been looking at your log.',
+  'Want to pull up your full terpene history?',
+  '(already thinking about your terpene profile)',
+  'You look better than last week. Am I right?',
+  'Tracks emotional patterns over time',
+  'Builds your personal terpene response profile',
+  'Connects usage patterns to wellness outcomes',
+  'unlocks a different layer of the app',
+  'What are we shopping for?',
+  'Log something. I will look at it.',
 ]
 
 test('retired absolute and unimplemented feature claims do not return', () => {
@@ -44,6 +58,11 @@ test('current disclosures describe the implemented privacy boundaries', () => {
   assert.equal(features.includes('Camera label scanning is not available yet.'), true)
   assert.equal(readme.includes('Local JSON backup export/import is included.'), true)
   assert.equal(settings.includes('anonymous local profile'), true)
-  assert.equal(onboarding.includes("tag: 'DISPENSARY HISTORY'"), true)
+  assert.equal(onboarding.includes("tag: 'PRACTICAL TRIP JOURNAL'"), true)
   assert.equal(newEntry.includes('Camera scanning is not available yet.'), true)
+  assert.equal(onboarding.includes('choosing a guide does not unlock different app features'), true)
+  assert.equal(onboarding.includes('does not build a terpene-response profile'), true)
+  assert.equal(settings.includes('Practical trip-and-history tone.'), true)
+  assert.equal(guide.includes('Ready to talk through what you logged?'), true)
+  assert.equal(home.includes('What are we logging today?'), true)
 })

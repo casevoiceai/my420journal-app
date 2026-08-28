@@ -7,11 +7,11 @@ import { isDevMode, DEV_PROFILE } from '../lib/dev'
 import SharedOptInPanel from '../components/SharedOptInPanel'
 
 const GUIDE_META = {
-  bud:   { name: 'Bud Tendar',     accent: '#C9A84C', description: 'Dispensary history and trip recall.' },
-  sunny: { name: 'Sunny Day',      accent: '#FF7F5C', description: 'Conversation and emotional tracking.' },
-  larry: { name: 'Lucky Larry',    accent: '#C17A3A', description: 'Strain history and cannabis culture.' },
-  herb:  { name: 'Herb N. Spices', accent: '#4ECDC4', description: 'Terpene science and education.' },
-  mary:  { name: 'Mary Jayne',     accent: '#B088B0', description: 'Wellness, sleep, and self-care.' },
+  bud:   { name: 'Bud Tendar',     accent: '#C9A84C', description: 'Practical trip-and-history tone.' },
+  sunny: { name: 'Sunny Day',      accent: '#FF7F5C', description: 'Warm emotional check-in tone.' },
+  larry: { name: 'Lucky Larry',    accent: '#C17A3A', description: 'Cannabis-culture storytelling tone.' },
+  herb:  { name: 'Herb N. Spices', accent: '#4ECDC4', description: 'Terpene-focused science tone.' },
+  mary:  { name: 'Mary Jayne',     accent: '#B088B0', description: 'Wellness and self-care conversation tone.' },
   unit:  { name: null,             accent: '#888888', description: 'No guide. Minimal interface.' },
 }
 

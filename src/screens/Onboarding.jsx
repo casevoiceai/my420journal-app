@@ -12,14 +12,14 @@ const GUIDES = [
     shortName: 'Bud',
     accent: '#C9A84C',
     catchphrase: "Let's make every trip easier to remember.",
-    miniBio: 'Bud is the guide for keeping your dispensary and product history organized. He helps you look back at what you picked up, where it came from, and what your own journal says about past experiences. With Bud, the next trip starts with your own record instead of memory alone.',
-    tag: 'DISPENSARY HISTORY',
+    miniBio: 'Bud brings a practical, trip-focused voice to the journal. His conversations are for talking through what you choose to enter and keeping the focus on your own product and dispensary record. In the current build, Bud does not pull live menus, prices, deals, nearby options, or purchasing recommendations.',
+    tag: 'PRACTICAL TRIP JOURNAL',
     bullets: [
-      'Keeps your dispensary and product history organized',
-      'Keeps your own notes about each product easy to review',
-      'Helps you review your past entries before the next trip',
+      'Practical, trip-focused conversation style',
+      'Keeps the focus on information you choose to enter',
+      'No live prices, deals, nearby options, or purchase recommendations',
     ],
-    selectionConfirmation: 'Good choice. I will help keep your dispensary and product history organized so your own notes are easy to check before the next trip. Ready when you are.',
+    selectionConfirmation: 'Good choice. I will keep the conversation practical and focused on the information you choose to enter. Ready when you are.',
     selectionConfirmationSub: null,
   },
   {
@@ -28,14 +28,14 @@ const GUIDES = [
     shortName: 'Sunny',
     accent: '#FF7F5C',
     catchphrase: 'Well... how are you, really?',
-    miniBio: 'Sunny is not here to just log your data. She wants to know how you are doing -- the real version, not the quick one. She remembers what you share and checks in like a friend who genuinely means it. Southern warmth, genuine curiosity, and nowhere else to be.',
-    tag: 'CONVERSATION AND EMOTIONAL TRACKING',
+    miniBio: 'Sunny brings a warm, emotionally attentive voice to the guide conversation. She is for users who want prompts that feel personal and reflective. In the current build, Sunny does not independently analyze emotional patterns or remember facts outside the local guide conversation.',
+    tag: 'REFLECTIVE CHECK-IN STYLE',
     bullets: [
-      'Checks in on how you are actually doing',
-      'Tracks emotional patterns over time',
-      'Remembers what you share session to session',
+      'Warm, emotionally attentive conversation style',
+      'Encourages reflection on what you choose to share',
+      'Does not diagnose or independently infer emotional patterns',
     ],
-    selectionConfirmation: 'Oh... well. You picked me. I am so glad... I really am. We are going to figure some things out together, you and me. Take your time getting settled. I will be right here.',
+    selectionConfirmation: 'Oh... well. You picked me. I am so glad. Tell me what is on your mind, and we will take it one entry at a time. I will be right here.',
     selectionConfirmationSub: null,
   },
   {
@@ -44,14 +44,14 @@ const GUIDES = [
     shortName: 'Larry',
     accent: '#C17A3A',
     catchphrase: 'I probably got a story about that.',
-    miniBio: 'Larry has been around this world longer than most apps have existed. He knows the history, the folklore, and the real stories behind what you are smoking. Nothing surprises him. Some of what he tells you is even true.',
-    tag: 'STRAIN HISTORY AND CULTURE',
+    miniBio: 'Larry is the cannabis-culture storytelling personality in the guide interface: dry, unhurried, and a little skeptical. The current private-testing build does not give Larry a live strain-history database or independent analysis of your journal.',
+    tag: 'CULTURE AND STORYTELLING STYLE',
     bullets: [
-      'Deep knowledge of strain history and folklore',
-      'Dry, unhurried observations on what you log',
-      'Helps you stop rebuying the wrong thing',
+      'Dry, unhurried cannabis-culture voice',
+      'Conversation stays centered on what you choose to enter',
+      'No live strain database or purchasing recommendations',
     ],
-    selectionConfirmation: 'Alright. Larry. You made a solid call. I have been around long enough to know what I am doing. We are going to figure out what works for you. It will take a little time. That is fine. I got time.',
+    selectionConfirmation: 'Alright. Larry. Solid call. Keep your notes clear, tell me what happened, and we will take it one entry at a time. I got time.',
     selectionConfirmationSub: null,
   },
   {
@@ -60,12 +60,12 @@ const GUIDES = [
     shortName: 'Herb',
     accent: '#4ECDC4',
     catchphrase: 'The chemistry explains everything.',
-    miniBio: 'Herb tracks terpene response patterns and gets genuinely excited about it. He says little out loud but thinks a great deal. If you want to understand why something worked -- not just that it worked -- Herb is your guide.',
-    tag: 'TERPENE SCIENCE AND EDUCATION',
+    miniBio: 'Herb is the terpene-and-science personality in the guide interface. He keeps the conversation curious and chemistry-minded without claiming to diagnose why a product affected you. In the current build, he does not build a terpene-response profile or independently analyze your journal history.',
+    tag: 'TERPENE-FOCUSED SCIENCE STYLE',
     bullets: [
-      'Builds your personal terpene response profile',
-      'Explains the science behind what you feel',
-      'Quietly noting patterns while you use the app',
+      'Terpene-focused, chemistry-minded conversation style',
+      'Keeps science discussion tied to information you choose to enter',
+      'Does not diagnose effects or build an automated terpene-response profile',
     ],
     selectionConfirmation: 'Okay. Good. Let us get started.',
     selectionConfirmationSub: 'genuinely excited. playing it very cool.',
@@ -76,14 +76,14 @@ const GUIDES = [
     shortName: 'Mary',
     accent: '#B088B0',
     catchphrase: 'I am not being nosy. It is all useful.',
-    miniBio: 'Mary Jayne tracks the full picture -- what you used, how you felt, how you slept, what your body did with it. She asks questions that might feel personal. She acknowledges that. The answers make the data useful. She is entirely on your side.',
-    tag: 'WELLNESS AND SELF-CARE',
+    miniBio: 'Mary Jayne brings a wellness and self-care tone to the guide conversation. She is for reflecting on sleep, mood, and physical observations you choose to record. In the current build, she does not independently connect cannabis use to health outcomes or provide medical advice.',
+    tag: 'WELLNESS AND SELF-CARE STYLE',
     bullets: [
-      'Tracks sleep, mood, and physical response',
-      'Connects usage patterns to wellness outcomes',
-      'Supports tolerance breaks and intentional use',
+      'Wellness and self-care conversation style',
+      'Keeps attention on observations you choose to record',
+      'Does not diagnose, prescribe, or infer medical outcomes',
     ],
-    selectionConfirmation: 'Good. I am glad you chose me. Here is how this works: you tell me what happened, I help you understand it. The more honest you are in your logs, the more useful I can be. I am on your side. That is the whole thing.',
+    selectionConfirmation: 'Good. I am glad you chose me. Tell me what happened, and we will keep the conversation grounded in what you choose to record. I am on your side. That is the whole thing.',
     selectionConfirmationSub: null,
   },
   {
@@ -466,7 +466,7 @@ export default function Onboarding() {
         </h1>
         <div style={{ width: '40px', height: '1px', backgroundColor: S.gold, margin: '32px auto', opacity: 0.5 }} />
         <p style={{ fontFamily: fontInter, fontSize: '16px', color: S.textSecondary, lineHeight: '1.75', margin: '0 0 48px 0' }}>
-          You are about to meet six guides. Each one has a different personality and unlocks a different layer of the app. Browse them all, then pick the one that fits.
+          You are about to meet six guides. Each one gives the journal a different personality and conversation style. In the current private-testing build, choosing a guide does not unlock different app features or give the guide independent access to your journal history. Browse them all, then pick the one that fits.
         </p>
         <button
           style={goldBtnStyle()}
