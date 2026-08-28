@@ -1,0 +1,238 @@
+name: User-selected market flow validation
+
+on:
+  push:
+    branches:
+      - privacy/user-selected-market-flow-v1
+    paths:
+      - .github/workflows/user-selected-market-flow-validation.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-validate-and-clean:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout market-flow branch
+        uses: actions/checkout@v4
+        with:
+          ref: privacy/user-selected-market-flow-v1
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply user-selected market flow
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_count(pathname, old, new, expected=1):
+              path = Path(pathname)
+              text = path.read_text()
+              count = text.count(old)
+              if count != expected:
+                  raise SystemExit(f'{pathname}: expected {expected} occurrence(s), found {count}: {old!r}')
+              path.write_text(text.replace(old, new))
+
+          suggestion = Path('src/lib/marketSuggestion.js')
+          if suggestion.exists():
+              raise SystemExit('src/lib/marketSuggestion.js already exists')
+          suggestion.write_text("""import { getConfiguredMarketConfigById } from './marketConfig.js'\n\nexport function getMarketSuggestion(search) {\n  if (typeof search !== 'string' || !search) return null\n\n  const params = new URLSearchParams(search)\n  const values = params.getAll('market')\n  if (values.length !== 1) return null\n\n  const marketId = values[0]\n  if (!marketId) return null\n\n  return getConfiguredMarketConfigById(marketId)\n}\n""")
+
+          replace_count(
+              'src/lib/marketConfig.js',
+              "export function getCountryOption(countryCode) {\n  return COUNTRY_OPTIONS.find((item) => item.code === countryCode) || null\n}",
+              "export function getConfiguredMarketConfigById(marketId) {\n  if (typeof marketId !== 'string' || !marketId) return null\n\n  for (const config of Object.values(REVIEWED_US_MARKETS)) {\n    if (config.id === marketId) return { ...config }\n  }\n\n  for (const config of Object.values(RESERVED_COUNTRIES)) {\n    if (config.id === marketId) return { ...config }\n  }\n\n  return null\n}\n\nexport function getCountryOption(countryCode) {\n  return COUNTRY_OPTIONS.find((item) => item.code === countryCode) || null\n}",
+          )
+          replace_count(
+              'src/lib/marketConfig.js',
+              "holdReason: 'This location is not configured for the current private test.'",
+              "holdReason: 'This market is not configured for the current private test.'",
+          )
+
+          replace_count('src/screens/AgeGate.jsx', "import { useNavigate } from 'react-router-dom'", "import { useNavigate } from 'react-router-dom'\nimport { getMarketSuggestion } from '../lib/marketSuggestion'")
+          replace_count(
+              'src/screens/AgeGate.jsx',
+              "  const [config, setConfig] = useState(null)\n  const [error, setError] = useState('')",
+              "  const [config, setConfig] = useState(null)\n  const [suggestion, setSuggestion] = useState(null)\n  const [error, setError] = useState('')",
+          )
+          replace_count(
+              'src/screens/AgeGate.jsx',
+              "      const stored = getStoredMarketConfig()\n      if (!stored.config) {",
+              "      const suggested = getMarketSuggestion(window.location.search)\n      if (suggested) {\n        if (!cancelled) {\n          setSuggestion(suggested)\n          setCountry(suggested.country || '')\n          setRegion(suggested.region || '')\n          setConfig(null)\n          setStep('suggestion')\n        }\n        return\n      }\n\n      const stored = getStoredMarketConfig()\n      if (!stored.config) {",
+          )
+          replace_count(
+              'src/screens/AgeGate.jsx',
+              "  function chooseCountry(countryCode) {",
+              "  async function confirmSuggestedMarket() {\n    setError('')\n    if (!suggestion) {\n      chooseDifferentMarket()\n      return\n    }\n\n    const saved = saveResidenceSelection(suggestion.country, suggestion.region)\n    setSuggestion(null)\n    setCountry(saved.config.country || '')\n    setRegion(saved.config.region || '')\n    setConfig(saved.config)\n    navigate('/app', { replace: true })\n\n    if (!isMarketEnabled(saved.config)) {\n      setStep('blocked')\n      return\n    }\n\n    if (isAgeAssuranceCurrent(saved.config, saved.state)) {\n      await continueIntoJournal()\n      return\n    }\n\n    setStep('age')\n  }\n\n  function chooseDifferentMarket() {\n    setSuggestion(null)\n    setCountry('')\n    setRegion('')\n    setConfig(null)\n    setError('')\n    navigate('/app', { replace: true })\n    setStep('country')\n  }\n\n  function chooseCountry(countryCode) {",
+          )
+          replace_count(
+              'src/screens/AgeGate.jsx',
+              "      setError('Choose your state before continuing.')",
+              "      setError('Choose a state before continuing.')",
+          )
+          replace_count(
+              'src/screens/AgeGate.jsx',
+              "    clearResidenceState()\n    setCountry('')",
+              "    clearResidenceState()\n    setSuggestion(null)\n    navigate('/app', { replace: true })\n    setCountry('')",
+          )
+          replace_count(
+              'src/screens/AgeGate.jsx',
+              "  if (step === 'country') {",
+              "  if (step === 'suggestion') {\n    return (\n      <ScreenShell>\n        <p style={{\n          fontFamily: fontInter,\n          color: S.gold,\n          fontSize: '12px',\n          fontWeight: '700',\n          letterSpacing: '0.1em',\n          textTransform: 'uppercase',\n          margin: '0 0 14px',\n        }}>\n          Suggested market\n        </p>\n        <Heading>Use {suggestion?.label} for My420Journal?</Heading>\n        <SupportingText>\n          This link suggested {suggestion?.label}. Confirm only if that is the market you want My420Journal to use on this device.\n        </SupportingText>\n\n        <div style={{\n          padding: '16px',\n          border: `1px solid ${S.border}`,\n          borderRadius: '10px',\n          backgroundColor: S.surface,\n          marginBottom: '24px',\n        }}>\n          <p style={{ fontFamily: fontInter, fontSize: '14px', lineHeight: 1.6, color: S.textSecondary, margin: 0 }}>\n            This suggestion does not prove where you live, where you are physically located, whether any cannabis activity is legal, or your age.\n          </p>\n        </div>\n\n        <button onClick={confirmSuggestedMarket} style={primaryButtonStyle}>\n          Use {suggestion?.label}\n        </button>\n        <button onClick={chooseDifferentMarket} style={{ ...buttonStyle, textAlign: 'center', marginTop: '10px', background: 'transparent' }}>\n          Choose a different market\n        </button>\n      </ScreenShell>\n    )\n  }\n\n  if (step === 'country') {",
+          )
+          replace_count('src/screens/AgeGate.jsx', '<Heading>Where do you live?</Heading>', '<Heading>Where are you using My420Journal?</Heading>')
+          replace_count(
+              'src/screens/AgeGate.jsx',
+              'This sets the My420Journal information for your home location. We do not need your street address or GPS location.',
+              'Choose the market My420Journal should use on this device. We do not need your street address or GPS location.',
+          )
+          replace_count('src/screens/AgeGate.jsx', '<Heading>What state do you live in?</Heading>', '<Heading>Which state should My420Journal use?</Heading>')
+          replace_count(
+              'src/screens/AgeGate.jsx',
+              'Choose your home state. My420Journal does not use this selection as proof that any cannabis activity is legal.',
+              'Choose the state for this journal session. This selection does not prove that any cannabis activity is legal.',
+          )
+          replace_count('src/screens/AgeGate.jsx', '<Heading>This location is not enabled yet.</Heading>', '<Heading>This market is not enabled yet.</Heading>')
+          replace_count(
+              'src/screens/AgeGate.jsx',
+              'We fail closed when a market has not been reviewed. Choosing a different location does not change where you actually live.',
+              'We fail closed when a market has not been reviewed. Choosing a different market changes only the My420Journal configuration on this device; it does not prove that any cannabis activity is legal.',
+          )
+          replace_count('src/screens/AgeGate.jsx', 'Choose my location again', 'Choose a different market')
+          replace_count('src/screens/AgeGate.jsx', 'Change where I live', 'Change market')
+
+          test_path = Path('src/lib/marketConfig.test.js')
+          text = test_path.read_text()
+          replace_count(
+              'src/lib/marketConfig.test.js',
+              "import test from 'node:test'\nimport assert from 'node:assert/strict'",
+              "import test from 'node:test'\nimport assert from 'node:assert/strict'\nimport fs from 'node:fs'",
+          )
+          replace_count(
+              'src/lib/marketConfig.test.js',
+              "  MARKET_CONFIG_VERSION,\n  getMarketConfig,\n  isMarketEnabled,",
+              "  MARKET_CONFIG_VERSION,\n  getConfiguredMarketConfigById,\n  getMarketConfig,\n  isMarketEnabled,",
+          )
+          replace_count(
+              'src/lib/marketConfig.test.js',
+              "} from './residence.js'",
+              "} from './residence.js'\nimport { getMarketSuggestion } from './marketSuggestion.js'\n\nconst ageGateSource = fs.readFileSync(new URL('../screens/AgeGate.jsx', import.meta.url), 'utf8')",
+          )
+          append = """
+
+test('configured market lookup accepts only explicit current market ids', () => {
+  assert.equal(getConfiguredMarketConfigById('US-PA')?.region, 'PA')
+  assert.equal(getConfiguredMarketConfigById('US-CT')?.accessStatus, 'hold')
+  assert.equal(getConfiguredMarketConfigById('NL-RESERVED')?.accessStatus, 'reserved')
+  assert.equal(getConfiguredMarketConfigById('US-CA'), null)
+  assert.equal(getConfiguredMarketConfigById('us-pa'), null)
+  assert.equal(getConfiguredMarketConfigById(null), null)
+})
+
+test('market URL suggestion is pure and cannot create storage, age assurance, or access', () => {
+  setup()
+  const suggestion = getMarketSuggestion('?market=US-PA')
+
+  assert.equal(suggestion?.id, 'US-PA')
+  assert.equal(getResidenceState(), null)
+  assert.equal(hasCurrentMarketAccess(suggestion, getResidenceState()), false)
+})
+
+test('unknown or ambiguous suggestions fail closed while hold and reserved markets stay disabled', () => {
+  setup()
+  assert.equal(getMarketSuggestion('?market=US-CA'), null)
+  assert.equal(getMarketSuggestion('?market=us-pa'), null)
+  assert.equal(getMarketSuggestion('?market=US-PA&market=US-NY'), null)
+  assert.equal(getMarketSuggestion('?other=US-PA'), null)
+
+  const ct = getMarketSuggestion('?market=US-CT')
+  const nl = getMarketSuggestion('?market=NL-RESERVED')
+  assert.equal(ct?.accessStatus, 'hold')
+  assert.equal(isMarketEnabled(ct), false)
+  assert.equal(nl?.accessStatus, 'reserved')
+  assert.equal(isMarketEnabled(nl), false)
+  assert.equal(getResidenceState(), null)
+})
+
+test('AgeGate presents user-selected market language instead of residence language', () => {
+  assert.equal(ageGateSource.includes('Where are you using My420Journal?'), true)
+  assert.equal(ageGateSource.includes('Which state should My420Journal use?'), true)
+  assert.equal(ageGateSource.includes('Choose the market My420Journal should use on this device.'), true)
+  assert.equal(ageGateSource.includes('Choose the state for this journal session.'), true)
+  assert.equal(ageGateSource.includes('Suggested market'), true)
+  assert.equal(ageGateSource.includes('This suggestion does not prove where you live'), true)
+  assert.equal(ageGateSource.includes('Where do you live?'), false)
+  assert.equal(ageGateSource.includes('What state do you live in?'), false)
+  assert.equal(ageGateSource.includes('Change where I live'), false)
+})
+"""
+          Path('src/lib/marketConfig.test.js').write_text(Path('src/lib/marketConfig.test.js').read_text() + append)
+          PY
+
+      - name: Verify exact implementation scope
+        shell: bash
+        run: |
+          git fetch origin main
+          git diff --check
+          changed="$(git status --porcelain | cut -c4- | sort)"
+          expected="$(printf '%s\n' src/lib/marketConfig.js src/lib/marketConfig.test.js src/lib/marketSuggestion.js src/screens/AgeGate.jsx | sort)"
+          printf '%s\n' "$changed"
+          test "$changed" = "$expected"
+          git diff --quiet origin/main...HEAD -- src/App.jsx
+          git diff --quiet origin/main...HEAD -- src/marketing/publicMarketRegistry.js
+          git diff --quiet origin/main...HEAD -- src/lib/residence.js
+          git diff --quiet origin/main...HEAD -- package.json
+
+      - name: Guard market-selection boundaries
+        shell: bash
+        run: |
+          ! grep -F 'navigator.geolocation' src/screens/AgeGate.jsx src/lib/marketSuggestion.js
+          ! grep -F 'Where do you live?' src/screens/AgeGate.jsx
+          ! grep -F 'What state do you live in?' src/screens/AgeGate.jsx
+          ! grep -F 'Change where I live' src/screens/AgeGate.jsx
+          grep -F 'Where are you using My420Journal?' src/screens/AgeGate.jsx
+          grep -F 'Which state should My420Journal use?' src/screens/AgeGate.jsx
+          grep -F 'getMarketSuggestion(window.location.search)' src/screens/AgeGate.jsx
+          ! grep -F 'saveResidenceSelection' src/lib/marketSuggestion.js
+          node --input-type=module - <<'NODE'
+          const { getMarketSuggestion } = await import('./src/lib/marketSuggestion.js')
+          const { isMarketEnabled } = await import('./src/lib/marketConfig.js')
+          const pa = getMarketSuggestion('?market=US-PA')
+          const ct = getMarketSuggestion('?market=US-CT')
+          const bad = getMarketSuggestion('?market=US-CA')
+          if (pa?.id !== 'US-PA') throw new Error('PA suggestion did not parse')
+          if (isMarketEnabled(ct)) throw new Error('CT suggestion became enabled')
+          if (bad !== null) throw new Error('Unknown market suggestion did not fail closed')
+          NODE
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit all dependencies
+        run: npm audit --audit-level=high
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Commit validated market flow and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/lib/marketConfig.js src/lib/marketConfig.test.js src/lib/marketSuggestion.js src/screens/AgeGate.jsx
+          git rm .github/workflows/user-selected-market-flow-validation.yml
+          git commit -m 'Implement user-selected market flow'
+          git push origin HEAD:privacy/user-selected-market-flow-v1
