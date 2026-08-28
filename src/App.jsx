@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { localStore } from './lib/localStore'
-import { clearPin, hasPin } from './lib/pin'
+import { clearPinUnlock, hasPin, isPinUnlocked } from './lib/pin'
 import { isDevMode } from './lib/dev'
+import { hasStoredMarketAccess } from './lib/residence'
 import AgeGate from './screens/AgeGate'
 import Signup from './screens/Signup'
 import Login from './screens/Login'
@@ -42,7 +43,6 @@ import { retryQueuedSharedContributions } from './lib/sharedContributionQueue'
 
 const fontInter = "'Inter', sans-serif"
 
-// ── Routes where the bottom nav should NOT render ────────────────────────────
 const NO_NAV_ROUTES = new Set([
   '/',
   '/about',
@@ -65,8 +65,6 @@ function routeHidesNav(pathname) {
   if (pathname.startsWith('/onboarding')) return true
   return false
 }
-
-// ── Bottom navigation bar ─────────────────────────────────────────────────────
 
 const NAV_TABS = [
   {
@@ -148,7 +146,7 @@ function useGuideAccent() {
 function BottomNav() {
   const location = useLocation()
   const navigate = useNavigate()
-  const accent   = useGuideAccent()
+  const accent = useGuideAccent()
 
   if (routeHidesNav(location.pathname)) return null
 
@@ -165,7 +163,7 @@ function BottomNav() {
     }}>
       {NAV_TABS.map((tab) => {
         const active = activePath === tab.path
-        const color  = active ? accent : '#8FAF8F'
+        const color = active ? accent : '#8FAF8F'
         return (
           <button
             key={tab.key}
@@ -194,8 +192,6 @@ function BottomNav() {
   )
 }
 
-// ── Auth utilities ────────────────────────────────────────────────────────────
-
 const HIDDEN_EXIT_ROUTES = new Set([
   '/',
   '/about',
@@ -209,14 +205,15 @@ const HIDDEN_EXIT_ROUTES = new Set([
 ])
 
 function EmergencyExit() {
-  const navigate  = useNavigate()
-  const location  = useLocation()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [closing, setClosing] = useState(false)
 
   if (isDevMode()) return null
   if (HIDDEN_EXIT_ROUTES.has(location.pathname)) return null
 
   function handleExit() {
+    clearPinUnlock()
     setClosing(true)
     setTimeout(() => { navigate('/') }, 1000)
   }
@@ -253,44 +250,39 @@ function EmergencyExit() {
   )
 }
 
-function RecoveryHandler() {
-  const navigate = useNavigate()
-  const location = useLocation()
-
-  useEffect(() => {
-    if (isDevMode()) return
-    const params = new URLSearchParams(
-      window.location.hash.startsWith('#') ? window.location.hash.slice(1) : ''
-    )
-    if (params.get('type') === 'recovery') {
-      clearPin()
-      navigate('/pin-setup', { state: { isReset: true }, replace: true })
-    }
-  }, [location.key, navigate])
-
-  return null
+function MarketAccessGuard() {
+  if (isDevMode()) return <Outlet />
+  if (!hasStoredMarketAccess()) return <Navigate to="/app" replace />
+  return <Outlet />
 }
 
-function HomeGuard() {
+function JournalAccessGuard() {
   const navigate = useNavigate()
-  const [ready, setReady] = useState(isDevMode())
+  const [sessionReady, setSessionReady] = useState(isDevMode())
 
   useEffect(() => {
     if (isDevMode()) return
-    async function check() {
+    let cancelled = false
+
+    async function checkSession() {
       const { data: { session } } = await localStore.auth.getSession()
-      if (!session) { navigate('/login', { replace: true }); return }
-      if (hasPin()) { navigate('/pin', { replace: true }); return }
-      setReady(true)
+      if (!session) {
+        navigate('/login', { replace: true })
+        return
+      }
+      if (!cancelled) setSessionReady(true)
     }
-    check()
+
+    checkSession()
+    return () => { cancelled = true }
   }, [navigate])
 
-  if (!ready) return null
-  return <Home />
+  if (!sessionReady) return null
+  if (!isDevMode() && hasPin() && !isPinUnlocked()) {
+    return <Navigate to="/pin" replace />
+  }
+  return <Outlet />
 }
-
-// ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
   useEffect(() => {
@@ -299,7 +291,6 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <RecoveryHandler />
       <EmergencyExit />
       <Routes>
         <Route path="/"                  element={<MarketingHome />} />
@@ -309,34 +300,41 @@ export default function App() {
         <Route path="/partners"          element={<MarketingPartners />} />
         <Route path="/privacy"           element={<MarketingPrivacy />} />
         <Route path="/app"               element={<AgeGate />} />
-        <Route path="/signup"            element={<Signup />} />
-        <Route path="/login"             element={<Login />} />
-        <Route path="/forgot-password"   element={<ForgotPassword />} />
-        <Route path="/onboarding"        element={<Onboarding />} />
-        <Route path="/pin-setup"         element={<PinSetup />} />
-        <Route path="/pin"               element={<PinEntry />} />
-        <Route path="/home"              element={<HomeGuard />} />
-        <Route path="/dashboard"         element={<Navigate to="/home" replace />} />
-        <Route path="/entries/new"       element={<NewEntry />} />
-        <Route path="/entries/sleep/:id" element={<SleepEntryDetail />} />
-        <Route path="/entries/:id"       element={<EntryDetail />} />
-        <Route path="/entries/:id/edit"  element={<EditEntry />} />
-        <Route path="/stash"             element={<Stash />} />
-        <Route path="/stash/:id"         element={<StashDetail />} />
-        <Route path="/strains"           element={<Strains />} />
-        <Route path="/strains/:id"       element={<StrainDetail />} />
-        <Route path="/insights"          element={<Insights />} />
-        <Route path="/shared-signals"    element={<SharedSignals />} />
-        <Route path="/profile"           element={<Profile />} />
-        <Route path="/settings"          element={<Settings />} />
-        <Route path="/quick"             element={<QuickEntry />} />
-        <Route path="/journal"           element={<Journal />} />
-        <Route path="/guide"             element={<Guide />} />
-        <Route path="/games/weed-goblins" element={<WeedGoblinsChat />} />
-        <Route path="/notes/new"         element={<NoteEntry />} />
-        <Route path="/checkin"           element={<CheckIn />} />
-        <Route path="/update/:entryId"   element={<PostUseUpdate />} />
-        <Route path="*"                  element={<Navigate to="/" replace />} />
+
+        <Route element={<MarketAccessGuard />}>
+          <Route path="/signup"          element={<Signup />} />
+          <Route path="/login"           element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/onboarding"      element={<Onboarding />} />
+          <Route path="/pin-setup"       element={<PinSetup />} />
+          <Route path="/pin"             element={<PinEntry />} />
+
+          <Route element={<JournalAccessGuard />}>
+            <Route path="/home"              element={<Home />} />
+            <Route path="/dashboard"         element={<Navigate to="/home" replace />} />
+            <Route path="/entries/new"       element={<NewEntry />} />
+            <Route path="/entries/sleep/:id" element={<SleepEntryDetail />} />
+            <Route path="/entries/:id"       element={<EntryDetail />} />
+            <Route path="/entries/:id/edit"  element={<EditEntry />} />
+            <Route path="/stash"             element={<Stash />} />
+            <Route path="/stash/:id"         element={<StashDetail />} />
+            <Route path="/strains"           element={<Strains />} />
+            <Route path="/strains/:id"       element={<StrainDetail />} />
+            <Route path="/insights"          element={<Insights />} />
+            <Route path="/shared-signals"    element={<SharedSignals />} />
+            <Route path="/profile"           element={<Profile />} />
+            <Route path="/settings"          element={<Settings />} />
+            <Route path="/quick"             element={<QuickEntry />} />
+            <Route path="/journal"           element={<Journal />} />
+            <Route path="/guide"             element={<Guide />} />
+            <Route path="/games/weed-goblins" element={<WeedGoblinsChat />} />
+            <Route path="/notes/new"         element={<NoteEntry />} />
+            <Route path="/checkin"           element={<CheckIn />} />
+            <Route path="/update/:entryId"   element={<PostUseUpdate />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <BottomNav />
       <DevBar />

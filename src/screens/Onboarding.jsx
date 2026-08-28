@@ -104,8 +104,6 @@ const GUIDES = [
   },
 ]
 
-// ── Style tokens ──────────────────────────────────────────────────────────────
-
 const S = {
   bg: '#0A1A0A',
   surface: '#1A2E1A',
@@ -114,19 +112,17 @@ const S = {
   textSecondary: '#8FAF8F',
   gold: '#C9A84C',
   goldHover: '#D4B460',
-  goldDisabled: '#5A4A20',
-  goldDisabledText: '#4A3A10',
   error: '#E05C5C',
 }
 
-const fontInter    = "'Inter', sans-serif"
+const fontInter = "'Inter', sans-serif"
 const fontPlayfair = "'Playfair Display', serif"
 
 function goldBtnStyle(disabled = false) {
   return {
     width: '100%', height: '56px',
-    backgroundColor: disabled ? S.goldDisabled : S.gold,
-    color: disabled ? S.goldDisabledText : S.bg,
+    backgroundColor: disabled ? '#5A4A20' : S.gold,
+    color: disabled ? '#4A3A10' : S.bg,
     border: 'none', borderRadius: '10px',
     fontSize: '15px', fontWeight: '600', fontFamily: fontInter,
     cursor: disabled ? 'not-allowed' : 'pointer',
@@ -135,17 +131,6 @@ function goldBtnStyle(disabled = false) {
     flexShrink: 0,
   }
 }
-
-// ── Radius options ────────────────────────────────────────────────────────────
-
-const RADIUS_OPTIONS = [
-  { label: '5 miles',   value: 5  },
-  { label: '15 miles',  value: 15 },
-  { label: '30 miles',  value: 30 },
-  { label: '50+ miles', value: 50 },
-]
-
-// ── Shared components ─────────────────────────────────────────────────────────
 
 function BackButton({ onClick, color }) {
   const c = color || S.textSecondary
@@ -171,8 +156,6 @@ function BackButton({ onClick, color }) {
   )
 }
 
-// ── Confirmation screen ───────────────────────────────────────────────────────
-
 const CONFIRM_DURATION = 2500
 
 function ConfirmationScreen({ guide, destination, navigate }) {
@@ -185,7 +168,7 @@ function ConfirmationScreen({ guide, destination, navigate }) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const message = guide?.selectionConfirmation || 'You are all set.'
-  const sub     = guide?.selectionConfirmationSub
+  const sub = guide?.selectionConfirmationSub
 
   return (
     <div style={{
@@ -230,91 +213,6 @@ function ConfirmationScreen({ guide, destination, navigate }) {
   )
 }
 
-// ── Location preferences screen ───────────────────────────────────────────────
-
-function LocationPrefsScreen({ onSave, saving, saveError }) {
-  const [homeCity,        setHomeCity]        = useState('')
-  const [travelRadius,    setTravelRadius]    = useState(15)
-  const [preferredCities, setPreferredCities] = useState('')
-
-  function handleSave() {
-    onSave({ home_city: homeCity.trim(), travel_radius_miles: travelRadius, preferred_cities: preferredCities.trim() })
-  }
-
-  return (
-    <div style={{ minHeight: '100dvh', backgroundColor: S.bg, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '48px 24px 180px', boxSizing: 'border-box', maxWidth: '420px', width: '100%', margin: '0 auto' }}>
-        <h1 style={{ fontFamily: fontPlayfair, fontSize: '26px', fontWeight: '600', color: S.textPrimary, margin: '0 0 10px 0', lineHeight: '1.2' }}>
-          Where do you shop?
-        </h1>
-        <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, margin: '0 0 36px 0', lineHeight: '1.6' }}>
-          This helps us find dispensaries near you.
-        </p>
-
-        <div style={{ marginBottom: '28px' }}>
-          <label style={{ display: 'block', fontFamily: fontInter, fontSize: '11px', fontWeight: '600', color: S.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>
-            Your city
-          </label>
-          <input
-            type="text" value={homeCity} onChange={(e) => setHomeCity(e.target.value)}
-            placeholder="City, State — e.g. Scranton, PA"
-            style={{ width: '100%', height: '52px', backgroundColor: S.surface, border: `1px solid ${S.border}`, borderRadius: '8px', padding: '0 16px', fontFamily: fontInter, fontSize: '16px', color: S.textPrimary, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s ease' }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = S.gold }}
-            onBlur={(e)  => { e.currentTarget.style.borderColor = S.border }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '28px' }}>
-          <label style={{ display: 'block', fontFamily: fontInter, fontSize: '11px', fontWeight: '600', color: S.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>
-            How far will you travel?
-          </label>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {RADIUS_OPTIONS.map((opt) => {
-              const sel = travelRadius === opt.value
-              return (
-                <button key={opt.value} onClick={() => setTravelRadius(opt.value)} style={{ height: '40px', padding: '0 18px', borderRadius: '9999px', border: `1px solid ${sel ? S.gold : S.border}`, backgroundColor: sel ? `${S.gold}22` : S.surface, color: sel ? S.gold : S.textSecondary, fontFamily: fontInter, fontSize: '14px', fontWeight: sel ? '600' : '400', cursor: 'pointer', transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
-                  onMouseEnter={(e) => { if (!sel) e.currentTarget.style.borderColor = `${S.gold}80` }}
-                  onMouseLeave={(e) => { if (!sel) e.currentTarget.style.borderColor = S.border }}
-                >
-                  {opt.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <div style={{ marginBottom: '28px' }}>
-          <label style={{ display: 'block', fontFamily: fontInter, fontSize: '11px', fontWeight: '600', color: S.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' }}>
-            Other cities you shop in? <span style={{ fontWeight: '400', textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
-          </label>
-          <input
-            type="text" value={preferredCities} onChange={(e) => setPreferredCities(e.target.value)}
-            placeholder="e.g. Dickson City, Moosic"
-            style={{ width: '100%', height: '52px', backgroundColor: S.surface, border: `1px solid ${S.border}`, borderRadius: '8px', padding: '0 16px', fontFamily: fontInter, fontSize: '16px', color: S.textPrimary, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s ease' }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = S.gold }}
-            onBlur={(e)  => { e.currentTarget.style.borderColor = S.border }}
-          />
-        </div>
-      </div>
-
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 24px 32px', backgroundColor: S.bg, borderTop: `1px solid ${S.border}`, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-        {saveError && <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.error, margin: 0, lineHeight: '1.5', textAlign: 'center' }}>{saveError}</p>}
-        <button onClick={handleSave} disabled={saving} style={goldBtnStyle(saving)}
-          onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.backgroundColor = S.goldHover; e.currentTarget.style.transform = 'translateY(-1px)' } }}
-          onMouseLeave={(e) => { if (!saving) { e.currentTarget.style.backgroundColor = S.gold; e.currentTarget.style.transform = 'translateY(0)' } }}
-        >
-          {saving ? 'Saving...' : 'Save my preferences'}
-        </button>
-        <button onClick={() => onSave(null)} style={{ background: 'none', border: 'none', fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, cursor: 'pointer', padding: '4px' }}>
-          Skip for now
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ── Step 1: All-guides overview list ─────────────────────────────────────────
-
 function GuidesOverview({ onSelect, onBack }) {
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: S.bg, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
@@ -353,7 +251,6 @@ function GuidesOverview({ onSelect, onBack }) {
                   e.currentTarget.style.borderColor = S.border
                 }}
               >
-                {/* Right arrow */}
                 <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: S.border, display: 'flex', alignItems: 'center' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -385,16 +282,12 @@ function GuidesOverview({ onSelect, onBack }) {
   )
 }
 
-// ── Step 2: Individual guide detail ──────────────────────────────────────────
-
 function GuideDetail({ guide, onBack, onChoose, saving, saveError }) {
   const isStoner = guide.id === 'stoner'
   const chooseLabel = isStoner ? 'This is how I want it' : `Choose ${guide.shortName} as my guide`
 
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: S.bg, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-
-      {/* Top half — accent wash (or plain dark for stoner) */}
       <div style={{
         position: 'relative',
         background: isStoner
@@ -422,7 +315,6 @@ function GuideDetail({ guide, onBack, onChoose, saving, saveError }) {
         </p>
       </div>
 
-      {/* Bottom half — bio + bullets + buttons */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '28px 24px 160px', boxSizing: 'border-box' }}>
         <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, margin: '0 0 24px 0', lineHeight: '1.75' }}>
           {guide.miniBio}
@@ -440,7 +332,6 @@ function GuideDetail({ guide, onBack, onChoose, saving, saveError }) {
         )}
       </div>
 
-      {/* Fixed bottom buttons */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 24px 32px', backgroundColor: S.bg, borderTop: `1px solid ${S.border}`, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {saveError && <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.error, margin: '0 0 2px 0', lineHeight: '1.5', textAlign: 'center' }}>{saveError}</p>}
 
@@ -481,21 +372,16 @@ function GuideDetail({ guide, onBack, onChoose, saving, saveError }) {
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-
 export default function Onboarding() {
-  const navigate      = useNavigate()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-
-  // ?step=list → jump straight to guide list (guide-change flow from settings)
   const isGuideChangeOnly = searchParams.get('step') === 'list'
 
-  const [view,       setView]       = useState(() => isGuideChangeOnly ? 'list' : 'intro')
+  const [view, setView] = useState(() => isGuideChangeOnly ? 'list' : 'intro')
   const [detailGuide, setDetailGuide] = useState(null)
-  const [saving,     setSaving]     = useState(false)
-  const [saveError,  setSaveError]  = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [confirming, setConfirming] = useState(null)
-  const [showLocation, setShowLocation] = useState(false)
 
   async function saveAndNavigate(guide) {
     setSaveError('')
@@ -535,39 +421,12 @@ export default function Onboarding() {
     }
 
     if (guide.selectionConfirmation) {
-      setConfirming({ guide, destination: '/onboarding?step=location' })
+      setConfirming({ guide, destination: '/pin-setup' })
     } else {
-      setShowLocation(true)
+      navigate('/pin-setup')
     }
   }
 
-  async function handleSaveLocationPrefs(prefs) {
-    if (prefs && !isDevMode()) {
-      setSaving(true)
-      setSaveError('')
-      const { data: { user } } = await localStore.auth.getUser()
-      const { error } = await localStore.from('user_profiles').upsert(
-        { user_id: user?.id, ...prefs },
-        { onConflict: 'user_id' }
-      )
-      setSaving(false)
-      if (error) { setSaveError('Could not save preferences. Try again.'); return }
-    }
-    navigate('/pin-setup')
-  }
-
-  // Handle ?step=location deep-link from confirmation screen destination
-  if (searchParams.get('step') === 'location' || showLocation) {
-    return (
-      <LocationPrefsScreen
-        onSave={handleSaveLocationPrefs}
-        saving={saving}
-        saveError={saveError}
-      />
-    )
-  }
-
-  // Confirmation screen
   if (confirming) {
     return (
       <ConfirmationScreen
@@ -578,7 +437,6 @@ export default function Onboarding() {
     )
   }
 
-  // Guide detail view
   if (view === 'detail' && detailGuide) {
     return (
       <GuideDetail
@@ -591,7 +449,6 @@ export default function Onboarding() {
     )
   }
 
-  // All-guides list view
   if (view === 'list') {
     return (
       <GuidesOverview
@@ -601,7 +458,6 @@ export default function Onboarding() {
     )
   }
 
-  // Intro screen
   return (
     <div style={{ minHeight: '100dvh', backgroundColor: S.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px 48px', boxSizing: 'border-box' }}>
       <div style={{ width: '100%', maxWidth: '420px', textAlign: 'center' }}>

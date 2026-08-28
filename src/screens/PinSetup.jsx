@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { storePin } from '../lib/pin'
+import { markPinUnlocked, storePin } from '../lib/pin'
 
 const S = {
   bg: '#0A1A0A',
@@ -16,8 +16,6 @@ const S = {
 
 const fontInter = "'Inter', sans-serif"
 const fontPlayfair = "'Playfair Display', serif"
-
-// ── Shared numpad + dot display ───────────────────────────────────────────────
 
 function PinDots({ value }) {
   return (
@@ -100,10 +98,6 @@ function NumPad({ onDigit, onDelete }) {
   )
 }
 
-// ── Phases ────────────────────────────────────────────────────────────────────
-
-// phase: 'offer' | 'first' | 'confirm' | 'done'
-
 export default function PinSetup() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -128,11 +122,11 @@ export default function PinSetup() {
       if (phase === 'first') {
         setTimeout(() => setPhase('confirm'), 120)
       } else {
-        // confirm phase: compare
         setTimeout(async () => {
           if (next === first) {
             setSaving(true)
             await storePin(first)
+            markPinUnlocked()
             setSaving(false)
             setPhase('done')
             setTimeout(() => navigate('/home'), 900)
@@ -152,8 +146,6 @@ export default function PinSetup() {
     setActivePin(activePin.slice(0, -1))
     if (mismatch) setMismatch(false)
   }
-
-  // ── Offer screen ─────────────────────────────────────────────────────────
 
   if (phase === 'offer') {
     return (
@@ -228,8 +220,6 @@ export default function PinSetup() {
     )
   }
 
-  // ── Done confirmation ─────────────────────────────────────────────────────
-
   if (phase === 'done') {
     return (
       <div style={{
@@ -253,8 +243,6 @@ export default function PinSetup() {
       </div>
     )
   }
-
-  // ── PIN entry UI (first + confirm phases) ─────────────────────────────────
 
   const heading = isReset && phase === 'first'
     ? 'Set a new PIN.'
