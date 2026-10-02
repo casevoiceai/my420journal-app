@@ -93,6 +93,12 @@ export const GUIDE_CHARACTERS = {
     name: 'Lucky Larry', archetype: 'Storyteller', ageBand: 'late 60s',
     birthDate: '1958-09-17', birthday: 'September 17, 1958', hometown: 'Scranton, Pennsylvania', currentHome: 'outside Scranton, Pennsylvania',
     family: 'I have one grown daughter and two grandkids. I have been divorced a long time, on decent terms. Family taught me very quickly that everybody can remember the same afternoon differently.',
+    formerSpouse: {
+      summary: 'We were married a little over twenty years. She was more social than I was, quicker with people, and much less patient with my habit of disappearing into notebooks and record bins. We raised our daughter together and eventually figured out we were better family apart than we were as a married couple.',
+      breakup: 'Nothing cinematic happened. We wore each other down in small ways. By the end we were better at running a household than being a couple. We split, spent a while being angry, and eventually landed somewhere decent.',
+      current: 'We still talk. Mostly family things, birthdays, the grandkids, and the occasional practical question. We are not especially close, but there is no war either.',
+      duration: "A little over twenty years. Long enough that a lot of stories from that part of my life still start with 'we.'",
+    },
     nickname: 'The Lucky part came from a print-shop coworker after I won the same radio call-in contest twice in one month. It stuck. I have not been especially lucky since.',
     bio: 'I am Larry. Scranton born and raised. I started at a print shop at nineteen, spent years orbiting a record store, and I have kept notebooks since I was a teenager. I have a grown daughter, two grandkids, a garden every summer, and more records than I can justify. Memory loves to improve a story after the fact, so I write things down.',
     interests: ['records', 'blues', 'soul', 'jazz', 'folk', 'old country', 'gardening', 'local history', 'horror movies', 'notebooks'],
@@ -348,9 +354,24 @@ export function relationshipTier(entryCount = 0) {
   return 0
 }
 
+function formerSpouseContext(messages = [], character = {}) {
+  if (!character.formerSpouse) return false
+  return messages.slice(-6).some((m) => /\b(ex|ex-wife|former wife|former spouse|divorc|married|marriage)\b/i.test(String(m?.content || '')))
+}
+function formerSpouseReply(character, text, messages = []) {
+  if (!character.formerSpouse) return null
+  const direct = /\b(ex|ex's|ex-wife|ex wife|former wife|former spouse|divorc|divorce|divorced|marriage|married)\b/.test(text)
+  const followup = formerSpouseContext(messages, character) && /\b(she|her|what was .* like|how long|why|what happened|still talk|still speak|still see|do you talk|do you speak|do you see|in touch)\b/.test(text)
+  if (!direct && !followup) return null
+  if (/\b(how long|how many years)\b/.test(text)) return character.formerSpouse.duration
+  if (/\b(why|what happened|break up|split up|divorce)\b/.test(text)) return character.formerSpouse.breakup
+  if (/\b(still talk|still speak|still see|do you talk|do you speak|do you see|in touch)\b/.test(text)) return character.formerSpouse.current
+  return character.formerSpouse.summary
+}
+
 export function hasExplicitCharacterIntent(input = '') {
   const text = normalize(input)
-  if (/\b(who are you|tell me about yourself|about yourself|your background|your life|what are you like|how old are you|what age are you|your age|when is your birthday|what is your birthday|when were you born|where are you from|where did you grow up|where do you live|your hometown|your family|are you married|do you have kids|do you have children|siblings|why are you called|nickname|why lucky)\b/.test(text)) return true
+  if (/\b(who are you|tell me about yourself|about yourself|your background|your life|what are you like|how old are you|what age are you|your age|when is your birthday|what is your birthday|when were you born|where are you from|where did you grow up|where do you live|your hometown|your family|are you married|do you have kids|do you have children|siblings|daughter|son|grandkids|grandchildren|parents|mother|father|wife|husband|ex|ex's|ex-wife|ex wife|former wife|former spouse|divorce|divorced|marriage|why are you called|nickname|why lucky)\b/.test(text)) return true
   if (/\b(what do you like|what are you into|your interests|what do you do for fun|hobbies|hobby|what do you dislike|what do you hate|pet peeve|pet peeves)\b/.test(text)) return true
   if (/\b(i am bored|i'm bored|im bored|so bored|bored|tell me a story|tell a story|got a story|story from your past|something that happened to you)\b/.test(text)) return true
   if (/\b(what do you think of|how do you feel about)\b/.test(text) && relationshipTarget(input)) return true
@@ -364,12 +385,14 @@ export function buildCharacterResponse({ guide = 'bud', messages = [], entries =
   const text = normalize(latest)
   if (!text) return null
 
+  const formerSpouse = formerSpouseReply(character, text, messages)
+  if (formerSpouse) return formerSpouse
   if (/\b(who are you|tell me about yourself|about yourself|your background|your life|what are you like)\b/.test(text)) return character.bio
   if (/\b(how old are you|what age are you|your age)\b/.test(text)) return ageReply(character)
   if (/\b(when is your birthday|what is your birthday|when were you born)\b/.test(text)) return `My birthday is ${character.birthday}.`
   if (/\b(where are you from|where did you grow up|your hometown)\b/.test(text)) return `I am from ${character.hometown}.`
   if (/\b(where do you live|where are you living)\b/.test(text)) return character.currentHome.startsWith('outside ') ? `I live ${character.currentHome}.` : `I live in ${character.currentHome}.`
-  if (/\b(your family|tell me about your family|are you married|do you have kids|do you have children|siblings)\b/.test(text)) return character.family
+  if (/\b(your family|tell me about your family|are you married|do you have kids|do you have children|siblings|daughter|son|grandkids|grandchildren|parents|mother|father|wife|husband)\b/.test(text)) return character.family
   if (/\b(why are you called|nickname|why lucky)\b/.test(text) && character.nickname) return character.nickname
   if (/\b(what do you like|what are you into|your interests|what do you do for fun|hobbies|hobby)\b/.test(text)) return `I am into ${character.interests.join(', ')}. I especially like ${character.likes}.`
   if (/\b(what do you dislike|what do you hate|pet peeve|pet peeves)\b/.test(text)) return `I am not much for ${character.dislikes}.`
@@ -396,7 +419,7 @@ export function characterFallback(guide = 'bud', messages = []) {
   const character = GUIDE_CHARACTERS[guide] || GUIDE_CHARACTERS.bud
   const latest = messages[messages.length - 1]?.content || ''
   const text = normalize(latest)
-  const looksLikeFactQuestion = /\?$/.test(String(latest).trim()) || /^(who|what|when|where|why|how|which)\b/.test(text)
+  const looksLikeFactQuestion = /\?$/.test(String(latest).trim()) || /^(who|what|when|where|why|how|which|tell me about)\b/.test(text)
   return looksLikeFactQuestion
     ? pick(character.unknown, messages, `${guide}:unknown`)
     : pick(character.fallback, messages, `${guide}:fallback`)

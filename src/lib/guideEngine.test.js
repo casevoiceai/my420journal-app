@@ -262,6 +262,22 @@ test('Guide personal identity questions stay specific and in character', () => {
   for (const result of [reply('how old are you?', 'larry'), intro]) assert.doesNotMatch(result, /canon|written as|age band|character metadata/i)
 })
 
+test('Larry follows his own former-spouse disclosure as a personal conversation', () => {
+  const first = reply("Tell me about your ex (or ex's)", 'larry')
+  assert.match(first, /married a little over twenty years/i)
+  assert.doesNotMatch(first, /cannabis|journal|knowledge pack/i)
+  const history = [{ role: 'user', content: "Tell me about your ex" }, { role: 'assistant', content: first }]
+  assert.match(reply('what was she like?', 'larry', history), /more social|quicker with people/i)
+  assert.match(reply('why did you divorce?', 'larry', history), /wore each other down|better at running a household/i)
+  assert.match(reply('do you still talk?', 'larry', history), /still talk|family things|grandkids/i)
+})
+
+test('personal family subjects do not route into cannabis fallback', () => {
+  assert.match(reply('tell me about your daughter', 'larry'), /daughter.*grandkids/i)
+  const unknown = reply('tell me about quantum physics', 'larry')
+  assert.doesNotMatch(unknown, /general cannabis facts|journal.*logged|knowledge pack yet/i)
+})
+
 test('journal note summaries do not contain mojibake quote characters', () => {
   const result = reply('what did I think of Strawberry Cream?')
   assert.match(result, /Latest note: "/)

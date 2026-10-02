@@ -48,7 +48,7 @@ const HELP = 'I can talk with you, help you log an experience, pull up what you 
 const FALLBACK = "I'm not sure what you want me to do with that. I can help you log an experience, look something up in your journal, compare two recorded products, or check in."
 const RECOMMENDATION_REFUSAL = "I don't choose products for you. I can show you what you recorded about products you have already tried."
 const MEDICAL_REFUSAL = "I can't diagnose, prescribe, or tell you what dose to use. I can help you review what you recorded in your own journal."
-const GENERAL_CANNABIS_BOUNDARY = "I can chat with you about what you have recorded in your journal, but I do not have general cannabis facts built into the Guide yet. If your question is about something you logged, tell me the product or entry."
+const GENERAL_CANNABIS_BOUNDARY = "I do not have a reviewed answer for that cannabis question in my local knowledge pack yet. Try another cannabis question, or ask me about something in your journal."
 
 const EFFECT_WORDS = [
   ['relaxed', 'Relaxed'], ['heavy', 'Heavy'], ['floaty', 'Floaty'], ['pain relief', 'Pain Relief'],
@@ -224,7 +224,7 @@ function topicQuestionPrompt(guide, topic, entries = []) {
 
 function topicBoundary(topic) {
   if (!topic) return GENERAL_CANNABIS_BOUNDARY
-  return `I can talk with you about ${topic} from your journal, but I do not have general cannabis facts built into the Guide yet. If you logged it, ask me what you recorded, how it felt, when you used it, or how often.`
+  return `I do not have a reviewed general profile for ${topic} in my local cannabis knowledge pack yet. If it is in your journal, I can still tell you what you recorded about it.`
 }
 
 function answerJournalTopicQuestion(text, topic, entries = []) {
@@ -382,7 +382,7 @@ export function buildGuideResponse({ guide = 'bud', messages = [], entries = [] 
 
   if (aboutTopic) {
     const known = canonicalJournalProduct(aboutTopic, entries)
-    return known ? summarizeProduct(known, entries) : topicBoundary(aboutTopic)
+    if (known) return summarizeProduct(known, entries)
   }
 
   if (prev === lower(voice.questionPrompt) || /what do you want to know about/.test(prev) || /what would you like to know about/.test(prev)) {
