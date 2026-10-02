@@ -53,7 +53,7 @@ export function HeroSection() {
             fontWeight: 700,
             textShadow: '0 4px 24px rgba(0,0,0,0.4)',
           }}>
-            Remember what you tried.
+            Remember what worked. Don't buy the same disappointment twice.
           </h1>
           <p style={{
             margin: '0 0 30px 0',
@@ -62,8 +62,8 @@ export function HeroSection() {
             lineHeight: 1.55,
             textShadow: '0 2px 18px rgba(0,0,0,0.4)',
           }}>
-            Record product details and your own observations. <br />
-            Your journal entries and private notes are stored locally in this browser.
+            Keep a private record of what you tried and how it went. <br />
+            Your journal stays local in this browser. Optional privacy skins are coming to make the screen look more neutral when someone nearby can see it.
           </p>
           <div className="marketing-hero-actions" style={{
             display: 'flex',
