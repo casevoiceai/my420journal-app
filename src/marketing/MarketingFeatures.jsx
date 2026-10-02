@@ -5,16 +5,16 @@ import featureCard3Image from './FeatureCard3.png'
 
 const featureCards = [
   {
-    title: 'Log the details',
+    title: 'Record the details that matter',
     mobileLines: [
       'Record the product, amount, method, and details you care about.',
-      'Manual entry is available now in the current private-testing build.',
-      'Camera label scanning is not available yet.',
+      'Keep enough context to make the entry useful when you come back to it later.',
+      'Manual entry is available now; camera label scanning is not available yet.',
     ],
     desktopLines: [
       'Record the product, amount, method, and details you care about.',
-      'Manual entry is available now in the current private-testing build.',
-      'Camera label scanning is not available yet.',
+      'Keep enough context to make the entry useful when you come back to it later.',
+      'Manual entry is available now; camera label scanning is not available yet.',
     ],
     image: featureCard1Image,
   },
@@ -23,26 +23,26 @@ const featureCards = [
     mobileLines: [
       'On supported browsers, speak a draft instead of typing it.',
       'Review or edit the transcript before you save the entry.',
-      "Speech recognition is provided by your browser and can vary by browser or device.",
+      'Speech recognition is provided by your browser and can vary by browser or device.',
     ],
     desktopLines: [
       'On supported browsers, speak a draft instead of typing it.',
       'Review or edit the transcript before you save the entry.',
-      "Speech recognition is provided by your browser and can vary by browser or device.",
+      'Speech recognition is provided by your browser and can vary by browser or device.',
     ],
     image: featureCard2Image,
   },
   {
-    title: 'Keep control of your journal',
+    title: 'Keep it private, even on-screen',
     mobileLines: [
       'Journal entries are stored in browser local storage on this device.',
-      "You can delete entries from this browser when you choose.",
-      'Downloaded backup files are separate copies that stay under your control.',
+      'Planned privacy skins will let the interface look more neutral when someone nearby can see your screen.',
+      'The skins change what the app looks like, not where your journal is stored.',
     ],
     desktopLines: [
       'Journal entries are stored in browser local storage on this device.',
-      "You can delete entries from this browser when you choose.",
-      'Downloaded backup files are separate copies that stay under your control.',
+      'Planned privacy skins will let the interface look more neutral when someone nearby can see your screen.',
+      'The skins change what the app looks like, not where your journal is stored.',
     ],
     image: featureCard3Image,
   },
@@ -68,8 +68,8 @@ export function FeatureGrid() {
               textAlign: 'center',
             }}
           >
-            <span>Small details.</span>{' '}
-            <span>Your history.</span>
+            <span>A record you can use later.</span>{' '}
+            <span>Privacy you control now.</span>
           </h2>
         </div>
 
