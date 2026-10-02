@@ -14,6 +14,19 @@ export function HeroSection() {
         overflow: 'hidden',
       }}
     >
+      <style>{`
+        .marketing-hero-title-second {
+          display: block;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 767px) {
+          .marketing-hero-title-second {
+            font-size: clamp(15px, 5vw, 28px);
+          }
+        }
+      `}</style>
+
       <div className="marketing-hero-image" style={{
         position: 'absolute',
         inset: 0,
@@ -41,20 +54,20 @@ export function HeroSection() {
           boxSizing: 'border-box',
         }}
       >
-        <div className="marketing-hero-copy" style={{ width: '100%', maxWidth: '820px', textAlign: 'center' }}>
+        <div className="marketing-hero-copy" style={{ width: '100%', maxWidth: '1000px', textAlign: 'center' }}>
           <h1 style={{
             margin: '0 0 34px 0',
             color: S.textPrimary,
             fontFamily: marketingFonts.playfair,
-            fontSize: 'clamp(30px, 4.25vw, 53px)',
+            fontSize: 'clamp(30px, 3.8vw, 48px)',
             whiteSpace: 'normal',
             lineHeight: 1.05,
             letterSpacing: '-0.03em',
             fontWeight: 700,
             textShadow: '0 4px 24px rgba(0,0,0,0.4)',
           }}>
-            Remember what worked.<br />
-            Don't buy the same disappointment twice.
+            <span style={{ display: 'block' }}>Remember what worked.</span>
+            <span className="marketing-hero-title-second">Don't buy the same disappointment twice.</span>
           </h1>
           <p style={{
             margin: '0 0 30px 0',
