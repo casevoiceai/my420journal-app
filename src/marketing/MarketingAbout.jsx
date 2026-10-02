@@ -3,12 +3,12 @@ import MarketingLayout from './MarketingLayout'
 import { marketingFonts, marketingPage, marketingPalette as S } from './marketingStyles'
 
 export function AboutSection({ id = undefined, tone = 'base' }) {
-  const [isNoTraceModalOpen, setIsNoTraceModalOpen] = useState(false)
-  const noTraceTriggerRef = useRef(null)
+  const [isPrivacyPolicyModalOpen, setIsPrivacyPolicyModalOpen] = useState(false)
+  const privacyPolicyTriggerRef = useRef(null)
   const modalCloseRef = useRef(null)
 
   useEffect(() => {
-    if (!isNoTraceModalOpen) return undefined
+    if (!isPrivacyPolicyModalOpen) return undefined
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -16,7 +16,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
-        setIsNoTraceModalOpen(false)
+        setIsPrivacyPolicyModalOpen(false)
       }
     }
 
@@ -25,9 +25,9 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = previousOverflow
-      noTraceTriggerRef.current?.focus()
+      privacyPolicyTriggerRef.current?.focus()
     }
-  }, [isNoTraceModalOpen])
+  }, [isPrivacyPolicyModalOpen])
 
   return (
     <>
@@ -116,16 +116,16 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 Tech companies have spent years training us to believe privacy and convenience cannot coexist, that if you want a service to work for you, you have to hand over your information first.
               </p>
               <p>
-                I do not accept that trade. So I built{' '}
+                I do not accept that trade. So I built the{' '}
                 <button
-                  ref={noTraceTriggerRef}
+                  ref={privacyPolicyTriggerRef}
                   type="button"
                   className="origin-story-inline-link"
-                  onClick={() => setIsNoTraceModalOpen(true)}
+                  onClick={() => setIsPrivacyPolicyModalOpen(true)}
                 >
-                  Keep Your Data
+                  Keep Your Data Yours
                 </button>{' '}
-                as a privacy engineering principle: keep the private journal local-first, minimize collection, and disclose optional network features instead of hiding them.
+                policy around a simple privacy engineering principle: keep the private journal local-first, minimize collection, and disclose optional network features instead of hiding them.
               </p>
               <p>
                 And I vowed I would never build "Hy" again.
@@ -220,12 +220,12 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
         </div>
       </section>
 
-      {isNoTraceModalOpen && (
+      {isPrivacyPolicyModalOpen && (
         <div
           className="origin-story-modal-overlay"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
-              setIsNoTraceModalOpen(false)
+              setIsPrivacyPolicyModalOpen(false)
             }
           }}
         >
@@ -233,23 +233,23 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
             className="origin-story-modal"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="keep-your-data-title"
+            aria-labelledby="keep-your-data-yours-title"
           >
             <button
               ref={modalCloseRef}
               type="button"
               className="origin-story-modal-close"
-              aria-label="Close Keep Your Data dialog"
-              onClick={() => setIsNoTraceModalOpen(false)}
+              aria-label="Close Keep Your Data Yours dialog"
+              onClick={() => setIsPrivacyPolicyModalOpen(false)}
             >
               ×
             </button>
-            <h2 id="keep-your-data-title" className="origin-story-modal-title">
-              Keep Your Data
+            <h2 id="keep-your-data-yours-title" className="origin-story-modal-title">
+              Keep Your Data Yours
             </h2>
             <div className="origin-story-modal-body">
               <p>
-                Keep Your Data is the privacy engineering principle behind My420Journal's private journal design.
+                The Keep Your Data Yours policy is the privacy engineering principle behind My420Journal's private journal design.
               </p>
               <p>
                 For this product, it means minimizing data collection, keeping private journal entries local-first, and disclosing any optional feature that needs a network service.
