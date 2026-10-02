@@ -1,4 +1,5 @@
 import { buildCharacterResponse, characterFallback, hasExplicitCharacterIntent } from './guideCharacters.js'
+import { answerCannabisKnowledge } from './cannabisKnowledge.js'
 
 const VOICES = {
   bud: {
@@ -339,11 +340,12 @@ export function buildGuideResponse({ guide = 'bud', messages = [], entries = [] 
   const topicAnswer = answerJournalTopicQuestion(latestMessage, conversationTopic, entries)
   if (topicAnswer) return topicAnswer
 
-  if (/\b(what did i think|what did i record|what did i log|tell me about|show me|remember|did i like)\b/.test(text)) {
+  if (/\b(what did i think|what did i record|what did i log|did i like|what did i write|what were my notes)\b/.test(text)) {
     if (recentProduct) return summarizeProduct(recentProduct, entries)
     if (conversationTopic) return summarizeProduct(conversationTopic, entries)
     return 'Name a product from your journal and I can show you exactly what you recorded about it.'
   }
+  if (/\b(tell me about|show me|remember)\b/.test(text) && recentProduct) return summarizeProduct(recentProduct, entries)
 
   if (mentioned.length && /\b(tried|used|bought|got|had|smoked|vaped|ate|logging|log)\b/.test(text)) {
     return productStart(guide, mentioned[0])
@@ -365,6 +367,9 @@ export function buildGuideResponse({ guide = 'bud', messages = [], entries = [] 
     if (!count) return `I do not see ${product} in your local journal yet.`
     return `You have ${count} ${count === 1 ? 'entry' : 'entries'} for ${product}.`
   }
+
+  const knowledgeAnswer = answerCannabisKnowledge({ text: latestMessage, guide, topic: conversationTopic || '' })
+  if (knowledgeAnswer) return knowledgeAnswer
 
   if (/how are you|how are you doing|how are you feeling/.test(prev) && (/\b(i am|i'm|im|feeling|doing)\b/.test(text) || /^(good|great|fine|okay|ok|bad|rough|awful|terrible|not good)[.!? ]*$/.test(text))) {
     return checkinFollowup(guide, latestMessage)

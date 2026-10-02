@@ -128,11 +128,11 @@ test('cannabis question opener gets a natural conversational bridge', () => {
   assert.equal(result, 'Of course. What would you like to know about weed?')
 })
 
-test('unsupported general cannabis question after bridge explains the boundary', () => {
+test('general cannabis question after bridge uses local B knowledge', () => {
   const history = [{ role: 'assistant', content: 'Of course. What is your question?' }]
   const result = reply('What is the difference between indica and sativa?', 'mary', history)
-  assert.match(result, /do not have general cannabis facts built into the Guide yet/i)
-  assert.match(result, /your journal/i)
+  assert.match(result, /do not reliably map/i)
+  assert.doesNotMatch(result, /do not have general cannabis facts built into the Guide yet/i)
 })
 
 test('question about an arbitrary topic starts a real dialogue', () => {
@@ -170,14 +170,14 @@ test('known topic supports count, date, amount, and note follow-ups', () => {
   assert.match(reply('what did I write about it?', 'larry', history), /Good body effect/i)
 })
 
-test('unsupported general fact question keeps the remembered topic', () => {
+test('reviewed cultivar question keeps the remembered topic and uses B', () => {
   const history = [
     { role: 'user', content: 'I have a question about Blue Dream' },
     { role: 'assistant', content: 'Sure. What do you want to know about Blue Dream?' },
   ]
   const result = reply('what kind of strain is it?', 'larry', history)
-  assert.match(result, /Blue Dream/i)
-  assert.match(result, /do not have general cannabis facts built into the Guide yet/i)
+  assert.match(result, /Blue Dream|Santa Cruz|Blueberry/i)
+  assert.doesNotMatch(result, /do not have general cannabis facts built into the Guide yet/i)
 })
 
 test('unrecognized conversation stays conversational in character', () => {
@@ -297,4 +297,26 @@ test('tier-zero story requests expose only the first autobiographical story', ()
   const result = buildGuideResponse({ guide: 'larry', entries: [], messages: [{ role: 'user', content: 'tell me a story' }] })
   assert.match(result, /notebook/i)
   assert.doesNotMatch(result, /cultivar name|record bought|horror movie/i)
+})
+
+test('Guide answers a general indica versus sativa question from local B knowledge', () => {
+  const result = reply('what is the difference between indica and sativa?', 'larry')
+  assert.match(result, /do not reliably map/i)
+  assert.doesNotMatch(result, /general cannabis facts built into the Guide yet/i)
+})
+
+test('Guide answers Blue Dream from B instead of the old no-knowledge boundary', () => {
+  const result = reply('tell me about Blue Dream', 'larry')
+  assert.match(result, /Santa Cruz/i)
+  assert.match(result, /Blueberry.*Haze/i)
+  assert.doesNotMatch(result, /do not have general cannabis facts built into the Guide yet/i)
+})
+
+test('Guide carries Blue Dream into a natural B follow-up', () => {
+  const history = [
+    { role: 'user', content: 'I have a question about Blue Dream' },
+    { role: 'assistant', content: 'Sure. What do you want to know about Blue Dream?' },
+  ]
+  const result = reply('what kind of strain is it?', 'sunny', history)
+  assert.match(result, /Blue Dream|Santa Cruz|Blueberry/i)
 })
