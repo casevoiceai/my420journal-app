@@ -100,11 +100,10 @@ test('uses recent product context for follow-up lookup', () => {
   assert.match(result, /1 entry for Red Berries/)
 })
 
-test('falls back to bounded capabilities instead of echoing', () => {
+test('falls back conversationally instead of echoing or forcing journal mode', () => {
   const result = reply('purple elephants on Tuesday')
-  assert.match(result, /I am with you/i)
-  assert.match(result, /journal|logging something new/i)
-  assert.doesNotMatch(result, /purple elephants/i)
+  assert.match(result, /listening|go on|keep going|what happened|thinking/i)
+  assert.doesNotMatch(result, /purple elephants|journal|logging something new/i)
 })
 
 test('other guides share the engine but retain distinct voice', () => {
@@ -181,7 +180,121 @@ test('unsupported general fact question keeps the remembered topic', () => {
   assert.match(result, /do not have general cannabis facts built into the Guide yet/i)
 })
 
-test('unrecognized conversation gets a guide-specific clarification, not a command menu', () => {
+test('unrecognized conversation stays conversational in character', () => {
   const result = reply('so anyway that was weird', 'larry')
-  assert.equal(result, 'I am with you. Is this about something in your journal, or are we logging something new?')
+  assert.match(result, /go on|listening|what happened|thinking|more to that/i)
+  assert.doesNotMatch(result, /journal|logging something new/i)
+})
+
+
+test('Guides can talk about themselves outside journal mode', () => {
+  assert.match(reply('tell me about yourself', 'bud'), /retail operations|warehouse logistics/i)
+  assert.match(reply('tell me about yourself', 'sunny'), /neighborhood cafe|community arts/i)
+  assert.match(reply('tell me about yourself', 'larry'), /print shop|record store/i)
+  assert.match(reply('tell me about yourself', 'herb'), /quality control|chemistry/i)
+  assert.match(reply('tell me about yourself', 'mary'), /caring for family|libraries/i)
+})
+
+test('boredom stays social instead of redirecting to cannabis', () => {
+  const result = reply("I'm bored", 'sunny')
+  assert.match(result, /story|question|entertain|company|bored/i)
+  assert.doesNotMatch(result, /journal|cannabis|log an experience/i)
+})
+
+test('Lucky Larry answers an off-topic horror question from character canon', () => {
+  const result = reply('do you like horror movies?', 'larry')
+  assert.match(result, /atmosphere|dread|gore|monster/i)
+})
+
+test('Sunny reacts socially to a bad movie', () => {
+  const result = reply('that movie sucked', 'sunny')
+  assert.match(result, /tell me why|boring|complain/i)
+})
+
+
+test('Herb handles an ordinary coffee problem in character', () => {
+  const result = reply('my coffee tastes awful today', 'herb')
+  assert.match(result, /beans|grind|water|temperature|brew time/i)
+})
+
+test('Bud handles an ordinary printer complaint in character', () => {
+  const result = reply('my printer is pissing me off', 'bud')
+  assert.match(result, /war against humanity|what is it doing/i)
+})
+
+test('Mary reacts to terrible sleep habits without turning clinical', () => {
+  const result = reply('I stayed up until four watching TV', 'mary')
+  assert.match(result, /resist saying anything|what happened/i)
+  assert.doesNotMatch(result, /diagnos|dose|treatment/i)
+})
+
+test('Guides have opinions about one another', () => {
+  assert.match(reply('what do you think of Sunny?', 'bud'), /talks too much|notices things/i)
+  assert.match(reply('what do you think of Herb?', 'larry'), /chemistry|stories/i)
+  assert.match(reply('what do you think of Larry?', 'mary'), /pretends not to worry/i)
+})
+
+test('story requests draw from the selected Guide biography', () => {
+  assert.match(reply('tell me a story', 'larry'), /notebook|cultivar|record|plant|horror/i)
+  assert.match(reply('tell me a story', 'sunny'), /show|date|plant|cake|theater/i)
+})
+
+
+test('unknown general factual questions get honest character-specific ignorance', () => {
+  const result = reply('who was the fourteenth president of France?', 'larry')
+  assert.match(result, /got nothing|don't know|no idea|outside my notebooks|never learned|couldn't tell you/i)
+  assert.doesNotMatch(result, /journal|cannabis facts|logging something/i)
+})
+
+test('hobby questions surface character canon', () => {
+  assert.match(reply('what are your hobbies?', 'mary'), /gardening|mystery novels|birds|books/i)
+  assert.match(reply('what are you into?', 'herb'), /coffee|fermentation|astronomy|keyboards|puzzles/i)
+})
+
+test('Guide age questions use canon age bands without inventing birthdays', () => {
+  assert.match(reply('how old are you?', 'sunny'), /early 30s/i)
+  assert.match(reply('how old are you?', 'larry'), /late 60s/i)
+  assert.match(reply('how old are you?', 'mary'), /50s/i)
+})
+
+test('journal note summaries do not contain mojibake quote characters', () => {
+  const result = reply('what did I think of Strawberry Cream?')
+  assert.match(result, /Latest note: "/)
+  assert.doesNotMatch(result, /Ã|â‚¬/)
+})
+
+
+test('S.T.O.N.E.R. stays personality-free for character questions', () => {
+  const result = reply('tell me about yourself', 'stoner')
+  assert.match(result, /personality-free/i)
+  assert.doesNotMatch(result, /retail|cafe|print shop|quality control|libraries/i)
+})
+
+test('S.T.O.N.E.R. gives a neutral fallback for unrelated questions', () => {
+  const result = reply('who invented the paper clip?', 'stoner')
+  assert.match(result, /No matching journal action|log an experience|review an entry/i)
+  assert.doesNotMatch(result, /notebooks|empty shelf|wheelhouse|comfortable saying/i)
+})
+
+test('S.T.O.N.E.R. still uses the same local journal lookup', () => {
+  const result = reply('what did I think of Strawberry Cream?', 'stoner')
+  assert.match(result, /1 entry for Strawberry Cream/i)
+  assert.match(result, /Hardly any taste/i)
+})
+
+
+test('unrelated factual question can leave a remembered cannabis topic', () => {
+  const history = [
+    { role: 'user', content: 'I have a question about Blue Dream' },
+    { role: 'assistant', content: 'Sure. What do you want to know about Blue Dream?' },
+  ]
+  const result = reply('who invented the paper clip?', 'larry', history)
+  assert.match(result, /got nothing|don't know|no idea|outside my notebooks|never learned|couldn't tell you/i)
+  assert.doesNotMatch(result, /Blue Dream|cannabis facts|journal/i)
+})
+
+test('tier-zero story requests expose only the first autobiographical story', () => {
+  const result = buildGuideResponse({ guide: 'larry', entries: [], messages: [{ role: 'user', content: 'tell me a story' }] })
+  assert.match(result, /notebook/i)
+  assert.doesNotMatch(result, /cultivar name|record bought|horror movie/i)
 })

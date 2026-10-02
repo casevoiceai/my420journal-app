@@ -6,7 +6,8 @@ Current private-core architecture:
 
 - Journal entries are stored locally.
 - User profile and guide settings are stored locally.
-- Guide conversation is deterministic and local. It uses rule-based dialogue handling, carries the current topic from chat history, reads only the active local profile journal, and does not call a cloud AI service.
+- Guide conversation is deterministic and local. It uses rule-based dialogue handling, carries the current topic from chat history, reads only the active local profile journal, and uses bundled local character canon for biography, stories, cast relationships, and ordinary off-topic conversation. It does not call a cloud AI service.
+- S.T.O.N.E.R. remains the personality-free Analog mode and skips the five character packs while retaining local journal lookup functions.
 - The private journal does not require a name, email address, or password.
 - A random device-local profile ID keeps entries and settings linked together.
 - Existing active private-testing profiles preserve their internal user ID while old local email/password fields are removed during migration.

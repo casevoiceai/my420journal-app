@@ -1,3 +1,5 @@
+import { buildCharacterResponse, characterFallback, hasExplicitCharacterIntent } from './guideCharacters.js'
+
 const VOICES = {
   bud: {
     greeting: 'Hey. Good to see you. Logging something, looking something up, or just checking in?',
@@ -41,7 +43,7 @@ const VOICES = {
   },
 }
 
-const HELP = 'I can help you log an experience, pull up what you recorded, compare two products already in your journal, or count your entries.'
+const HELP = 'I can talk with you, help you log an experience, pull up what you recorded, compare two products already in your journal, or count your entries.'
 const FALLBACK = "I'm not sure what you want me to do with that. I can help you log an experience, look something up in your journal, compare two recorded products, or check in."
 const RECOMMENDATION_REFUSAL = "I don't choose products for you. I can show you what you recorded about products you have already tried."
 const MEDICAL_REFUSAL = "I can't diagnose, prescribe, or tell you what dose to use. I can help you review what you recorded in your own journal."
@@ -134,7 +136,7 @@ function summarizeProduct(product, entries = []) {
   if (latest.category) parts.push(`Category: ${latest.category}.`)
   const tags = tagSummary(matches)
   if (tags.length) parts.push(`Recorded effects: ${tags.join(', ')}.`)
-  if (latest.notes) parts.push(`Latest note: Ã¢â‚¬Å“${clean(latest.notes).slice(0, 220)}Ã¢â‚¬Â`)
+  if (latest.notes) parts.push(`Latest note: \"${clean(latest.notes).slice(0, 220)}\"`)
   return parts.join(' ')
 }
 
@@ -149,7 +151,7 @@ function summarizeLatest(entries = []) {
   if (latest.amount) parts.push(`Amount: ${latest.amount}.`)
   const tags = tagSummary([latest])
   if (tags.length) parts.push(`Effects: ${tags.join(', ')}.`)
-  if (latest.notes) parts.push(`Note: Ã¢â‚¬Å“${clean(latest.notes).slice(0, 220)}Ã¢â‚¬Â`)
+  if (latest.notes) parts.push(`Note: \"${clean(latest.notes).slice(0, 220)}\"`)
   return parts.join(' ')
 }
 
@@ -295,6 +297,7 @@ function checkinFollowup(guide, text) {
 
 export function buildGuideResponse({ guide = 'bud', messages = [], entries = [] } = {}) {
   const voice = voiceFor(guide)
+  const isAnalog = guide === 'stoner'
   const latestMessage = messages[messages.length - 1]?.content || ''
   const text = lower(latestMessage)
   const mentioned = productsInText(latestMessage, entries)
@@ -308,8 +311,9 @@ export function buildGuideResponse({ guide = 'bud', messages = [], entries = [] 
   if (!text) return voice.greeting
   if (/\b(diagnose|diagnosis|prescribe|prescription|dose|dosage|treat|treatment)\b/.test(text)) return MEDICAL_REFUSAL
   if (/\b(recommend|recommendation|what should i buy|what should i get|best strain|best product|should i use)\b/.test(text)) return RECOMMENDATION_REFUSAL
-  if (/^(hi|hey|hello|yo|hiya|sup|what's up|whats up)[.!? ]*$/.test(text)) return voice.greeting
-  if (/\bhow are you\b|\bhow're you\b|\bhow you doing\b/.test(text)) return voice.checkin
+  if (/^(hi|hey|hello|yo|hiya|sup|what's up|whats up)[.!? ]*$/.test(text)) return isAnalog ? 'Ready.' : voice.greeting
+  if (/\bhow are you\b|\bhow're you\b|\bhow you doing\b/.test(text)) return isAnalog ? 'S.T.O.N.E.R. mode is personality-free. What would you like to record or review?' : voice.checkin
+  if (isAnalog && hasExplicitCharacterIntent(latestMessage)) return 'S.T.O.N.E.R. mode is personality-free. You can log an experience, review an entry, or compare recorded products.'
   if (explicitTopic) return topicQuestionPrompt(guide, explicitTopic, entries)
   if (/\b(?:i\s+(?:have|got)\s+|i['’]ve\s+got\s+)?(?:a\s+)?question\b|\bcan\s+i\s+ask\s+you\s+something\b/.test(text)) return voice.questionPrompt
   if (/^(thanks|thank you|thx|appreciate it)[.!? ]*$/.test(text)) return voice.thanks
@@ -320,6 +324,11 @@ export function buildGuideResponse({ guide = 'bud', messages = [], entries = [] 
     return entries.length === 1 ? 'You have 1 entry in your local journal.' : `You have ${entries.length} entries in your local journal.`
   }
   if (/\b(latest|last|most recent) (?:journal )?entry\b/.test(text)) return summarizeLatest(entries)
+
+  if (!isAnalog && hasExplicitCharacterIntent(latestMessage)) {
+    const explicitCharacterResponse = buildCharacterResponse({ guide, messages, entries })
+    if (explicitCharacterResponse) return explicitCharacterResponse
+  }
 
   if (/\b(compare|versus| vs\.? )\b/.test(` ${text} `)) {
     if (mentioned.length >= 2) return compareProducts(mentioned[0], mentioned[1], entries)
@@ -361,18 +370,27 @@ export function buildGuideResponse({ guide = 'bud', messages = [], entries = [] 
     return checkinFollowup(guide, latestMessage)
   }
 
+  if (!isAnalog) {
+    const characterResponse = buildCharacterResponse({ guide, messages, entries })
+    if (characterResponse) return characterResponse
+  }
+
   if (aboutTopic) {
     const known = canonicalJournalProduct(aboutTopic, entries)
     return known ? summarizeProduct(known, entries) : topicBoundary(aboutTopic)
   }
 
   if (prev === lower(voice.questionPrompt) || /what do you want to know about/.test(prev) || /what would you like to know about/.test(prev)) {
-    return conversationTopic ? topicBoundary(conversationTopic) : GENERAL_CANNABIS_BOUNDARY
+    const refersBack = /\b(it|its|that|this|strain|cultivar|product|lineage)\b/.test(text)
+    const cannabisQuestion = /\b(weed|cannabis|marijuana|strain|cultivar|terpene|terpenes|thc|cbd|cannabinoid|cannabinoids|indica|sativa|hybrid|flower|vape|vaping|cart|cartridge|edible|edibles|concentrate|concentrates|pre roll|preroll)\b/.test(text)
+    if (conversationTopic && (refersBack || cannabisQuestion)) return topicBoundary(conversationTopic)
+    if (!conversationTopic && cannabisQuestion) return GENERAL_CANNABIS_BOUNDARY
   }
 
-  if (/\?$/.test(clean(latestMessage)) && conversationTopic) return topicBoundary(conversationTopic)
+  if (/\?$/.test(clean(latestMessage)) && conversationTopic && /\b(it|that|this|strain|cultivar|product|weed|cannabis|marijuana|terpene|thc|cbd)\b/.test(text)) return topicBoundary(conversationTopic)
 
-  return voice.clarify || FALLBACK
+  if (isAnalog) return 'No matching journal action. You can log an experience, review an entry, or compare recorded products.'
+  return characterFallback(guide, messages) || voice.clarify || FALLBACK
 }
 
 export const guideEngineInternals = {
