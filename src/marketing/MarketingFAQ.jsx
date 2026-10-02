@@ -8,7 +8,11 @@ const faqs = [
   },
   {
     question: 'Who can see my private journal?',
-    answer: 'The private journal is designed to stay on your device. Vogtcom, dispensaries, cannabis brands, and partners do not receive access to your raw private journal or private notes through the private journal system.',
+    answer: 'The private journal is designed to stay on your device. Vogtcom, dispensaries, cannabis brands, and partners do not receive access to your raw private journal or private notes through the private journal system. As with any app, someone who can see or access your device may be able to see what is on the screen.',
+  },
+  {
+    question: 'What are the privacy skins?',
+    answer: 'Privacy skins are a planned screen-discretion feature. They are intended to give My420Journal a more neutral-looking interface when you do not want the cannabis context to be obvious to someone nearby. They are not available in the current private-testing build yet, and they do not change where your journal data is stored.',
   },
   {
     question: 'Does My420Journal use the internet?',
@@ -24,7 +28,7 @@ const faqs = [
   },
   {
     question: 'Does My420Journal tell me what cannabis to buy or use?',
-    answer: 'No. My420Journal is a personal record, not a cannabis recommendation, medical treatment, or purchasing service. It helps you look back at information and observations you recorded yourself.',
+    answer: 'No. My420Journal is a personal record, not a cannabis recommendation, medical treatment, or purchasing service. It helps you look back at information and observations you recorded yourself so you do not have to rely on memory alone.',
   },
   {
     question: 'Is cannabis legal where I live?',
@@ -68,7 +72,7 @@ export function FAQSection({ id = undefined, tone = 'base' }) {
           fontSize: '17px',
           lineHeight: 1.7,
         }}>
-          Clear answers about privacy, storage, legality, and the current private-testing build.
+          Clear answers about privacy, storage, screen discretion, legality, and the current private-testing build.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
