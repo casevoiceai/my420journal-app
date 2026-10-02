@@ -269,7 +269,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
               <p>
                 <strong>This is an engineering principle.</strong>
                 <br />
-                It does not mean every optional feature is offline. Weed Goblins uses network services for optional game narration, and browser-provided speech recognition may process speech according to the browser and platform. Those boundaries are described in the Privacy Notice.
+                It does not mean every optional feature is offline. Our in-app games, like Weed Goblins, use network services for optional game narration, and browser-provided speech recognition may process speech according to the browser and platform. Those boundaries are described in the Privacy Notice.
               </p>
             </div>
           </div>
