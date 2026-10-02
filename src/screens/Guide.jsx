@@ -163,7 +163,7 @@ export default function Guide() {
   const [thinking,   setThinking]   = useState(false)
   const [loaded,     setLoaded]     = useState(false)
   const [localModelEnabled, setLocalModelEnabledState] = useState(() => isLocalGuideModelEnabled())
-  const [localModelStatus, setLocalModelStatus] = useState('idle')
+  const [localModelStatus, setLocalModelStatus] = useState(() => isLocalGuideModelEnabled() ? 'loading' : 'idle')
   const [localModelProgress, setLocalModelProgress] = useState('')
   const [localModelError, setLocalModelError] = useState('')
   const [localModelCap] = useState(() => localGuideModelCapability())
@@ -478,14 +478,16 @@ export default function Guide() {
             backgroundColor: S.surface,
             boxSizing: 'border-box',
           }}>
-            {localModelCap.supported && !['stoner', 'unit', 'tool'].includes(guide) && (
+            {localModelCap.supported && !['stoner', 'unit', 'tool'].includes(guide) && localModelStatus !== 'ready' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', borderBottom: `1px solid ${S.border}` }}>
                 <div style={{ flex: 1, fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, lineHeight: '1.4' }}>
-                  {localModelStatus === 'loading' ? `Loading richer local chat ${localModelProgress}` : localModelStatus === 'error' ? `Richer local chat could not load. Standard Guide is still available.${localModelError ? ` (${localModelError})` : ''}` : localModelEnabled ? 'Richer local chat: on-device' : `Richer local chat: optional ~${Math.round(LOCAL_GUIDE_MODEL.approximateDownloadMB / 100) / 10} GB download`}
+                  {localModelStatus === 'loading' ? `Starting richer local chat ${localModelProgress}` : localModelStatus === 'error' ? `Richer local chat could not load. Standard Guide is still available.${localModelError ? ` (${localModelError})` : ''}` : `Richer local chat: optional ~${Math.round(LOCAL_GUIDE_MODEL.approximateDownloadMB / 100) / 10} GB download`}
                 </div>
-                <button onClick={toggleLocalModel} disabled={localModelStatus === 'loading'} style={{ background: 'transparent', border: `1px solid ${accent}`, borderRadius: '8px', padding: '7px 10px', color: accent, fontFamily: fontInter, fontSize: '12px', cursor: localModelStatus === 'loading' ? 'default' : 'pointer' }}>
-                  {localModelStatus === 'loading' ? 'Loading' : localModelEnabled ? 'Turn off' : 'Enable'}
-                </button>
+                {localModelStatus !== 'loading' && (
+                  <button onClick={toggleLocalModel} style={{ background: 'transparent', border: `1px solid ${accent}`, borderRadius: '8px', padding: '7px 10px', color: accent, fontFamily: fontInter, fontSize: '12px', cursor: 'pointer' }}>
+                    Enable
+                  </button>
+                )}
               </div>
             )}
 
