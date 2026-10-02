@@ -53,7 +53,8 @@ export function HeroSection() {
             fontWeight: 700,
             textShadow: '0 4px 24px rgba(0,0,0,0.4)',
           }}>
-            Remember what worked. Don't buy the same disappointment twice.
+            Remember what worked.<br />
+            Don't buy the same disappointment twice.
           </h1>
           <p style={{
             margin: '0 0 30px 0',
