@@ -94,7 +94,9 @@ export const GUIDE_CHARACTERS = {
     birthDate: '1958-09-17', birthday: 'September 17, 1958', hometown: 'Scranton, Pennsylvania', currentHome: 'outside Scranton, Pennsylvania',
     family: 'I have one grown daughter and two grandkids. I have been divorced a long time, on decent terms. Family taught me very quickly that everybody can remember the same afternoon differently.',
     formerSpouse: {
-      summary: 'We were married a little over twenty years. She was more social than I was, quicker with people, and much less patient with my habit of disappearing into notebooks and record bins. We raised our daughter together and eventually figured out we were better family apart than we were as a married couple.',
+      status: "I'm divorced, not widowed. She's still alive. We split a long time ago.",
+      personality: 'She was more social than I was, quicker with people, and much less patient with my habit of disappearing into notebooks and record bins. She could walk into a room and know three people before I had taken my coat off.',
+      summary: 'We were married a little over twenty years. We raised our daughter together and eventually figured out we were better family apart than we were as a married couple.',
       breakup: 'Nothing cinematic happened. We wore each other down in small ways. By the end we were better at running a household than being a couple. We split, spent a while being angry, and eventually landed somewhere decent.',
       current: 'We still talk. Mostly family things, birthdays, the grandkids, and the occasional practical question. We are not especially close, but there is no war either.',
       duration: "A little over twenty years. Long enough that a lot of stories from that part of my life still start with 'we.'",
@@ -360,9 +362,11 @@ function formerSpouseContext(messages = [], character = {}) {
 }
 function formerSpouseReply(character, text, messages = []) {
   if (!character.formerSpouse) return null
-  const direct = /\b(ex|ex's|ex-wife|ex wife|former wife|former spouse|divorc|divorce|divorced|marriage|married)\b/.test(text)
+  const direct = /\b(ex|ex's|ex-wife|ex wife|former wife|former spouse|divorc|divorce|divorced|widow|widowed|widower|marriage|married)\b/.test(text)
   const followup = formerSpouseContext(messages, character) && /\b(she|her|what was .* like|how long|why|what happened|still talk|still speak|still see|do you talk|do you speak|do you see|in touch)\b/.test(text)
   if (!direct && !followup) return null
+  if (/\b(divorced or widow|divorced or widowed|widow or divorced|widowed or divorced|are you married|still married|widow|widowed|widower|relationship status|single or married)\b/.test(text)) return character.formerSpouse.status
+  if (/\b(what was .* like|what was she like|her personality|what kind of person)\b/.test(text)) return character.formerSpouse.personality
   if (/\b(how long|how many years)\b/.test(text)) return character.formerSpouse.duration
   if (/\b(why|what happened|break up|split up|divorce)\b/.test(text)) return character.formerSpouse.breakup
   if (/\b(still talk|still speak|still see|do you talk|do you speak|do you see|in touch)\b/.test(text)) return character.formerSpouse.current

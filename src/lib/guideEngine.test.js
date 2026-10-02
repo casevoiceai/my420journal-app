@@ -267,7 +267,9 @@ test('Larry follows his own former-spouse disclosure as a personal conversation'
   assert.match(first, /married a little over twenty years/i)
   assert.doesNotMatch(first, /cannabis|journal|knowledge pack/i)
   const history = [{ role: 'user', content: "Tell me about your ex" }, { role: 'assistant', content: first }]
-  assert.match(reply('what was she like?', 'larry', history), /more social|quicker with people/i)
+  assert.match(reply('what was she like?', 'larry', history), /more social.*quicker with people|walk into a room/i)
+  assert.match(reply('so divorced or widow?', 'larry', history), /divorced, not widowed|still alive/i)
+  assert.match(reply('are you married?', 'larry', history), /divorced, not widowed|still alive/i)
   assert.match(reply('why did you divorce?', 'larry', history), /wore each other down|better at running a household/i)
   assert.match(reply('do you still talk?', 'larry', history), /still talk|family things|grandkids/i)
 })
