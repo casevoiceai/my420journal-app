@@ -122,3 +122,15 @@ test('known product name wins over extra category wording', () => {
   assert.match(result, /Alright\. Red Berries\./)
   assert.doesNotMatch(result, /Red Berries flower/)
 })
+
+test('cannabis question opener gets a natural conversational bridge', () => {
+  const result = reply('I have a question about weed.', 'mary')
+  assert.equal(result, 'Of course. What is your question?')
+})
+
+test('unsupported general cannabis question after bridge explains the boundary', () => {
+  const history = [{ role: 'assistant', content: 'Of course. What is your question?' }]
+  const result = reply('What is the difference between indica and sativa?', 'mary', history)
+  assert.match(result, /do not have a general cannabis knowledge library/i)
+  assert.match(result, /your journal/i)
+})

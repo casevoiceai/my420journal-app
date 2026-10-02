@@ -2,30 +2,35 @@ const VOICES = {
   bud: {
     greeting: 'Hey. Good to see you. Logging something, looking something up, or just checking in?',
     checkin: 'Doing alright. How are you doing? We can log something, look something up, or just check in.',
+    questionPrompt: 'Sure. What is your question?',
     thanks: 'Anytime. That is what I am here for.',
     goodbye: 'Alright. Catch you next time.',
   },
   sunny: {
     greeting: 'Hey! Good to see you. Want to log something, look something up, or just check in?',
     checkin: 'I am good. How are you doing today? We can log something or just talk through what you recorded.',
+    questionPrompt: 'Of course. What is your question?',
     thanks: 'Of course. I am glad I could help.',
     goodbye: 'Take care of yourself. I will be here when you come back.',
   },
   larry: {
     greeting: 'Hey. Good to see you. Logging something, looking something up, or just checking in?',
     checkin: 'Still kicking. How are you doing? We can log something, look something up, or just check in.',
+    questionPrompt: 'Sure. Fire away. What is your question?',
     thanks: 'You got it.',
     goodbye: 'Alright. Stay easy. I will be here.',
   },
   herb: {
     greeting: 'Hey. What are we working with today: a product, an effect, or an old entry?',
     checkin: 'Doing well. How are you? We can look at a product, an effect, or something you already recorded.',
+    questionPrompt: 'Sure. What is the question?',
     thanks: 'Happy to help.',
     goodbye: 'Good session. Come back when you have more to compare.',
   },
   mary: {
     greeting: 'Hey. How are you doing? We can log something, review your journal, or just check in.',
     checkin: 'I am here and doing well. How are you feeling today?',
+    questionPrompt: 'Of course. What is your question?',
     thanks: 'You are welcome. Take care of yourself.',
     goodbye: 'Take care. I will be here when you need your journal again.',
   },
@@ -35,6 +40,7 @@ const HELP = 'I can help you log an experience, pull up what you recorded, compa
 const FALLBACK = "I'm not sure what you want me to do with that. I can help you log an experience, look something up in your journal, compare two recorded products, or check in."
 const RECOMMENDATION_REFUSAL = "I don't choose products for you. I can show you what you recorded about products you have already tried."
 const MEDICAL_REFUSAL = "I can't diagnose, prescribe, or tell you what dose to use. I can help you review what you recorded in your own journal."
+const GENERAL_CANNABIS_BOUNDARY = "I can answer questions about your journal and how My420Journal works. I do not have a general cannabis knowledge library built into this Guide yet. If your question is about something you recorded, tell me the product or entry."
 
 const EFFECT_WORDS = [
   ['relaxed', 'Relaxed'], ['heavy', 'Heavy'], ['floaty', 'Floaty'], ['pain relief', 'Pain Relief'],
@@ -211,6 +217,7 @@ export function buildGuideResponse({ guide = 'bud', messages = [], entries = [] 
   if (/\b(recommend|recommendation|what should i buy|what should i get|best strain|best product|should i use)\b/.test(text)) return RECOMMENDATION_REFUSAL
   if (/^(hi|hey|hello|yo|hiya|sup|what's up|whats up)[.!? ]*$/.test(text)) return voice.greeting
   if (/\bhow are you\b|\bhow're you\b|\bhow you doing\b/.test(text)) return voice.checkin
+  if (/\b(?:question|ask you something)\b/.test(text) && /\b(?:weed|cannabis|marijuana|pot)\b/.test(text)) return voice.questionPrompt
   if (/^(thanks|thank you|thx|appreciate it)[.!? ]*$/.test(text)) return voice.thanks
   if (/^(bye|goodbye|later|see you|see ya|good night)[.!? ]*$/.test(text)) return voice.goodbye
   if (/\b(help|what can you do|what do you do)\b/.test(text)) return HELP
@@ -253,6 +260,8 @@ export function buildGuideResponse({ guide = 'bud', messages = [], entries = [] 
   if (/how are you|how are you doing|how are you feeling/.test(prev) && (/\b(i am|i'm|im|feeling|doing)\b/.test(text) || /^(good|great|fine|okay|ok|bad|rough|awful|terrible|not good)[.!? ]*$/.test(text))) {
     return checkinFollowup(guide, latestMessage)
   }
+
+  if (prev === lower(voice.questionPrompt)) return GENERAL_CANNABIS_BOUNDARY
 
   return FALLBACK
 }
