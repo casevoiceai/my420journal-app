@@ -64,7 +64,7 @@ export function HeroSection() {
             textShadow: '0 2px 18px rgba(0,0,0,0.4)',
           }}>
             Keep a private record of what you tried and how it went. <br />
-            Your journal stays local in this browser. Optional privacy skins are coming to make the screen look more neutral when someone nearby can see it.
+            Your journal stays local in this browser.
           </p>
           <div className="marketing-hero-actions" style={{
             display: 'flex',
