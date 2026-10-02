@@ -165,6 +165,7 @@ export default function Guide() {
   const [localModelEnabled, setLocalModelEnabledState] = useState(() => isLocalGuideModelEnabled())
   const [localModelStatus, setLocalModelStatus] = useState('idle')
   const [localModelProgress, setLocalModelProgress] = useState('')
+  const [localModelError, setLocalModelError] = useState('')
   const [localModelCap] = useState(() => localGuideModelCapability())
 
   const bottomRef  = useRef(null)
@@ -232,12 +233,13 @@ export default function Guide() {
     if (!localModelEnabled || !localModelCap.supported || ['stoner', 'unit', 'tool'].includes(guide)) return
     let active = true
     setLocalModelStatus('loading')
+    setLocalModelError('')
     loadLocalGuideModel({ onProgress: (p) => {
       if (!active) return
       const pct = Number.isFinite(Number(p?.progress)) ? `${Math.round(Number(p.progress) * 100)}%` : ''
       setLocalModelProgress(pct || p?.text || '')
     }}).then(() => { if (active) { setLocalModelStatus('ready'); setLocalModelProgress('') } })
-      .catch(() => { if (active) { setLocalModelStatus('error'); setLocalGuideModelEnabled(false); setLocalModelEnabledState(false) } })
+      .catch((error) => { if (active) { setLocalModelStatus('error'); setLocalModelError(String(error?.message || 'load failed').slice(0, 160)); setLocalGuideModelEnabled(false); setLocalModelEnabledState(false); console.error('Local Guide model load failed', error) } })
     return () => { active = false }
   }, [localModelEnabled, localModelCap.supported, guide])
 
@@ -333,6 +335,7 @@ export default function Guide() {
       setLocalGuideModelEnabled(false)
       setLocalModelEnabledState(false)
       setLocalModelStatus('idle')
+      setLocalModelError('')
       return
     }
     const okay = window.confirm(`Enable richer local chat? This downloads about ${LOCAL_GUIDE_MODEL.approximateDownloadMB} MB of model files once. The model then runs on this device, and your journal database is not uploaded.`)
@@ -478,7 +481,7 @@ export default function Guide() {
             {localModelCap.supported && !['stoner', 'unit', 'tool'].includes(guide) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', borderBottom: `1px solid ${S.border}` }}>
                 <div style={{ flex: 1, fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, lineHeight: '1.4' }}>
-                  {localModelStatus === 'loading' ? `Loading richer local chat ${localModelProgress}` : localModelStatus === 'error' ? 'Richer local chat could not load. Standard Guide is still available.' : localModelEnabled ? 'Richer local chat: on-device' : `Richer local chat: optional ~${Math.round(LOCAL_GUIDE_MODEL.approximateDownloadMB / 100) / 10} GB download`}
+                  {localModelStatus === 'loading' ? `Loading richer local chat ${localModelProgress}` : localModelStatus === 'error' ? `Richer local chat could not load. Standard Guide is still available.${localModelError ? ` (${localModelError})` : ''}` : localModelEnabled ? 'Richer local chat: on-device' : `Richer local chat: optional ~${Math.round(LOCAL_GUIDE_MODEL.approximateDownloadMB / 100) / 10} GB download`}
                 </div>
                 <button onClick={toggleLocalModel} disabled={localModelStatus === 'loading'} style={{ background: 'transparent', border: `1px solid ${accent}`, borderRadius: '8px', padding: '7px 10px', color: accent, fontFamily: fontInter, fontSize: '12px', cursor: localModelStatus === 'loading' ? 'default' : 'pointer' }}>
                   {localModelStatus === 'loading' ? 'Loading' : localModelEnabled ? 'Turn off' : 'Enable'}

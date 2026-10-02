@@ -41,6 +41,8 @@ test('local Guide model stays disabled until explicit local opt-in', () => {
 test('prototype model metadata keeps the download visible to UI', () => {
   assert.equal(LOCAL_GUIDE_MODEL.id, 'SmolLM2-1.7B-Instruct-Q4_K_M')
   assert.equal(LOCAL_GUIDE_MODEL.runtime, 'wllama')
+  assert.equal(LOCAL_GUIDE_MODEL.repo, 'ngxson/SmolLM2-1.7B-Instruct-Q4_K_M-GGUF')
+  assert.equal(LOCAL_GUIDE_MODEL.file, 'smollm2-1.7b-instruct-q4_k_m.gguf')
   assert.ok(LOCAL_GUIDE_MODEL.approximateDownloadMB >= 1000)
   assert.equal(LOCAL_GUIDE_MODEL.license, 'Apache-2.0')
 })

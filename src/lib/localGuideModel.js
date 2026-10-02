@@ -3,8 +3,8 @@ import { buildSemanticClassifierPrompt, normalizeSemanticDecision } from './guid
 
 export const LOCAL_GUIDE_MODEL = Object.freeze({
   id: 'SmolLM2-1.7B-Instruct-Q4_K_M',
-  repo: 'tensorblock/SmolLM2-1.7B-Instruct-GGUF',
-  file: 'SmolLM2-1.7B-Instruct-Q4_K_M.gguf',
+  repo: 'ngxson/SmolLM2-1.7B-Instruct-Q4_K_M-GGUF',
+  file: 'smollm2-1.7b-instruct-q4_k_m.gguf',
   approximateDownloadMB: 1056,
   license: 'Apache-2.0',
   runtime: 'wllama',
