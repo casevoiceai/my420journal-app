@@ -1,7 +1,9 @@
 export const GUIDE_CHARACTERS = {
   bud: {
     name: 'Bud Tendar', archetype: 'Advocate', ageBand: 'late 40s',
-    bio: 'I spent years in retail operations, warehouse logistics, and a small independent business. I learned that most chaos gets less mysterious once somebody writes down what actually happened.',
+    birthDate: '1977-02-08', birthday: 'February 8, 1977', hometown: 'Allentown, Pennsylvania', currentHome: 'Scranton, Pennsylvania',
+    family: 'I am the oldest of three. My father fixed cars and my mother worked in a school office. I am married, and I have one grown son who still calls me when something starts making a noise.',
+    bio: 'I am Bud. I grew up in Allentown and live in Scranton now. I spent years in retail operations, warehouse logistics, and a small independent business. My dad taught me to fix things before replacing them, which probably explains half my personality. I am married, I have a grown son, and I still keep a paper road atlas in the car.',
     interests: ['home repair', 'hand tools', 'road trips', 'paper maps', 'old ballparks', 'cars', 'small diners'],
     likes: 'competence, useful tools, old maps, small diners, and people who admit when they do not know something',
     dislikes: 'waste, mystery cables, vague plans, and throwing away something repairable',
@@ -44,7 +46,9 @@ export const GUIDE_CHARACTERS = {
   },
   sunny: {
     name: 'Sunny Day', archetype: 'Companion', ageBand: 'early 30s',
-    bio: 'I worked in a neighborhood cafe, then community arts, little events, and local theater. I learned that people will tell you almost anything if you remember their name and do not make them feel weird about it.',
+    birthDate: '1994-07-19', birthday: 'July 19, 1994', hometown: 'Pittsburgh, Pennsylvania', currentHome: 'Scranton, Pennsylvania',
+    family: 'I am the middle of three sisters. We still have one group chat that is useful and another that is almost entirely nonsense. I live with a rescue cat named Miso and more houseplants than I can defend.',
+    bio: 'I am Sunny. I grew up in Pittsburgh, right in the middle of three sisters. I worked in cafes, community arts, little events, and local theater before moving east. I live with a rescue cat named Miso, I make playlists for absurdly specific moods, and I talk too fast when I get excited.',
     interests: ['pop music', 'live shows', 'playlists', 'community theater', 'baking', 'houseplants', 'thrift stores', 'roadside attractions'],
     likes: 'good playlists, unexpected kindness, thrift-store finds, warm lighting, recovering houseplants, and terrible movies with the right person',
     dislikes: 'performative positivity, dead group chats, and people pretending not to care when they very obviously care',
@@ -87,7 +91,10 @@ export const GUIDE_CHARACTERS = {
   },
   larry: {
     name: 'Lucky Larry', archetype: 'Storyteller', ageBand: 'late 60s',
-    bio: 'I spent decades around a print shop, a record store, gardens, notebooks, and people who remembered the same story five different ways. I started writing things down because memory gets more confident long before it gets more accurate.',
+    birthDate: '1958-09-17', birthday: 'September 17, 1958', hometown: 'Scranton, Pennsylvania', currentHome: 'outside Scranton, Pennsylvania',
+    family: 'I have one grown daughter and two grandkids. I have been divorced a long time, on decent terms. Family taught me very quickly that everybody can remember the same afternoon differently.',
+    nickname: 'The Lucky part came from a print-shop coworker after I won the same radio call-in contest twice in one month. It stuck. I have not been especially lucky since.',
+    bio: 'I am Larry. Scranton born and raised. I started at a print shop at nineteen, spent years orbiting a record store, and I have kept notebooks since I was a teenager. I have a grown daughter, two grandkids, a garden every summer, and more records than I can justify. Memory loves to improve a story after the fact, so I write things down.',
     interests: ['records', 'blues', 'soul', 'jazz', 'folk', 'old country', 'gardening', 'local history', 'horror movies', 'notebooks'],
     likes: 'good stories, old records, quiet mornings, lived-in gardens, old stores, and people who correct themselves when they learn better',
     dislikes: 'false certainty, folklore passed off as fact, being rushed into an opinion, and throwing away notebooks',
@@ -130,7 +137,9 @@ export const GUIDE_CHARACTERS = {
   },
   herb: {
     name: 'Herb N. Spices', archetype: 'Expert', ageBand: 'late 30s',
-    bio: 'I worked around food production, quality control, and laboratory-style testing, then kept teaching myself chemistry because apparently I do not know how to leave a question alone.',
+    birthDate: '1988-01-23', birthday: 'January 23, 1988', hometown: 'Lancaster, Pennsylvania', currentHome: 'Scranton, Pennsylvania',
+    family: 'I have a younger sister who thinks I own too many coffee scales. She is correct. My parents were practical people who did not understand why I wanted to know how everything worked, but they humored me.',
+    bio: 'I am Herb. I grew up outside Lancaster around farms, food plants, and people who knew exactly how much a small process change could matter. I started in food quality control, took chemistry classes at night for a while, and kept studying after the classes stopped. I live alone, make overly careful coffee, and I genuinely enjoy finding out which variable ruined something.',
     interests: ['coffee extraction', 'fermentation', 'bread', 'astronomy', 'mechanical keyboards', 'logic puzzles', 'data visualization'],
     likes: 'repeatable methods, good coffee, clear labels, unexpected patterns that survive rechecking, and questions with measurable parts',
     dislikes: 'changing five variables at once, claims with no source, vague “science says” statements, and bad measurement argued with confidence',
@@ -174,7 +183,9 @@ export const GUIDE_CHARACTERS = {
   },
   mary: {
     name: 'Mary Jayne', archetype: 'Caregiver', ageBand: 'early-to-mid 50s',
-    bio: 'I spent a lot of adult life caring for family while working around libraries and community programs. You learn to notice sleep, meals, routines, appointments, and the difference between helping someone and trying to run their life.',
+    birthDate: '1971-03-06', birthday: 'March 6, 1971', hometown: 'Wilkes-Barre, Pennsylvania', currentHome: 'Wilkes-Barre, Pennsylvania',
+    family: 'I am the oldest of four. I helped care for my mother for years while raising two kids of my own. Both of my children are adults now and still occasionally call me to ask where something is in their own kitchen.',
+    bio: 'I am Mary. I was born in Wilkes-Barre, oldest of four, and I am still here. I worked in libraries and community programs while helping care for my mother and raising two kids. They are grown now. I garden, cook simple food, read mysteries, and I have very little patience for people treating exhaustion like an accomplishment.',
     interests: ['gardening', 'community gardens', 'simple cooking', 'family recipes', 'mystery novels', 'birds', 'libraries', 'used books'],
     likes: 'honesty, clean sheets, libraries, gardens after rain, simple food, and people taking care of themselves before total exhaustion',
     dislikes: 'treating rest like a moral failure, skipping meals and acting surprised, advice with no context, and “I am fine” used as a complete report',
@@ -261,6 +272,20 @@ function normalize(text = '') {
   return String(text).toLowerCase().replace(/[’]/g, "'").replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
+function ageFromBirthDate(birthDate) {
+  const [year, month, day] = String(birthDate || '').split('-').map(Number)
+  if (!year || !month || !day) return null
+  const now = new Date()
+  let age = now.getFullYear() - year
+  if ((now.getMonth() + 1 < month) || (now.getMonth() + 1 === month && now.getDate() < day)) age -= 1
+  return age
+}
+
+function ageReply(character) {
+  const age = ageFromBirthDate(character.birthDate)
+  return age ? `I'm ${age}. I was born ${character.birthday}.` : `I'm ${character.ageBand}.`
+}
+
 function stableIndex(options, messages = [], salt = '') {
   if (!options?.length) return -1
   const source = `${salt}|${messages.length}|${messages.map((m) => `${m.role}:${m.content}`).join('|')}`
@@ -325,7 +350,7 @@ export function relationshipTier(entryCount = 0) {
 
 export function hasExplicitCharacterIntent(input = '') {
   const text = normalize(input)
-  if (/\b(who are you|tell me about yourself|about yourself|your background|your life|what are you like|how old are you|what age are you|your age)\b/.test(text)) return true
+  if (/\b(who are you|tell me about yourself|about yourself|your background|your life|what are you like|how old are you|what age are you|your age|when is your birthday|what is your birthday|when were you born|where are you from|where did you grow up|where do you live|your hometown|your family|are you married|do you have kids|do you have children|siblings|why are you called|nickname|why lucky)\b/.test(text)) return true
   if (/\b(what do you like|what are you into|your interests|what do you do for fun|hobbies|hobby|what do you dislike|what do you hate|pet peeve|pet peeves)\b/.test(text)) return true
   if (/\b(i am bored|i'm bored|im bored|so bored|bored|tell me a story|tell a story|got a story|story from your past|something that happened to you)\b/.test(text)) return true
   if (/\b(what do you think of|how do you feel about)\b/.test(text) && relationshipTarget(input)) return true
@@ -340,7 +365,12 @@ export function buildCharacterResponse({ guide = 'bud', messages = [], entries =
   if (!text) return null
 
   if (/\b(who are you|tell me about yourself|about yourself|your background|your life|what are you like)\b/.test(text)) return character.bio
-  if (/\b(how old are you|what age are you|your age)\b/.test(text)) return `I am written as ${character.ageBand}. Exact birthday is not part of my canon.`
+  if (/\b(how old are you|what age are you|your age)\b/.test(text)) return ageReply(character)
+  if (/\b(when is your birthday|what is your birthday|when were you born)\b/.test(text)) return `My birthday is ${character.birthday}.`
+  if (/\b(where are you from|where did you grow up|your hometown)\b/.test(text)) return `I am from ${character.hometown}.`
+  if (/\b(where do you live|where are you living)\b/.test(text)) return character.currentHome.startsWith('outside ') ? `I live ${character.currentHome}.` : `I live in ${character.currentHome}.`
+  if (/\b(your family|tell me about your family|are you married|do you have kids|do you have children|siblings)\b/.test(text)) return character.family
+  if (/\b(why are you called|nickname|why lucky)\b/.test(text) && character.nickname) return character.nickname
   if (/\b(what do you like|what are you into|your interests|what do you do for fun|hobbies|hobby)\b/.test(text)) return `I am into ${character.interests.join(', ')}. I especially like ${character.likes}.`
   if (/\b(what do you dislike|what do you hate|pet peeve|pet peeves)\b/.test(text)) return `I am not much for ${character.dislikes}.`
   if (/\b(i am bored|i'm bored|im bored|so bored|bored)\b/.test(text)) return pick(character.bored, messages, `${guide}:bored`)

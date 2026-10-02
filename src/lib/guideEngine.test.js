@@ -251,10 +251,15 @@ test('hobby questions surface character canon', () => {
   assert.match(reply('what are you into?', 'herb'), /coffee|fermentation|astronomy|keyboards|puzzles/i)
 })
 
-test('Guide age questions use canon age bands without inventing birthdays', () => {
-  assert.match(reply('how old are you?', 'sunny'), /early 30s/i)
-  assert.match(reply('how old are you?', 'larry'), /late 60s/i)
-  assert.match(reply('how old are you?', 'mary'), /50s/i)
+test('Guide personal identity questions stay specific and in character', () => {
+  assert.match(reply('how old are you?', 'larry'), /born September 17, 1958/i)
+  assert.match(reply('when is your birthday?', 'sunny'), /July 19, 1994/i)
+  assert.match(reply('where are you from?', 'larry'), /Scranton, Pennsylvania/i)
+  assert.match(reply('tell me about your family', 'larry'), /daughter.*two grandkids/i)
+  assert.match(reply('why are you called Lucky?', 'larry'), /radio call-in contest/i)
+  const intro = reply('tell me about yourself', 'larry')
+  assert.match(intro, /Scranton.*print shop.*daughter.*grandkids.*garden/i)
+  for (const result of [reply('how old are you?', 'larry'), intro]) assert.doesNotMatch(result, /canon|written as|age band|character metadata/i)
 })
 
 test('journal note summaries do not contain mojibake quote characters', () => {
