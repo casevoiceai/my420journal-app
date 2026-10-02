@@ -1,4 +1,5 @@
-import { SHARED_PROFILE_DEFAULTS } from './sharedPrivacy'
+import { SHARED_PROFILE_DEFAULTS } from './sharedPrivacy.js'
+import { buildGuideResponse } from './guideEngine.js'
 
 const STORAGE_PREFIX = 'my420journal_local_v1'
 const ACTIVE_USER_KEY = `${STORAGE_PREFIX}:active_user`
@@ -306,13 +307,15 @@ class LocalQuery {
 }
 
 function localGuideReply(body = {}) {
-  const guide = body.guide || 'guide'
-  const latest = Array.isArray(body.messages) ? body.messages[body.messages.length - 1]?.content : ''
-  const intro = guide === 'unit' || guide === 'tool'
-    ? 'Logged locally.'
-    : 'I can help organize this locally on this device.'
-  const detail = latest ? ` I am reading your latest note as: ${String(latest).slice(0, 180)}` : ''
-  return `${intro}${detail}`
+  const user = getActiveUser()
+  const entries = user
+    ? readTable('entries').filter((entry) => entry?.user_id === user.id)
+    : []
+  return buildGuideResponse({
+    guide: body.guide || 'bud',
+    messages: Array.isArray(body.messages) ? body.messages : [],
+    entries,
+  })
 }
 
 function localPlacesResponse(body = {}) {
