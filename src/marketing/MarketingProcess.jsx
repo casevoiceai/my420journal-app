@@ -6,15 +6,15 @@ import processStep3Image from './ProcessStep3.png'
 const processSteps = [
   {
     step: 'Step 1',
-    title: 'Log Your Experience',
+    title: 'Log What Happened',
     mobileLines: [
       'Product - Amount - Method - Mood.',
-      'Capture what you tried and how it felt before the memory gets blurry.',
+      'Capture what you tried and how it felt while the details are still fresh.',
     ],
     desktopLines: [
       'Product - Amount - Method - Mood',
       'Capture what you tried and how it felt',
-      'before the memory gets blurry',
+      'while the details are still fresh',
     ],
     image: processStep1Image,
   },
@@ -23,28 +23,28 @@ const processSteps = [
     title: 'Use Your Guide',
     mobileLines: [
       'Talk through what you choose to enter in the guide conversation.',
-      'The guide does not independently read or analyze your journal history.',
-      "Guide choice changes tone and conversation style, not access to different journal data.",
+      'The guide helps you put the experience into words without deciding what you should buy or use.',
+      'Guide choice changes tone and conversation style, not access to different journal data.',
     ],
     desktopLines: [
       'Talk through what you choose to enter in the guide conversation.',
-      'The guide does not independently read or analyze your journal history.',
-      "Guide choice changes tone and conversation style, not access to different journal data.",
+      'The guide helps you put the experience into words without deciding what you should buy or use.',
+      'Guide choice changes tone and conversation style, not access to different journal data.',
     ],
     image: processStep2Image,
   },
   {
     step: 'Step 3',
-    title: 'Review Your Patterns',
+    title: 'Remember Before You Repeat It',
     mobileLines: [
-      'See simple counts calculated from entries stored on this device.',
-      'Compare the products, times, and effect tags you recorded.',
-      "The app shows your history; it does not tell you what to buy or use.",
+      'Look back at the products, times, and effect tags you recorded.',
+      'Use your own history instead of relying on a product name or a fading memory.',
+      'The app shows your record; the decision stays yours.',
     ],
     desktopLines: [
-      'See simple counts calculated from entries stored on this device.',
-      'Compare the products, times, and effect tags you recorded.',
-      "The app shows your history; it does not tell you what to buy or use.",
+      'Look back at the products, times, and effect tags you recorded.',
+      'Use your own history instead of relying on a product name or a fading memory.',
+      'The app shows your record; the decision stays yours.',
     ],
     image: processStep3Image,
     imageScale: 1.23,
@@ -117,8 +117,8 @@ export function ProcessSection() {
             }}
           >
             <span>Log it.</span>{' '}
-            <span>Track it.</span>{' '}
-            <span>Remember it.</span>
+            <span>Remember it.</span>{' '}
+            <span>Use your own history.</span>
           </h2>
         </div>
 
