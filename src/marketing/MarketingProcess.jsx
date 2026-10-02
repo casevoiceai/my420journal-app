@@ -38,12 +38,14 @@ const processSteps = [
     title: 'Remember Before You Repeat It',
     mobileLines: [
       'Look back at the products, times, and effect tags you recorded.',
-      'Use your own history instead of relying on a product name or a fading memory.',
+      'Use your own history instead of relying on a product name',
+      'or a fading memory.',
       'The app shows your record; the decision stays yours.',
     ],
     desktopLines: [
       'Look back at the products, times, and effect tags you recorded.',
-      'Use your own history instead of relying on a product name or a fading memory.',
+      'Use your own history instead of relying on a product name',
+      'or a fading memory.',
       'The app shows your record; the decision stays yours.',
     ],
     image: processStep3Image,
