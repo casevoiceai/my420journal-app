@@ -1,5 +1,6 @@
 import { SHARED_PROFILE_DEFAULTS } from './sharedPrivacy.js'
-import { buildGuideResponse } from './guideEngine.js'
+import { buildHybridGuideResponse } from './guideHybridEngine.js'
+import { isLocalGuideModelEnabled, localGuideModelCapability } from './localGuideModel.js'
 
 const STORAGE_PREFIX = 'my420journal_local_v1'
 const ACTIVE_USER_KEY = `${STORAGE_PREFIX}:active_user`
@@ -306,15 +307,17 @@ class LocalQuery {
   }
 }
 
-function localGuideReply(body = {}) {
+async function localGuideReply(body = {}) {
   const user = getActiveUser()
   const entries = user
     ? readTable('entries').filter((entry) => entry?.user_id === user.id)
     : []
-  return buildGuideResponse({
+  const localModelEnabled = isLocalGuideModelEnabled() && localGuideModelCapability().supported && body.localModelReady === true
+  return buildHybridGuideResponse({
     guide: body.guide || 'bud',
     messages: Array.isArray(body.messages) ? body.messages : [],
     entries,
+    localModelEnabled,
   })
 }
 
@@ -383,7 +386,7 @@ export const localStore = {
   },
   tools: {
     async invoke(name, { body } = {}) {
-      if (name === 'guide-response') return { data: { content: localGuideReply(body) }, error: null }
+      if (name === 'guide-response') return { data: { content: await localGuideReply(body) }, error: null }
       if (name === 'place-lookup') return { data: localPlacesResponse(body), error: null }
       return { data: null, error: new Error('Local-only build does not run external tools.') }
     },

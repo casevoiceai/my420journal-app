@@ -30,6 +30,7 @@ const sections = [
       'When Weed Goblins is used, the app can derive limited structured game context from local journal history, including product-derived game labels, product categories, effect tags, terpene labels, fictionalized dispensary labels, entry count, and prior game-run summaries. The game adapter excludes raw journal notes and raw dispensary names from that context. Player-entered game text can also be included in narration requests.',
       'The game request reaches server-side and Cloudflare infrastructure. Source IP information is processed for request security and rate limiting; the narration worker derives a salted source key for its in-memory limiter rather than retaining the raw IP in that limiter.',
       'Voice entry uses the browser SpeechRecognition implementation when the browser provides it. Speech-processing behavior depends on the browser and platform and is not represented as device-only. The transcript can be reviewed or edited before it is saved to the local journal.',
+      'Richer local Guide chat is optional and off by default. If a user chooses to enable it on a compatible device, the browser first downloads roughly 1 GB of language-model files from model-delivery infrastructure. That download uses the network and can expose ordinary connection metadata, such as the source IP address, to the infrastructure delivering those files. The journal database is not uploaded with the model download. After the model is available, Guide language-model inference runs in the browser on the user’s device; clearing browser caches may require the model files to be downloaded again.',
     ],
   },
   {
@@ -130,7 +131,7 @@ export default function MarketingPrivacy() {
             }}>
               MY420JOURNAL PRIVACY NOTICE
             </h1>
-            <PolicyParagraph>Last updated: August 27, 2026</PolicyParagraph>
+            <PolicyParagraph>Last updated: October 2, 2026</PolicyParagraph>
 
             {sections.map((section) => (
               <section key={section.heading} style={{ marginTop: '34px' }}>
