@@ -15,6 +15,22 @@ function forceControlledBoundary(text = '') {
     || /\b(recommend|recommendation|what should i buy|what should i get|best strain|best product|should i use|which strain)\b/.test(t)
 }
 
+function normalizeText(value = '') {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function journalDecisionIsGrounded(decision = {}, text = '', entries = []) {
+  if (decision?.route !== 'journal') return true
+  const t = normalizeText(text)
+  const explicitJournalCue = /\b(my journal|journal|entries?|logged|recorded|what did i|did i|when did i|how many times did i|my notes?)\b/.test(t)
+  if (['latest_entry', 'entry_count'].includes(decision?.intent)) return explicitJournalCue
+  const names = new Set(entries.map((entry) => normalizeText(entry?.product_name)).filter(Boolean))
+  const primary = normalizeText(decision?.entity)
+  const secondary = normalizeText(decision?.secondaryEntity || decision?.secondary_entity)
+  if (decision?.intent === 'compare_products') return explicitJournalCue || (names.has(primary) && names.has(secondary))
+  return explicitJournalCue || Boolean(primary && names.has(primary))
+}
+
 function canonicalMessages(messages, canonicalQuestion) {
   if (!canonicalQuestion) return messages
   const copy = messages.map((m) => ({ ...m }))
@@ -38,7 +54,9 @@ export async function buildHybridGuideResponse({
 
   try {
     const decision = await client.classify({ guide, messages })
-    if (decision?.route !== 'general' && Number(decision?.confidence || 0) >= 0.55) {
+    const grounded = journalDecisionIsGrounded(decision, latestUser(messages), entries)
+    const conversationalPreference = decision?.route === 'character' && decision?.intent === 'topic_preference'
+    if (grounded && !conversationalPreference && decision?.route !== 'general' && Number(decision?.confidence || 0) >= 0.55) {
       const canonical = semanticDecisionToCanonicalQuestion(decision)
       if (canonical) {
         return buildGuideResponse({
@@ -59,4 +77,5 @@ export async function buildHybridGuideResponse({
 export const hybridGuideInternals = {
   forceControlledBoundary,
   canonicalMessages,
+  journalDecisionIsGrounded,
 }

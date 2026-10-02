@@ -77,6 +77,8 @@ export function buildSemanticClassifierPrompt({ guideName = 'Guide', recentMessa
     'route must be journal, cannabis, character, or general.',
     'Use character for questions about the Guide as a person, biography, tastes, family, or relationships.',
     'Use journal only for the user\'s own stored experiences or entries.',
+    'Do not classify ordinary consumer brands, food, soda, music, movies, cars, restaurants, or other everyday products as journal unless the user explicitly asks about their own recorded history.',
+    'Use character when the user asks about the Guide\'s own tastes, memories, biography, family, relationships, or personal opinion.',
     'Use cannabis for general cannabis facts, cultivars, cannabinoids, terpenes, forms, history, or terminology.',
     'Use general for everything else: ordinary knowledge, opinions, conversation, jokes, culture, science, history, etc.',
     `Supported intents: ${Array.from(INTENTS).join(', ')}.`,

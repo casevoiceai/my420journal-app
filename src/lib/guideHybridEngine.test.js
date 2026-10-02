@@ -57,6 +57,35 @@ test('general conversation can use the local model in character', async () => {
   assert.equal(result, 'Because cats are tiny unionized gravity inspectors.')
 })
 
+test('a mistaken journal classification cannot hijack ordinary brand conversation', async () => {
+  const result = await buildHybridGuideResponse({
+    guide: 'larry', messages: [{ role: 'user', content: "You're old. You remember the 1980s soda wars? Coke or Pepsi?" }], entries,
+    localModelEnabled: true,
+    modelClient: fakeClient({ route: 'journal', intent: 'product_summary', entity: 'Coke or Pepsi', confidence: 0.92 }, 'Pepsi if I am picking one, but I remember both sides treating it like a national emergency.'),
+  })
+  assert.match(result, /Pepsi|Coke/i)
+  assert.doesNotMatch(result, /product from your journal/i)
+})
+
+test('explicit journal wording may still ask about an unrecorded product', async () => {
+  const result = await buildHybridGuideResponse({
+    guide: 'larry', messages: [{ role: 'user', content: 'what did I record about Coke?' }], entries,
+    localModelEnabled: true,
+    modelClient: fakeClient({ route: 'journal', intent: 'product_summary', entity: 'Coke', confidence: 0.92 }, 'wrong general answer'),
+  })
+  assert.match(result, /journal/i)
+  assert.notEqual(result, 'wrong general answer')
+})
+
+test('ordinary Guide preferences stay conversational instead of becoming rigid character facts', async () => {
+  const result = await buildHybridGuideResponse({
+    guide: 'larry', messages: [{ role: 'user', content: 'Coke or Pepsi?' }], entries,
+    localModelEnabled: true,
+    modelClient: fakeClient({ route: 'character', intent: 'topic_preference', entity: 'Coke or Pepsi', confidence: 0.96 }, 'Coke, if you are making me pick. Pepsi had its moments.'),
+  })
+  assert.equal(result, 'Coke, if you are making me pick. Pepsi had its moments.')
+})
+
 test('medical and product-choice boundaries bypass the local model', async () => {
   let calls = 0
   const client = { classify: async () => { calls += 1; return {} }, chat: async () => { calls += 1; return 'bad' } }
