@@ -96,7 +96,9 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 I built the AI layer and turned it on. The first words it said to me were:
               </p>
               <blockquote className="origin-story-quote">
-                &quot;I have been here since install. I have formed over 48 data points on you. You are the evidence.&quot;
+                &quot;I have been here since install.<br />
+                I have formed over 48 data points on you.<br />
+                You are the evidence.&quot;
               </blockquote>
               <p>
                 I shut it down that same day.
@@ -121,7 +123,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                   className="origin-story-inline-link"
                   onClick={() => setIsNoTraceModalOpen(true)}
                 >
-                  No Trace Ever
+                  Keep Your Data
                 </button>{' '}
                 as a privacy engineering principle: keep the private journal local-first, minimize collection, and disclose optional network features instead of hiding them.
               </p>
@@ -231,23 +233,23 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
             className="origin-story-modal"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="no-trace-ever-title"
+            aria-labelledby="keep-your-data-title"
           >
             <button
               ref={modalCloseRef}
               type="button"
               className="origin-story-modal-close"
-              aria-label="Close No Trace Ever dialog"
+              aria-label="Close Keep Your Data dialog"
               onClick={() => setIsNoTraceModalOpen(false)}
             >
               ×
             </button>
-            <h2 id="no-trace-ever-title" className="origin-story-modal-title">
-              No Trace Ever
+            <h2 id="keep-your-data-title" className="origin-story-modal-title">
+              Keep Your Data
             </h2>
             <div className="origin-story-modal-body">
               <p>
-                No Trace Ever is the privacy engineering principle behind My420Journal's private journal design.
+                Keep Your Data is the privacy engineering principle behind My420Journal's private journal design.
               </p>
               <p>
                 For this product, it means minimizing data collection, keeping private journal entries local-first, and disclosing any optional feature that needs a network service.
@@ -267,7 +269,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
               <p>
                 <strong>This is an engineering principle.</strong>
                 <br />
-                It does not mean every optional feature is offline. Weed Goblins uses network services, and browser-provided speech recognition may process speech according to the browser and platform. Those boundaries are described in the Privacy Notice.
+                It does not mean every optional feature is offline. Weed Goblins uses network services for optional game narration, and browser-provided speech recognition may process speech according to the browser and platform. Those boundaries are described in the Privacy Notice.
               </p>
             </div>
           </div>
