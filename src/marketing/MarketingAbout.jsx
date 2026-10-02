@@ -101,7 +101,7 @@ export function AboutSection({ id = undefined, tone = 'base' }) {
                 You are the evidence.&quot;
               </blockquote>
               <p>
-                I shut it down that same day.
+                I shut it down and deleted the program that same day.
               </p>
               <p>
                 That moment is the reason my420journal works the way it does.
