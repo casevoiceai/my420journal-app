@@ -102,7 +102,8 @@ test('uses recent product context for follow-up lookup', () => {
 
 test('falls back to bounded capabilities instead of echoing', () => {
   const result = reply('purple elephants on Tuesday')
-  assert.match(result, /not sure what you want me to do/i)
+  assert.match(result, /I am with you/i)
+  assert.match(result, /journal|logging something new/i)
   assert.doesNotMatch(result, /purple elephants/i)
 })
 
@@ -125,12 +126,62 @@ test('known product name wins over extra category wording', () => {
 
 test('cannabis question opener gets a natural conversational bridge', () => {
   const result = reply('I have a question about weed.', 'mary')
-  assert.equal(result, 'Of course. What is your question?')
+  assert.equal(result, 'Of course. What would you like to know about weed?')
 })
 
 test('unsupported general cannabis question after bridge explains the boundary', () => {
   const history = [{ role: 'assistant', content: 'Of course. What is your question?' }]
   const result = reply('What is the difference between indica and sativa?', 'mary', history)
-  assert.match(result, /do not have a general cannabis knowledge library/i)
+  assert.match(result, /do not have general cannabis facts built into the Guide yet/i)
   assert.match(result, /your journal/i)
+})
+
+test('question about an arbitrary topic starts a real dialogue', () => {
+  assert.equal(
+    reply('i have question about Blue Dream', 'larry'),
+    'Sure. What do you want to know about Blue Dream?'
+  )
+})
+
+test('unknown product topic survives into a follow-up question', () => {
+  const history = [
+    { role: 'user', content: 'i have question about Blue Dream' },
+    { role: 'assistant', content: 'Sure. What do you want to know about Blue Dream?' },
+  ]
+  assert.equal(reply('did I like it?', 'larry', history), 'I do not see Blue Dream in your local journal yet.')
+})
+
+test('known product topic survives into natural pronoun follow-ups', () => {
+  const history = [
+    { role: 'user', content: 'I have a question about Red Berries' },
+    { role: 'assistant', content: 'Sure. What do you want to know about Red Berries?' },
+  ]
+  const result = reply('how did it make me feel?', 'larry', history)
+  for (const effect of ['Relaxed', 'Tingly', 'Clear', 'Calm']) assert.match(result, new RegExp(effect, 'i'))
+})
+
+test('known topic supports count, date, amount, and note follow-ups', () => {
+  const history = [
+    { role: 'user', content: 'question about Red Berries' },
+    { role: 'assistant', content: 'Sure. What do you want to know about Red Berries?' },
+  ]
+  assert.match(reply('how many times did I use it?', 'larry', history), /1 entry for Red Berries/i)
+  assert.match(reply('when did I last use it?', 'larry', history), /Oct 1, 2026/i)
+  assert.match(reply('how much did I use?', 'larry', history), /0\.4 g/)
+  assert.match(reply('what did I write about it?', 'larry', history), /Good body effect/i)
+})
+
+test('unsupported general fact question keeps the remembered topic', () => {
+  const history = [
+    { role: 'user', content: 'I have a question about Blue Dream' },
+    { role: 'assistant', content: 'Sure. What do you want to know about Blue Dream?' },
+  ]
+  const result = reply('what kind of strain is it?', 'larry', history)
+  assert.match(result, /Blue Dream/i)
+  assert.match(result, /do not have general cannabis facts built into the Guide yet/i)
+})
+
+test('unrecognized conversation gets a guide-specific clarification, not a command menu', () => {
+  const result = reply('so anyway that was weird', 'larry')
+  assert.equal(result, 'I am with you. Is this about something in your journal, or are we logging something new?')
 })
