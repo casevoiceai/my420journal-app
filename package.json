@@ -19,8 +19,8 @@
     "vite": "^6.3.5"
   },
   "dependencies": {
-    "@mlc-ai/web-llm": "^0.2.85",
     "@tailwindcss/vite": "^4.2.4",
+    "@wllama/wllama": "^3.8.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.14.2",

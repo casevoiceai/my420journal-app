@@ -6,7 +6,7 @@ Current private-core architecture:
 
 - Journal entries are stored locally.
 - User profile and guide settings are stored locally.
-- Guide conversation is deterministic and local by default. A disabled-by-default D-layer prototype adds an optional browser-local language model for semantic routing and open-ended general conversation. A/B/C remain authoritative: journal answers come from the active local profile, cannabis facts come from the reviewed bundled knowledge layer, and Guide biography comes from bundled character canon. The local model is never given the journal database. Enabling D will require an explicit one-time model download before local inference can run; no cloud inference service is used.
+- Guide conversation is deterministic and local by default. A disabled-by-default D layer adds an optional browser-local language model for semantic routing and open-ended general conversation, using GPU acceleration when available and a CPU/WASM fallback otherwise. A/B/C remain authoritative: journal answers come from the active local profile, cannabis facts come from the reviewed bundled knowledge layer, and Guide biography comes from bundled character canon. The local model is never given the journal database. Enabling D will require an explicit one-time model download before local inference can run; no cloud inference service is used.
 - S.T.O.N.E.R. remains the personality-free Analog mode and skips the five character packs while retaining local journal lookup functions.
 - The private journal does not require a name, email address, or password.
 - A random device-local profile ID keeps entries and settings linked together.

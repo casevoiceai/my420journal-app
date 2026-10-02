@@ -10,10 +10,23 @@ function fakeStorage() {
   }
 }
 
-test('local Guide model requires browser context and WebGPU', () => {
+function browserScope({ gpu = false } = {}) {
+  return {
+    window: {},
+    navigator: { ...(gpu ? { gpu: {} } : {}) },
+    WebAssembly: {},
+    Worker: function Worker() {},
+  }
+}
+
+test('local Guide model supports CPU/WASM without WebGPU', () => {
   assert.equal(localGuideModelCapability({}).supported, false)
-  assert.equal(localGuideModelCapability({ window: {}, navigator: {} }).supported, false)
-  assert.equal(localGuideModelCapability({ window: {}, navigator: { gpu: {} } }).supported, true)
+  const cpu = localGuideModelCapability(browserScope())
+  assert.equal(cpu.supported, true)
+  assert.equal(cpu.backend, 'wasm-cpu')
+  const gpu = localGuideModelCapability(browserScope({ gpu: true }))
+  assert.equal(gpu.supported, true)
+  assert.equal(gpu.webgpu, true)
 })
 
 test('local Guide model stays disabled until explicit local opt-in', () => {
@@ -26,7 +39,8 @@ test('local Guide model stays disabled until explicit local opt-in', () => {
 })
 
 test('prototype model metadata keeps the download visible to UI', () => {
-  assert.equal(LOCAL_GUIDE_MODEL.id, 'SmolLM2-1.7B-Instruct-q4f16_1-MLC')
-  assert.ok(LOCAL_GUIDE_MODEL.approximateDownloadMB >= 900)
+  assert.equal(LOCAL_GUIDE_MODEL.id, 'SmolLM2-1.7B-Instruct-Q4_K_M')
+  assert.equal(LOCAL_GUIDE_MODEL.runtime, 'wllama')
+  assert.ok(LOCAL_GUIDE_MODEL.approximateDownloadMB >= 1000)
   assert.equal(LOCAL_GUIDE_MODEL.license, 'Apache-2.0')
 })

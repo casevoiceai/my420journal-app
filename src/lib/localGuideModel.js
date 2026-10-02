@@ -2,10 +2,12 @@ import { GUIDE_CHARACTERS } from './guideCharacters.js'
 import { buildSemanticClassifierPrompt, normalizeSemanticDecision } from './guideSemanticModel.js'
 
 export const LOCAL_GUIDE_MODEL = Object.freeze({
-  id: 'SmolLM2-1.7B-Instruct-q4f16_1-MLC',
-  approximateDownloadMB: 966,
-  approximateVramMB: 1775,
+  id: 'SmolLM2-1.7B-Instruct-Q4_K_M',
+  repo: 'tensorblock/SmolLM2-1.7B-Instruct-GGUF',
+  file: 'SmolLM2-1.7B-Instruct-Q4_K_M.gguf',
+  approximateDownloadMB: 1056,
   license: 'Apache-2.0',
+  runtime: 'wllama',
 })
 
 const ENABLED_KEY = 'my420journal_local_v1:local_guide_model_enabled'
@@ -13,12 +15,17 @@ let enginePromise = null
 
 export function localGuideModelCapability(scope = globalThis) {
   const browser = Boolean(scope?.window || scope?.document || scope?.navigator)
+  const wasm = typeof scope?.WebAssembly !== 'undefined'
+  const worker = typeof scope?.Worker !== 'undefined'
   const webgpu = Boolean(scope?.navigator?.gpu)
   return {
     browser,
+    wasm,
+    worker,
     webgpu,
-    supported: browser && webgpu,
-    reason: !browser ? 'browser-required' : !webgpu ? 'webgpu-unavailable' : null,
+    supported: browser && wasm && worker,
+    backend: webgpu ? 'webgpu-or-wasm' : 'wasm-cpu',
+    reason: !browser ? 'browser-required' : !wasm ? 'webassembly-unavailable' : !worker ? 'worker-unavailable' : null,
   }
 }
 
@@ -36,15 +43,14 @@ export async function loadLocalGuideModel({ onProgress } = {}) {
   if (!capability.supported) throw new Error(capability.reason || 'local-model-unavailable')
 
   enginePromise = (async () => {
-    const { CreateWebWorkerMLCEngine } = await import('@mlc-ai/web-llm')
-    const worker = new Worker(new URL('./localGuideModel.worker.js', import.meta.url), { type: 'module' })
-    return CreateWebWorkerMLCEngine(worker, LOCAL_GUIDE_MODEL.id, {
-      initProgressCallback: (progress) => onProgress?.(progress),
-      logLevel: 'WARN',
-    })
+    const { createBrowserLocalGuideRuntime } = await import('./wllamaBrowserRuntime.js')
+    return createBrowserLocalGuideRuntime({ model: LOCAL_GUIDE_MODEL, onProgress })
   })()
 
-  try { return await enginePromise } catch (error) { enginePromise = null; throw error }
+  try { return await enginePromise } catch (error) {
+    enginePromise = null
+    throw error
+  }
 }
 
 function latestUser(messages = []) {
@@ -56,11 +62,16 @@ function latestUser(messages = []) {
 
 export async function classifyWithLocalGuideModel({ guide = 'bud', messages = [], onProgress } = {}) {
   const character = GUIDE_CHARACTERS[guide] || GUIDE_CHARACTERS.bud
-  const engine = await loadLocalGuideModel({ onProgress })
+  const runtime = await loadLocalGuideModel({ onProgress })
   const system = buildSemanticClassifierPrompt({ guideName: character.name, recentMessages: messages })
-  const result = await engine.chat.completions.create({
-    messages: [{ role: 'system', content: system }, { role: 'user', content: latestUser(messages) }],
-    response_format: { type: 'json_object' }, temperature: 0, max_tokens: 160,
+  const result = await runtime.complete({
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: latestUser(messages) },
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0,
+    max_tokens: 160,
   })
   const content = result?.choices?.[0]?.message?.content || '{}'
   try { return normalizeSemanticDecision(JSON.parse(content)) } catch { return normalizeSemanticDecision() }
@@ -90,12 +101,12 @@ function characterPrompt(character) {
 
 export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], onProgress } = {}) {
   const character = GUIDE_CHARACTERS[guide] || GUIDE_CHARACTERS.bud
-  const engine = await loadLocalGuideModel({ onProgress })
+  const runtime = await loadLocalGuideModel({ onProgress })
   const recent = messages.slice(-10).map((m) => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: String(m.content || ''),
   }))
-  const result = await engine.chat.completions.create({
+  const result = await runtime.complete({
     messages: [{ role: 'system', content: characterPrompt(character) }, ...recent],
     temperature: 0.75,
     top_p: 0.9,
