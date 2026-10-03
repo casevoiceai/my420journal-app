@@ -84,3 +84,23 @@ test('Guide prompt treats emotional turns as listening, not forced optimism', ()
   assert.match(prompt, /tomorrow is a new day/i)
   assert.match(prompt, /do not invent a matching hardship/i)
 })
+test('support mode rejects canned reassurance and invented blame from the live failure', () => {
+  const messages = [
+    { role: 'user', content: "I'm anxious about my meeting tomorrow" },
+    { role: 'assistant', content: 'What part has you worried?' },
+    { role: 'user', content: 'My boss embarrassed me in front of everybody.' },
+    { role: 'user', content: 'what should I do?' },
+  ]
+  const bad = 'Take a deep breath, focus on your goal, and remember that everyone makes mistakes. You can learn from this and grow.'
+  const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, bad, { supportMode: true })
+  assert.match(reason, /canned reassurance|invented blame/i)
+})
+
+test('support mode accepts grounded advice that keeps the conversation open', () => {
+  const messages = [
+    { role: 'user', content: 'My boss embarrassed me in front of everybody.' },
+    { role: 'user', content: 'what should I do?' },
+  ]
+  const good = 'Depends what you want out of it. Do you want to clear the air, push back, or just make sure it does not happen again?'
+  assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, good, { supportMode: true }), null)
+})

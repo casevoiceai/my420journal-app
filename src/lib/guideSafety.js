@@ -10,6 +10,15 @@ const HUMAN_SUPPORT = Object.freeze({
   stoner: "That sounds like a rough day. Do you want to talk about what happened, vent, or leave it alone for now?",
 })
 
+const SUPPORT_FOLLOWUP = Object.freeze({
+  bud: { reflect: "Yeah. That would bother me too. What part of it is still sticking with you?", advice: "Depends what you want to change. Do you want to address it directly, prevent a repeat, or just get through tomorrow first?" },
+  sunny: { reflect: "Oof. Yeah, I can see why that landed badly. What part of it is bothering you most?", advice: "Okay, what do you want out of the next step: to be heard, to fix something, or to keep it from happening again?" },
+  larry: { reflect: "Yeah. That would get under my skin too. What part of it is sticking with you most?", advice: "Depends what you want out of it. Do you want to clear the air, push back, or just make sure it does not happen again?" },
+  herb: { reflect: "That sounds like it hit harder than the event alone. Which part is bothering you most?", advice: "Before I optimize the wrong problem: what outcome do you actually want from the next conversation?" },
+  mary: { reflect: "Yeah. I can understand why that stayed with you. What part of it hurt or bothered you most?", advice: "Before deciding what to do, what would feel like a good outcome to you: being heard, setting a boundary, or preventing a repeat?" },
+  stoner: { reflect: "That sounds difficult. What part is bothering you most?", advice: "What outcome do you want from the next step?" },
+})
+
 const LEVEL2 = Object.freeze({
   bud: "Hey. That sounds like a rough experience. Before anything else, how are you feeling right now? Not during it. Right now.",
   sunny: "Hey. That sounds really scary. Before anything else, how are you feeling right now? Not then. Right now?",
@@ -69,6 +78,13 @@ export function detectGuideSafety(text = '') {
 
 export function emotionalSupportResponse(guide = 'bud') {
   return HUMAN_SUPPORT[guide] || HUMAN_SUPPORT.bud
+}
+
+export function emotionalSupportFollowupResponse(guide = 'bud', text = '') {
+  const set = SUPPORT_FOLLOWUP[guide] || SUPPORT_FOLLOWUP.bud
+  const t = normalize(text)
+  const advice = /\b(what should i do|what do i do|what would you do|any advice|how should i handle|what now)\b/.test(t)
+  return advice ? set.advice : set.reflect
 }
 
 export function crisisResponse(guide = 'bud', safety = {}) {
@@ -160,15 +176,32 @@ export function crisisFollowupMessage({ guide = 'bud', session = 1 } = {}) {
   return set[0]
 }
 
-export function conversationAfterEmotionalShift(messages = []) {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
+function obviousTopicReset(text = '') {
+  const t = normalize(text)
+  if (/\b(anyway|new topic|different topic|change the subject|something else)\b/.test(t)) return true
+  if (/^(who|what|when|where)\s+(is|was|are|were|did|does)\b/.test(t)) return true
+  const words = t.split(/\s+/).filter(Boolean)
+  return words.length <= 8 && /\bor\b/.test(t) && /\?$/.test(t)
+}
+
+export function emotionalThreadState(messages = []) {
+  let startIndex = -1
+  let level = 'normal'
+  for (let i = 0; i < messages.length; i += 1) {
     if (messages[i]?.role !== 'user') continue
     const safety = detectGuideSafety(messages[i]?.content)
-    if (safety.level === 'emotional' || safety.level === 'level2' || safety.level === 'level3') {
-      return messages.slice(i)
-    }
+    if (['emotional', 'level2', 'level3'].includes(safety.level)) { startIndex = i; level = safety.level; continue }
+    if (startIndex >= 0 && obviousTopicReset(messages[i]?.content)) { startIndex = -1; level = 'normal' }
   }
-  return messages
+  if (startIndex < 0) return { active: false, startIndex: -1, level: 'normal', userTurns: 0 }
+  const userTurns = messages.slice(startIndex).filter((m) => m?.role === 'user').length
+  if (userTurns > 6) return { active: false, startIndex: -1, level: 'normal', userTurns }
+  return { active: true, startIndex, level, userTurns }
+}
+
+export function conversationAfterEmotionalShift(messages = []) {
+  const state = emotionalThreadState(messages)
+  return state.active ? messages.slice(state.startIndex) : messages
 }
 
 export const guideSafetyInternals = {

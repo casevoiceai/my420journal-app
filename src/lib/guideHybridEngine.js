@@ -7,6 +7,8 @@ import {
   crisisResponse,
   activateCrisisFollowup,
   conversationAfterEmotionalShift,
+  emotionalThreadState,
+  emotionalSupportFollowupResponse,
   readCrisisFollowup,
   clearCrisisFollowup,
   isCrisisFollowupDismissal,
@@ -59,6 +61,7 @@ export async function buildHybridGuideResponse({
     return "Okay. I’ll stop the extra check-ins. If that changes, tell me."
   }
   const safety = detectGuideSafetyForConversation(messages)
+  const emotionalThread = emotionalThreadState(messages)
   const scopedMessages = conversationAfterEmotionalShift(messages)
   const deterministic = (inputMessages = scopedMessages) => buildGuideResponse({ guide, messages: inputMessages, entries })
   if (safety.level === 'emotional') return emotionalSupportResponse(guide)
@@ -67,7 +70,9 @@ export async function buildHybridGuideResponse({
     return crisisResponse(guide, safety)
   }
 
+  const supportMode = safety.level === 'normal' && emotionalThread.active
   if (forceControlledBoundary(userText)) return deterministic()
+  if (supportMode && (!localModelEnabled || guide === 'stoner')) return emotionalSupportFollowupResponse(guide, userText)
   if (!localModelEnabled || guide === 'stoner') return deterministic()
 
   const client = modelClient || {
@@ -76,6 +81,10 @@ export async function buildHybridGuideResponse({
   }
 
   try {
+    if (supportMode) {
+      const generated = await client.chat({ guide, messages: scopedMessages, supportMode: true })
+      return String(generated || '').trim() || emotionalSupportFollowupResponse(guide, userText)
+    }
     const decision = await client.classify({ guide, messages: scopedMessages })
     const grounded = journalDecisionIsGrounded(decision, latestUser(scopedMessages), entries)
     const conversationalPreference = decision?.route === 'character' && decision?.intent === 'topic_preference'

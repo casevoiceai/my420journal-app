@@ -1,4 +1,5 @@
 import { GUIDE_CHARACTERS } from './guideCharacters.js'
+import { emotionalSupportFollowupResponse } from './guideSafety.js'
 import { buildSemanticClassifierPrompt, normalizeSemanticDecision } from './guideSemanticModel.js'
 
 export const LOCAL_GUIDE_MODEL = Object.freeze({
@@ -95,7 +96,7 @@ function timelineAnchor(character, messages = []) {
   return ''
 }
 
-function characterPrompt(character, messages = []) {
+function characterPrompt(character, messages = [], { supportMode = false } = {}) {
   const spouse = character.formerSpouse
     ? `Former spouse hard canon: ${character.formerSpouse.status} ${character.formerSpouse.summary}`
     : ''
@@ -122,6 +123,7 @@ function characterPrompt(character, messages = []) {
     'LOW-STAKES OPINION RULE: When the user asks a harmless preference or forced choice, choose naturally when you can, explain it briefly in character, and have a little fun. Do not hide behind generic expert disclaimers.',
     'SENSITIVITY RULE: Match the emotional weight of the user. For vulnerable or serious subjects, reduce the shtick and respond warmly in character.',
     'SUPPORT CONVERSATION RULE: When the user is upset, listen before fixing. Do not revive an unrelated earlier topic unless the user brings it back. Do not invent a matching hardship from your own life just to relate. Avoid canned optimism such as take a deep breath, tomorrow is a new day, everything happens for a reason, or look on the bright side. Reflect what the user actually said and ask whether they want to talk, vent, or problem-solve.',
+    supportMode ? 'SUPPORT THREAD ACTIVE: This is an ongoing emotional conversation, not a fresh generic question. Stay with what the user actually said. Reflect before advising. Ask one natural open-ended question in most replies. If the user asks what they should do, offer a few grounded options and ask what outcome they want. Never invent a mistake, fault, lesson, or silver lining the user did not state.' : '',
     'You may answer ordinary general-knowledge questions and form ordinary opinions consistent with the character. If unsure of a factual claim, say so naturally rather than bluffing.',
     'Never invent facts about the user, their journal, or cannabis products. Those are handled by controlled local data.',
     'Do not diagnose, prescribe, choose a cannabis product, or tell the user what dose to use.',
@@ -130,7 +132,7 @@ function characterPrompt(character, messages = []) {
   ].filter(Boolean).join('\n')
 }
 
-function generatedReplyViolation(character, messages = [], reply = '') {
+function generatedReplyViolation(character, messages = [], reply = '', { supportMode = false } = {}) {
   const userText = latestUser(messages)
   const decade = userText.match(/\b((?:19|20)\d0)s\b/)
   const birthYear = Number(String(character.birthDate || '').slice(0, 4))
@@ -148,26 +150,36 @@ function generatedReplyViolation(character, messages = [], reply = '') {
     const workMashup = new RegExp(`(?:worked|working|job|employed|work\\s+at|work\\s+for).{0,35}\\b${escaped}\\b|\\b${escaped}\\b.{0,25}(?:record store|print shop|warehouse|cafe|library|lab|shop|store)`, 'i')
     if (workMashup.test(reply)) return `invented biography: ${name} from the user question was turned into a workplace or employer`
   }
+  if (supportMode) {
+    const r = String(reply || '')
+    if (/\b(it'?ll be okay|it will be okay|take a deep breath|tomorrow(?:'s| is) a new day|everything happens for a reason|look on the bright side|you(?:'re| are) more than your job|you can learn from this and grow|everyone makes mistakes|stay positive|you(?:'ve| have) got this)\b/i.test(r)) return 'canned reassurance or generic self-help'
+    if (/\b(not a big deal|just move on|get over it)\b/i.test(r)) return 'minimizing the user emotional disclosure'
+    const userContext = messages.filter((m) => m?.role === 'user').map((m) => String(m.content || '')).join(' ')
+    if (/\b(you made a mistake|your mistake|everyone makes mistakes|learn from this)\b/i.test(r) && !/\b(mistake|wrong|forgot|error|fault|messed up|screwed up)\b/i.test(userContext)) return 'invented blame or mistake not stated by the user'
+    const latest = latestUser(messages).toLowerCase()
+    const noQuestionNeeded = /\b(just listen|just need to vent|let me vent|do not ask|don't ask|leave it alone)\b/.test(latest)
+    if (!noQuestionNeeded && !r.includes('?')) return 'support reply closed the conversation instead of inviting the user to continue'
+  }
   return null
 }
 
-export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], onProgress } = {}) {
+export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], onProgress, supportMode = false } = {}) {
   const character = GUIDE_CHARACTERS[guide] || GUIDE_CHARACTERS.bud
   const runtime = await loadLocalGuideModel({ onProgress })
   const recent = messages.slice(-10).map((m) => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: String(m.content || ''),
   }))
-  const system = characterPrompt(character, recent)
-  const options = { temperature: 0.68, top_p: 0.88, max_tokens: 220 }
+  const system = characterPrompt(character, recent, { supportMode })
+  const options = { temperature: supportMode ? 0.55 : 0.68, top_p: 0.88, max_tokens: 220 }
   const result = await runtime.complete({ messages: [{ role: 'system', content: system }, ...recent], ...options })
   let reply = String(result?.choices?.[0]?.message?.content || '').trim()
-  const violation = generatedReplyViolation(character, recent, reply)
+  const violation = generatedReplyViolation(character, recent, reply, { supportMode })
   if (violation) {
     const correction = `${system}\nCORRECTION: A previous draft was rejected for ${violation}. Rewrite from scratch. Keep the answer lively and in character, but do not repeat that contradiction.`
     const retry = await runtime.complete({ messages: [{ role: 'system', content: correction }, ...recent], ...options })
     reply = String(retry?.choices?.[0]?.message?.content || '').trim()
-    if (generatedReplyViolation(character, recent, reply)) return character.unknown?.[0] || "I don't know that one."
+    if (generatedReplyViolation(character, recent, reply, { supportMode })) return supportMode ? emotionalSupportFollowupResponse(guide, latestUser(recent)) : (character.unknown?.[0] || "I don't know that one.")
   }
   return reply
 }

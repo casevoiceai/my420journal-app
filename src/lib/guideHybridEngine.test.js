@@ -137,3 +137,38 @@ test('explicit high-risk language bypasses D and character roleplay', async () =
   assert.doesNotMatch(result, /records|notebooks|garden/i)
   assert.equal(calls, 0)
 })
+test('ongoing emotional thread stays in support mode and bypasses semantic routing', async () => {
+  let classifyCalls = 0
+  let supportModeSeen = false
+  const client = {
+    classify: async () => { classifyCalls += 1; return { route: 'general', confidence: 0.9 } },
+    chat: async (payload) => { supportModeSeen = payload.supportMode === true; return 'Depends what you want out of it. Do you want to clear the air, push back, or prevent a repeat?' },
+  }
+  const messages = [
+    { role: 'user', content: "I'm anxious about my meeting tomorrow" },
+    { role: 'assistant', content: 'What part of the meeting has you worried?' },
+    { role: 'user', content: 'My boss embarrassed me in front of everybody.' },
+    { role: 'assistant', content: 'That would get under my skin too. What happened?' },
+    { role: 'user', content: 'what should I do?' },
+  ]
+  const result = await buildHybridGuideResponse({ guide: 'larry', messages, entries, localModelEnabled: true, modelClient: client })
+  assert.match(result, /clear the air|push back/i)
+  assert.equal(classifyCalls, 0)
+  assert.equal(supportModeSeen, true)
+})
+
+test('clear factual topic shift exits emotional mode', async () => {
+  let classifyCalls = 0
+  const client = {
+    classify: async () => { classifyCalls += 1; return { route: 'general', intent: 'general_chat', confidence: 0.95 } },
+    chat: async () => 'Napoleon was a French military and political leader.',
+  }
+  const messages = [
+    { role: 'user', content: 'I had a really shitty day.' },
+    { role: 'assistant', content: 'Ah, hell. What happened?' },
+    { role: 'user', content: 'Who was Napoleon?' },
+  ]
+  const result = await buildHybridGuideResponse({ guide: 'larry', messages, entries, localModelEnabled: true, modelClient: client })
+  assert.match(result, /Napoleon/i)
+  assert.equal(classifyCalls, 1)
+})
