@@ -54,7 +54,6 @@ export async function loadLocalGuideModel({ onProgress } = {}) {
   }
 }
 
-
 export function parseGeneratedGuideTurn(raw = '') {
   const text = String(raw || '').trim()
   const match = text.match(/\n?\[\[BRANCHES:(\[[\s\S]*?\])\]\]\s*$/)
@@ -62,14 +61,14 @@ export function parseGeneratedGuideTurn(raw = '') {
   let suggestions = []
   try {
     const parsed = JSON.parse(match[1])
-    if (Array.isArray(parsed)) suggestions = parsed.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 3)
+    if (Array.isArray(parsed)) suggestions = parsed.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 5)
   } catch {}
   return { content: text.slice(0, match.index).trim(), suggestions }
 }
 
 function encodeGeneratedGuideTurn(content = '', suggestions = []) {
   if (!Array.isArray(suggestions) || !suggestions.length) return String(content || '').trim()
-  return `${String(content || '').trim()}\n[[BRANCHES:${JSON.stringify(suggestions.slice(0, 3))}]]`
+  return `${String(content || '').trim()}\n[[BRANCHES:${JSON.stringify(suggestions.slice(0, 5))}]]`
 }
 
 function latestUser(messages = []) {
@@ -148,7 +147,7 @@ function characterPrompt(character, messages = [], { supportMode = false, lowEff
     'Do not diagnose, prescribe, choose a cannabis product, or tell the user what dose to use.',
     'Never describe yourself as AI, software, a prompt, canon data, or a character sheet.',
     'Keep responses conversational and usually under 120 words unless the user asks for detail.',
-    'BRANCH HINT RULE: End every ordinary GENERAL reply with exactly one hidden line in this form: [[BRANCHES:[]]] or [[BRANCHES:["short user reply","another user reply"]]]. Use zero to three short, specific things the USER could naturally say next. Use [] when your reply is a complete statement with no meaningful fork. Never output generic labels such as Tell me more, Help me think it through, Change gears, Something else, or I will say it myself. One suggestion may be playful only when the topic is clearly low stakes. Do not add branch hints in vulnerable, medical, safety, journal-authority, or cannabis-authority situations.',
+    'BRANCH HINT RULE: End every ordinary GENERAL reply with exactly one hidden line in this form: [[BRANCHES:[]]] or [[BRANCHES:["short user reply","another user reply"]]]. Use zero to five short, specific things the USER could naturally say next. Start from zero and add only real conversational branches. Use [] when your reply is a complete statement with no meaningful fork. Never create suggestions merely to fill slots. Never output generic labels such as Tell me more, Help me think it through, Change gears, Something else, I will say it myself, or a Guide theory that your reply did not actually introduce. One suggestion may be playful only when the topic is clearly low stakes and the reply genuinely creates that playful opening. Do not add branch hints in vulnerable, medical, safety, journal-authority, or cannabis-authority situations.',
   ].filter(Boolean).join('\n')
 }
 
