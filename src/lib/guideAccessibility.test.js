@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { accessibilityAction, buildAccessibilityTurn, buildContextualBranches } from './guideAccessibility.js'
+import { accessibilityAction, buildAccessibilityTurn, buildContextualBranches, buildModelSuggestedBranches } from './guideAccessibility.js'
 
 const history = [
   { role: 'assistant', content: 'Hey. What happened?' },
@@ -63,59 +63,120 @@ test('direct Give me choices outside an emotional thread does not use support ch
 })
 
 
-test('contextual RPG branches continue both statements and questions', () => {
-  const statement = buildContextualBranches({ guide: 'larry', messages: [{ role: 'user', content: 'Tell me about Napoleon.' }], assistantText: 'Napoleon was Emperor of France.' })
-  assert.equal(statement.length, 4)
-  const turn = buildContextualBranches({ guide: 'larry', messages: [{ role: 'user', content: 'I like old records.' }], assistantText: 'Now you are speaking my language. What do you listen to most?' })
-  assert.equal(turn.length, 4)
-  assert.equal(turn[3].freeText, true)
-  assert.match(turn[3].label, /say it myself/i)
+test('complete statements do not force contextual branches', () => {
+  const turn = buildContextualBranches({
+    guide: 'larry', messages: [{ role: 'user', content: 'Coke or Pepsi?' }],
+    assistantText: 'Coke. If you are making me choose, that is my answer.'
+  })
+  assert.equal(turn, null)
 })
 
-test('Larry contextual branches include a Larry-flavored absurd option', () => {
-  const turn = buildContextualBranches({ guide: 'larry', messages: [{ role: 'user', content: 'My cat knocked over my drink.' }], assistantText: 'That cat has opinions. What happened next?' })
+test('either-or Guide questions become response-specific branches', () => {
+  const turn = buildContextualBranches({
+    guide: 'larry', messages: [{ role: 'user', content: 'My boss embarrassed me in front of everybody.' }],
+    assistantText: 'Was it the criticism itself, or the way they did it?'
+  })
+  assert.match(turn[0].label, /criticism itself/i)
+  assert.match(turn[1].label, /way they did it/i)
+  assert.doesNotMatch(turn.map((x) => x.label).join(' '), /ridiculous|silly/i)
+  assert.equal(turn.at(-1).freeText, true)
+})
+
+test('low-stakes yes-no questions can include a Guide-flavored playful branch', () => {
+  const turn = buildContextualBranches({
+    guide: 'larry', messages: [{ role: 'user', content: 'Tell me about old records.' }],
+    assistantText: 'Do you want the ridiculous version?'
+  })
+  assert.match(turn[0].label, /Yeah/i)
+  assert.match(turn[1].label, /Not really/i)
   assert.match(turn[2].label, /Larry.*ridiculous/i)
-  assert.match(turn[2].value, /playful/i)
+  assert.equal(turn[3].freeText, true)
 })
 
-test('serious conversation replaces the silly branch with a sensible option', () => {
-  const turn = buildContextualBranches({ guide: 'larry', messages: [{ role: 'user', content: 'My friend died yesterday.' }], assistantText: 'I am sorry. Do you want to tell me about them?' })
-  assert.doesNotMatch(turn[2].label, /ridiculous|silly/i)
-  assert.match(turn[2].label, /stay with me/i)
+
+test('plain harmless yes-no questions do not automatically get a joke branch', () => {
+  const turn = buildContextualBranches({
+    guide: 'larry', messages: [{ role: 'user', content: 'I liked that story.' }],
+    assistantText: 'Do you agree?'
+  })
+  const labels = turn.map((x) => x.label).join(' ')
+  assert.match(labels, /Yeah/i)
+  assert.match(labels, /Not really/i)
+  assert.doesNotMatch(labels, /ridiculous|silly/i)
 })
-test('long Guide questions surface Make that simpler contextually', () => {
+
+test('serious conversation suppresses playful branching and keeps a low-effort option', () => {
+  const turn = buildContextualBranches({
+    guide: 'larry', messages: [{ role: 'user', content: 'My friend died yesterday.' }],
+    assistantText: 'Do you want to tell me about them?'
+  })
+  const labels = turn.map((x) => x.label).join(' ')
+  assert.doesNotMatch(labels, /ridiculous|silly/i)
+  assert.match(labels, /stay with me/i)
+})
+
+test('long Guide response can offer only simplify plus free text', () => {
   const longReply = `${'This is a fairly long explanation with several details. '.repeat(7)}What part do you want to dig into?`
   const turn = buildContextualBranches({ guide: 'herb', messages: [{ role: 'user', content: 'Explain this to me.' }], assistantText: longReply })
-  assert.match(turn[1].label, /Make that simpler/i)
+  assert.equal(turn.length, 2)
+  assert.match(turn[0].label, /Make that simpler/i)
+  assert.equal(turn[1].freeText, true)
 })
 
-test('longer conversations can surface a recap branch', () => {
+test('longer conversations can offer only recap plus free text when there is no other clear fork', () => {
   const messages = [
     { role: 'user', content: 'First thing.' }, { role: 'assistant', content: 'Okay.' },
     { role: 'user', content: 'Second thing.' }, { role: 'assistant', content: 'Got it.' },
     { role: 'user', content: 'Third thing.' },
   ]
   const turn = buildContextualBranches({ guide: 'mary', messages, assistantText: 'Where do you want to go from here?' })
-  assert.match(turn[1].label, /Remind me where we were/i)
+  assert.equal(turn.length, 2)
+  assert.match(turn[0].label, /Remind me where we were/i)
+  assert.equal(turn[1].freeText, true)
 })
 
-
-test('contextual branches still appear when the Guide reply has no question mark', () => {
-  const turn = buildContextualBranches({
-    guide: 'larry',
-    messages: [{ role: 'user', content: 'Coke or Pepsi?' }],
-    assistantText: 'Coke. Pepsi always tasted like it was trying too hard.'
+test('model-suggested branches keep specific labels and reject generic filler', () => {
+  const turn = buildModelSuggestedBranches({
+    messages: [{ role: 'user', content: 'I like old records.' }],
+    assistantText: 'That tracks. What do you listen to when nobody else is around?',
+    suggestions: ['Old soul records', 'Embarrassing pop', 'Tell me more']
   })
-  assert.equal(turn.length, 4)
-  assert.equal(turn[3].freeText, true)
+  assert.equal(turn.length, 3)
+  assert.match(turn[0].label, /Old soul records/i)
+  assert.match(turn[1].label, /Embarrassing pop/i)
+  assert.equal(turn[2].freeText, true)
 })
 
-test('ordinary emotional support never gets the silly branch', () => {
+test('model hints may create specific branches after a statement when D finds a real fork', () => {
+  const turn = buildModelSuggestedBranches({
+    messages: [{ role: 'user', content: 'Coke or Pepsi?' }],
+    assistantText: 'Coke. If you are making me choose, that is my answer.',
+    suggestions: ['Defend Coke', 'Tell me why Pepsi loses']
+  })
+  assert.equal(turn.length, 2)
+  assert.match(turn[0].label, /Defend Coke/i)
+  assert.match(turn[1].label, /Pepsi loses/i)
+  assert.equal(turn.some((x) => x.freeText), false)
+})
+
+test('complete statements with no model hints show no menu', () => {
+  const turn = buildModelSuggestedBranches({
+    messages: [{ role: 'user', content: 'Coke or Pepsi?' }],
+    assistantText: 'Coke. If you are making me choose, that is my answer.',
+    suggestions: []
+  })
+  assert.equal(turn, null)
+})
+
+test('ordinary emotional support offers useful choices without a joke branch', () => {
   const turn = buildContextualBranches({
     guide: 'larry',
     messages: [{ role: 'user', content: "I'm anxious about my meeting tomorrow." }],
     assistantText: 'Ah, hell. That sounds rough. Want to tell me what has you worried?'
   })
-  assert.doesNotMatch(turn[2].label, /ridiculous|silly/i)
-  assert.match(turn[2].label, /stay with me/i)
+  const labels = turn.map((x) => x.label).join(' ')
+  assert.match(labels, /vent/i)
+  assert.match(labels, /sort it out/i)
+  assert.match(labels, /stay with me/i)
+  assert.doesNotMatch(labels, /ridiculous|silly/i)
 })

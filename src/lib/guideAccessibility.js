@@ -63,32 +63,98 @@ function simplifyText(text = '') {
 
 function seriousNoSilly(messages = []) {
   const text = messages.filter((m) => m?.role === 'user').slice(-2).map((m) => String(m.content || '')).join(' ')
-  return /\b(died|death|funeral|grief|assault|abuse|violence|hurt me|suicide|self-harm|emergency|hospital|urgent care|panic attack)\b/i.test(text)
+  return /\b(died|death|funeral|grief|assault|abuse|violence|hurt me|suicide|self-harm|emergency|hospital|urgent care|panic attack|embarrassed|humiliated|anxious|lonely|upset|overwhelmed|rough day|shitty day|scared|ashamed)\b/i.test(text)
+}
+
+function lastQuestion(text = '') {
+  const matches = String(text || '').match(/[^?]*\?/g)
+  return matches?.at(-1)?.trim() || ''
+}
+
+function cleanChoiceLabel(value = '') {
+  return String(value || '').replace(/^[,;:\s]+|[,;:\s?]+$/g, '').replace(/^(?:was|is|are|were) it\s+/i, '').replace(/^(?:do|did|would|could|should|can) you(?: rather)?\s+/i, '').replace(/^want to\s+/i, '').trim()
+}
+
+function letterize(choices = []) {
+  return choices.slice(0, 4).map((choice, index) => ({ ...choice, label: `${String.fromCharCode(65 + index)}. ${String(choice.label || '').replace(/^[A-D]\.\s*/i, '')}` }))
+}
+
+function hasPlayfulHook(question = '') {
+  const q = String(question || '')
+  return /\bor\b|story|version|theory|ridiculous|funny|weird|what if|imagine|rather|why do|who would|which would|favorite/i.test(q)
+}
+
+function explicitQuestionBranches(question = '') {
+  const body = question.replace(/\?+$/, '').trim()
+  const orMatch = body.match(/^(.{1,90}?)\s*,?\s+or\s+(.{1,90})$/i)
+  if (orMatch) {
+    const left = cleanChoiceLabel(orMatch[1])
+    const right = cleanChoiceLabel(orMatch[2])
+    if (left && right && left.toLowerCase() !== right.toLowerCase()) return [
+      { id: 'option-1', label: left, value: left },
+      { id: 'option-2', label: right, value: right },
+    ]
+  }
+  if (/^(?:do|did|are|is|was|were|would|could|should|can|have|has)\b/i.test(body) || /^want to\b/i.test(body)) return [
+    { id: 'yes', label: 'Yeah', value: 'Yeah.' },
+    { id: 'no', label: 'Not really', value: 'Not really.' },
+  ]
+  return []
 }
 
 export function buildContextualBranches({ guide = 'bud', messages = [], assistantText = '', lowEffortMode = false } = {}) {
   const reply = String(assistantText || '').trim()
   if (!reply) return null
   const safety = detectGuideSafetyForConversation(messages)
-  if (['level2', 'level3'].includes(safety.level)) return null
-  if (lowEffortMode) return null
+  if (['level2', 'level3'].includes(safety.level) || lowEffortMode) return null
   const support = safety.level === 'emotional' || emotionalThreadState(messages).active
+  const question = lastQuestion(reply)
   const longThread = messages.filter((m) => m?.role === 'user').length >= 3
-  const regularA = support
-    ? { id: 'vent', label: 'A. Let me vent', value: 'I just want to vent. Do not try to fix it yet.' }
-    : { id: 'continue', label: 'A. Tell you more', value: 'I want to keep talking about this. Ask me one easy question at a time.' }
-  const regularB = reply.length > 260
-    ? { id: 'simplify', label: 'B. Make that simpler', value: 'Make that simpler.' }
-    : longThread
-      ? { id: 'recap', label: 'B. Remind me where we were', value: 'I forgot what we were talking about.' }
-      : support
-        ? { id: 'sort', label: 'B. Help me sort it out', value: 'Help me sort out what happened without putting words in my mouth.' }
-        : { id: 'think', label: 'B. Help me think it through', value: 'Help me think this through without putting words in my mouth.' }
-  const silly = SILLY_BRANCH[guide]
-  const third = support || seriousNoSilly(messages) || !silly
-    ? { id: 'company', label: 'C. Just stay with me', value: 'Just stay with me for a minute. Keep it simple and do not try to fix anything yet.' }
-    : { id: 'silly', ...silly }
-  return [regularA, regularB, third, { id: 'other', label: "D. I'll say it myself", freeText: true }]
+  const utility = reply.length > 260
+    ? { id: 'simplify', label: 'Make that simpler', value: 'Make that simpler.' }
+    : longThread ? { id: 'recap', label: 'Remind me where we were', value: 'I forgot what we were talking about.' } : null
+
+  if (!question) return utility ? letterize([utility]) : null
+
+  let choices = []
+  if (support) {
+    if (/want to tell me|what (?:happened|part)|what has you worried|what's bothering|what is bothering|how (?:are|do) you feel/i.test(question)) choices = [
+      { id: 'vent', label: 'Let me vent', value: 'I just want to vent. Do not try to fix it yet.' },
+      { id: 'sort', label: 'Help me sort it out', value: 'Help me sort out what happened without putting words in my mouth.' },
+    ]
+    else if (/what do you want|what outcome|what would help/i.test(question)) choices = [
+      { id: 'heard', label: 'I want to be heard', value: 'I mostly want to be heard.' },
+      { id: 'change', label: 'I want something to change', value: 'I want something to change.' },
+      { id: 'unsure', label: "I'm not sure yet", value: "I'm not sure what I want yet." },
+    ]
+    else choices = explicitQuestionBranches(question)
+  } else choices = explicitQuestionBranches(question)
+  if ((support || seriousNoSilly(messages)) && choices.length > 0 && choices.length < 3) choices.push({ id: 'company', label: 'Just stay with me', value: 'Just stay with me for a minute. Keep it simple and do not try to fix anything yet.' })
+  if (!support && choices.length > 0 && choices.length < 3 && SILLY_BRANCH[guide] && !seriousNoSilly(messages) && hasPlayfulHook(question)) choices.push({ id: 'silly', ...SILLY_BRANCH[guide] })
+  if (utility && choices.length < 3) choices.push(utility)
+  if (choices.length === 0) return null
+  choices.push({ id: 'other', label: 'Something else', freeText: true })
+  return letterize(choices)
+}
+
+export function buildModelSuggestedBranches({ messages = [], assistantText = '', suggestions = [], lowEffortMode = false } = {}) {
+  const reply = String(assistantText || '').trim()
+  if (!reply || lowEffortMode) return null
+  const safety = detectGuideSafetyForConversation(messages)
+  if (safety.level !== 'normal' || emotionalThreadState(messages).active || seriousNoSilly(messages)) return null
+  const blocked = /^(?:tell me more|keep talking|help me think(?: it)? through|change gears|something else|i(?:'|’)ll say it myself|say it myself|larry'?s ridiculous theory)$/i
+  const clean = []
+  for (const raw of Array.isArray(suggestions) ? suggestions : []) {
+    const label = String(raw || '').replace(/^[A-D]\.\s*/i, '').replace(/\s+/g, ' ').trim()
+    if (label.length < 2 || label.length > 48 || blocked.test(label)) continue
+    if (clean.some((item) => item.toLowerCase() === label.toLowerCase())) continue
+    clean.push(label)
+    if (clean.length === 3) break
+  }
+  if (!clean.length) return null
+  const choices = clean.map((label, index) => ({ id: `ai-${index + 1}`, label, value: label }))
+  if (lastQuestion(reply)) choices.push({ id: 'other', label: 'Something else', freeText: true })
+  return letterize(choices)
 }
 
 export function buildAccessibilityTurn({ guide = 'bud', messages = [], action } = {}) {

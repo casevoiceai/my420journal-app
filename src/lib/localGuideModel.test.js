@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { localGuideModelCapability, isLocalGuideModelEnabled, setLocalGuideModelEnabled, LOCAL_GUIDE_MODEL, localGuideModelInternals } from './localGuideModel.js'
+import { localGuideModelCapability, isLocalGuideModelEnabled, setLocalGuideModelEnabled, LOCAL_GUIDE_MODEL, localGuideModelInternals, parseGeneratedGuideTurn } from './localGuideModel.js'
 import { GUIDE_CHARACTERS } from './guideCharacters.js'
 
 function fakeStorage() {
@@ -123,4 +123,16 @@ test('logic guard rejects fabricated user memories', () => {
   const bad = 'We can work through this together, just like that time you forgot your password.'
   const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, bad)
   assert.match(reason, /invented user history/i)
+})
+
+test('generated Guide turn parser hides branch metadata from visible text', () => {
+  const turn = parseGeneratedGuideTurn('Coke. That is my pick.\n[[BRANCHES:["Defend Coke","Tell me why Pepsi loses"]]]')
+  assert.equal(turn.content, 'Coke. That is my pick.')
+  assert.deepEqual(turn.suggestions, ['Defend Coke', 'Tell me why Pepsi loses'])
+})
+
+test('generated Guide turn parser tolerates ordinary replies with no branch metadata', () => {
+  const turn = parseGeneratedGuideTurn('Coke. That is my pick.')
+  assert.equal(turn.content, 'Coke. That is my pick.')
+  assert.deepEqual(turn.suggestions, [])
 })

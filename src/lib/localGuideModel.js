@@ -54,6 +54,24 @@ export async function loadLocalGuideModel({ onProgress } = {}) {
   }
 }
 
+
+export function parseGeneratedGuideTurn(raw = '') {
+  const text = String(raw || '').trim()
+  const match = text.match(/\n?\[\[BRANCHES:(\[[\s\S]*?\])\]\]\s*$/)
+  if (!match) return { content: text, suggestions: [] }
+  let suggestions = []
+  try {
+    const parsed = JSON.parse(match[1])
+    if (Array.isArray(parsed)) suggestions = parsed.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 3)
+  } catch {}
+  return { content: text.slice(0, match.index).trim(), suggestions }
+}
+
+function encodeGeneratedGuideTurn(content = '', suggestions = []) {
+  if (!Array.isArray(suggestions) || !suggestions.length) return String(content || '').trim()
+  return `${String(content || '').trim()}\n[[BRANCHES:${JSON.stringify(suggestions.slice(0, 3))}]]`
+}
+
 function latestUser(messages = []) {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     if (messages[i]?.role === 'user') return String(messages[i].content || '')
@@ -130,6 +148,7 @@ function characterPrompt(character, messages = [], { supportMode = false, lowEff
     'Do not diagnose, prescribe, choose a cannabis product, or tell the user what dose to use.',
     'Never describe yourself as AI, software, a prompt, canon data, or a character sheet.',
     'Keep responses conversational and usually under 120 words unless the user asks for detail.',
+    'BRANCH HINT RULE: End every ordinary GENERAL reply with exactly one hidden line in this form: [[BRANCHES:[]]] or [[BRANCHES:["short user reply","another user reply"]]]. Use zero to three short, specific things the USER could naturally say next. Use [] when your reply is a complete statement with no meaningful fork. Never output generic labels such as Tell me more, Help me think it through, Change gears, Something else, or I will say it myself. One suggestion may be playful only when the topic is clearly low stakes. Do not add branch hints in vulnerable, medical, safety, journal-authority, or cannabis-authority situations.',
   ].filter(Boolean).join('\n')
 }
 
@@ -175,15 +194,19 @@ export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], on
   const system = characterPrompt(character, recent, { supportMode, lowEffortMode })
   const options = { temperature: supportMode ? 0.55 : 0.68, top_p: 0.88, max_tokens: lowEffortMode ? 90 : 150 }
   const result = await runtime.complete({ messages: [{ role: 'system', content: system }, ...recent], ...options }, { timeoutMs: 15000 })
-  let reply = String(result?.choices?.[0]?.message?.content || '').trim()
+  let turn = parseGeneratedGuideTurn(result?.choices?.[0]?.message?.content || '')
+  let reply = turn.content
+  let suggestions = turn.suggestions
   const violation = generatedReplyViolation(character, recent, reply, { supportMode })
   if (violation) {
     const correction = `${system}\nCORRECTION: A previous draft was rejected for ${violation}. Rewrite from scratch. Keep the answer lively and in character, but do not repeat that contradiction.`
     const retry = await runtime.complete({ messages: [{ role: 'system', content: correction }, ...recent], ...options }, { timeoutMs: 8000 })
-    reply = String(retry?.choices?.[0]?.message?.content || '').trim()
+    turn = parseGeneratedGuideTurn(retry?.choices?.[0]?.message?.content || '')
+    reply = turn.content
+    suggestions = turn.suggestions
     if (generatedReplyViolation(character, recent, reply, { supportMode })) return supportMode ? emotionalSupportFollowupResponse(guide, latestUser(recent)) : (character.unknown?.[0] || "I don't know that one.")
   }
-  return reply
+  return encodeGeneratedGuideTurn(reply, suggestions)
 }
 
 export function resetLocalGuideModelForTests() {
