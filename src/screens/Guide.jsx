@@ -424,6 +424,7 @@ export default function Guide() {
         alignItems: 'center',
         paddingBottom: '80px',
       }}>
+        {/* Inner column — max 680px */}
         <div style={{
           width: '100%',
           maxWidth: '680px',
@@ -431,6 +432,8 @@ export default function Guide() {
           flexDirection: 'column',
           height: '100%',
         }}>
+
+          {/* ── Header ── */}
           <div style={{
             height: '56px',
             flexShrink: 0,
@@ -441,6 +444,7 @@ export default function Guide() {
             boxSizing: 'border-box',
             position: 'relative',
           }}>
+            {/* Back */}
             <button
               onClick={() => navigate(-1)}
               style={{
@@ -454,6 +458,7 @@ export default function Guide() {
               </svg>
             </button>
 
+            {/* Guide name centered */}
             <span style={{
               position: 'absolute', left: '44px', right: '80px',
               textAlign: 'center', pointerEvents: 'none',
@@ -462,6 +467,7 @@ export default function Guide() {
               {guideName}
             </span>
 
+            {/* Switch Guide */}
             <button
               onClick={() => navigate('/onboarding')}
               style={{
@@ -475,6 +481,7 @@ export default function Guide() {
             </button>
           </div>
 
+          {/* ── Chat area ── */}
           <div style={{
             flex: 1,
             overflowY: 'auto',
@@ -529,6 +536,7 @@ export default function Guide() {
             <div ref={bottomRef} />
           </div>
 
+          {/* ── Input area ── */}
           <div style={{
             flexShrink: 0,
             borderTop: `1px solid ${S.border}`,
@@ -548,6 +556,7 @@ export default function Guide() {
               </div>
             )}
 
+            {/* Clear conversation row */}
             <button
               onClick={clearChat}
               style={{
@@ -563,6 +572,7 @@ export default function Guide() {
               Clear conversation
             </button>
 
+            {/* Input row */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               padding: '12px 16px',
@@ -598,6 +608,7 @@ export default function Guide() {
                 onBlur={(e)  => { e.currentTarget.style.borderColor = S.border }}
               />
 
+              {/* Mic */}
               {micSupported && (
                 <button
                   onClick={toggleMic}
@@ -619,6 +630,7 @@ export default function Guide() {
                 </button>
               )}
 
+              {/* Send */}
               <button
                 onClick={() => send(input)}
                 disabled={!canSend}
@@ -638,6 +650,7 @@ export default function Guide() {
               </button>
             </div>
           </div>
+
         </div>
       </div>
     </>
