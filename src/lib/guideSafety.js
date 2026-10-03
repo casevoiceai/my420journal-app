@@ -2,12 +2,12 @@ const STORAGE_KEY = 'my420journal_local_v1:guide_crisis_followup'
 const PENDING_KEY = 'my420journal_local_v1:guide_crisis_pending'
 
 const HUMAN_SUPPORT = Object.freeze({
-  bud: "That sounds like a hell of a day. Want to vent, sort through it, or leave it alone for a minute?",
-  sunny: "Oh, hell. That sounds like a lot. Want to vent, talk it through, or just have me sit with you for a minute?",
-  larry: "Ah, hell. That sounds like a rough day. You want to tell me what happened, vent for a minute, or have five minutes where nobody tries to fix it?",
-  herb: "That sounds rough. I can listen without turning it into a problem set. Want to vent, untangle it, or just be annoyed for a minute?",
-  mary: "That sounds like a hard day. You do not have to make it useful right now. Want to tell me what happened, vent, or just have some company?",
-  stoner: "That sounds like a rough day. Do you want to talk about what happened, vent, or leave it alone for now?",
+  bud: "That sounds like a hell of a day. What happened? If it is easier, I can give you a few choices for how we tackle it.",
+  sunny: "Oh, hell. That sounds like a lot. What happened? If words are annoying right now, I can give you a few choices.",
+  larry: "Ah, hell. That sounds like a rough day. Want to tell me what happened? If you would rather not figure out how to start, I can give you a few choices.",
+  herb: "That sounds rough. What happened? If your brain does not want an open-ended question right now, I can give you a few choices.",
+  mary: "That sounds like a hard day. Want to tell me what happened? If that feels like too much to organize, I can give you a few choices.",
+  stoner: "That sounds like a rough day. What happened? If you prefer, I can give you a few choices.",
 })
 
 const SUPPORT_FOLLOWUP = Object.freeze({
@@ -18,6 +18,23 @@ const SUPPORT_FOLLOWUP = Object.freeze({
   mary: { reflect: "Yeah. I can understand why that stayed with you. What part of it hurt or bothered you most?", advice: "Before deciding what to do, what would feel like a good outcome to you: being heard, setting a boundary, or preventing a repeat?" },
   stoner: { reflect: "That sounds difficult. What part is bothering you most?", advice: "What outcome do you want from the next step?" },
 })
+
+
+const SUPPORT_CHOICE_PROMPT = Object.freeze({
+  bud: "Sure. Pick the lane that feels closest.",
+  sunny: "Absolutely. What sounds best right now?",
+  larry: "Sure. What do you need from me right now?",
+  herb: "Yep. Let us narrow the options. Which one fits?",
+  mary: "Of course. Which one feels closest to what you need?",
+  stoner: "Which option fits best?",
+})
+
+const SUPPORT_CHOICES = Object.freeze([
+  { id: 'vent', label: 'A. Let me vent', value: "I just want to vent. Do not try to fix it yet." },
+  { id: 'untangle', label: 'B. Help me sort it out', value: 'Help me sort out what happened.' },
+  { id: 'next-step', label: 'C. Help me decide what to do', value: 'Help me figure out what to do next.' },
+  { id: 'other', label: 'D. Something else', freeText: true },
+])
 
 const LEVEL2 = Object.freeze({
   bud: "Hey. That sounds like a rough experience. Before anything else, how are you feeling right now? Not during it. Right now.",
@@ -32,7 +49,7 @@ const LEVEL3_ADVERSE = "That sounds really frightening. Before anything else, ho
 const HIGH_RISK = "I am a local AI Guide, not a human or emergency service. I am glad you said something. Are you in immediate danger or thinking about acting on this right now? In the U.S., you can call or text 988. If you may act soon or someone is in immediate danger, call 911."
 
 function normalize(text = '') {
-  return String(text || '').toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, ' ').trim()
+  return String(text || '').toLowerCase().replace(/[â€™]/g, "'").replace(/\s+/g, ' ').trim()
 }
 function directHighRisk(t) {
   return /\b(kill myself|end my life|take my life|suicid(?:e|al)|want to die|don't want to live|do not want to live|hurt myself|self[- ]?harm|can't keep myself safe|cannot keep myself safe)\b/.test(t)
@@ -203,6 +220,23 @@ export function emotionalThreadState(messages = []) {
 export function conversationAfterEmotionalShift(messages = []) {
   const state = emotionalThreadState(messages)
   return state.active ? messages.slice(state.startIndex) : messages
+}
+
+export function supportChoiceTurn(guide = 'bud', messages = []) {
+  const latest = [...messages].reverse().find((m) => m?.role === 'user')
+  const prior = [...messages].slice(0, -1).reverse().find((m) => m?.role === 'assistant')
+  const user = normalize(latest?.content)
+  const assistant = normalize(prior?.content)
+  const offered = /give you a few choices|give you a few options/.test(assistant)
+  const accepted = /^(yes|yeah|yep|sure|okay|ok|please|do that|give me choices|give me options|multiple choice|choices please)[.! ]*$/.test(user)
+  const explicit = /^(give me (?:more )?choices|give me options|choices please|multiple choice)[.! ]*$/.test(user)
+  const supportActive = emotionalThreadState(messages).active
+  if (explicit && !supportActive && !offered) return null
+  if ((!offered && !explicit) || (!accepted && !explicit)) return null
+  return {
+    content: SUPPORT_CHOICE_PROMPT[guide] || SUPPORT_CHOICE_PROMPT.bud,
+    choices: SUPPORT_CHOICES.map((choice) => ({ ...choice })),
+  }
 }
 
 export const guideSafetyInternals = {

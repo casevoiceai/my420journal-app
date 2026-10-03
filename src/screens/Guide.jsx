@@ -168,10 +168,14 @@ export default function Guide() {
   const [localModelProgress, setLocalModelProgress] = useState('')
   const [localModelError, setLocalModelError] = useState('')
   const [localModelCap] = useState(() => localGuideModelCapability())
+  const [lowEffortMode, setLowEffortMode] = useState(() => {
+    try { return sessionStorage.getItem('m420_guide_low_effort') === '1' } catch { return false }
+  })
 
   const bottomRef  = useRef(null)
   const inputRef   = useRef(null)
   const unitIdxRef = useRef(0)
+  const sendLockRef = useRef(false)
 
   useEffect(() => {
     async function init() {
@@ -269,11 +273,19 @@ export default function Guide() {
   }, [])
   const { active: micActive, supported: micSupported, start: startMic, stop: stopMic } = useVoiceInput(handleInterim, handleFinal)
 
-  async function send(text) {
+  async function send(text, options = {}) {
     const trimmed = text.trim()
-    if (!trimmed || thinking) return
+    if (!trimmed || thinking || sendLockRef.current) return
+    sendLockRef.current = true
+    const displayContent = options.displayContent || trimmed
+    const activateLowEffort = options.activateLowEffort === true
+    const effectiveLowEffort = lowEffortMode || activateLowEffort
+    if (activateLowEffort && !lowEffortMode) {
+      setLowEffortMode(true)
+      try { sessionStorage.setItem('m420_guide_low_effort', '1') } catch {}
+    }
 
-    const userMsg = { role: 'user', content: trimmed }
+    const userMsg = { role: 'user', content: trimmed, displayContent }
     const updated = [...messages, userMsg]
     setMessages(updated)
     saveChat(updated)
@@ -288,6 +300,7 @@ export default function Guide() {
         setMessages(next)
         saveChat(next)
         setThinking(false)
+        sendLockRef.current = false
       }, 300)
       return
     }
@@ -300,11 +313,17 @@ export default function Guide() {
           entryCount,
           tier,
           localModelReady: localModelStatus === 'ready',
+          accessibilityAction: options.accessibilityAction || null,
+          lowEffortMode: effectiveLowEffort,
         },
       })
       if (error) throw error
       const reply = data?.content || data?.response || 'Try again.'
-      const next  = [...updated, { role: 'assistant', content: reply }]
+      if (data?.lowEffortMode === true && !lowEffortMode) {
+        setLowEffortMode(true)
+        try { sessionStorage.setItem('m420_guide_low_effort', '1') } catch {}
+      }
+      const next  = [...updated, { role: 'assistant', content: reply, choices: Array.isArray(data?.choices) ? data.choices : null }]
       setMessages(next)
       saveChat(next)
     } catch {
@@ -313,7 +332,27 @@ export default function Guide() {
       saveChat(next)
     } finally {
       setThinking(false)
+      sendLockRef.current = false
     }
+  }
+
+  function handleAssistAction(action) {
+    const map = {
+      choices: 'Give me choices.',
+      recap: 'I forgot what we were talking about.',
+      simplify: 'Make that simpler.',
+      'too-high': "I'm too high.",
+    }
+    const text = map[action]
+    if (!text) return
+    send(text, { accessibilityAction: action, displayContent: text, activateLowEffort: action === 'too-high' })
+  }
+
+  function handleChoice(choice) {
+    if (choice?.freeText) { inputRef.current?.focus(); return }
+    if (!choice?.value) return
+    const label = String(choice.label || choice.value).replace(/^[A-D]\.\s*/, '')
+    send(choice.value, { displayContent: label })
   }
 
   function handleKeyDown(e) {
@@ -325,6 +364,8 @@ export default function Guide() {
 
   function clearChat() {
     setMessages([])
+    setLowEffortMode(false)
+    try { sessionStorage.removeItem('m420_guide_low_effort') } catch {}
     saveChat([])
     if (guide === 'stoner') return
     setTimeout(() => {
@@ -461,7 +502,16 @@ export default function Guide() {
                     color: S.textPrimary, lineHeight: '1.6',
                     whiteSpace: 'pre-line',
                   }}>
-                    {msg.content}
+                    <div>{msg.content}</div>
+                    {Array.isArray(msg.choices) && msg.choices.length > 0 && (
+                      <div style={{ display: 'grid', gap: '7px', marginTop: '10px' }}>
+                        {msg.choices.map((choice) => (
+                          <button key={choice.id || choice.label} onClick={() => handleChoice(choice)} style={{ minHeight: '40px', textAlign: 'left', padding: '8px 10px', background: S.bg, border: `1px solid ${accent}`, borderRadius: '8px', color: S.textPrimary, fontFamily: fontInter, fontSize: '13px', cursor: 'pointer' }}>
+                            {choice.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div style={{
@@ -473,7 +523,7 @@ export default function Guide() {
                     fontFamily: fontInter, fontSize: '15px',
                     color: S.textPrimary, lineHeight: '1.6',
                   }}>
-                    {msg.content}
+                    {msg.displayContent || msg.content}
                   </div>
                 )}
               </div>
@@ -502,6 +552,19 @@ export default function Guide() {
                 )}
               </div>
             )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', padding: '8px 12px', borderBottom: `1px solid ${S.border}` }}>
+              {[
+                ['choices', 'Give me choices'],
+                ['recap', 'I forgot'],
+                ['simplify', 'Make it simpler'],
+                ['too-high', lowEffortMode ? 'Low-effort mode' : "I'm too high"],
+              ].map(([action, label]) => (
+                <button key={action} onClick={() => handleAssistAction(action)} disabled={thinking} style={{ minHeight: '38px', padding: '7px 8px', background: action === 'too-high' && lowEffortMode ? `${accent}22` : S.bg, border: `1px solid ${action === 'too-high' && lowEffortMode ? accent : S.border}`, borderRadius: '8px', color: action === 'too-high' && lowEffortMode ? accent : S.textSecondary, fontFamily: fontInter, fontSize: '12px', cursor: thinking ? 'default' : 'pointer', opacity: thinking ? 0.55 : 1 }}>
+                  {label}
+                </button>
+              ))}
+            </div>
 
             {/* Clear conversation row */}
             <button

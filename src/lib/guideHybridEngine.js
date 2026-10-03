@@ -52,7 +52,7 @@ function canonicalMessages(messages, canonicalQuestion) {
 }
 
 export async function buildHybridGuideResponse({
-  guide = 'bud', messages = [], entries = [], localModelEnabled = false, modelClient,
+  guide = 'bud', messages = [], entries = [], localModelEnabled = false, lowEffortMode = false, modelClient,
 } = {}) {
   const userText = latestUser(messages)
   const activeCrisis = readCrisisFollowup()
@@ -82,7 +82,7 @@ export async function buildHybridGuideResponse({
 
   try {
     if (supportMode) {
-      const generated = await client.chat({ guide, messages: scopedMessages, supportMode: true })
+      const generated = await client.chat({ guide, messages: scopedMessages, supportMode: true, lowEffortMode })
       return String(generated || '').trim() || emotionalSupportFollowupResponse(guide, userText)
     }
     const decision = await client.classify({ guide, messages: scopedMessages })
@@ -98,7 +98,7 @@ export async function buildHybridGuideResponse({
         })
       }
     }
-    const generated = await client.chat({ guide, messages: scopedMessages })
+    const generated = await client.chat({ guide, messages: scopedMessages, lowEffortMode })
     return String(generated || '').trim() || deterministic()
   } catch {
     return deterministic()

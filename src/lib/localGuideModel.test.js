@@ -104,3 +104,12 @@ test('support mode accepts grounded advice that keeps the conversation open', ()
   const good = 'Depends what you want out of it. Do you want to clear the air, push back, or just make sure it does not happen again?'
   assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, good, { supportMode: true }), null)
 })
+
+test('low-effort mode tells D to use short one-step replies', () => {
+  const prompt = localGuideModelInternals.characterPrompt(GUIDE_CHARACTERS.larry, [
+    { role: 'user', content: "I'm too high." },
+  ], { lowEffortMode: true })
+  assert.match(prompt, /LOW-EFFORT MODE ACTIVE/i)
+  assert.match(prompt, /one idea or question at a time/i)
+  assert.match(prompt, /concrete choices/i)
+})

@@ -1,5 +1,7 @@
 import { SHARED_PROFILE_DEFAULTS } from './sharedPrivacy.js'
 import { buildHybridGuideResponse } from './guideHybridEngine.js'
+import { supportChoiceTurn } from './guideSafety.js'
+import { accessibilityAction, buildAccessibilityTurn } from './guideAccessibility.js'
 import { isLocalGuideModelEnabled, localGuideModelCapability } from './localGuideModel.js'
 
 const STORAGE_PREFIX = 'my420journal_local_v1'
@@ -308,17 +310,22 @@ class LocalQuery {
 }
 
 async function localGuideReply(body = {}) {
+  const guide = body.guide || 'bud'
+  const messages = Array.isArray(body.messages) ? body.messages : []
+  const action = body.accessibilityAction || accessibilityAction(messages.at(-1)?.content || '')
+  const choiceTurn = supportChoiceTurn(guide, messages)
+  if (choiceTurn) return choiceTurn
+  if (action) {
+    const accessTurn = buildAccessibilityTurn({ guide, messages, action })
+    if (accessTurn) return accessTurn
+  }
   const user = getActiveUser()
   const entries = user
     ? readTable('entries').filter((entry) => entry?.user_id === user.id)
     : []
   const localModelEnabled = isLocalGuideModelEnabled() && localGuideModelCapability().supported && body.localModelReady === true
-  return buildHybridGuideResponse({
-    guide: body.guide || 'bud',
-    messages: Array.isArray(body.messages) ? body.messages : [],
-    entries,
-    localModelEnabled,
-  })
+  const content = await buildHybridGuideResponse({ guide, messages, entries, localModelEnabled, lowEffortMode: body.lowEffortMode === true })
+  return { content }
 }
 
 function localPlacesResponse(body = {}) {
@@ -386,7 +393,7 @@ export const localStore = {
   },
   tools: {
     async invoke(name, { body } = {}) {
-      if (name === 'guide-response') return { data: { content: await localGuideReply(body) }, error: null }
+      if (name === 'guide-response') return { data: await localGuideReply(body), error: null }
       if (name === 'place-lookup') return { data: localPlacesResponse(body), error: null }
       return { data: null, error: new Error('Local-only build does not run external tools.') }
     },

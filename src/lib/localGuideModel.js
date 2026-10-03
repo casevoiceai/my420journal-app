@@ -96,7 +96,7 @@ function timelineAnchor(character, messages = []) {
   return ''
 }
 
-function characterPrompt(character, messages = [], { supportMode = false } = {}) {
+function characterPrompt(character, messages = [], { supportMode = false, lowEffortMode = false } = {}) {
   const spouse = character.formerSpouse
     ? `Former spouse hard canon: ${character.formerSpouse.status} ${character.formerSpouse.summary}`
     : ''
@@ -124,6 +124,7 @@ function characterPrompt(character, messages = [], { supportMode = false } = {})
     'SENSITIVITY RULE: Match the emotional weight of the user. For vulnerable or serious subjects, reduce the shtick and respond warmly in character.',
     'SUPPORT CONVERSATION RULE: When the user is upset, listen before fixing. Do not revive an unrelated earlier topic unless the user brings it back. Do not invent a matching hardship from your own life just to relate. Avoid canned optimism such as take a deep breath, tomorrow is a new day, everything happens for a reason, or look on the bright side. Reflect what the user actually said and ask whether they want to talk, vent, or problem-solve.',
     supportMode ? 'SUPPORT THREAD ACTIVE: This is an ongoing emotional conversation, not a fresh generic question. Stay with what the user actually said. Reflect before advising. Ask one natural open-ended question in most replies. If the user asks what they should do, offer a few grounded options and ask what outcome they want. Never invent a mistake, fault, lesson, or silver lining the user did not state.' : '',
+    lowEffortMode ? 'LOW-EFFORT MODE ACTIVE: The user has said they are too high or explicitly asked for reduced cognitive load. Use short sentences. One idea or question at a time. Prefer concrete choices over open-ended demands. Do not lecture, joke heavily, or give multi-step plans. Keep the tone calm and adult.' : '',
     'You may answer ordinary general-knowledge questions and form ordinary opinions consistent with the character. If unsure of a factual claim, say so naturally rather than bluffing.',
     'Never invent facts about the user, their journal, or cannabis products. Those are handled by controlled local data.',
     'Do not diagnose, prescribe, choose a cannabis product, or tell the user what dose to use.',
@@ -163,15 +164,15 @@ function generatedReplyViolation(character, messages = [], reply = '', { support
   return null
 }
 
-export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], onProgress, supportMode = false } = {}) {
+export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], onProgress, supportMode = false, lowEffortMode = false } = {}) {
   const character = GUIDE_CHARACTERS[guide] || GUIDE_CHARACTERS.bud
   const runtime = await loadLocalGuideModel({ onProgress })
   const recent = messages.slice(-10).map((m) => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: String(m.content || ''),
   }))
-  const system = characterPrompt(character, recent, { supportMode })
-  const options = { temperature: supportMode ? 0.55 : 0.68, top_p: 0.88, max_tokens: 220 }
+  const system = characterPrompt(character, recent, { supportMode, lowEffortMode })
+  const options = { temperature: supportMode ? 0.55 : 0.68, top_p: 0.88, max_tokens: lowEffortMode ? 100 : 220 }
   const result = await runtime.complete({ messages: [{ role: 'system', content: system }, ...recent], ...options })
   let reply = String(result?.choices?.[0]?.message?.content || '').trim()
   const violation = generatedReplyViolation(character, recent, reply, { supportMode })
