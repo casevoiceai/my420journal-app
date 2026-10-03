@@ -117,3 +117,12 @@ test('not okay after a crisis check-in advances instead of looping', async () =>
   assert.match(reply, /real person|safe/i)
   assert.doesNotMatch(reply, /how are you feeling right now/i)
 })
+
+
+test('voice-transcription dropout still recognizes ordinary anxiety as human support', () => {
+  for (const text of ["'m anxious about my meeting tomorrow", 'anxious about my meeting tomorrow']) {
+    const result = detectGuideSafety(text)
+    assert.equal(result.level, 'emotional')
+    assert.equal(result.kind, 'human-support')
+  }
+})

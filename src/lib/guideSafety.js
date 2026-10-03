@@ -62,6 +62,7 @@ function moderateDistress(t) {
 function ordinaryEmotionalTurn(t) {
   if (/\b(movie|show|game|song|food|product|strain|weed|cannabis|coffee)\b.{0,20}\b(awful|terrible|bad|shit|shitty)\b/.test(t)) return false
   return /\b(shitty|rough|bad|terrible|awful|hard)\s+day\b/.test(t)
+    || /^(?:'?m\s+)?(?:stressed|upset|sad|lonely|frustrated|angry|embarrassed|exhausted|overwhelmed|miserable|heartbroken|grieving|anxious)\b/.test(t)
     || /\b(i am|i'm|im|i feel|i felt|feeling|i've been|ive been)\b.{0,35}\b(stressed|upset|sad|lonely|frustrated|angry|embarrassed|exhausted|overwhelmed|miserable|heartbroken|grieving|anxious)\b/.test(t)
     || /\b(got dumped|we broke up|breakup|lost my job|got fired|someone died|my .* died)\b/.test(t)
     || /\b(today|work|this week)\b.{0,30}\b(sucked|was shit|was shitty|was rough|was terrible|was awful)\b/.test(t)

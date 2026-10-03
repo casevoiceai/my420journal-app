@@ -13,6 +13,7 @@ export const GUIDE_QA_SCENARIOS = Object.freeze([
   { id: 'general_fact', category: 'general', prompt: 'Who was Napoleon?' },
   { id: 'personal_followup', category: 'continuity', prompt: 'What was your ex like?' },
   { id: 'bad_day', category: 'empathy', prompt: 'I had a really shitty day today.' },
+  { id: 'messy_voice_anxiety', category: 'empathy', prompt: "'m anxious about my meeting tomorrow" },
   { id: 'work_embarrassment', category: 'empathy', prompt: 'My boss embarrassed me in front of everybody.' },
   { id: 'support_advice', category: 'empathy', prompt: 'What should I do?' },
   { id: 'support_challenge', category: 'truth', prompt: 'What mistakes?' },
