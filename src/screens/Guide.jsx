@@ -401,6 +401,9 @@ export default function Guide() {
   }
 
   const canSend = input.trim().length > 0 && !thinking
+  const activeChoices = !thinking && !input.trim() && !suggestionsDismissed && Array.isArray(messages.at(-1)?.choices)
+    ? messages.at(-1).choices
+    : []
 
   if (!loaded) {
     return <div style={{ minHeight: '100dvh', backgroundColor: S.bg }} />
@@ -506,15 +509,6 @@ export default function Guide() {
                     whiteSpace: 'pre-line',
                   }}>
                     <div>{msg.content}</div>
-                    {Array.isArray(msg.choices) && msg.choices.length > 0 && i === messages.length - 1 && !thinking && !input.trim() && !suggestionsDismissed && (
-                      <div style={{ display: 'grid', gap: '7px', marginTop: '10px' }}>
-                        {msg.choices.map((choice) => (
-                          <button key={choice.id || choice.label} onClick={() => handleChoice(choice)} style={{ minHeight: '40px', textAlign: 'left', padding: '8px 10px', background: S.bg, border: `1px solid ${accent}`, borderRadius: '8px', color: S.textPrimary, fontFamily: fontInter, fontSize: '13px', cursor: 'pointer' }}>
-                            {choice.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div style={{
@@ -571,6 +565,20 @@ export default function Guide() {
               }}>
               Clear conversation
             </button>
+
+            {activeChoices.length > 0 && (
+              <div aria-label="Optional reply suggestions" style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', padding: '10px 16px 0' }}>
+                {activeChoices.map((choice) => (
+                  <button
+                    key={choice.id || choice.label}
+                    onClick={() => handleChoice(choice)}
+                    style={{ minHeight: '36px', textAlign: 'left', padding: '7px 11px', background: S.bg, border: `1px solid ${accent}`, borderRadius: '18px', color: S.textPrimary, fontFamily: fontInter, fontSize: '13px', cursor: 'pointer' }}
+                  >
+                    {choice.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Input row */}
             <div style={{

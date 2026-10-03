@@ -117,22 +117,20 @@ test('serious conversation suppresses playful branching and keeps a low-effort o
   assert.match(labels, /stay with me/i)
 })
 
-test('long Guide response can offer only simplify with free text still available in the composer', () => {
-  const longReply = `${'This is a fairly long explanation with several details. '.repeat(7)}What part do you want to dig into?`
+test('long Guide responses do not manufacture a simplify control', () => {
+  const longReply = `${'This is a fairly long explanation with several details. '.repeat(7)}That is the short version.`
   const turn = buildContextualBranches({ guide: 'herb', messages: [{ role: 'user', content: 'Explain this to me.' }], assistantText: longReply })
-  assert.equal(turn.length, 1)
-  assert.match(turn[0].label, /Make that simpler/i)
+  assert.equal(turn, null)
 })
 
-test('longer conversations can offer only recap when there is no other clear fork', () => {
+test('longer conversations do not manufacture a recap control', () => {
   const messages = [
     { role: 'user', content: 'First thing.' }, { role: 'assistant', content: 'Okay.' },
     { role: 'user', content: 'Second thing.' }, { role: 'assistant', content: 'Got it.' },
     { role: 'user', content: 'Third thing.' },
   ]
-  const turn = buildContextualBranches({ guide: 'mary', messages, assistantText: 'Where do you want to go from here?' })
-  assert.equal(turn.length, 1)
-  assert.match(turn[0].label, /Remind me where we were/i)
+  const turn = buildContextualBranches({ guide: 'mary', messages, assistantText: 'Fair enough.' })
+  assert.equal(turn, null)
 })
 
 test('model-suggested branches keep specific labels and reject generic filler', () => {

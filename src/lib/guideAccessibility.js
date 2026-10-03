@@ -92,12 +92,10 @@ export function buildContextualBranches({ guide = 'bud', messages = [], assistan
   if (['level2', 'level3'].includes(safety.level) || lowEffortMode) return null
   const support = safety.level === 'emotional' || emotionalThreadState(messages).active
   const question = lastQuestion(reply)
-  const longThread = messages.filter((m) => m?.role === 'user').length >= 3
-  const utility = reply.length > 260
-    ? { id: 'simplify', label: 'Make that simpler', value: 'Make that simpler.' }
-    : longThread ? { id: 'recap', label: 'Remind me where we were', value: 'I forgot what we were talking about.' } : null
 
-  if (!question) return utility ? [utility] : null
+  // Ordinary chat should not manufacture navigation or rewrite controls.
+  // Explicit accessibility requests for recap/simplify are handled separately.
+  if (!question) return null
 
   let choices = []
   if (support) {
@@ -116,7 +114,6 @@ export function buildContextualBranches({ guide = 'bud', messages = [], assistan
   if ((support || seriousNoSilly(messages)) && choices.length > 0 && choices.length < 3) {
     choices.push({ id: 'company', label: 'Just stay with me', value: 'Just stay with me for a minute. Keep it simple and do not try to fix anything yet.' })
   }
-  if (utility && choices.length < 5) choices.push(utility)
   if (choices.length === 0) return null
   return choices.slice(0, 5)
 }
