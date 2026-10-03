@@ -78,9 +78,10 @@ test('either-or Guide questions become response-specific branches without a synt
     guide: 'larry', messages: [{ role: 'user', content: 'My boss embarrassed me in front of everybody.' }],
     assistantText: 'Was it the criticism itself, or the way they did it?'
   })
-  assert.equal(turn.length, 2)
+  assert.equal(turn.length, 3)
   assert.match(turn[0].label, /criticism itself/i)
   assert.match(turn[1].label, /way they did it/i)
+  assert.match(turn[2].label, /stay with me/i)
   assert.equal(turn.some((x) => x.freeText), false)
 })
 
