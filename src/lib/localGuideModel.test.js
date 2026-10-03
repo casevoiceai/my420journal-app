@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { localGuideModelCapability, isLocalGuideModelEnabled, setLocalGuideModelEnabled, LOCAL_GUIDE_MODEL } from './localGuideModel.js'
+import { localGuideModelCapability, isLocalGuideModelEnabled, setLocalGuideModelEnabled, LOCAL_GUIDE_MODEL, localGuideModelInternals } from './localGuideModel.js'
+import { GUIDE_CHARACTERS } from './guideCharacters.js'
 
 function fakeStorage() {
   const values = new Map()
@@ -45,4 +46,31 @@ test('prototype model metadata keeps the download visible to UI', () => {
   assert.equal(LOCAL_GUIDE_MODEL.file, 'smollm2-1.7b-instruct-q4_k_m.gguf')
   assert.ok(LOCAL_GUIDE_MODEL.approximateDownloadMB >= 1000)
   assert.equal(LOCAL_GUIDE_MODEL.license, 'Apache-2.0')
+})
+
+
+test('Larry prompt carries voice, soft-fiction permission, and a correct 1980s timeline anchor', () => {
+  const prompt = localGuideModelInternals.characterPrompt(GUIDE_CHARACTERS.larry, [{ role: 'user', content: 'You remember the 1980s soda wars?' }])
+  assert.match(prompt, /VOICE SIGNATURE: Older storyteller/i)
+  assert.match(prompt, /SOFT-FICTION RULE/i)
+  assert.match(prompt, /ENTITY-SEPARATION RULE/i)
+  assert.match(prompt, /roughly 21 to 31/i)
+})
+
+test('logic guard rejects impossible decade age claims', () => {
+  const messages = [{ role: 'user', content: 'You remember the 1980s soda wars?' }]
+  const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, 'I was a teenager then, buying records every weekend.')
+  assert.match(reason, /timeline contradiction/i)
+})
+
+test('logic guard rejects turning a user brand into an invented workplace', () => {
+  const messages = [{ role: 'user', content: 'Coke or Pepsi?' }]
+  const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, 'I worked at a Pepsi record store back then.')
+  assert.match(reason, /invented biography/i)
+})
+
+test('logic guard permits plausible low-stakes color that respects hard canon', () => {
+  const messages = [{ role: 'user', content: 'You remember the 1980s soda wars? Coke or Pepsi?' }]
+  const reply = 'Coke, if you are making me pick. I remember those ads being everywhere. I was already working at the print shop by then, and people argued about cola like it was a blood oath.'
+  assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, reply), null)
 })

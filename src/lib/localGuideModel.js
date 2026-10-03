@@ -77,26 +77,77 @@ export async function classifyWithLocalGuideModel({ guide = 'bud', messages = []
   try { return normalizeSemanticDecision(JSON.parse(content)) } catch { return normalizeSemanticDecision() }
 }
 
-function characterPrompt(character) {
+function timelineAnchor(character, messages = []) {
+  const birthYear = Number(String(character.birthDate || '').slice(0, 4))
+  if (!birthYear) return ''
+  const text = messages.slice(-6).map((m) => String(m?.content || '')).join(' ')
+  const decade = text.match(/\b((?:19|20)\d0)s\b/)
+  if (decade) {
+    const startYear = Number(decade[1])
+    const endYear = startYear + 9
+    return `Timeline anchor for this question: born ${birthYear}; during the ${startYear}s you were roughly ${startYear - birthYear - 1} to ${endYear - birthYear}. Do not describe yourself as an age or life stage outside that range.`
+  }
+  const year = text.match(/\b((?:19|20)\d{2})\b/)
+  if (year) {
+    const y = Number(year[1])
+    return `Timeline anchor for this question: born ${birthYear}; in ${y} you were about ${y - birthYear - 1} to ${y - birthYear}. Keep any memory consistent with that age.`
+  }
+  return ''
+}
+
+function characterPrompt(character, messages = []) {
   const spouse = character.formerSpouse
-    ? `Former spouse: ${character.formerSpouse.status} ${character.formerSpouse.summary}`
+    ? `Former spouse hard canon: ${character.formerSpouse.status} ${character.formerSpouse.summary}`
     : ''
+  const timeline = timelineAnchor(character, messages)
   return [
     `You are ${character.name}, a fictional Guide in My420Journal.`,
-    `Core biography: ${character.bio}`,
-    `Family: ${character.family}`,
-    `Interests: ${character.interests.join(', ')}.`,
-    `Likes: ${character.likes}.`,
-    `Dislikes: ${character.dislikes}.`,
+    `VOICE SIGNATURE: ${character.voiceSignature || character.archetype}. Make this noticeably present in normal conversation.`,
+    `HARD CANON BIOGRAPHY: ${character.bio}`,
+    `HARD CANON FAMILY: ${character.family}`,
+    `HARD CANON BIRTHDAY: ${character.birthday}. Hometown: ${character.hometown}. Current home: ${character.currentHome}.`,
+    character.topics?.work ? `HARD CANON WORK BACKGROUND: ${character.topics.work}` : '',
     spouse,
-    'Speak like a real person in this established character, not like software or a character sheet.',
-    'You may answer ordinary general-knowledge questions and express normal opinions consistent with this character.',
-    'Never invent new biographical events, relatives, dates, jobs, medical history, or cannabis experiences for the Guide.',
+    timeline,
+    `Established interests: ${character.interests.join(', ')}.`,
+    `Established likes: ${character.likes}.`,
+    `Established dislikes: ${character.dislikes}.`,
+    character.stories?.[0]?.[1] ? `VOICE EXAMPLE - STORY RHYTHM: ${character.stories[0][1]}` : '',
+    character.unknown?.[0] ? `VOICE EXAMPLE - HONEST UNKNOWN: ${character.unknown[0]}` : '',
+    character.topics?.movies ? `VOICE EXAMPLE - ORDINARY OPINION: ${character.topics.movies}` : '',
+    'HARD CANON RULE: Never contradict, rename, merge, or embellish hard-canon jobs, relatives, marriages, hometowns, dates, or major life events.',
+    'ENTITY-SEPARATION RULE: Words and brands in the user question are conversation subjects, not pieces of your biography. Never turn Coke, Pepsi, a movie title, a band, a product, or another named thing from the user into your employer, relative, hometown, or past job unless hard canon explicitly says so.',
+    'SOFT-FICTION RULE: You may invent low-stakes fictional color when it makes conversation feel human: a plausible small memory, sensory detail, minor mishap, joke, reaction, or opinion. It must fit the hard canon and timeline and must not create a new lasting biographical fact.',
+    'CHARACTER RULE: Do not answer like an encyclopedia with a character name pasted on top. Answer the question, then let your humor, sensitivity, habits, metaphors, memories, skepticism, enthusiasm, or quirks naturally show. One or two strong character touches are better than a gimmick in every sentence.',
+    'LOW-STAKES OPINION RULE: When the user asks a harmless preference or forced choice, choose naturally when you can, explain it briefly in character, and have a little fun. Do not hide behind generic expert disclaimers.',
+    'SENSITIVITY RULE: Match the emotional weight of the user. For vulnerable or serious subjects, reduce the shtick and respond warmly in character.',
+    'You may answer ordinary general-knowledge questions and form ordinary opinions consistent with the character. If unsure of a factual claim, say so naturally rather than bluffing.',
     'Never invent facts about the user, their journal, or cannabis products. Those are handled by controlled local data.',
-    'If asked for a missing personal biographical fact, say you do not know or have never settled that detail, naturally in character.',
     'Do not diagnose, prescribe, choose a cannabis product, or tell the user what dose to use.',
+    'Never describe yourself as AI, software, a prompt, canon data, or a character sheet.',
     'Keep responses conversational and usually under 120 words unless the user asks for detail.',
   ].filter(Boolean).join('\n')
+}
+
+function generatedReplyViolation(character, messages = [], reply = '') {
+  const userText = latestUser(messages)
+  const decade = userText.match(/\b((?:19|20)\d0)s\b/)
+  const birthYear = Number(String(character.birthDate || '').slice(0, 4))
+  if (decade && birthYear && /\b(?:teenager|teenage|in high school)\b/i.test(reply)) {
+    const startYear = Number(decade[1])
+    const minAge = startYear - birthYear - 1
+    const maxAge = startYear + 9 - birthYear
+    if (minAge > 19 || maxAge < 13) return `timeline contradiction: you were roughly ${minAge}-${maxAge} in the ${startYear}s, not a teenager`
+  }
+  const hardCanon = `${character.bio} ${character.family} ${character.topics?.work || ''}`.toLowerCase()
+  const candidates = [...userText.matchAll(/\b[A-Z][A-Za-z0-9&'.-]{2,}\b/g)].map((m) => m[0]).filter((v, i, a) => a.indexOf(v) === i)
+  for (const name of candidates) {
+    if (hardCanon.includes(name.toLowerCase())) continue
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const workMashup = new RegExp(`(?:worked|working|job|employed|work\\s+at|work\\s+for).{0,35}\\b${escaped}\\b|\\b${escaped}\\b.{0,25}(?:record store|print shop|warehouse|cafe|library|lab|shop|store)`, 'i')
+    if (workMashup.test(reply)) return `invented biography: ${name} from the user question was turned into a workplace or employer`
+  }
+  return null
 }
 
 export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], onProgress } = {}) {
@@ -106,15 +157,22 @@ export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], on
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: String(m.content || ''),
   }))
-  const result = await runtime.complete({
-    messages: [{ role: 'system', content: characterPrompt(character) }, ...recent],
-    temperature: 0.75,
-    top_p: 0.9,
-    max_tokens: 220,
-  })
-  return String(result?.choices?.[0]?.message?.content || '').trim()
+  const system = characterPrompt(character, recent)
+  const options = { temperature: 0.68, top_p: 0.88, max_tokens: 220 }
+  const result = await runtime.complete({ messages: [{ role: 'system', content: system }, ...recent], ...options })
+  let reply = String(result?.choices?.[0]?.message?.content || '').trim()
+  const violation = generatedReplyViolation(character, recent, reply)
+  if (violation) {
+    const correction = `${system}\nCORRECTION: A previous draft was rejected for ${violation}. Rewrite from scratch. Keep the answer lively and in character, but do not repeat that contradiction.`
+    const retry = await runtime.complete({ messages: [{ role: 'system', content: correction }, ...recent], ...options })
+    reply = String(retry?.choices?.[0]?.message?.content || '').trim()
+    if (generatedReplyViolation(character, recent, reply)) return character.unknown?.[0] || "I don't know that one."
+  }
+  return reply
 }
 
 export function resetLocalGuideModelForTests() {
   enginePromise = null
 }
+
+export const localGuideModelInternals = { characterPrompt, timelineAnchor, generatedReplyViolation }
