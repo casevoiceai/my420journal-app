@@ -74,3 +74,13 @@ test('logic guard permits plausible low-stakes color that respects hard canon', 
   const reply = 'Coke, if you are making me pick. I remember those ads being everywhere. I was already working at the print shop by then, and people argued about cola like it was a blood oath.'
   assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, reply), null)
 })
+
+test('Guide prompt treats emotional turns as listening, not forced optimism', () => {
+  const prompt = localGuideModelInternals.characterPrompt(GUIDE_CHARACTERS.larry, [
+    { role: 'user', content: 'I had a really shitty day today.' },
+  ])
+  assert.match(prompt, /listen before fixing/i)
+  assert.match(prompt, /do not revive an unrelated earlier topic/i)
+  assert.match(prompt, /tomorrow is a new day/i)
+  assert.match(prompt, /do not invent a matching hardship/i)
+})

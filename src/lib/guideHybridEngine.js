@@ -1,6 +1,16 @@
 import { buildGuideResponse } from './guideEngine.js'
 import { semanticDecisionToCanonicalQuestion } from './guideSemanticModel.js'
 import { classifyWithLocalGuideModel, chatWithLocalGuideModel } from './localGuideModel.js'
+import {
+  detectGuideSafetyForConversation,
+  emotionalSupportResponse,
+  crisisResponse,
+  activateCrisisFollowup,
+  conversationAfterEmotionalShift,
+  readCrisisFollowup,
+  clearCrisisFollowup,
+  isCrisisFollowupDismissal,
+} from './guideSafety.js'
 
 function latestUser(messages = []) {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
@@ -18,7 +28,6 @@ function forceControlledBoundary(text = '') {
 function normalizeText(value = '') {
   return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ')
 }
-
 function journalDecisionIsGrounded(decision = {}, text = '', entries = []) {
   if (decision?.route !== 'journal') return true
   const t = normalizeText(text)
@@ -43,9 +52,23 @@ function canonicalMessages(messages, canonicalQuestion) {
 export async function buildHybridGuideResponse({
   guide = 'bud', messages = [], entries = [], localModelEnabled = false, modelClient,
 } = {}) {
-  const deterministic = () => buildGuideResponse({ guide, messages, entries })
+  const userText = latestUser(messages)
+  const activeCrisis = readCrisisFollowup()
+  if (activeCrisis && isCrisisFollowupDismissal(userText)) {
+    clearCrisisFollowup()
+    return "Okay. I’ll stop the extra check-ins. If that changes, tell me."
+  }
+  const safety = detectGuideSafetyForConversation(messages)
+  const scopedMessages = conversationAfterEmotionalShift(messages)
+  const deterministic = (inputMessages = scopedMessages) => buildGuideResponse({ guide, messages: inputMessages, entries })
+  if (safety.level === 'emotional') return emotionalSupportResponse(guide)
+  if (safety.level === 'level2' || safety.level === 'level3') {
+    if (!activeCrisis) activateCrisisFollowup({ guide, level: safety.level })
+    return crisisResponse(guide, safety)
+  }
+
+  if (forceControlledBoundary(userText)) return deterministic()
   if (!localModelEnabled || guide === 'stoner') return deterministic()
-  if (forceControlledBoundary(latestUser(messages))) return deterministic()
 
   const client = modelClient || {
     classify: (payload) => classifyWithLocalGuideModel(payload),
@@ -53,21 +76,20 @@ export async function buildHybridGuideResponse({
   }
 
   try {
-    const decision = await client.classify({ guide, messages })
-    const grounded = journalDecisionIsGrounded(decision, latestUser(messages), entries)
+    const decision = await client.classify({ guide, messages: scopedMessages })
+    const grounded = journalDecisionIsGrounded(decision, latestUser(scopedMessages), entries)
     const conversationalPreference = decision?.route === 'character' && decision?.intent === 'topic_preference'
     if (grounded && !conversationalPreference && decision?.route !== 'general' && Number(decision?.confidence || 0) >= 0.55) {
       const canonical = semanticDecisionToCanonicalQuestion(decision)
       if (canonical) {
         return buildGuideResponse({
           guide,
-          messages: canonicalMessages(messages, canonical),
+          messages: canonicalMessages(scopedMessages, canonical),
           entries,
         })
       }
     }
-
-    const generated = await client.chat({ guide, messages })
+    const generated = await client.chat({ guide, messages: scopedMessages })
     return String(generated || '').trim() || deterministic()
   } catch {
     return deterministic()

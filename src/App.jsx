@@ -4,6 +4,7 @@ import { localStore } from './lib/localStore'
 import { clearPinUnlock, hasPin, isPinUnlocked } from './lib/pin'
 import { isDevMode } from './lib/dev'
 import { hasStoredMarketAccess } from './lib/residence'
+import { stageCrisisFollowupOnAppOpen } from './lib/guideSafety'
 import AgeGate from './screens/AgeGate'
 import Signup from './screens/Signup'
 import Login from './screens/Login'
@@ -287,6 +288,7 @@ function JournalAccessGuard() {
 export default function App() {
   useEffect(() => {
     retryQueuedSharedContributions()
+    stageCrisisFollowupOnAppOpen()
   }, [])
 
   return (

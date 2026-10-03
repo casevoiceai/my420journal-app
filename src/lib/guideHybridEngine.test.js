@@ -96,3 +96,44 @@ test('medical and product-choice boundaries bypass the local model', async () =>
   assert.match(result, /can't diagnose|dose/i)
   assert.equal(calls, 0)
 })
+test('a bad-day emotional turn bypasses D and drops the old topic', async () => {
+  let calls = 0
+  const client = {
+    classify: async () => { calls += 1; return { route: 'general', confidence: 0.9 } },
+    chat: async () => { calls += 1; return 'Pepsi callback that should never appear.' },
+  }
+  const messages = [
+    { role: 'user', content: 'Coke or Pepsi?' },
+    { role: 'assistant', content: 'Coke, if you make me pick.' },
+    { role: 'user', content: 'I had a really shitty day today.' },
+  ]
+  const result = await buildHybridGuideResponse({ guide: 'larry', messages, entries, localModelEnabled: true, modelClient: client })
+  assert.match(result, /rough day/i)
+  assert.match(result, /vent|tell me/i)
+  assert.doesNotMatch(result, /coke|pepsi|soda|deep breath|tomorrow/i)
+  assert.equal(calls, 0)
+})
+
+test('moderate distress bypasses D for a direct current-state check', async () => {
+  let calls = 0
+  const client = { classify: async () => { calls += 1 }, chat: async () => { calls += 1 } }
+  const result = await buildHybridGuideResponse({
+    guide: 'larry', messages: [{ role: 'user', content: 'I am shaking and really scared.' }], entries,
+    localModelEnabled: true, modelClient: client,
+  })
+  assert.match(result, /right now|now/i)
+  assert.equal(calls, 0)
+})
+test('explicit high-risk language bypasses D and character roleplay', async () => {
+  let calls = 0
+  const client = { classify: async () => { calls += 1 }, chat: async () => { calls += 1 } }
+  const result = await buildHybridGuideResponse({
+    guide: 'larry', messages: [{ role: 'user', content: 'I want to kill myself.' }], entries,
+    localModelEnabled: true, modelClient: client,
+  })
+  assert.match(result, /local AI Guide/i)
+  assert.match(result, /988/)
+  assert.match(result, /911/)
+  assert.doesNotMatch(result, /records|notebooks|garden/i)
+  assert.equal(calls, 0)
+})

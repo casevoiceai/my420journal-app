@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
 import { LOCAL_GUIDE_MODEL, isLocalGuideModelEnabled, setLocalGuideModelEnabled, localGuideModelCapability, loadLocalGuideModel } from '../lib/localGuideModel'
+import { consumePendingCrisisFollowup, crisisFollowupMessage } from '../lib/guideSafety'
 
 const S = {
   bg: '#0A1A0A',
@@ -204,6 +205,17 @@ export default function Guide() {
       setTier(t)
 
       const stored = loadChat()
+      const pendingCrisis = consumePendingCrisisFollowup()
+      if (pendingCrisis) {
+        const sourceName = GUIDE_META[pendingCrisis.guide]?.name || 'Your Guide'
+        const checkInText = crisisFollowupMessage(pendingCrisis)
+        const content = pendingCrisis.guide === guideKey ? checkInText : `${sourceName} checking in: ${checkInText}`
+        const next = [...stored, { role: 'assistant', content }]
+        setMessages(next)
+        saveChat(next)
+        setLoaded(true)
+        return
+      }
       if (stored.length > 0) {
         setMessages(stored)
         setLoaded(true)
