@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { accessibilityAction, buildAccessibilityTurn } from './guideAccessibility.js'
+import { accessibilityAction, buildAccessibilityTurn, buildContextualBranches } from './guideAccessibility.js'
 
 const history = [
   { role: 'assistant', content: 'Hey. What happened?' },
@@ -60,4 +60,41 @@ test('direct Give me choices outside an emotional thread does not use support ch
     { role: 'user', content: 'Give me choices.' },
   ])
   assert.equal(turn, null)
+})
+
+
+test('contextual RPG branches appear only after a Guide question', () => {
+  const noQuestion = buildContextualBranches({ guide: 'larry', messages: [{ role: 'user', content: 'Tell me about Napoleon.' }], assistantText: 'Napoleon was Emperor of France.' })
+  assert.equal(noQuestion, null)
+  const turn = buildContextualBranches({ guide: 'larry', messages: [{ role: 'user', content: 'I like old records.' }], assistantText: 'Now you are speaking my language. What do you listen to most?' })
+  assert.equal(turn.length, 4)
+  assert.equal(turn[3].freeText, true)
+  assert.match(turn[3].label, /say it myself/i)
+})
+
+test('Larry contextual branches include a Larry-flavored absurd option', () => {
+  const turn = buildContextualBranches({ guide: 'larry', messages: [{ role: 'user', content: 'My cat knocked over my drink.' }], assistantText: 'That cat has opinions. What happened next?' })
+  assert.match(turn[2].label, /Larry.*ridiculous/i)
+  assert.match(turn[2].value, /playful/i)
+})
+
+test('serious conversation replaces the silly branch with a sensible option', () => {
+  const turn = buildContextualBranches({ guide: 'larry', messages: [{ role: 'user', content: 'My friend died yesterday.' }], assistantText: 'I am sorry. Do you want to tell me about them?' })
+  assert.doesNotMatch(turn[2].label, /ridiculous|silly/i)
+  assert.match(turn[2].label, /stay with me/i)
+})
+test('long Guide questions surface Make that simpler contextually', () => {
+  const longReply = `${'This is a fairly long explanation with several details. '.repeat(7)}What part do you want to dig into?`
+  const turn = buildContextualBranches({ guide: 'herb', messages: [{ role: 'user', content: 'Explain this to me.' }], assistantText: longReply })
+  assert.match(turn[1].label, /Make that simpler/i)
+})
+
+test('longer conversations can surface a recap branch', () => {
+  const messages = [
+    { role: 'user', content: 'First thing.' }, { role: 'assistant', content: 'Okay.' },
+    { role: 'user', content: 'Second thing.' }, { role: 'assistant', content: 'Got it.' },
+    { role: 'user', content: 'Third thing.' },
+  ]
+  const turn = buildContextualBranches({ guide: 'mary', messages, assistantText: 'Where do you want to go from here?' })
+  assert.match(turn[1].label, /Remind me where we were/i)
 })

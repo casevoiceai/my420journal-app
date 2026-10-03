@@ -286,7 +286,8 @@ export default function Guide() {
     }
 
     const userMsg = { role: 'user', content: trimmed, displayContent }
-    const updated = [...messages, userMsg]
+    const baseMessages = messages.map((m) => m?.choices ? { ...m, choices: null } : m)
+    const updated = [...baseMessages, userMsg]
     setMessages(updated)
     saveChat(updated)
     setInput('')
@@ -336,20 +337,14 @@ export default function Guide() {
     }
   }
 
-  function handleAssistAction(action) {
-    const map = {
-      choices: 'Give me choices.',
-      recap: 'I forgot what we were talking about.',
-      simplify: 'Make that simpler.',
-      'too-high': "I'm too high.",
-    }
-    const text = map[action]
-    if (!text) return
-    send(text, { accessibilityAction: action, displayContent: text, activateLowEffort: action === 'too-high' })
-  }
-
   function handleChoice(choice) {
-    if (choice?.freeText) { inputRef.current?.focus(); return }
+    if (choice?.freeText) {
+      const cleared = messages.map((m, i) => i === messages.length - 1 ? { ...m, choices: null } : m)
+      setMessages(cleared)
+      saveChat(cleared)
+      setTimeout(() => inputRef.current?.focus(), 0)
+      return
+    }
     if (!choice?.value) return
     const label = String(choice.label || choice.value).replace(/^[A-D]\.\s*/, '')
     send(choice.value, { displayContent: label })
@@ -503,7 +498,7 @@ export default function Guide() {
                     whiteSpace: 'pre-line',
                   }}>
                     <div>{msg.content}</div>
-                    {Array.isArray(msg.choices) && msg.choices.length > 0 && (
+                    {Array.isArray(msg.choices) && msg.choices.length > 0 && i === messages.length - 1 && !thinking && !input.trim() && (
                       <div style={{ display: 'grid', gap: '7px', marginTop: '10px' }}>
                         {msg.choices.map((choice) => (
                           <button key={choice.id || choice.label} onClick={() => handleChoice(choice)} style={{ minHeight: '40px', textAlign: 'left', padding: '8px 10px', background: S.bg, border: `1px solid ${accent}`, borderRadius: '8px', color: S.textPrimary, fontFamily: fontInter, fontSize: '13px', cursor: 'pointer' }}>
@@ -552,19 +547,6 @@ export default function Guide() {
                 )}
               </div>
             )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', padding: '8px 12px', borderBottom: `1px solid ${S.border}` }}>
-              {[
-                ['choices', 'Give me choices'],
-                ['recap', 'I forgot'],
-                ['simplify', 'Make it simpler'],
-                ['too-high', lowEffortMode ? 'Low-effort mode' : "I'm too high"],
-              ].map(([action, label]) => (
-                <button key={action} onClick={() => handleAssistAction(action)} disabled={thinking} style={{ minHeight: '38px', padding: '7px 8px', background: action === 'too-high' && lowEffortMode ? `${accent}22` : S.bg, border: `1px solid ${action === 'too-high' && lowEffortMode ? accent : S.border}`, borderRadius: '8px', color: action === 'too-high' && lowEffortMode ? accent : S.textSecondary, fontFamily: fontInter, fontSize: '12px', cursor: thinking ? 'default' : 'pointer', opacity: thinking ? 0.55 : 1 }}>
-                  {label}
-                </button>
-              ))}
-            </div>
 
             {/* Clear conversation row */}
             <button

@@ -1,7 +1,7 @@
 import { SHARED_PROFILE_DEFAULTS } from './sharedPrivacy.js'
 import { buildHybridGuideResponse } from './guideHybridEngine.js'
 import { supportChoiceTurn } from './guideSafety.js'
-import { accessibilityAction, buildAccessibilityTurn } from './guideAccessibility.js'
+import { accessibilityAction, buildAccessibilityTurn, buildContextualBranches } from './guideAccessibility.js'
 import { isLocalGuideModelEnabled, localGuideModelCapability } from './localGuideModel.js'
 
 const STORAGE_PREFIX = 'my420journal_local_v1'
@@ -324,8 +324,10 @@ async function localGuideReply(body = {}) {
     ? readTable('entries').filter((entry) => entry?.user_id === user.id)
     : []
   const localModelEnabled = isLocalGuideModelEnabled() && localGuideModelCapability().supported && body.localModelReady === true
-  const content = await buildHybridGuideResponse({ guide, messages, entries, localModelEnabled, lowEffortMode: body.lowEffortMode === true })
-  return { content }
+  const lowEffortMode = body.lowEffortMode === true
+  const content = await buildHybridGuideResponse({ guide, messages, entries, localModelEnabled, lowEffortMode })
+  const choices = buildContextualBranches({ guide, messages, assistantText: content, lowEffortMode })
+  return { content, choices }
 }
 
 function localPlacesResponse(body = {}) {

@@ -1,4 +1,4 @@
-import { emotionalThreadState } from './guideSafety.js'
+import { emotionalThreadState, detectGuideSafetyForConversation } from './guideSafety.js'
 
 const GUIDE_PREFIX = Object.freeze({
   bud: 'No problem.', sunny: 'Yep, absolutely.', larry: 'No problem, man.',
@@ -11,6 +11,14 @@ const GENERAL_CHOICES = Object.freeze([
   { id: 'distract', label: 'C. Change gears', value: 'Change the subject and distract me for a bit.' },
   { id: 'other', label: 'D. Something else', freeText: true },
 ])
+
+const SILLY_BRANCH = Object.freeze({
+  bud: { label: "C. Bud's duct-tape theory", value: 'Give me the ridiculous Bud version of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
+  sunny: { label: "C. Sunny's dramatic version", value: 'Give me the ridiculous Sunny version of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
+  larry: { label: "C. Larry's ridiculous theory", value: 'Give me the ridiculous Larry version of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
+  herb: { label: "C. Herb overthinks it", value: 'Give me the ridiculous Herb over-analysis of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
+  mary: { label: "C. Mary's mischievous take", value: 'Give me the ridiculous Mary version of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
+})
 
 const TOO_HIGH_CHOICES = Object.freeze([
   { id: 'safe', label: 'A. I’m somewhere safe', value: "I'm somewhere safe." },
@@ -51,6 +59,36 @@ function simplifyText(text = '') {
   const sentences = clean.match(/[^.!?]+[.!?]?/g) || [clean]
   const first = sentences.slice(0, 2).join(' ').trim()
   return first.length <= 220 ? first : `${first.slice(0, 217).trim()}...`
+}
+
+function seriousNoSilly(messages = []) {
+  const text = messages.filter((m) => m?.role === 'user').slice(-2).map((m) => String(m.content || '')).join(' ')
+  return /\b(died|death|funeral|grief|assault|abuse|violence|hurt me|suicide|self-harm|emergency|hospital|urgent care|panic attack)\b/i.test(text)
+}
+
+export function buildContextualBranches({ guide = 'bud', messages = [], assistantText = '', lowEffortMode = false } = {}) {
+  const reply = String(assistantText || '').trim()
+  if (!reply.includes('?')) return null
+  const safety = detectGuideSafetyForConversation(messages)
+  if (['level2', 'level3'].includes(safety.level)) return null
+  if (lowEffortMode) return null
+  const support = safety.level === 'emotional' || emotionalThreadState(messages).active
+  const longThread = messages.filter((m) => m?.role === 'user').length >= 3
+  const regularA = support
+    ? { id: 'vent', label: 'A. Let me vent', value: 'I just want to vent. Do not try to fix it yet.' }
+    : { id: 'continue', label: 'A. Tell you more', value: 'I want to keep talking about this. Ask me one easy question at a time.' }
+  const regularB = reply.length > 260
+    ? { id: 'simplify', label: 'B. Make that simpler', value: 'Make that simpler.' }
+    : longThread
+      ? { id: 'recap', label: 'B. Remind me where we were', value: 'I forgot what we were talking about.' }
+      : support
+        ? { id: 'sort', label: 'B. Help me sort it out', value: 'Help me sort out what happened without putting words in my mouth.' }
+        : { id: 'think', label: 'B. Help me think it through', value: 'Help me think this through without putting words in my mouth.' }
+  const silly = SILLY_BRANCH[guide]
+  const third = seriousNoSilly(messages) || !silly
+    ? { id: 'company', label: 'C. Just stay with me', value: 'Just stay with me for a minute. Keep it simple and do not try to fix anything yet.' }
+    : { id: 'silly', ...silly }
+  return [regularA, regularB, third, { id: 'other', label: "D. I'll say it myself", freeText: true }]
 }
 
 export function buildAccessibilityTurn({ guide = 'bud', messages = [], action } = {}) {

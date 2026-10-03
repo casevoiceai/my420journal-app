@@ -47,3 +47,19 @@ test('guide reads only the active local profile journal', async () => {
   assert.doesNotMatch(other, /must never appear/i)
   assert.doesNotMatch(other, /Private Second Profile Product: 1 entry/i)
 })
+
+
+test('live local Guide response carries contextual RPG branches', async () => {
+  const { data, error } = await localStore.tools.invoke('guide-response', {
+    body: {
+      guide: 'larry',
+      messages: [{ role: 'user', content: 'I had a really shitty day.' }],
+    },
+  })
+  assert.equal(error, null)
+  assert.match(data.content, /tell me|what happened/i)
+  assert.equal(data.choices.length, 4)
+  assert.match(data.choices[0].label, /vent/i)
+  assert.match(data.choices[2].label, /Larry|stay with me/i)
+  assert.equal(data.choices[3].freeText, true)
+})

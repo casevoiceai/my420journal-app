@@ -2,12 +2,12 @@ const STORAGE_KEY = 'my420journal_local_v1:guide_crisis_followup'
 const PENDING_KEY = 'my420journal_local_v1:guide_crisis_pending'
 
 const HUMAN_SUPPORT = Object.freeze({
-  bud: "That sounds like a hell of a day. What happened? If it is easier, I can give you a few choices for how we tackle it.",
-  sunny: "Oh, hell. That sounds like a lot. What happened? If words are annoying right now, I can give you a few choices.",
-  larry: "Ah, hell. That sounds like a rough day. Want to tell me what happened? If you would rather not figure out how to start, I can give you a few choices.",
-  herb: "That sounds rough. What happened? If your brain does not want an open-ended question right now, I can give you a few choices.",
-  mary: "That sounds like a hard day. Want to tell me what happened? If that feels like too much to organize, I can give you a few choices.",
-  stoner: "That sounds like a rough day. What happened? If you prefer, I can give you a few choices.",
+  bud: "That sounds like a hell of a day. What happened?",
+  sunny: "Oh, hell. That sounds like a lot. What happened?",
+  larry: "Ah, hell. That sounds like a rough day. Want to tell me what happened?",
+  herb: "That sounds rough. What happened?",
+  mary: "That sounds like a hard day. What happened?",
+  stoner: "That sounds like a rough day. What happened?",
 })
 
 const SUPPORT_FOLLOWUP = Object.freeze({
