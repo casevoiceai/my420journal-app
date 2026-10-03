@@ -113,3 +113,14 @@ test('low-effort mode tells D to use short one-step replies', () => {
   assert.match(prompt, /one idea or question at a time/i)
   assert.match(prompt, /concrete choices/i)
 })
+
+
+test('logic guard rejects fabricated user memories', () => {
+  const messages = [
+    { role: 'user', content: "I'm anxious about my meeting tomorrow." },
+    { role: 'user', content: 'Help me think it through.' },
+  ]
+  const bad = 'We can work through this together, just like that time you forgot your password.'
+  const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, bad)
+  assert.match(reason, /invented user history/i)
+})

@@ -68,7 +68,7 @@ function seriousNoSilly(messages = []) {
 
 export function buildContextualBranches({ guide = 'bud', messages = [], assistantText = '', lowEffortMode = false } = {}) {
   const reply = String(assistantText || '').trim()
-  if (!reply.includes('?')) return null
+  if (!reply) return null
   const safety = detectGuideSafetyForConversation(messages)
   if (['level2', 'level3'].includes(safety.level)) return null
   if (lowEffortMode) return null
@@ -85,7 +85,7 @@ export function buildContextualBranches({ guide = 'bud', messages = [], assistan
         ? { id: 'sort', label: 'B. Help me sort it out', value: 'Help me sort out what happened without putting words in my mouth.' }
         : { id: 'think', label: 'B. Help me think it through', value: 'Help me think this through without putting words in my mouth.' }
   const silly = SILLY_BRANCH[guide]
-  const third = seriousNoSilly(messages) || !silly
+  const third = support || seriousNoSilly(messages) || !silly
     ? { id: 'company', label: 'C. Just stay with me', value: 'Just stay with me for a minute. Keep it simple and do not try to fix anything yet.' }
     : { id: 'silly', ...silly }
   return [regularA, regularB, third, { id: 'other', label: "D. I'll say it myself", freeText: true }]

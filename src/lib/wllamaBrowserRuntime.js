@@ -1,11 +1,13 @@
 import { Wllama } from '@wllama/wllama'
 import wasmUrl from '@wllama/wllama/esm/wasm/wllama.wasm?url'
+import { completeWithTimeout } from './localModelTimeout.js'
 
 function threadCount(scope = globalThis) {
   const logical = Number(scope?.navigator?.hardwareConcurrency || 4)
   if (!scope?.crossOriginIsolated) return 1
   return Math.max(1, Math.min(6, logical - 2 || 1))
 }
+
 
 function progressAdapter(onProgress) {
   return ({ loaded = 0, total = 0 } = {}) => {
@@ -35,8 +37,8 @@ export async function createBrowserLocalGuideRuntime({ model, onProgress } = {})
   })
 
   return {
-    async complete(params = {}) {
-      return runtime.createChatCompletion(params)
+    async complete(params = {}, { timeoutMs = 15000 } = {}) {
+      return completeWithTimeout(runtime, params, timeoutMs)
     },
     backend: runtime.isSupportWebGPU() ? 'webgpu' : 'wasm-cpu',
   }

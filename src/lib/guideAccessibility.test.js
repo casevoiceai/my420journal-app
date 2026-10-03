@@ -63,9 +63,9 @@ test('direct Give me choices outside an emotional thread does not use support ch
 })
 
 
-test('contextual RPG branches appear only after a Guide question', () => {
-  const noQuestion = buildContextualBranches({ guide: 'larry', messages: [{ role: 'user', content: 'Tell me about Napoleon.' }], assistantText: 'Napoleon was Emperor of France.' })
-  assert.equal(noQuestion, null)
+test('contextual RPG branches continue both statements and questions', () => {
+  const statement = buildContextualBranches({ guide: 'larry', messages: [{ role: 'user', content: 'Tell me about Napoleon.' }], assistantText: 'Napoleon was Emperor of France.' })
+  assert.equal(statement.length, 4)
   const turn = buildContextualBranches({ guide: 'larry', messages: [{ role: 'user', content: 'I like old records.' }], assistantText: 'Now you are speaking my language. What do you listen to most?' })
   assert.equal(turn.length, 4)
   assert.equal(turn[3].freeText, true)
@@ -97,4 +97,25 @@ test('longer conversations can surface a recap branch', () => {
   ]
   const turn = buildContextualBranches({ guide: 'mary', messages, assistantText: 'Where do you want to go from here?' })
   assert.match(turn[1].label, /Remind me where we were/i)
+})
+
+
+test('contextual branches still appear when the Guide reply has no question mark', () => {
+  const turn = buildContextualBranches({
+    guide: 'larry',
+    messages: [{ role: 'user', content: 'Coke or Pepsi?' }],
+    assistantText: 'Coke. Pepsi always tasted like it was trying too hard.'
+  })
+  assert.equal(turn.length, 4)
+  assert.equal(turn[3].freeText, true)
+})
+
+test('ordinary emotional support never gets the silly branch', () => {
+  const turn = buildContextualBranches({
+    guide: 'larry',
+    messages: [{ role: 'user', content: "I'm anxious about my meeting tomorrow." }],
+    assistantText: 'Ah, hell. That sounds rough. Want to tell me what has you worried?'
+  })
+  assert.doesNotMatch(turn[2].label, /ridiculous|silly/i)
+  assert.match(turn[2].label, /stay with me/i)
 })

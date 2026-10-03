@@ -1,6 +1,7 @@
 import { buildGuideResponse } from './guideEngine.js'
 import { semanticDecisionToCanonicalQuestion } from './guideSemanticModel.js'
 import { classifyWithLocalGuideModel, chatWithLocalGuideModel } from './localGuideModel.js'
+import { lookupCannabisKnowledge } from './cannabisKnowledge.js'
 import {
   detectGuideSafetyForConversation,
   emotionalSupportResponse,
@@ -42,6 +43,23 @@ function journalDecisionIsGrounded(decision = {}, text = '', entries = []) {
   return explicitJournalCue || Boolean(primary && names.has(primary))
 }
 
+
+function needsSemanticClassification(text = '', entries = []) {
+  const t = normalizeText(text)
+  if (!t) return false
+  if (lookupCannabisKnowledge(text)) return true
+  if (/\b(my journal|journal|entries?|logged|recorded|my notes?|what did i|did i|when did i|how many times did i)\b/.test(t)) return true
+  if (/\b(cannabis|weed|marijuana|strain|cultivar|thc|cbd|terpene|terpenes|indica|sativa|hybrid|edible|edibles|vape|flower|dab|concentrate|rosin|resin)\b/.test(t)) return true
+  if (entries.some((entry) => {
+    const name = normalizeText(entry?.product_name)
+    return Boolean(name && t.includes(name))
+  })) return true
+  if (/\b(i|me|my|mine)\b/.test(t)) return true
+  if (/\b(wife|husband|spouse|married|marriage|family|children|kids|career|hometown|birthday)\b/.test(t)) return true
+  if (/\b(how old are you|where do you live|where were you born|what do you do for work|your job)\b/.test(t)) return true
+  return false
+}
+
 function canonicalMessages(messages, canonicalQuestion) {
   if (!canonicalQuestion) return messages
   const copy = messages.map((m) => ({ ...m }))
@@ -72,7 +90,8 @@ export async function buildHybridGuideResponse({
 
   const supportMode = safety.level === 'normal' && emotionalThread.active
   if (forceControlledBoundary(userText)) return deterministic()
-  if (supportMode && (!localModelEnabled || guide === 'stoner')) return emotionalSupportFollowupResponse(guide, userText)
+  // Emotional support must be immediate. Do not make a distressed or intoxicated user wait on local-model inference.
+  if (supportMode) return emotionalSupportFollowupResponse(guide, userText)
   if (!localModelEnabled || guide === 'stoner') return deterministic()
 
   const client = modelClient || {
@@ -81,21 +100,15 @@ export async function buildHybridGuideResponse({
   }
 
   try {
-    if (supportMode) {
-      const generated = await client.chat({ guide, messages: scopedMessages, supportMode: true, lowEffortMode })
-      return String(generated || '').trim() || emotionalSupportFollowupResponse(guide, userText)
-    }
-    const decision = await client.classify({ guide, messages: scopedMessages })
-    const grounded = journalDecisionIsGrounded(decision, latestUser(scopedMessages), entries)
-    const conversationalPreference = decision?.route === 'character' && decision?.intent === 'topic_preference'
-    if (grounded && !conversationalPreference && decision?.route !== 'general' && Number(decision?.confidence || 0) >= 0.55) {
-      const canonical = semanticDecisionToCanonicalQuestion(decision)
-      if (canonical) {
-        return buildGuideResponse({
-          guide,
-          messages: canonicalMessages(scopedMessages, canonical),
-          entries,
-        })
+    if (needsSemanticClassification(latestUser(scopedMessages), entries)) {
+      const decision = await client.classify({ guide, messages: scopedMessages })
+      const grounded = journalDecisionIsGrounded(decision, latestUser(scopedMessages), entries)
+      const conversationalPreference = decision?.route === 'character' && decision?.intent === 'topic_preference'
+      if (grounded && !conversationalPreference && decision?.route !== 'general' && Number(decision?.confidence || 0) >= 0.55) {
+        const canonical = semanticDecisionToCanonicalQuestion(decision)
+        if (canonical) {
+          return buildGuideResponse({ guide, messages: canonicalMessages(scopedMessages, canonical), entries })
+        }
       }
     }
     const generated = await client.chat({ guide, messages: scopedMessages, lowEffortMode })
@@ -109,4 +122,5 @@ export const hybridGuideInternals = {
   forceControlledBoundary,
   canonicalMessages,
   journalDecisionIsGrounded,
+  needsSemanticClassification,
 }

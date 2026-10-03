@@ -73,7 +73,7 @@ export async function classifyWithLocalGuideModel({ guide = 'bud', messages = []
     response_format: { type: 'json_object' },
     temperature: 0,
     max_tokens: 160,
-  })
+  }, { timeoutMs: 8000 })
   const content = result?.choices?.[0]?.message?.content || '{}'
   try { return normalizeSemanticDecision(JSON.parse(content)) } catch { return normalizeSemanticDecision() }
 }
@@ -143,6 +143,7 @@ function generatedReplyViolation(character, messages = [], reply = '', { support
     const maxAge = startYear + 9 - birthYear
     if (minAge > 19 || maxAge < 13) return `timeline contradiction: you were roughly ${minAge}-${maxAge} in the ${startYear}s, not a teenager`
   }
+  if (/\b(that time you|remember when you|last time you|you once|you used to)\b/i.test(reply)) return 'invented user history not present in the current conversation'
   const hardCanon = `${character.bio} ${character.family} ${character.topics?.work || ''}`.toLowerCase()
   const candidates = [...userText.matchAll(/\b[A-Z][A-Za-z0-9&'.-]{2,}\b/g)].map((m) => m[0]).filter((v, i, a) => a.indexOf(v) === i)
   for (const name of candidates) {
@@ -172,13 +173,13 @@ export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], on
     content: String(m.content || ''),
   }))
   const system = characterPrompt(character, recent, { supportMode, lowEffortMode })
-  const options = { temperature: supportMode ? 0.55 : 0.68, top_p: 0.88, max_tokens: lowEffortMode ? 100 : 220 }
-  const result = await runtime.complete({ messages: [{ role: 'system', content: system }, ...recent], ...options })
+  const options = { temperature: supportMode ? 0.55 : 0.68, top_p: 0.88, max_tokens: lowEffortMode ? 90 : 150 }
+  const result = await runtime.complete({ messages: [{ role: 'system', content: system }, ...recent], ...options }, { timeoutMs: 15000 })
   let reply = String(result?.choices?.[0]?.message?.content || '').trim()
   const violation = generatedReplyViolation(character, recent, reply, { supportMode })
   if (violation) {
     const correction = `${system}\nCORRECTION: A previous draft was rejected for ${violation}. Rewrite from scratch. Keep the answer lively and in character, but do not repeat that contradiction.`
-    const retry = await runtime.complete({ messages: [{ role: 'system', content: correction }, ...recent], ...options })
+    const retry = await runtime.complete({ messages: [{ role: 'system', content: correction }, ...recent], ...options }, { timeoutMs: 8000 })
     reply = String(retry?.choices?.[0]?.message?.content || '').trim()
     if (generatedReplyViolation(character, recent, reply, { supportMode })) return supportMode ? emotionalSupportFollowupResponse(guide, latestUser(recent)) : (character.unknown?.[0] || "I don't know that one.")
   }

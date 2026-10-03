@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildHybridGuideResponse } from './guideHybridEngine.js'
+import { buildHybridGuideResponse, hybridGuideInternals } from './guideHybridEngine.js'
 
 const entries = [{
   product_name: 'Blue Dream', amount: '0.5 g', body_tags: ['Relaxed'], mind_tags: ['Clear'], mood_tags: ['Calm'],
@@ -137,12 +137,12 @@ test('explicit high-risk language bypasses D and character roleplay', async () =
   assert.doesNotMatch(result, /records|notebooks|garden/i)
   assert.equal(calls, 0)
 })
-test('ongoing emotional thread stays in support mode and bypasses semantic routing', async () => {
+test('ongoing emotional thread uses the instant support path and bypasses local-model inference', async () => {
   let classifyCalls = 0
-  let supportModeSeen = false
+  let chatCalls = 0
   const client = {
     classify: async () => { classifyCalls += 1; return { route: 'general', confidence: 0.9 } },
-    chat: async (payload) => { supportModeSeen = payload.supportMode === true; return 'Depends what you want out of it. Do you want to clear the air, push back, or prevent a repeat?' },
+    chat: async () => { chatCalls += 1; return 'This should never be used for the support thread.' },
   }
   const messages = [
     { role: 'user', content: "I'm anxious about my meeting tomorrow" },
@@ -154,7 +154,7 @@ test('ongoing emotional thread stays in support mode and bypasses semantic routi
   const result = await buildHybridGuideResponse({ guide: 'larry', messages, entries, localModelEnabled: true, modelClient: client })
   assert.match(result, /clear the air|push back/i)
   assert.equal(classifyCalls, 0)
-  assert.equal(supportModeSeen, true)
+  assert.equal(chatCalls, 0)
 })
 
 test('clear factual topic shift exits emotional mode', async () => {
@@ -170,5 +170,16 @@ test('clear factual topic shift exits emotional mode', async () => {
   ]
   const result = await buildHybridGuideResponse({ guide: 'larry', messages, entries, localModelEnabled: true, modelClient: client })
   assert.match(result, /Napoleon/i)
-  assert.equal(classifyCalls, 1)
+  assert.equal(classifyCalls, 0)
+})
+
+
+test('ordinary general chat skips the semantic classifier', () => {
+  assert.equal(hybridGuideInternals.needsSemanticClassification('Who was Napoleon?', entries), false)
+  assert.equal(hybridGuideInternals.needsSemanticClassification('Coke or Pepsi?', entries), false)
+})
+
+test('journal and cannabis language still uses controlled semantic routing', () => {
+  assert.equal(hybridGuideInternals.needsSemanticClassification('What did I record about Red Berries?', entries), true)
+  assert.equal(hybridGuideInternals.needsSemanticClassification('What is THC?', entries), true)
 })

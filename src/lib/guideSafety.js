@@ -11,12 +11,12 @@ const HUMAN_SUPPORT = Object.freeze({
 })
 
 const SUPPORT_FOLLOWUP = Object.freeze({
-  bud: { reflect: "Yeah. That would bother me too. What part of it is still sticking with you?", advice: "Depends what you want to change. Do you want to address it directly, prevent a repeat, or just get through tomorrow first?" },
-  sunny: { reflect: "Oof. Yeah, I can see why that landed badly. What part of it is bothering you most?", advice: "Okay, what do you want out of the next step: to be heard, to fix something, or to keep it from happening again?" },
-  larry: { reflect: "Yeah. That would get under my skin too. What part of it is sticking with you most?", advice: "Depends what you want out of it. Do you want to clear the air, push back, or just make sure it does not happen again?" },
-  herb: { reflect: "That sounds like it hit harder than the event alone. Which part is bothering you most?", advice: "Before I optimize the wrong problem: what outcome do you actually want from the next conversation?" },
-  mary: { reflect: "Yeah. I can understand why that stayed with you. What part of it hurt or bothered you most?", advice: "Before deciding what to do, what would feel like a good outcome to you: being heard, setting a boundary, or preventing a repeat?" },
-  stoner: { reflect: "That sounds difficult. What part is bothering you most?", advice: "What outcome do you want from the next step?" },
+  bud: { reflect: "Yeah. That would bother me too. What part of it is still sticking with you?", advice: "Depends what you want to change. Do you want to address it directly, prevent a repeat, or just get through tomorrow first?", vent: "Fair enough. No fixing it. Lay it on me. What happened next?" },
+  sunny: { reflect: "Oof. Yeah, I can see why that landed badly. What part of it is bothering you most?", advice: "Okay, what do you want out of the next step: to be heard, to fix something, or to keep it from happening again?", vent: "Absolutely. No fixing, no silver lining. Spill it. What happened next?" },
+  larry: { reflect: "Yeah. That would get under my skin too. What part of it is sticking with you most?", advice: "Depends what you want out of it. Do you want to clear the air, push back, or just make sure it does not happen again?", vent: "Yeah, fair enough. No fixing it. Go ahead and bitch about it. What happened next?" },
+  herb: { reflect: "That sounds like it hit harder than the event alone. Which part is bothering you most?", advice: "Before I optimize the wrong problem: what outcome do you actually want from the next conversation?", vent: "Understood. Analysis off. Vent away. What happened next?" },
+  mary: { reflect: "Yeah. I can understand why that stayed with you. What part of it hurt or bothered you most?", advice: "Before deciding what to do, what would feel like a good outcome to you: being heard, setting a boundary, or preventing a repeat?", vent: "Of course. No fixing it. Get it out. What happened next?" },
+  stoner: { reflect: "That sounds difficult. What part is bothering you most?", advice: "What outcome do you want from the next step?", vent: "Okay. No advice. What happened next?" },
 })
 
 
@@ -101,8 +101,9 @@ export function emotionalSupportResponse(guide = 'bud') {
 export function emotionalSupportFollowupResponse(guide = 'bud', text = '') {
   const set = SUPPORT_FOLLOWUP[guide] || SUPPORT_FOLLOWUP.bud
   const t = normalize(text)
-  const advice = /\b(what should i do|what do i do|what would you do|any advice|how should i handle|what now)\b/.test(t)
-  return advice ? set.advice : set.reflect
+  const vent = /\b(just (?:want|need) to (?:vent|bitch)|let me vent|no advice|don'?t want advice|do not want advice|just listen)\b/.test(t)
+  const advice = /\b(what should i do|what do i do|what would you do|any advice|how should i handle|what now|help me decide)\b/.test(t)
+  return vent ? set.vent : advice ? set.advice : set.reflect
 }
 
 export function crisisResponse(guide = 'bud', safety = {}) {

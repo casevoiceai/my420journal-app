@@ -575,7 +575,8 @@ export default function Guide() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Say something..."
+                disabled={thinking}
+                placeholder={thinking ? `${guideName} is thinking...` : "Say something..."}
                 spellCheck={true}
                 autoCorrect="on"
                 style={{
@@ -589,6 +590,7 @@ export default function Guide() {
                   outline: 'none',
                   boxSizing: 'border-box',
                   transition: 'border-color 0.15s ease',
+                  opacity: thinking ? 0.65 : 1,
                 }}
                 onFocus={(e) => { e.currentTarget.style.borderColor = accent }}
                 onBlur={(e)  => { e.currentTarget.style.borderColor = S.border }}

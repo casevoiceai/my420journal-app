@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   detectGuideSafety,
   emotionalSupportResponse,
+  emotionalSupportFollowupResponse,
   crisisResponse,
   activateCrisisFollowup,
   readCrisisFollowup,
@@ -125,4 +126,11 @@ test('voice-transcription dropout still recognizes ordinary anxiety as human sup
     assert.equal(result.level, 'emotional')
     assert.equal(result.kind, 'human-support')
   }
+})
+
+
+test('explicit vent request stays conversational and does not switch to advice', () => {
+  const reply = emotionalSupportFollowupResponse('larry', "Actually, I don't want advice. I just want to bitch about it for a minute.")
+  assert.match(reply, /no fixing|bitch|what happened next/i)
+  assert.doesNotMatch(reply, /clear the air|push back/i)
 })
