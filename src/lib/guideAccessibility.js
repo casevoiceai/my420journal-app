@@ -12,14 +12,6 @@ const GENERAL_CHOICES = Object.freeze([
   { id: 'other', label: 'D. Something else', freeText: true },
 ])
 
-const SILLY_BRANCH = Object.freeze({
-  bud: { label: "C. Bud's duct-tape theory", value: 'Give me the ridiculous Bud version of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
-  sunny: { label: "C. Sunny's dramatic version", value: 'Give me the ridiculous Sunny version of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
-  larry: { label: "C. Larry's ridiculous theory", value: 'Give me the ridiculous Larry version of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
-  herb: { label: "C. Herb overthinks it", value: 'Give me the ridiculous Herb over-analysis of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
-  mary: { label: "C. Mary's mischievous take", value: 'Give me the ridiculous Mary version of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
-})
-
 const TOO_HIGH_CHOICES = Object.freeze([
   { id: 'safe', label: 'A. I’m somewhere safe', value: "I'm somewhere safe." },
   { id: 'unsure', label: 'B. I’m not sure', value: "I'm not sure if I'm somewhere safe." },
@@ -75,15 +67,6 @@ function cleanChoiceLabel(value = '') {
   return String(value || '').replace(/^[,;:\s]+|[,;:\s?]+$/g, '').replace(/^(?:was|is|are|were) it\s+/i, '').replace(/^(?:do|did|would|could|should|can) you(?: rather)?\s+/i, '').replace(/^want to\s+/i, '').trim()
 }
 
-function letterize(choices = []) {
-  return choices.slice(0, 4).map((choice, index) => ({ ...choice, label: `${String.fromCharCode(65 + index)}. ${String(choice.label || '').replace(/^[A-D]\.\s*/i, '')}` }))
-}
-
-function hasPlayfulHook(question = '') {
-  const q = String(question || '')
-  return /\bor\b|story|version|theory|ridiculous|funny|weird|what if|imagine|rather|why do|who would|which would|favorite/i.test(q)
-}
-
 function explicitQuestionBranches(question = '') {
   const body = question.replace(/\?+$/, '').trim()
   const orMatch = body.match(/^(.{1,90}?)\s*,?\s+or\s+(.{1,90})$/i)
@@ -114,7 +97,7 @@ export function buildContextualBranches({ guide = 'bud', messages = [], assistan
     ? { id: 'simplify', label: 'Make that simpler', value: 'Make that simpler.' }
     : longThread ? { id: 'recap', label: 'Remind me where we were', value: 'I forgot what we were talking about.' } : null
 
-  if (!question) return utility ? letterize([utility]) : null
+  if (!question) return utility ? [utility] : null
 
   let choices = []
   if (support) {
@@ -129,12 +112,13 @@ export function buildContextualBranches({ guide = 'bud', messages = [], assistan
     ]
     else choices = explicitQuestionBranches(question)
   } else choices = explicitQuestionBranches(question)
-  if ((support || seriousNoSilly(messages)) && choices.length > 0 && choices.length < 3) choices.push({ id: 'company', label: 'Just stay with me', value: 'Just stay with me for a minute. Keep it simple and do not try to fix anything yet.' })
-  if (!support && choices.length > 0 && choices.length < 3 && SILLY_BRANCH[guide] && !seriousNoSilly(messages) && hasPlayfulHook(question)) choices.push({ id: 'silly', ...SILLY_BRANCH[guide] })
-  if (utility && choices.length < 3) choices.push(utility)
+
+  if ((support || seriousNoSilly(messages)) && choices.length > 0 && choices.length < 3) {
+    choices.push({ id: 'company', label: 'Just stay with me', value: 'Just stay with me for a minute. Keep it simple and do not try to fix anything yet.' })
+  }
+  if (utility && choices.length < 5) choices.push(utility)
   if (choices.length === 0) return null
-  choices.push({ id: 'other', label: 'Something else', freeText: true })
-  return letterize(choices)
+  return choices.slice(0, 5)
 }
 
 export function buildModelSuggestedBranches({ messages = [], assistantText = '', suggestions = [], lowEffortMode = false } = {}) {
@@ -142,19 +126,17 @@ export function buildModelSuggestedBranches({ messages = [], assistantText = '',
   if (!reply || lowEffortMode) return null
   const safety = detectGuideSafetyForConversation(messages)
   if (safety.level !== 'normal' || emotionalThreadState(messages).active || seriousNoSilly(messages)) return null
-  const blocked = /^(?:tell me more|keep talking|help me think(?: it)? through|change gears|something else|i(?:'|’)ll say it myself|say it myself|larry'?s ridiculous theory)$/i
+  const blocked = /^(?:tell me more|keep talking|keep talking about this|help me think(?: it)? through|change gears|something else|i(?:'|’)ll say it myself|say it myself|larry'?s ridiculous theory)$/i
   const clean = []
   for (const raw of Array.isArray(suggestions) ? suggestions : []) {
-    const label = String(raw || '').replace(/^[A-D]\.\s*/i, '').replace(/\s+/g, ' ').trim()
-    if (label.length < 2 || label.length > 48 || blocked.test(label)) continue
+    const label = String(raw || '').replace(/^[A-E]\.\s*/i, '').replace(/\s+/g, ' ').trim()
+    if (label.length < 2 || label.length > 64 || blocked.test(label)) continue
     if (clean.some((item) => item.toLowerCase() === label.toLowerCase())) continue
     clean.push(label)
-    if (clean.length === 3) break
+    if (clean.length === 5) break
   }
   if (!clean.length) return null
-  const choices = clean.map((label, index) => ({ id: `ai-${index + 1}`, label, value: label }))
-  if (lastQuestion(reply)) choices.push({ id: 'other', label: 'Something else', freeText: true })
-  return letterize(choices)
+  return clean.map((label, index) => ({ id: `ai-${index + 1}`, label, value: label }))
 }
 
 export function buildAccessibilityTurn({ guide = 'bud', messages = [], action } = {}) {
