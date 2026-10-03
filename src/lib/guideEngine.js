@@ -315,6 +315,7 @@ export function buildGuideResponse({ guide = 'bud', messages = [], entries = [] 
   if (/^(hi|hey|hello|yo|hiya|sup|what's up|whats up)[.!? ]*$/.test(text)) return isAnalog ? 'Ready.' : voice.greeting
   if (/\bhow are you\b|\bhow're you\b|\bhow you doing\b/.test(text)) return isAnalog ? 'S.T.O.N.E.R. mode is personality-free. What would you like to record or review?' : voice.checkin
   if (isAnalog && hasExplicitCharacterIntent(latestMessage)) return 'S.T.O.N.E.R. mode is personality-free. You can log an experience, review an entry, or compare recorded products.'
+  if (!isAnalog && /give me the ridiculous .* version|ridiculous .* theory|over-analysis of this|mischievous .* take/i.test(latestMessage)) return characterFallback(guide, messages)
   if (explicitTopic) return topicQuestionPrompt(guide, explicitTopic, entries)
   if (/\b(?:i\s+(?:have|got)\s+|i['’]ve\s+got\s+)?(?:a\s+)?question\b|\bcan\s+i\s+ask\s+you\s+something\b/.test(text)) return voice.questionPrompt
   if (/^(thanks|thank you|thx|appreciate it)[.!? ]*$/.test(text)) return voice.thanks

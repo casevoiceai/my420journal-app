@@ -424,11 +424,52 @@ export function buildCharacterResponse({ guide = 'bud', messages = [], entries =
   return null
 }
 
+function forcedChoicePair(value = '') {
+  const raw = String(value || '').trim().replace(/[?!.]+$/, '')
+  const segment = raw.split(/[?!.]\s+/).filter(Boolean).at(-1) || raw
+  const match = segment.match(/^(.{1,42}?)\s+or\s+(.{1,42})$/i)
+  if (!match) return null
+  return [match[1].trim(), match[2].trim()]
+}
+
+function forcedChoiceReply(guide, pair) {
+  const [a, b] = pair
+  const choice = ['sunny', 'mary'].includes(guide) ? b : a
+  const other = choice === a ? b : a
+  const lines = {
+    bud: `${choice}. If you're making me pick, that's where I'm landing. ${other} can file a complaint.`,
+    sunny: `${choice}. I'm picking a side and committing to it. ${other} will survive the betrayal.`,
+    larry: `${choice}. If you're making me choose, that's my answer. ${other} can yell at me from across the picnic table.`,
+    herb: `${choice}. Forced choice, insufficient data, mildly irritating. Still: ${choice}.`,
+    mary: `${choice}. No committee meeting required. That's my pick.`,
+    stoner: `${choice}.`,
+  }
+  return lines[guide] || lines.bud
+}
+
+function playfulBranchReply(guide, messages = []) {
+  const previousUser = [...messages].slice(0, -1).reverse().find((m) => m?.role === 'user')?.content || ''
+  const pair = forcedChoicePair(previousUser)
+  if (guide === 'larry' && pair) return `Alright, ridiculous theory: ${pair[0]} and ${pair[1]} are two rival uncles arguing across the same picnic table, and nobody remembers what started it. Which uncle are you backing?`
+  const lines = {
+    bud: 'Alright, duct-tape theory: somebody fixed the original problem just well enough that everyone agreed never to look behind the panel again. Want the even dumber version?',
+    sunny: 'Okay, dramatic version: this is obviously the season finale and somebody forgot to tell us who the villain is. Want me to keep going?',
+    larry: 'Alright, ridiculous theory: there is absolutely a committee behind this, and every member of it is avoiding eye contact. Want the even dumber version?',
+    herb: 'Fine. Wildly irresponsible hypothesis: one tiny variable changed, nobody documented it, and now civilization is paying the price. Want me to overthink it further?',
+    mary: 'Mischievous version: somebody knew exactly what they were doing and chose chaos anyway. Want the longer story?',
+    stoner: 'Something absurd happened here. Want to keep going?',
+  }
+  return lines[guide] || lines.bud
+}
+
 export function characterFallback(guide = 'bud', messages = []) {
   const character = GUIDE_CHARACTERS[guide] || GUIDE_CHARACTERS.bud
   const latest = messages[messages.length - 1]?.content || ''
   const text = normalize(latest)
-  const looksLikeFactQuestion = /\?$/.test(String(latest).trim()) || /^(who|what|when|where|why|how|which|tell me about)\b/.test(text)
+  if (/give me the ridiculous .* version|ridiculous .* theory|over-analysis of this|mischievous .* take/i.test(String(latest))) return playfulBranchReply(guide, messages)
+  const pair = forcedChoicePair(latest)
+  if (pair) return forcedChoiceReply(guide, pair)
+  const looksLikeFactQuestion = /^(who|what|when|where|why|how|which|tell me about)\b/.test(text)
   return looksLikeFactQuestion
     ? pick(character.unknown, messages, `${guide}:unknown`)
     : pick(character.fallback, messages, `${guide}:fallback`)

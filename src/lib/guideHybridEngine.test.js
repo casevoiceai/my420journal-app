@@ -183,3 +183,24 @@ test('journal and cannabis language still uses controlled semantic routing', () 
   assert.equal(hybridGuideInternals.needsSemanticClassification('What did I record about Red Berries?', entries), true)
   assert.equal(hybridGuideInternals.needsSemanticClassification('What is THC?', entries), true)
 })
+test('general-chat model failure degrades to a conversational forced-choice fallback', async () => {
+  const client = { classify: async () => { throw new Error('timeout') }, chat: async () => { throw new Error('timeout') } }
+  const result = await buildHybridGuideResponse({
+    guide: 'larry', messages: [{ role: 'user', content: "You're old. Coke or Pepsi?" }], entries,
+    localModelEnabled: true, modelClient: client,
+  })
+  assert.match(result, /Coke|Pepsi/i)
+  assert.doesNotMatch(result, /nothing on that one|outside my notebooks|don't know/i)
+})
+
+test('playful branch model failure degrades to the controlled Larry joke fallback', async () => {
+  const client = { classify: async () => { throw new Error('timeout') }, chat: async () => { throw new Error('timeout') } }
+  const messages = [
+    { role: 'user', content: "You're old. Coke or Pepsi?" },
+    { role: 'assistant', content: 'Coke. If you are making me choose, that is my answer.' },
+    { role: 'user', content: 'Give me the ridiculous Larry version of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
+  ]
+  const result = await buildHybridGuideResponse({ guide: 'larry', messages, entries, localModelEnabled: true, modelClient: client })
+  assert.match(result, /ridiculous theory|rival uncles|picnic table/i)
+  assert.doesNotMatch(result, /nothing on that one|outside my notebooks|don't know/i)
+})

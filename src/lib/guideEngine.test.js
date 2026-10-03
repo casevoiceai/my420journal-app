@@ -343,3 +343,20 @@ test('Guide carries Blue Dream into a natural B follow-up', () => {
   const result = reply('what kind of strain is it?', 'sunny', history)
   assert.match(result, /Blue Dream|Santa Cruz|Blueberry/i)
 })
+
+test('forced-choice fallback stays conversational when the local model is unavailable', () => {
+  const result = buildGuideResponse({ guide: 'larry', messages: [{ role: 'user', content: "You're old. Coke or Pepsi?" }], entries })
+  assert.match(result, /Coke|Pepsi/i)
+  assert.doesNotMatch(result, /nothing on that one|outside my notebooks|don't know/i)
+})
+
+test('Larry playful branch has a controlled fallback instead of unknown-fact text', () => {
+  const messages = [
+    { role: 'user', content: "You're old. Coke or Pepsi?" },
+    { role: 'assistant', content: 'Coke. If you are making me choose, that is my answer.' },
+    { role: 'user', content: 'Give me the ridiculous Larry version of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
+  ]
+  const result = buildGuideResponse({ guide: 'larry', messages, entries })
+  assert.match(result, /ridiculous theory|rival uncles|picnic table/i)
+  assert.doesNotMatch(result, /nothing on that one|outside my notebooks|don't know/i)
+})
