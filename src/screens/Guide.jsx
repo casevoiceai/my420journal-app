@@ -161,6 +161,7 @@ export default function Guide() {
   const [tier,       setTier]       = useState(0)
   const [messages,   setMessages]   = useState([])
   const [input,      setInput]      = useState('')
+  const [suggestionsDismissed, setSuggestionsDismissed] = useState(false)
   const [thinking,   setThinking]   = useState(false)
   const [loaded,     setLoaded]     = useState(false)
   const [localModelEnabled, setLocalModelEnabledState] = useState(() => isLocalGuideModelEnabled())
@@ -260,12 +261,14 @@ export default function Guide() {
   }, [localModelEnabled, localModelCap.supported, guide])
 
   const handleInterim = useCallback((text) => {
+    setSuggestionsDismissed(true)
     setInput((prev) => {
       const base = prev.replace(/\u00A0.*$/, '').trim()
       return base ? base + '\u00A0' + text : text
     })
   }, [])
   const handleFinal = useCallback((text) => {
+    setSuggestionsDismissed(true)
     setInput((prev) => {
       const base = prev.replace(/\u00A0.*$/, '').trim()
       return base ? base + ' ' + text : text
@@ -298,6 +301,7 @@ export default function Guide() {
       unitIdxRef.current++
       setTimeout(() => {
         const next = [...updated, { role: 'assistant', content: reply }]
+        setSuggestionsDismissed(false)
         setMessages(next)
         saveChat(next)
         setThinking(false)
@@ -325,10 +329,12 @@ export default function Guide() {
         try { sessionStorage.setItem('m420_guide_low_effort', '1') } catch {}
       }
       const next  = [...updated, { role: 'assistant', content: reply, choices: Array.isArray(data?.choices) ? data.choices : null }]
+      setSuggestionsDismissed(false)
       setMessages(next)
       saveChat(next)
     } catch {
       const next = [...updated, { role: 'assistant', content: 'Something went wrong. Try again.' }]
+      setSuggestionsDismissed(false)
       setMessages(next)
       saveChat(next)
     } finally {
@@ -340,6 +346,7 @@ export default function Guide() {
   function handleChoice(choice) {
     if (choice?.freeText) {
       const cleared = messages.map((m, i) => i === messages.length - 1 ? { ...m, choices: null } : m)
+      setSuggestionsDismissed(true)
       setMessages(cleared)
       saveChat(cleared)
       setTimeout(() => inputRef.current?.focus(), 0)
@@ -359,6 +366,7 @@ export default function Guide() {
 
   function clearChat() {
     setMessages([])
+    setSuggestionsDismissed(false)
     setLowEffortMode(false)
     try { sessionStorage.removeItem('m420_guide_low_effort') } catch {}
     saveChat([])
@@ -416,7 +424,6 @@ export default function Guide() {
         alignItems: 'center',
         paddingBottom: '80px',
       }}>
-        {/* Inner column — max 680px */}
         <div style={{
           width: '100%',
           maxWidth: '680px',
@@ -424,8 +431,6 @@ export default function Guide() {
           flexDirection: 'column',
           height: '100%',
         }}>
-
-          {/* ── Header ── */}
           <div style={{
             height: '56px',
             flexShrink: 0,
@@ -436,7 +441,6 @@ export default function Guide() {
             boxSizing: 'border-box',
             position: 'relative',
           }}>
-            {/* Back */}
             <button
               onClick={() => navigate(-1)}
               style={{
@@ -450,7 +454,6 @@ export default function Guide() {
               </svg>
             </button>
 
-            {/* Guide name centered */}
             <span style={{
               position: 'absolute', left: '44px', right: '80px',
               textAlign: 'center', pointerEvents: 'none',
@@ -459,7 +462,6 @@ export default function Guide() {
               {guideName}
             </span>
 
-            {/* Switch Guide */}
             <button
               onClick={() => navigate('/onboarding')}
               style={{
@@ -473,7 +475,6 @@ export default function Guide() {
             </button>
           </div>
 
-          {/* ── Chat area ── */}
           <div style={{
             flex: 1,
             overflowY: 'auto',
@@ -498,7 +499,7 @@ export default function Guide() {
                     whiteSpace: 'pre-line',
                   }}>
                     <div>{msg.content}</div>
-                    {Array.isArray(msg.choices) && msg.choices.length > 0 && i === messages.length - 1 && !thinking && !input.trim() && (
+                    {Array.isArray(msg.choices) && msg.choices.length > 0 && i === messages.length - 1 && !thinking && !input.trim() && !suggestionsDismissed && (
                       <div style={{ display: 'grid', gap: '7px', marginTop: '10px' }}>
                         {msg.choices.map((choice) => (
                           <button key={choice.id || choice.label} onClick={() => handleChoice(choice)} style={{ minHeight: '40px', textAlign: 'left', padding: '8px 10px', background: S.bg, border: `1px solid ${accent}`, borderRadius: '8px', color: S.textPrimary, fontFamily: fontInter, fontSize: '13px', cursor: 'pointer' }}>
@@ -528,7 +529,6 @@ export default function Guide() {
             <div ref={bottomRef} />
           </div>
 
-          {/* ── Input area ── */}
           <div style={{
             flexShrink: 0,
             borderTop: `1px solid ${S.border}`,
@@ -548,7 +548,6 @@ export default function Guide() {
               </div>
             )}
 
-            {/* Clear conversation row */}
             <button
               onClick={clearChat}
               style={{
@@ -564,7 +563,6 @@ export default function Guide() {
               Clear conversation
             </button>
 
-            {/* Input row */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               padding: '12px 16px',
@@ -573,7 +571,11 @@ export default function Guide() {
               <input
                 ref={inputRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  const nextValue = e.target.value
+                  if (nextValue.length > 0) setSuggestionsDismissed(true)
+                  setInput(nextValue)
+                }}
                 onKeyDown={handleKeyDown}
                 disabled={thinking}
                 placeholder={thinking ? `${guideName} is thinking...` : "Say something..."}
@@ -596,7 +598,6 @@ export default function Guide() {
                 onBlur={(e)  => { e.currentTarget.style.borderColor = S.border }}
               />
 
-              {/* Mic */}
               {micSupported && (
                 <button
                   onClick={toggleMic}
@@ -618,7 +619,6 @@ export default function Guide() {
                 </button>
               )}
 
-              {/* Send */}
               <button
                 onClick={() => send(input)}
                 disabled={!canSend}
@@ -638,7 +638,6 @@ export default function Guide() {
               </button>
             </div>
           </div>
-
         </div>
       </div>
     </>
