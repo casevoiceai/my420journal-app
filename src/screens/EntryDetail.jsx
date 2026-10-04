@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
-import { normalizeProductKey } from '../lib/sharedContributionBuckets'
-import { getSharedPrivacyState } from '../lib/sharedPrivacy'
+import { needsPostUseFollowUp } from '../lib/journalFollowUp'
 
 const S = {
   bg:            '#0A1A0A',
@@ -48,6 +47,10 @@ const DEV_ENTRY = {
   body_tags: ['Relaxed', 'Tingly'],
   mind_tags: ['Creative', 'Focused'],
   mood_tags: ['Happy', 'Uplifted'],
+  update_completed: true,
+  rating: 5,
+  sleep_quality: 4,
+  side_effects: ['Dry mouth'],
   cannabinoids: { THC: '22.4', CBD: '0.2' },
   terpenes: { 'Beta Myrcene': '1.2', 'Limonene': '0.8' },
   notes: 'Really smooth. Great for afternoon sessions. The creative effect came on about 20 minutes in.',
@@ -115,72 +118,6 @@ function CollapsibleSection({ label, children }) {
   )
 }
 
-function GuideObservation({ entry, guideKey, accent, guideName }) {
-  const [text,    setText]    = useState('')
-  const [loading, setLoading] = useState(false)
-  const [loadedObservation, setLoadedObservation] = useState(false)
-
-  useEffect(() => {
-    if (loadedObservation) return
-    setLoadedObservation(true)
-    setLoading(true)
-
-    const tags = [
-      ...(entry.body_tags  || []),
-      ...(entry.mind_tags  || []),
-      ...(entry.mood_tags  || []),
-    ].join(', ')
-
-    const userMsg = `The user logged this session: ${entry.product_name || 'unknown product'}${entry.category ? ', ' + entry.category : ''}${tags ? ', effects: ' + tags : ''}. Give a brief observation in your voice.`
-
-    const messages = [{ role: 'user', content: userMsg }]
-
-    async function loadObservation() {
-      try {
-        const { data, error } = await localStore.tools.invoke('guide-response', {
-          body: { messages, guide: guideKey, entryCount: 5, tier: 1 },
-        })
-        if (error) throw error
-        setText(data?.content || data?.response || '')
-      } catch {
-        setText('')
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadObservation()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!loading && !text) return null
-
-  return (
-    <div>
-      <Divider />
-      {guideName && (
-        <p style={{ fontFamily: fontInter, fontSize: '11px', fontWeight: '600', color: accent, letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 10px 0' }}>
-          {guideName}
-        </p>
-      )}
-      {loading ? (
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', padding: '12px 16px', backgroundColor: S.surface, borderLeft: `3px solid ${accent}`, borderRadius: '0 10px 10px 10px' }}>
-          {[0, 1, 2].map((i) => (
-            <span key={i} style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: accent, opacity: 0.7, display: 'inline-block', animation: `dotPulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
-          ))}
-        </div>
-      ) : (
-        <div style={{
-          backgroundColor: S.surface, borderLeft: `3px solid ${accent}`,
-          borderRadius: '0 10px 10px 10px', padding: '12px 16px',
-          fontFamily: fontInter, fontSize: '15px', color: S.textPrimary,
-          lineHeight: '1.65', whiteSpace: 'pre-line',
-        }}>
-          {text}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default function EntryDetail() {
   const navigate = useNavigate()
   const { id }   = useParams()
@@ -191,11 +128,9 @@ export default function EntryDetail() {
   const [guideKey,    setGuideKey]    = useState('bud')
   const [deleting,    setDeleting]    = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  const [sharedOptedIn, setSharedOptedIn] = useState(() => getSharedPrivacyState().shared_opt_in_enabled === true)
 
   useEffect(() => {
     async function load() {
-      setSharedOptedIn(getSharedPrivacyState().shared_opt_in_enabled === true)
       if (isDevMode()) {
         setEntry(DEV_ENTRY)
         setGuideKey('sunny')
@@ -247,19 +182,12 @@ export default function EntryDetail() {
   const hasCannabinoids = entry.cannabinoids && Object.keys(entry.cannabinoids).length > 0
   const hasTerpenes     = entry.terpenes     && Object.keys(entry.terpenes).length     > 0
   const hasDetails      = entry.category || entry.strain_type || entry.amount || entry.price
-  const showGuideObs    = guideKey !== 'stoner' && guideKey !== 'unit' && guideKey !== 'tool'
-  const sharedProductKey = normalizeProductKey(entry.product_name)
-  const showSharedSignalsLink = sharedOptedIn && sharedProductKey
+  const sideEffects     = Array.isArray(entry.side_effects) ? entry.side_effects : []
+  const hasFollowUp     = entry.update_completed === true || entry.rating != null || entry.sleep_quality != null || sideEffects.length > 0
+  const needsFollowUp   = needsPostUseFollowUp(entry)
 
   return (
     <>
-      <style>{`
-        @keyframes dotPulse {
-          0%, 80%, 100% { transform: scale(0.8); opacity: 0.35; }
-          40%            { transform: scale(1.2); opacity: 1; }
-        }
-      `}</style>
-
       <div style={{ minHeight: '100dvh', backgroundColor: S.bg, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
 
         {/* Header */}
@@ -291,21 +219,6 @@ export default function EntryDetail() {
           <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: '0 0 20px 0' }}>
             {formatEntryDate(entry.created_at)}
           </p>
-
-          {showSharedSignalsLink && (
-            <button
-              onClick={() => navigate(`/shared-signals?product_key=${encodeURIComponent(sharedProductKey)}`)}
-              style={{
-                width: '100%', minHeight: '46px', marginBottom: '20px',
-                backgroundColor: `${accent}18`, color: accent,
-                border: `1px solid ${accent}80`, borderRadius: '10px',
-                fontFamily: fontInter, fontSize: '14px', fontWeight: '700',
-                cursor: 'pointer', textAlign: 'center',
-              }}
-            >
-              See shared signals for this product
-            </button>
-          )}
 
           {/* Mood */}
           {mood && (
@@ -373,6 +286,36 @@ export default function EntryDetail() {
             </>
           )}
 
+          {/* Post-use follow-up */}
+          {hasFollowUp && (
+            <>
+              <Divider />
+              <SectionLabel>Post-use follow-up</SectionLabel>
+              <div style={{ backgroundColor: S.surface, border: `1px solid ${S.border}`, borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {entry.rating != null && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                    <span style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary }}>Overall</span>
+                    <span style={{ fontFamily: fontInter, fontSize: '14px', fontWeight: '700', color: S.textPrimary }}>{Number(entry.rating).toFixed(1)} / 5</span>
+                  </div>
+                )}
+                {entry.sleep_quality != null && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                    <span style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary }}>Sleep after</span>
+                    <span style={{ fontFamily: fontInter, fontSize: '14px', fontWeight: '700', color: S.textPrimary }}>{Number(entry.sleep_quality).toFixed(1)} / 5</span>
+                  </div>
+                )}
+                <div>
+                  <span style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary }}>Side effects</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '7px' }}>
+                    {sideEffects.length ? sideEffects.map((effect) => <TagPill key={effect} text={effect} accent={S.error} />) : (
+                      <span style={{ fontFamily: fontInter, fontSize: '14px', color: S.textPrimary }}>None reported</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Cannabinoids */}
           {hasCannabinoids && (
             <>
@@ -418,16 +361,6 @@ export default function EntryDetail() {
             </>
           )}
 
-          {/* Guide observation */}
-          {showGuideObs && (
-            <GuideObservation
-              entry={entry}
-              guideKey={guideKey}
-              accent={accent}
-              guideName={meta.name}
-            />
-          )}
-
           {/* Delete error */}
           {deleteError && (
             <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.error, margin: '20px 0 0 0', textAlign: 'center' }}>
@@ -447,6 +380,20 @@ export default function EntryDetail() {
           display: 'flex', flexDirection: 'column', gap: '8px',
           maxWidth: '680px', margin: '0 auto',
         }}>
+          {needsFollowUp && (
+            <button
+              onClick={() => navigate(`/update/${id}`)}
+              style={{
+                width: '100%', height: '52px',
+                backgroundColor: accent, color: S.bg,
+                border: 'none', borderRadius: '10px',
+                fontFamily: fontInter, fontSize: '15px', fontWeight: '700',
+                cursor: 'pointer',
+              }}
+            >
+              Add follow-up
+            </button>
+          )}
           <button
             onClick={() => navigate(`/entries/${id}/edit`)}
             style={{
