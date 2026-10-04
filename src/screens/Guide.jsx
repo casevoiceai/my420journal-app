@@ -85,17 +85,19 @@ const HERB_T0_THOUGHT = "(ready to talk terpenes when you are)"
 const UNIT_RESPONSES = ["Logged.", "Noted.", "Confirmed."]
 
 const CHAT_KEY = 'm420_guide_chat'
+let guideChatMemory = []
 
 function loadChat() {
   try {
-    // Guide transcripts are private session state, not durable journal data.
-    // Purge the old persistent key so reopening the app never resurrects stale chat.
+    // Guide transcripts are live-page state only. Purge both historical storage
+    // locations so a refresh/reopen always starts with a fresh conversation.
     localStorage.removeItem(CHAT_KEY)
-    return JSON.parse(sessionStorage.getItem(CHAT_KEY) || '[]')
-  } catch { return [] }
+    sessionStorage.removeItem(CHAT_KEY)
+  } catch {}
+  return guideChatMemory
 }
 function saveChat(msgs) {
-  try { sessionStorage.setItem(CHAT_KEY, JSON.stringify(msgs)) } catch {}
+  guideChatMemory = Array.isArray(msgs) ? msgs : []
 }
 
 function useVoiceInput(onInterim, onFinal) {

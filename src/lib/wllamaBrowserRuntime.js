@@ -57,8 +57,10 @@ export async function createBrowserLocalGuideRuntime({ model, onProgress } = {})
       // If it cannot answer promptly, retry once on multithreaded CPU/WASM and keep
       // that backend for the rest of this loaded session.
       const firstAttemptMs = backend === 'webgpu' ? Math.min(timeoutMs, 30000) : timeoutMs
+      const gpuFirstTokenMs = Math.max(120000, firstAttemptMs * 4)
+      const cpuFirstTokenMs = Math.max(180000, timeoutMs * 3)
       try {
-        return await completeWithTimeout(runtime, params, firstAttemptMs)
+        return await completeWithTimeout(runtime, params, firstAttemptMs, { firstTokenTimeoutMs: gpuFirstTokenMs })
       } catch (error) {
         if (backend !== 'webgpu' || cpuFallbackAttempted) throw error
         cpuFallbackAttempted = true
@@ -68,7 +70,7 @@ export async function createBrowserLocalGuideRuntime({ model, onProgress } = {})
         try {
           runtime = await loadRuntime({ model, onProgress, forceCpu: true })
           backend = 'wasm-cpu'
-          return await completeWithTimeout(runtime, params, timeoutMs)
+          return await completeWithTimeout(runtime, params, timeoutMs, { firstTokenTimeoutMs: cpuFirstTokenMs })
         } catch (cpuError) {
           throw new Error(`WebGPU failed: ${gpuError}; CPU retry failed: ${errorText(cpuError)}`)
         }

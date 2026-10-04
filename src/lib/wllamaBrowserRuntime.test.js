@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { completeWithTimeout } from './localModelTimeout.js'
 
-test('local runtime aborts generation after the configured inactivity budget', async () => {
+test('local runtime aborts generation after the configured first-token budget', async () => {
   let sawAbort = false
   const fakeRuntime = {
     createChatCompletion({ abortSignal }) {
@@ -14,8 +14,28 @@ test('local runtime aborts generation after the configured inactivity budget', a
       })
     },
   }
-  await assert.rejects(() => completeWithTimeout(fakeRuntime, { messages: [] }, 5), /aborted/)
+  await assert.rejects(
+    () => completeWithTimeout(fakeRuntime, { messages: [] }, 5, { firstTokenTimeoutMs: 8 }),
+    /no first token/i,
+  )
   assert.equal(sawAbort, true)
+})
+
+test('local runtime allows prompt evaluation to exceed the steady-state inactivity budget', async () => {
+  const fakeRuntime = {
+    async createChatCompletion({ onData }) {
+      await new Promise((resolve) => setTimeout(resolve, 12))
+      onData({ choices: [{ delta: { content: 'Ready.' }, finish_reason: 'stop' }] })
+    },
+  }
+
+  const result = await completeWithTimeout(
+    fakeRuntime,
+    { messages: [] },
+    6,
+    { firstTokenTimeoutMs: 20 },
+  )
+  assert.equal(result.choices[0].message.content, 'Ready.')
 })
 
 test('local runtime keeps a long generation alive while chunks are arriving', async () => {
@@ -35,7 +55,7 @@ test('local runtime keeps a long generation alive while chunks are arriving', as
   assert.equal(result.choices[0].finish_reason, 'stop')
 })
 
-test('local runtime requests streaming progress so prompt work can reset the watchdog', async () => {
+test('local runtime requests streaming output and provides an abort signal', async () => {
   let received
   const fakeRuntime = {
     async createChatCompletion(options) {
@@ -50,7 +70,6 @@ test('local runtime requests streaming progress so prompt work can reset the wat
 
   const result = await completeWithTimeout(fakeRuntime, { messages: [] }, 20)
   assert.equal(received.stream, true)
-  assert.equal(received.return_progress, true)
   assert.ok(received.abortSignal)
   assert.equal(result.choices[0].message.content, 'Yep.')
 })

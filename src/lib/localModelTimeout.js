@@ -2,13 +2,18 @@ function emptyUsage() {
   return { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
 }
 
-export async function completeWithTimeout(runtime, params = {}, timeoutMs = 15000) {
+export async function completeWithTimeout(runtime, params = {}, timeoutMs = 15000, { firstTokenTimeoutMs = timeoutMs } = {}) {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || typeof AbortController === 'undefined') {
     return runtime.createChatCompletion(params)
   }
 
+  const firstBudget = Number.isFinite(firstTokenTimeoutMs) && firstTokenTimeoutMs > 0
+    ? firstTokenTimeoutMs
+    : timeoutMs
   const controller = new AbortController()
   let timer = null
+  let timedOut = false
+  let receivedOutput = false
   let content = ''
   let finishReason = null
   let usage = null
@@ -16,22 +21,26 @@ export async function completeWithTimeout(runtime, params = {}, timeoutMs = 1500
   let responseId = 'local-guide-stream'
   let created = Math.floor(Date.now() / 1000)
 
-  const resetWatchdog = () => {
+  const armWatchdog = (budgetMs) => {
     clearTimeout(timer)
-    timer = setTimeout(() => controller.abort(), timeoutMs)
+    timer = setTimeout(() => {
+      timedOut = true
+      controller.abort()
+    }, budgetMs)
   }
 
-  resetWatchdog()
+  // Wllama does not emit onData while it is evaluating the prompt. Give prompt
+  // prefill a separate, larger first-token budget; after output starts, use the
+  // normal inactivity watchdog between chunks.
+  armWatchdog(firstBudget)
   try {
     await runtime.createChatCompletion({
       ...params,
       stream: true,
-      return_progress: true,
       abortSignal: controller.signal,
       onData: (chunk = {}) => {
-        // Timeout means inactivity, not total wall-clock generation time.
-        // Prompt-progress and token chunks both prove the local model is alive.
-        resetWatchdog()
+        receivedOutput = true
+        armWatchdog(timeoutMs)
         const choice = chunk?.choices?.[0]
         const delta = choice?.delta?.content
         if (typeof delta === 'string') content += delta
@@ -56,6 +65,12 @@ export async function completeWithTimeout(runtime, params = {}, timeoutMs = 1500
       }],
       usage: usage || emptyUsage(),
     }
+  } catch (error) {
+    if (timedOut) {
+      if (!receivedOutput) throw new Error(`Local model produced no first token within ${Math.round(firstBudget / 1000)} seconds.`)
+      throw new Error(`Local model stalled for ${Math.round(timeoutMs / 1000)} seconds after output began.`)
+    }
+    throw error
   } finally {
     clearTimeout(timer)
   }
