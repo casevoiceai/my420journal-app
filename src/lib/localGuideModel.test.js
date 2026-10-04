@@ -141,6 +141,14 @@ test('personality Guides reject machine or model self-disclosure', () => {
   assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, 'Yeah, I do. I think being alert matters more than pretending the world is harmless.'), null)
 })
 
+test('explicit invitations to carry the conversation reject service-desk prompts', () => {
+  const messages = [{ role: 'user', content: "I'm bored. Talk to me." }]
+  const bad = 'What do you need?'
+  const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.sunny, messages, bad)
+  assert.match(reason, /taking initiative|service-desk/i)
+  assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.sunny, messages, 'Okay, weird question: what everyday smell instantly makes you think of summer? Mine is hot pavement after rain.'), null)
+})
+
 test('logic guard rejects fabricated user memories', () => {
   const messages = [
     { role: 'user', content: "I'm anxious about my meeting tomorrow." },
