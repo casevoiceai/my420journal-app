@@ -583,6 +583,9 @@ export default function Settings() {
           return
         }
 
+        const okay = window.confirm('Import this backup? Matching My420Journal data already stored on this device may be overwritten. Download a current backup first if you may want to undo this.')
+        if (!okay) return
+
         const restored = restoreSanitizedLegacyBackup(localStorage, parsed.data)
         if (!restored.ok) {
           setRestoreError('This backup could not be safely imported. Nothing was imported.')
@@ -843,8 +846,11 @@ export default function Settings() {
 
         {/* ── NOTIFICATIONS ───────────────────────────────────────────────── */}
         <SectionHeading>Backup</SectionHeading>
-        <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: '0 0 16px 0' }}>
+        <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: '0 0 8px 0' }}>
           Download a local JSON backup of the journal data stored on this device.
+        </p>
+        <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, lineHeight: '1.5', margin: '0 0 16px 0' }}>
+          Backup files contain readable private journal data. Keep them somewhere you trust.
         </p>
         <button
           onClick={handleLocalBackup}
@@ -867,6 +873,9 @@ export default function Settings() {
         )}
 
         <div style={{ marginTop: '16px' }}>
+          <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, lineHeight: '1.5', margin: '0 0 10px 0' }}>
+            Importing a backup can overwrite matching My420Journal data already stored on this device. Download a current backup first if you may want to undo it.
+          </p>
           <label
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',

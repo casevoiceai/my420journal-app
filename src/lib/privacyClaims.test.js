@@ -93,6 +93,8 @@ test('current disclosures describe the implemented privacy boundaries', () => {
   assert.equal(features.includes('Label scanning is still planned.'), true)
   assert.equal(readme.includes('Local JSON backup export/import is included.'), true)
   assert.equal(settings.includes('anonymous local profile'), true)
+  assert.equal(settings.includes('Backup files contain readable private journal data.'), true)
+  assert.equal(settings.includes('Matching My420Journal data already stored on this device may be overwritten.'), true)
   assert.equal(settings.includes('Change market'), true)
   assert.equal(settings.includes('does not verify your residence'), true)
   assert.equal(onboarding.includes("tag: 'PRACTICAL TRIP JOURNAL'"), true)
