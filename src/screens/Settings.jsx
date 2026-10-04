@@ -503,12 +503,14 @@ export default function Settings() {
 
   function toggleLocalChat() {
     if (localChatEnabled) {
+      const okay = window.confirm('Turn off conversational Guides on this browser? Bud, Sunny, Larry, Herb, and Mary will return to limited journal and cannabis mode until you turn it back on.')
+      if (!okay) return
       setLocalGuideModelEnabled(false)
       setLocalChatEnabled(false)
       return
     }
     const gb = Math.round(LOCAL_GUIDE_MODEL.approximateDownloadMB / 100) / 10
-    const okay = window.confirm(`Enable richer local chat? If the model is not already cached, the next Guide session may download about ${gb} GB once. Inference then runs on this device.`)
+    const okay = window.confirm(`Set up conversational Guides? If the model is not already cached, the next Guide session will download about ${gb} GB once. The AI model then runs on this device; your journal is not uploaded.`)
     if (!okay) return
     setLocalGuideModelEnabled(true)
     setLocalChatEnabled(true)
@@ -752,12 +754,12 @@ export default function Settings() {
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderTop: `1px solid ${S.border}` }}>
           <div style={{ paddingRight: '16px' }}>
-            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, margin: '0 0 2px 0' }}>Richer local chat</p>
+            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, margin: '0 0 2px 0' }}>Conversational Guides AI</p>
             <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0, lineHeight: '1.4' }}>
-              {localChatEnabled ? 'On-device conversation is enabled for this browser.' : 'Use the optional local model for broader conversation.'}
+              {localChatEnabled ? 'On-device AI conversation is enabled for Bud, Sunny, Larry, Herb, and Mary.' : 'Off. Personality Guides stay in limited journal and cannabis mode until this is set up.'}
             </p>
           </div>
-          <button onClick={toggleLocalChat} aria-label="Toggle richer local chat" style={{ width: '48px', height: '28px', borderRadius: '14px', border: 'none', backgroundColor: localChatEnabled ? S.gold : S.border, cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s ease', flexShrink: 0, padding: 0 }}>
+          <button onClick={toggleLocalChat} aria-label="Toggle conversational Guides AI" style={{ width: '48px', height: '28px', borderRadius: '14px', border: 'none', backgroundColor: localChatEnabled ? S.gold : S.border, cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s ease', flexShrink: 0, padding: 0 }}>
             <div style={{ position: 'absolute', top: '3px', left: localChatEnabled ? '23px' : '3px', width: '22px', height: '22px', borderRadius: '11px', backgroundColor: '#fff', transition: 'left 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
           </button>
         </div>

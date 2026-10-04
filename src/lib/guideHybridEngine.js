@@ -31,6 +31,22 @@ function forceControlledBoundary(text = '') {
 function normalizeText(value = '') {
   return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ')
 }
+
+const CONVERSATIONAL_SETUP_REQUIRED = 'Natural conversation is not set up on this device yet. Use Set up conversational Guides below, or ask me about your journal or reviewed cannabis information.'
+const CONVERSATIONAL_MODEL_UNAVAILABLE = 'Conversational mode could not start on this device. You can still ask me about your journal or reviewed cannabis information.'
+
+function controlledWithoutConversationModel(text = '', entries = []) {
+  const t = normalizeText(text)
+  if (!t) return false
+  if (lookupCannabisKnowledge(text)) return true
+  if (/\b(my journal|journal|entries?|logged|recorded|my notes?|what did i|did i|when did i|how many times did i)\b/.test(t)) return true
+  if (/\b(cannabis|weed|marijuana|strain|cultivar|thc|cbd|terpene|terpenes|indica|sativa|hybrid|edible|edibles|vape|flower|dab|concentrate|rosin|resin)\b/.test(t)) return true
+  return entries.some((entry) => {
+    const name = normalizeText(entry?.product_name)
+    return Boolean(name && t.includes(name))
+  })
+}
+
 function journalDecisionIsGrounded(decision = {}, text = '', entries = []) {
   if (decision?.route !== 'journal') return true
   const t = normalizeText(text)
@@ -92,7 +108,11 @@ export async function buildHybridGuideResponse({
   if (forceControlledBoundary(userText)) return deterministic()
   // Emotional support must be immediate. Do not make a distressed or intoxicated user wait on local-model inference.
   if (supportMode) return emotionalSupportFollowupResponse(guide, userText)
-  if (!localModelEnabled || guide === 'stoner') return deterministic()
+  if (guide === 'stoner') return deterministic()
+  if (!localModelEnabled) {
+    if (controlledWithoutConversationModel(userText, entries)) return deterministic()
+    return CONVERSATIONAL_SETUP_REQUIRED
+  }
 
   const client = modelClient || {
     classify: (payload) => classifyWithLocalGuideModel(payload),
@@ -112,9 +132,11 @@ export async function buildHybridGuideResponse({
       }
     }
     const generated = await client.chat({ guide, messages: scopedMessages, lowEffortMode })
-    return String(generated || '').trim() || deterministic()
+    const content = String(generated || '').trim()
+    if (content) return content
+    return controlledWithoutConversationModel(userText, entries) ? deterministic() : CONVERSATIONAL_MODEL_UNAVAILABLE
   } catch {
-    return deterministic()
+    return controlledWithoutConversationModel(userText, entries) ? deterministic() : CONVERSATIONAL_MODEL_UNAVAILABLE
   }
 }
 

@@ -15,6 +15,8 @@ const S = {
 const fontInter = "'Inter', sans-serif"
 const fontPlayfair = "'Playfair Display', serif"
 
+const CONVERSATIONAL_GUIDES = new Set(['bud', 'sunny', 'larry', 'herb', 'mary'])
+
 const GUIDE_META = {
   bud:   { name: 'Bud Tendar',     accent: '#C9A84C' },
   sunny: { name: 'Sunny Day',      accent: '#FF7F5C' },
@@ -386,20 +388,15 @@ export default function Guide() {
     else startMic()
   }
 
-  function toggleLocalModel() {
-    if (localModelEnabled) {
-      setLocalGuideModelEnabled(false)
-      setLocalModelEnabledState(false)
-      setLocalModelStatus('idle')
-      setLocalModelError('')
-      return
-    }
-    const okay = window.confirm(`Enable richer local chat? This downloads about ${LOCAL_GUIDE_MODEL.approximateDownloadMB} MB of model files once. The model then runs on this device, and your journal database is not uploaded.`)
-    if (!okay) return
+  function setupConversationalGuides() {
+    if (!localModelCap.supported || localModelStatus === 'loading') return
+    setLocalModelError('')
     setLocalGuideModelEnabled(true)
     setLocalModelEnabledState(true)
   }
 
+  const isConversationalGuide = CONVERSATIONAL_GUIDES.has(guide)
+  const localModelGB = Math.round(LOCAL_GUIDE_MODEL.approximateDownloadMB / 100) / 10
   const canSend = input.trim().length > 0 && !thinking
   const activeChoices = !thinking && !input.trim() && !suggestionsDismissed && Array.isArray(messages.at(-1)?.choices)
     ? messages.at(-1).choices
@@ -537,14 +534,26 @@ export default function Guide() {
             backgroundColor: S.surface,
             boxSizing: 'border-box',
           }}>
-            {localModelCap.supported && !['stoner', 'unit', 'tool'].includes(guide) && localModelStatus !== 'ready' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', borderBottom: `1px solid ${S.border}` }}>
-                <div style={{ flex: 1, fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, lineHeight: '1.4' }}>
-                  {localModelStatus === 'loading' ? `Starting richer local chat ${localModelProgress}` : localModelStatus === 'error' ? `Richer local chat could not load. Standard Guide is still available.${localModelError ? ` (${localModelError})` : ''}` : `Richer local chat: optional ~${Math.round(LOCAL_GUIDE_MODEL.approximateDownloadMB / 100) / 10} GB download`}
+            {isConversationalGuide && localModelStatus !== 'ready' && (
+              <div style={{ padding: '12px 16px', borderBottom: `1px solid ${S.border}`, backgroundColor: `${accent}12` }}>
+                <div style={{ fontFamily: fontInter, fontSize: '13px', fontWeight: 700, color: S.textPrimary, marginBottom: '4px' }}>
+                  {localModelCap.supported ? 'Set up conversational Guides' : 'Conversational Guides are limited on this browser'}
                 </div>
-                {localModelStatus !== 'loading' && (
-                  <button onClick={toggleLocalModel} style={{ background: 'transparent', border: `1px solid ${accent}`, borderRadius: '8px', padding: '7px 10px', color: accent, fontFamily: fontInter, fontSize: '12px', cursor: 'pointer' }}>
-                    Enable
+                <div style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, lineHeight: '1.45' }}>
+                  {!localModelCap.supported
+                    ? 'This browser cannot run the on-device conversation model. Journal lookup and reviewed cannabis information are still available.'
+                    : localModelStatus === 'loading'
+                      ? `Downloading and starting the on-device AI model${localModelProgress ? ` ${localModelProgress}` : ''}. Keep this page open.`
+                      : localModelStatus === 'error'
+                        ? `The on-device conversation model could not start. Limited journal and cannabis mode is still available.${localModelError ? ` (${localModelError})` : ''}`
+                        : `Natural conversation with Bud, Sunny, Larry, Herb, and Mary uses a one-time ~${localModelGB} GB on-device AI model download. It runs on this device; your journal is not uploaded. Until setup, this Guide stays in limited journal and cannabis mode.`}
+                </div>
+                {localModelCap.supported && localModelStatus !== 'loading' && (
+                  <button
+                    onClick={setupConversationalGuides}
+                    style={{ marginTop: '9px', background: accent, border: 'none', borderRadius: '8px', padding: '8px 12px', color: S.bg, fontFamily: fontInter, fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    {localModelStatus === 'error' ? 'Try setup again' : `Set up (~${localModelGB} GB)`}
                   </button>
                 )}
               </div>
