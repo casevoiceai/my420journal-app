@@ -90,7 +90,7 @@ export async function classifyWithLocalGuideModel({ guide = 'bud', messages = []
     response_format: { type: 'json_object' },
     temperature: 0,
     max_tokens: 160,
-  }, { timeoutMs: 8000 })
+  }, { timeoutMs: 30000 })
   const content = result?.choices?.[0]?.message?.content || '{}'
   try { return normalizeSemanticDecision(JSON.parse(content)) } catch { return normalizeSemanticDecision() }
 }
@@ -191,15 +191,15 @@ export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], on
     content: String(m.content || ''),
   }))
   const system = characterPrompt(character, recent, { supportMode, lowEffortMode })
-  const options = { temperature: supportMode ? 0.55 : 0.68, top_p: 0.88, max_tokens: lowEffortMode ? 90 : 150 }
-  const result = await runtime.complete({ messages: [{ role: 'system', content: system }, ...recent], ...options }, { timeoutMs: 15000 })
+  const options = { temperature: supportMode ? 0.55 : 0.68, top_p: 0.88, max_tokens: lowEffortMode ? 72 : 120 }
+  const result = await runtime.complete({ messages: [{ role: 'system', content: system }, ...recent], ...options }, { timeoutMs: 60000 })
   let turn = parseGeneratedGuideTurn(result?.choices?.[0]?.message?.content || '')
   let reply = turn.content
   let suggestions = turn.suggestions
   const violation = generatedReplyViolation(character, recent, reply, { supportMode })
   if (violation) {
     const correction = `${system}\nCORRECTION: A previous draft was rejected for ${violation}. Rewrite from scratch. Keep the answer lively and in character, but do not repeat that contradiction.`
-    const retry = await runtime.complete({ messages: [{ role: 'system', content: correction }, ...recent], ...options }, { timeoutMs: 8000 })
+    const retry = await runtime.complete({ messages: [{ role: 'system', content: correction }, ...recent], ...options }, { timeoutMs: 45000 })
     turn = parseGeneratedGuideTurn(retry?.choices?.[0]?.message?.content || '')
     reply = turn.content
     suggestions = turn.suggestions
