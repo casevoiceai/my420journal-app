@@ -1231,7 +1231,6 @@ function CaptureSheet({ accent, notePrompt, onSave, saving, saveError, initialMe
     <div style={{ padding: '0 20px 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {[
         { id: 'voice',  label: 'Say it',  icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0014 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M12 18v3M9 21h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg> },
-        { id: 'scan',   label: 'Scan it', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.8"/><path d="M14 14h2v2h-2zM18 14h3M14 18v3M18 18h3v3h-3z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg> },
         { id: 'manual', label: 'Type it', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg> },
       ].map(({ id, label, icon }) => (
         <button key={id} onClick={() => setMode(id)}
@@ -1272,16 +1271,6 @@ function CaptureSheet({ accent, notePrompt, onSave, saving, saveError, initialMe
 
   if (mode === 'voice') return <VoiceCapture accent={accent} onSaveDirect={handleSaveDirect} onEditManually={handleEditManually} />
 
-  if (mode === 'scan') return (
-    <div style={{ padding: '32px 20px', textAlign: 'center' }}>
-      <p style={{ fontFamily: fontPlayfair, fontSize: '20px', color: S.textPrimary, margin: '0 0 12px 0' }}>Label Scan</p>
-      <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: '0 0 24px 0' }}>Camera scanning coming soon. Use manual entry for now.</p>
-      <button onClick={() => setMode('manual')} style={{ width: '100%', height: '52px', backgroundColor: S.gold, color: S.bg, border: 'none', borderRadius: '10px', fontFamily: fontInter, fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>
-        Enter manually
-      </button>
-    </div>
-  )
-
   return (
     <ManualEntryForm
       accent={accent}
@@ -1304,7 +1293,8 @@ function CaptureSheet({ accent, notePrompt, onSave, saving, saveError, initialMe
 export default function NewEntry() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const initialMethod = searchParams.get('method')
+  const requestedMethod = searchParams.get('method')
+  const initialMethod = ['voice', 'manual'].includes(requestedMethod) ? requestedMethod : null
   const [profile, setProfile] = useState(null)
   const [saving, setSaving]   = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -1398,7 +1388,7 @@ export default function NewEntry() {
 
       <div style={{ padding: '24px 20px 0', textAlign: 'center' }}>
         <h2 style={{ fontFamily: fontPlayfair, fontSize: '22px', fontWeight: '600', color: S.textPrimary, margin: '0 0 6px 0', lineHeight: '1.2' }}>What did you get?</h2>
-        <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: '0 0 20px 0', lineHeight: '1.5' }}>Speak it or type it. Camera scanning is not available yet.</p>
+        <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: '0 0 20px 0', lineHeight: '1.5' }}>Speak it or type it.</p>
       </div>
 
       <CaptureSheet

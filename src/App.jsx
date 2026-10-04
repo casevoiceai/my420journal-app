@@ -17,14 +17,8 @@ import Dashboard from './screens/Dashboard'
 import NewEntry from './screens/NewEntry'
 import EntryDetail from './screens/EntryDetail'
 import EditEntry from './screens/EditEntry'
-import Stash from './screens/Stash'
-import StashDetail from './screens/StashDetail'
 import Insights from './screens/Insights'
-import SharedSignals from './screens/SharedSignals'
-import Profile from './screens/Profile'
 import Settings from './screens/Settings'
-import Strains from './screens/Strains'
-import StrainDetail from './screens/StrainDetail'
 import CheckIn from './screens/CheckIn'
 import PostUseUpdate from './screens/PostUseUpdate'
 import QuickEntry from './screens/QuickEntry'
@@ -382,13 +376,11 @@ export default function App() {
             <Route path="/entries/sleep/:id" element={<SleepEntryDetail />} />
             <Route path="/entries/:id"       element={<EntryDetail />} />
             <Route path="/entries/:id/edit"  element={<EditEntry />} />
-            <Route path="/stash"             element={<Stash />} />
-            <Route path="/stash/:id"         element={<StashDetail />} />
-            <Route path="/strains"           element={<Strains />} />
-            <Route path="/strains/:id"       element={<StrainDetail />} />
+            <Route path="/stash/*"           element={<Navigate to="/home" replace />} />
+            <Route path="/strains/*"         element={<Navigate to="/home" replace />} />
             <Route path="/insights"          element={<Insights />} />
-            <Route path="/shared-signals"    element={<SharedSignals />} />
-            <Route path="/profile"           element={<Profile />} />
+            <Route path="/shared-signals"    element={<Navigate to="/home" replace />} />
+            <Route path="/profile"           element={<Navigate to="/home" replace />} />
             <Route path="/settings"          element={<Settings />} />
             <Route path="/quick"             element={<QuickEntry />} />
             <Route path="/journal"           element={<Journal />} />
