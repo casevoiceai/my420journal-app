@@ -39,10 +39,11 @@ test('Guide Worker rejects invalid Guide packets', async () => {
 })
 
 test('Guide Worker sends only normalized conversation packet to Workers AI', async () => {
-  let captured
+  const captured = []
   const run = async (model, input) => {
-    captured = { model, input }
-    return { response: 'Okay, weird question: what tiny thing improved your day today?\n[[BRANCHES:[]]]' }
+    captured.push({ model, input })
+    if (captured.length === 1) return { response: 'Okay, weird question: what tiny thing improved your day today?\n[[BRANCHES:[]]]' }
+    return { response: '{"pass":true,"issues":[],"critique":""}' }
   }
   const response = await handleGuideConversationWorkerRequest(
     request({
@@ -59,8 +60,9 @@ test('Guide Worker sends only normalized conversation packet to Workers AI', asy
   assert.equal(response.status, 200)
   const body = await response.json()
   assert.match(body.content, /weird question/i)
-  assert.equal(captured.model, GUIDE_CONVERSATION_MODEL)
-  const serialized = JSON.stringify(captured.input)
+  assert.equal(body.quality_checked, true)
+  assert.equal(captured[0].model, GUIDE_CONVERSATION_MODEL)
+  const serialized = JSON.stringify(captured)
   assert.doesNotMatch(serialized, /FULL_PRIVATE_JOURNAL_SHOULD_NOT_PASS/)
   assert.doesNotMatch(serialized, /RAW_PRIVATE_NOTES_SHOULD_NOT_PASS/)
   assert.match(serialized, /User explicitly prefers short replies/)
@@ -81,7 +83,13 @@ test('Guide Worker classifier returns parsed JSON only after authorization', asy
 })
 
 test('Guide Worker does not expose browser CORS headers', async () => {
-  const run = async () => ({ response: 'Hello.\n[[BRANCHES:[]]]' })
+  let calls = 0
+  const run = async () => {
+    calls += 1
+    return calls === 1
+      ? { response: 'Hello.\n[[BRANCHES:[]]]' }
+      : { response: '{"pass":true,"issues":[],"critique":""}' }
+  }
   const response = await handleGuideConversationWorkerRequest(
     request({ mode: 'chat', guide: 'bud', messages: [{ role: 'user', content: 'hi' }] }),
     { GUIDE_CONVERSATION_PROXY_SECRET: SECRET },
@@ -98,4 +106,52 @@ test('hosted prompt preserves Guide-specific tastes instead of mirroring the use
   assert.match(prompt, /INDEPENDENT TASTE:/i)
   assert.match(prompt, /Do not automatically agree with the user/i)
   assert.match(prompt, /If your taste differs, acknowledge theirs naturally/i)
+})
+
+
+test('quality gate catches Sunny mirroring the user and rewrites once', async () => {
+  const calls = []
+  const run = async (model, input) => {
+    calls.push({ model, input })
+    if (calls.length === 1) return { response: 'Classics are the best! I love them too.\n[[BRANCHES:[]]]' }
+    if (calls.length === 2) return { response: '{"pass":false,"issues":["mirroring"],"critique":"Sunny just adopted the user’s preference. Keep Sunny’s established pop/live-show taste while connecting naturally."}' }
+    if (calls.length === 3) return { response: 'Classics, okay. I am more of a pop-and-live-show person, but Fleetwood Mac absolutely gets me. What kind of classics are your thing?\n[[BRANCHES:[]]]' }
+    return { response: '{"pass":true,"issues":[],"critique":""}' }
+  }
+  const response = await handleGuideConversationWorkerRequest(
+    request({
+      mode: 'chat',
+      guide: 'sunny',
+      messages: [
+        { role: 'assistant', content: 'What kind of music do you like?' },
+        { role: 'user', content: "I'm more into classics" },
+      ],
+    }),
+    { GUIDE_CONVERSATION_PROXY_SECRET: SECRET },
+    run,
+  )
+  assert.equal(response.status, 200)
+  const body = await response.json()
+  assert.doesNotMatch(body.content, /Classics are the best/i)
+  assert.match(body.content, /more of a pop-and-live-show person/i)
+  assert.equal(calls.length, 4)
+  assert.match(JSON.stringify(calls[2].input), /QUALITY CORRECTION/i)
+})
+
+test('quality gate fails closed after two rejected Guide drafts', async () => {
+  let calls = 0
+  const run = async () => {
+    calls += 1
+    if (calls === 1 || calls === 3) return { response: 'Whatever you like is the best!\n[[BRANCHES:[]]]' }
+    return { response: '{"pass":false,"issues":["mirroring"],"critique":"Do not mirror the user."}' }
+  }
+  const response = await handleGuideConversationWorkerRequest(
+    request({ mode: 'chat', guide: 'sunny', messages: [{ role: 'user', content: "I'm more into classics" }] }),
+    { GUIDE_CONVERSATION_PROXY_SECRET: SECRET },
+    run,
+  )
+  assert.equal(response.status, 502)
+  const body = await response.json()
+  assert.match(body.error, /did not pass quality review/i)
+  assert.equal(calls, 4)
 })

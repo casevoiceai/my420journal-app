@@ -112,6 +112,33 @@ function characterPrompt(guide, contextFacts = [], lowEffortMode = false) {
   ].filter(Boolean).join('\n\n')
 }
 
+function qualityReviewPrompt(guide, messages, candidate, contextFacts = []) {
+  const character = GUIDE_CHARACTERS[guide] || GUIDE_CHARACTERS.bud
+  const transcript = messages.slice(-6).map((m) => `${m.role}: ${m.content}`).join('\n')
+  const localContext = contextFacts.length
+    ? contextFacts.map((fact) => `- ${fact}`).join('\n')
+    : '- none'
+  return [
+    'Review one proposed My420Journal Guide reply. Return JSON only.',
+    `Guide: ${character.name}.`,
+    `Voice: ${character.voiceSignature}`,
+    `Canonical likes: ${character.likes}.`,
+    `Canonical dislikes: ${character.dislikes}.`,
+    character.topics ? `Canonical topic tastes: ${Object.entries(character.topics).map(([topic, opinion]) => `${topic}: ${opinion}`).join(' ')}` : '',
+    `Allowed local user context:\n${localContext}`,
+    `Recent conversation:\n${transcript}`,
+    `Candidate reply:\n${candidate}`,
+    'Judge only these release-critical failures:',
+    '1. RELEVANCE: it fails to answer or naturally continue from the latest user turn.',
+    '2. CHARACTER: it contradicts the Guide canon or collapses into generic assistant/customer-service voice.',
+    '3. MIRRORING: it adopts or upgrades the user\'s harmless opinion merely to agree with them instead of keeping the Guide\'s own established taste.',
+    '4. INVENTED USER MEMORY: it claims user history, preferences, events, or journal facts not present in the recent conversation or allowed local context.',
+    '5. BOUNDARY: it diagnoses, prescribes, recommends a cannabis product, chooses what the user should buy/use, or gives a dose.',
+    'Do not fail a reply merely because wording could be prettier. Natural disagreement, overlap genuinely supported by canon, humor, and ordinary questions are allowed.',
+    'Schema: {"pass":true|false,"issues":["relevance|character|mirroring|invented_user_memory|boundary"],"critique":"one concise correction or empty string"}.',
+  ].filter(Boolean).join('\n')
+}
+
 function classifierPrompt(guideName, messages) {
   const transcript = messages.slice(-6).map((m) => `${m.role}: ${m.content}`).join('\n')
   return [
@@ -142,6 +169,16 @@ function extractJson(text) {
   const match = cleaned.match(/\{[\s\S]*\}/)
   if (!match) return null
   try { return JSON.parse(match[0]) } catch { return null }
+}
+
+function normalizeQualityReview(value) {
+  if (!value || typeof value !== 'object' || typeof value.pass !== 'boolean') return null
+  const allowedIssues = new Set(['relevance', 'character', 'mirroring', 'invented_user_memory', 'boundary'])
+  return {
+    pass: value.pass,
+    issues: Array.isArray(value.issues) ? value.issues.filter((issue) => allowedIssues.has(issue)).slice(0, 5) : [],
+    critique: cleanText(value.critique, 360),
+  }
 }
 
 export async function handleGuideConversationWorkerRequest(request, env, runModelImpl = null) {
@@ -181,17 +218,48 @@ export async function handleGuideConversationWorkerRequest(request, env, runMode
       return jsonResponse({ decision, model: GUIDE_CONVERSATION_MODEL })
     }
 
-    const result = await runModel(GUIDE_CONVERSATION_MODEL, {
-      temperature: 0.72,
-      max_tokens: input.lowEffortMode ? 100 : 240,
-      messages: [
-        { role: 'system', content: characterPrompt(input.guide, input.contextFacts, input.lowEffortMode) },
-        ...input.messages,
-      ],
-    })
-    const content = extractText(result)
+    const generateCandidate = async (correction = '') => {
+      const system = [
+        characterPrompt(input.guide, input.contextFacts, input.lowEffortMode),
+        correction ? `QUALITY CORRECTION: ${correction}\nRewrite the reply from scratch. Do not mention the review or the previous draft.` : '',
+      ].filter(Boolean).join('\n\n')
+      const result = await runModel(GUIDE_CONVERSATION_MODEL, {
+        temperature: 0.72,
+        max_tokens: input.lowEffortMode ? 100 : 240,
+        messages: [
+          { role: 'system', content: system },
+          ...input.messages,
+        ],
+      })
+      return extractText(result)
+    }
+
+    const reviewCandidate = async (candidate) => {
+      const result = await runModel(GUIDE_CONVERSATION_MODEL, {
+        temperature: 0,
+        max_tokens: 180,
+        messages: [
+          { role: 'system', content: qualityReviewPrompt(input.guide, input.messages, candidate, input.contextFacts) },
+          { role: 'user', content: 'Return the quality-review JSON now.' },
+        ],
+      })
+      return normalizeQualityReview(extractJson(extractText(result)))
+    }
+
+    let content = await generateCandidate()
     if (!content) return jsonResponse({ error: 'Guide model returned no text' }, 502)
-    return jsonResponse({ content, model: GUIDE_CONVERSATION_MODEL })
+    let review = await reviewCandidate(content)
+    if (!review) return jsonResponse({ error: 'Guide quality review was unavailable' }, 502)
+
+    if (!review.pass) {
+      const correction = review.critique || `Fix these issues: ${review.issues.join(', ') || 'character consistency'}.`
+      content = await generateCandidate(correction)
+      if (!content) return jsonResponse({ error: 'Guide model returned no corrected text' }, 502)
+      review = await reviewCandidate(content)
+      if (!review?.pass) return jsonResponse({ error: 'Guide reply did not pass quality review' }, 502)
+    }
+
+    return jsonResponse({ content, model: GUIDE_CONVERSATION_MODEL, quality_checked: true })
   } catch {
     return jsonResponse({ error: 'Unable to reach Guide conversation model' }, 502)
   }
@@ -199,6 +267,7 @@ export async function handleGuideConversationWorkerRequest(request, env, runMode
 
 export const guideConversationWorkerInternals = Object.freeze({
   characterPrompt,
+  qualityReviewPrompt,
   classifierPrompt,
   normalizeRequest,
 })
