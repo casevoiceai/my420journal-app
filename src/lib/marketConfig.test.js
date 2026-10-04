@@ -4,6 +4,9 @@ import assert from 'node:assert/strict'
 import {
   MARKET_CONFIG_VERSION,
   getMarketConfig,
+  getMarketConfigById,
+  getMarketSuggestionFromSearch,
+  getPreselectableMarketConfig,
   isMarketEnabled,
 } from './marketConfig.js'
 import {
@@ -56,6 +59,36 @@ test('Connecticut and unreviewed markets fail closed', () => {
   assert.equal(isMarketEnabled(ca), false)
   assert.equal(nl.accessStatus, 'reserved')
   assert.equal(isMarketEnabled(nl), false)
+})
+
+test('market query preselection recognizes known markets without granting access', () => {
+  const pa = getMarketConfigById('us-pa')
+  assert.equal(pa.id, 'US-PA')
+  assert.equal(pa.label, 'Pennsylvania')
+
+  assert.equal(getPreselectableMarketConfig('US-PA')?.accessStatus, 'private_test')
+  assert.equal(getPreselectableMarketConfig('US-CT')?.accessStatus, 'hold')
+  assert.equal(getPreselectableMarketConfig('US-CA')?.accessStatus, 'not_reviewed')
+  assert.equal(getPreselectableMarketConfig('NL-RESERVED')?.accessStatus, 'reserved')
+  assert.equal(getPreselectableMarketConfig('US-ZZ'), null)
+  assert.equal(getPreselectableMarketConfig('not-a-market'), null)
+})
+
+test('market preselection lookup is pure and does not save a market or age assurance', () => {
+  setup()
+  const suggestion = getPreselectableMarketConfig('US-NJ')
+  assert.equal(suggestion?.id, 'US-NJ')
+  assert.equal(getResidenceState(), null)
+})
+
+test('market query parser treats the URL value as a suggestion only', () => {
+  setup()
+  assert.equal(getMarketSuggestionFromSearch('?market=US-PA')?.id, 'US-PA')
+  assert.equal(getMarketSuggestionFromSearch('?foo=1&market=US-CT')?.accessStatus, 'hold')
+  assert.equal(getMarketSuggestionFromSearch('?market=US-ZZ'), null)
+  assert.equal(getMarketSuggestionFromSearch('?market=not-a-market'), null)
+  assert.equal(getMarketSuggestionFromSearch(''), null)
+  assert.equal(getResidenceState(), null)
 })
 
 test('residence storage contains only market configuration fields and no identity', () => {

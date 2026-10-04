@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { hasPin, verifyPin, clearPin, storePin } from '../lib/pin'
 import { restoreSanitizedLegacyBackup } from '../lib/privacyMigrations'
+import { clearResidenceState, getStoredMarketConfig } from '../lib/residence'
 import { isDevMode, DEV_PROFILE } from '../lib/dev'
 import SharedOptInPanel from '../components/SharedOptInPanel'
 import { isHostedGuideEnabled, setHostedGuideEnabled } from '../lib/hostedGuideModel'
@@ -480,6 +481,7 @@ export default function Settings() {
   const guideAccent = isUnit ? '#888888' : currentMeta?.accent
   const guideDescription = isUnit ? 'No personality. Minimal interface.' : currentMeta?.description
   const pinIsActive = hasPin()
+  const selectedMarket = getStoredMarketConfig().config
 
   async function enableToolMode() {
     if (togglingTool) return
@@ -513,6 +515,14 @@ export default function Settings() {
     if (!okay) return
     setHostedGuideEnabled(true)
     setHostedChatEnabled(true)
+  }
+
+  function changeMarket() {
+    const label = selectedMarket?.label || 'the current market'
+    const okay = window.confirm(`Change market from ${label}? You will choose a market again and complete the applicable age confirmation. Your journal entries are not deleted.`)
+    if (!okay) return
+    clearResidenceState()
+    navigate('/app')
   }
 
   function handleLocalBackup() {
@@ -765,6 +775,33 @@ export default function Settings() {
         <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, lineHeight: '1.5', margin: '0 0 8px 0' }}>
           When enabled, the message you send and recent Guide conversation are sent to generate a reply. The full journal is not uploaded, and the AI service cannot browse local journal storage or save entries directly.
         </p>
+
+        <Divider />
+
+        {/* ── MARKET ──────────────────────────────────────────────────────── */}
+        <SectionHeading>Market</SectionHeading>
+        <div style={{
+          padding: '14px 0', borderBottom: `1px solid ${S.border}`, marginBottom: '14px',
+        }}>
+          <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, margin: '0 0 4px 0' }}>
+            {selectedMarket?.label || 'No market selected'}
+          </p>
+          <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0, lineHeight: '1.5' }}>
+            This setting controls which reviewed market and age rules My420Journal uses on this device. It does not verify your residence or prove that cannabis activity is legal.
+          </p>
+        </div>
+        <button
+          onClick={changeMarket}
+          style={{
+            width: '100%', height: '48px', backgroundColor: 'transparent',
+            border: `1px solid ${S.gold}`, borderRadius: '8px',
+            color: S.gold, fontFamily: fontInter, fontSize: '14px',
+            fontWeight: '500', cursor: 'pointer', letterSpacing: '0.02em',
+            marginBottom: '8px',
+          }}
+        >
+          Change market
+        </button>
 
         <Divider />
 

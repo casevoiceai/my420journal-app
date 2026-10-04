@@ -5,6 +5,7 @@ import {
   COUNTRY_OPTIONS,
   US_REGION_OPTIONS,
   getCountryOption,
+  getMarketSuggestionFromSearch,
   isMarketEnabled,
 } from '../lib/marketConfig'
 import { scrubLegacyShoppingLocationFields } from '../lib/privacyMigrations'
@@ -109,6 +110,7 @@ export default function AgeGate() {
   const [country, setCountry] = useState('')
   const [region, setRegion] = useState('')
   const [config, setConfig] = useState(null)
+  const [suggestedMarket, setSuggestedMarket] = useState(null)
   const [error, setError] = useState('')
 
   async function continueIntoJournal() {
@@ -121,6 +123,17 @@ export default function AgeGate() {
 
     async function restore() {
       scrubLegacyShoppingLocationFields()
+
+      const suggested = getMarketSuggestionFromSearch(window.location.search)
+      if (suggested) {
+        if (!cancelled) {
+          setSuggestedMarket(suggested)
+          setCountry(suggested.country || '')
+          setRegion(suggested.region || '')
+          setStep('market-confirm')
+        }
+        return
+      }
 
       const stored = getStoredMarketConfig()
       if (!stored.config) {
@@ -151,6 +164,42 @@ export default function AgeGate() {
     return () => { cancelled = true }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function confirmSuggestedMarket() {
+    if (!suggestedMarket) {
+      setStep('country')
+      return
+    }
+
+    const saved = saveResidenceSelection(suggestedMarket.country, suggestedMarket.region)
+    setSuggestedMarket(null)
+    setCountry(saved.config.country || '')
+    setRegion(saved.config.region || '')
+    setConfig(saved.config)
+    navigate('/app', { replace: true })
+
+    if (!isMarketEnabled(saved.config)) {
+      setStep('blocked')
+      return
+    }
+
+    if (isAgeAssuranceCurrent(saved.config, saved.state)) {
+      await continueIntoJournal()
+      return
+    }
+
+    setStep('age')
+  }
+
+  function chooseDifferentMarket() {
+    setSuggestedMarket(null)
+    setCountry('')
+    setRegion('')
+    setConfig(null)
+    setError('')
+    navigate('/app', { replace: true })
+    setStep('country')
+  }
+
   function chooseCountry(countryCode) {
     setError('')
     setCountry(countryCode)
@@ -171,7 +220,7 @@ export default function AgeGate() {
   function chooseRegion() {
     setError('')
     if (!region) {
-      setError('Choose your state before continuing.')
+      setError('Choose a state market before continuing.')
       return
     }
 
@@ -192,10 +241,12 @@ export default function AgeGate() {
 
   function startOver() {
     clearResidenceState()
+    setSuggestedMarket(null)
     setCountry('')
     setRegion('')
     setConfig(null)
     setError('')
+    navigate('/app', { replace: true })
     setStep('country')
   }
 
@@ -209,12 +260,30 @@ export default function AgeGate() {
     )
   }
 
+  if (step === 'market-confirm') {
+    return (
+      <ScreenShell>
+        <Heading>Use {suggestedMarket?.label}?</Heading>
+        <SupportingText>
+          The page you opened suggested this My420Journal market. Confirm it before anything is saved on this device. This does not verify where you live or whether any cannabis activity is legal.
+        </SupportingText>
+
+        <button onClick={confirmSuggestedMarket} style={primaryButtonStyle}>
+          Use {suggestedMarket?.label}
+        </button>
+        <button onClick={chooseDifferentMarket} style={{ ...buttonStyle, textAlign: 'center', marginTop: '10px', background: 'transparent' }}>
+          Choose a different market
+        </button>
+      </ScreenShell>
+    )
+  }
+
   if (step === 'country') {
     return (
       <ScreenShell>
-        <Heading>Where do you live?</Heading>
+        <Heading>Where are you using My420Journal?</Heading>
         <SupportingText>
-          This sets the My420Journal information for your home location. We do not need your street address or GPS location.
+          Choose the market My420Journal should use on this device. We do not need your street address or GPS location.
         </SupportingText>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -235,12 +304,12 @@ export default function AgeGate() {
   if (step === 'region') {
     return (
       <ScreenShell>
-        <Heading>What state do you live in?</Heading>
+        <Heading>Which state should My420Journal use?</Heading>
         <SupportingText>
-          Choose your home state. My420Journal does not use this selection as proof that any cannabis activity is legal.
+          Choose the state for this journal session. This selection does not prove that any cannabis activity is legal.
         </SupportingText>
 
-        <label htmlFor="home-state" style={{
+        <label htmlFor="market-state" style={{
           display: 'block',
           fontFamily: fontInter,
           fontSize: '12px',
@@ -254,7 +323,7 @@ export default function AgeGate() {
         </label>
 
         <select
-          id="home-state"
+          id="market-state"
           value={region}
           onChange={(event) => { setRegion(event.target.value); setError('') }}
           style={{
@@ -295,9 +364,9 @@ export default function AgeGate() {
   if (step === 'blocked') {
     return (
       <ScreenShell>
-        <Heading>This location is not enabled yet.</Heading>
+        <Heading>This market is not enabled yet.</Heading>
         <SupportingText>
-          {config?.holdReason || 'This location is not configured for the current My420Journal private test.'}
+          {config?.holdReason || 'This market is not configured for the current My420Journal private test.'}
         </SupportingText>
 
         <div style={{
@@ -308,12 +377,12 @@ export default function AgeGate() {
           marginBottom: '24px',
         }}>
           <p style={{ fontFamily: fontInter, fontSize: '14px', lineHeight: 1.6, color: S.textSecondary, margin: 0 }}>
-            We fail closed when a market has not been reviewed. Choosing a different location does not change where you actually live.
+            We fail closed when a market has not been reviewed. Choosing a market is only an app setting; it does not verify residence or legal status.
           </p>
         </div>
 
         <button onClick={startOver} style={primaryButtonStyle}>
-          Choose my location again
+          Choose a different market
         </button>
       </ScreenShell>
     )
@@ -359,7 +428,7 @@ export default function AgeGate() {
       )}
 
       <button onClick={startOver} style={{ ...buttonStyle, textAlign: 'center', marginTop: '10px', background: 'transparent' }}>
-        Change where I live
+        Change market
       </button>
     </ScreenShell>
   )

@@ -18,8 +18,9 @@ const onboarding = read('../screens/Onboarding.jsx')
 const newEntry = read('../screens/NewEntry.jsx')
 const guide = read('../screens/Guide.jsx')
 const home = read('../screens/Home.jsx')
+const ageGate = read('../screens/AgeGate.jsx')
 const readme = read('../../README.md')
-const allClaims = [hero, layout, process, about, features, privacy, faq, settings, onboarding, newEntry, guide, home, readme].join(String.fromCharCode(10))
+const allClaims = [hero, layout, process, about, features, privacy, faq, settings, onboarding, newEntry, guide, home, ageGate, readme].join(String.fromCharCode(10))
 
 const bannedClaims = [
   'Nothing leaves your device unless you choose to share it.',
@@ -66,6 +67,9 @@ const bannedClaims = [
   'Small habits.',
   'Better visits.',
   'Strain - Dose - Method - Mood',
+  'coarse residence information',
+  'Where do you live?',
+  'What state do you live in?',
 ]
 
 test('retired absolute and unimplemented feature claims do not return', () => {
@@ -78,9 +82,16 @@ test('current disclosures describe the implemented privacy boundaries', () => {
   assert.equal(privacy.includes("heading: 'OPTIONAL NETWORK FEATURES'"), true)
   assert.equal(privacy.includes('Shared Journey / Layer 2 is currently OFF.'), true)
   assert.equal(privacy.includes('precise device GPS'), true)
+  assert.equal(privacy.includes("heading: 'AGE AND MARKET'"), true)
+  assert.equal(privacy.includes('market selection as proof of residence'), true)
+  assert.equal(ageGate.includes('Where are you using My420Journal?'), true)
+  assert.equal(ageGate.includes('Which state should My420Journal use?'), true)
+  assert.equal(ageGate.includes('Confirm it before anything is saved on this device.'), true)
   assert.equal(features.includes('Label scanning is still planned.'), true)
   assert.equal(readme.includes('Local JSON backup export/import is included.'), true)
   assert.equal(settings.includes('anonymous local profile'), true)
+  assert.equal(settings.includes('Change market'), true)
+  assert.equal(settings.includes('does not verify your residence'), true)
   assert.equal(onboarding.includes("tag: 'PRACTICAL TRIP JOURNAL'"), true)
   assert.equal(newEntry.includes('Camera scanning is not available yet.'), true)
   assert.equal(onboarding.includes('choosing a guide does not unlock different app features'), true)

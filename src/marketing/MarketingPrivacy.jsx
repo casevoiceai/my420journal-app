@@ -64,10 +64,10 @@ const sections = [
     ],
   },
   {
-    heading: 'AGE AND LOCATION',
+    heading: 'AGE AND MARKET',
     paragraphs: [
-      'Cannabis and cannabis-related rules vary by location and use case. My420Journal does not treat a user\'s location choice as proof that any cannabis activity is lawful.',
-      'In the current private-testing build, My420Journal asks for coarse residence information — country and, for reviewed U.S. markets, state — to select a versioned market configuration and stores an age-confirmation result rather than an exact date of birth. The market and age flow does not request a street address, government ID image, or precise device GPS.',
+      'Cannabis and cannabis-related rules vary by market and use case. My420Journal does not treat a user\'s market selection as proof of residence or proof that any cannabis activity is lawful.',
+      'In the current private-testing build, the user chooses a country market and, for reviewed U.S. markets, a state market so My420Journal can apply the appropriate versioned access and age configuration. My420Journal stores that selected market and an age-confirmation result rather than an exact date of birth. The market and age flow does not request a street address, government ID image, or precise device GPS.',
     ],
   },
   {

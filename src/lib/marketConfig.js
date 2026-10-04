@@ -134,7 +134,7 @@ const RESERVED_COUNTRIES = {
     accessStatus: 'not_reviewed',
     ageThreshold: null,
     ageAssuranceMode: null,
-    holdReason: 'This location is not configured for the current private test.',
+    holdReason: 'This market is not configured for the current private test.',
   },
 }
 
@@ -169,6 +169,36 @@ export function getMarketConfig(countryCode, regionCode = null) {
   if (RESERVED_COUNTRIES[countryCode]) return { ...RESERVED_COUNTRIES[countryCode] }
 
   return { ...RESERVED_COUNTRIES.OTHER }
+}
+
+export function getMarketConfigById(marketId) {
+  const normalized = String(marketId || '').trim().toUpperCase()
+  if (!normalized) return null
+
+  const usMatch = /^US-([A-Z]{2})$/.exec(normalized)
+  if (usMatch) {
+    if (!getUsRegionOption(usMatch[1])) return null
+    return getMarketConfig('US', usMatch[1])
+  }
+
+  for (const config of Object.values(RESERVED_COUNTRIES)) {
+    if (config.id === normalized) return { ...config }
+  }
+
+  return null
+}
+
+export function getPreselectableMarketConfig(marketId) {
+  return getMarketConfigById(marketId)
+}
+
+export function getMarketSuggestionFromSearch(search = '') {
+  try {
+    const params = new URLSearchParams(String(search || ''))
+    return getPreselectableMarketConfig(params.get('market'))
+  } catch {
+    return null
+  }
 }
 
 export function isMarketEnabled(config) {

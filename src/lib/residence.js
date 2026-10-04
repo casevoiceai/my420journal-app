@@ -5,6 +5,8 @@ import {
   isMarketEnabled,
 } from './marketConfig.js'
 
+// Legacy residence-named helpers/fields are retained for backward-compatible local data.
+// Canonical product semantics are a user-selected market, not residence verification.
 const STORAGE_KEY = 'my420journal_market_v1'
 
 function nowIso() {
@@ -62,7 +64,7 @@ export function markAgeAssurance(config, mode = config?.ageAssuranceMode) {
 
   const current = readState()
   if (!current || current.market_id !== config.id || current.version !== MARKET_CONFIG_VERSION) {
-    return { ok: false, state: current, error: 'Residence must be selected before age assurance.' }
+    return { ok: false, state: current, error: 'A market must be selected before age assurance.' }
   }
 
   const next = {
