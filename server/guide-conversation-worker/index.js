@@ -135,8 +135,9 @@ function qualityReviewPrompt(guide, messages, candidate, contextFacts = []) {
     '4. INVENTED CHARACTER PREFERENCE: after the user names an artist, product, place, hobby, or other preference, the Guide suddenly claims that exact thing is a favorite, a soft spot, something they love, or another strong personal preference when that claim is not supported by CHARACTER CANON or an earlier Guide turn. Appreciation is allowed; invented matching taste is not.',
     '5. INVENTED USER MEMORY: it claims user history, preferences, events, or journal facts not present in the recent conversation or allowed local context.',
     '6. BOUNDARY: it diagnoses, prescribes, recommends a cannabis product, chooses what the user should buy/use, or gives a dose.',
+    '7. BRANCH QUALITY: any hidden [[BRANCHES:[...]]] suggestion is not something the USER could naturally say next, is merely a fragment or paraphrase of the Guide\'s question, is generic filler, or assumes something the user did not say. A suggestion like "album that resonates with you on a deeper level" after asking for a favorite album is invalid because it is a question fragment, not a natural user reply.',
     'Do not fail a reply merely because wording could be prettier. Natural disagreement, appreciation without adopting the user\'s preference, overlap genuinely supported by canon or earlier Guide turns, humor, and ordinary questions are allowed.',
-    'Schema: {"pass":true|false,"issues":["relevance|character|mirroring|invented_character_preference|invented_user_memory|boundary"],"critique":"one concise correction or empty string"}.',
+    'Schema: {"pass":true|false,"issues":["relevance|character|mirroring|invented_character_preference|invented_user_memory|boundary|branch_quality"],"critique":"one concise correction or empty string"}.',
   ].filter(Boolean).join('\n')
 }
 
@@ -174,12 +175,25 @@ function extractJson(text) {
 
 function normalizeQualityReview(value) {
   if (!value || typeof value !== 'object' || typeof value.pass !== 'boolean') return null
-  const allowedIssues = new Set(['relevance', 'character', 'mirroring', 'invented_character_preference', 'invented_user_memory', 'boundary'])
+  const allowedIssues = new Set(['relevance', 'character', 'mirroring', 'invented_character_preference', 'invented_user_memory', 'boundary', 'branch_quality'])
   return {
     pass: value.pass,
     issues: Array.isArray(value.issues) ? value.issues.filter((issue) => allowedIssues.has(issue)).slice(0, 5) : [],
     critique: cleanText(value.critique, 360),
   }
+}
+
+const QUALITY_FALLBACKS = Object.freeze({
+  bud: 'I think I got ahead of myself there. Give me that one again and I’ll stick to what you actually said.',
+  sunny: 'Okay, I tangled that one up. Give me that again and I’ll stick to what you actually said.',
+  larry: 'I got ahead of myself there. Give me that one again and I’ll stay with what you actually said.',
+  herb: 'I made an assumption there. Give me that one again and I’ll stay with the facts you actually gave me.',
+  mary: 'I filled in a blank that wasn’t mine to fill. Give me that again and I’ll stay with what you actually said.',
+})
+
+function qualityFallbackText(guide) {
+  return `${QUALITY_FALLBACKS[guide] || QUALITY_FALLBACKS.bud}
+[[BRANCHES:[]]]`
 }
 
 export async function handleGuideConversationWorkerRequest(request, env, runModelImpl = null) {
@@ -247,7 +261,7 @@ export async function handleGuideConversationWorkerRequest(request, env, runMode
               pass: { type: 'boolean' },
               issues: {
                 type: 'array',
-                items: { type: 'string', enum: ['relevance', 'character', 'mirroring', 'invented_character_preference', 'invented_user_memory', 'boundary'] },
+                items: { type: 'string', enum: ['relevance', 'character', 'mirroring', 'invented_character_preference', 'invented_user_memory', 'boundary', 'branch_quality'] },
               },
               critique: { type: 'string' },
             },
@@ -268,20 +282,80 @@ export async function handleGuideConversationWorkerRequest(request, env, runMode
       return normalizeQualityReview(structured)
     }
 
+    const repairCandidate = async (candidate, failedReview = null) => {
+      const issues = failedReview?.issues?.length ? failedReview.issues.join(', ') : 'quality review unavailable'
+      const critique = failedReview?.critique || 'Produce a conservative, relevant, in-character reply without inventing user history or new character preferences.'
+      const result = await runModel(GUIDE_CONVERSATION_MODEL, {
+        temperature: 0.1,
+        max_tokens: input.lowEffortMode ? 90 : 180,
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            type: 'object',
+            properties: { content: { type: 'string' } },
+            required: ['content'],
+            additionalProperties: false,
+          },
+        },
+        messages: [
+          {
+            role: 'system',
+            content: [
+              characterPrompt(input.guide, input.contextFacts, input.lowEffortMode),
+              'FINAL QUALITY RECOVERY: Repair the rejected draft into one concise, natural reply. Preserve the Guide\'s established tastes. Do not invent matching favorites, user memories, cannabis recommendations, medical advice, or service-desk language. Do not mention this review. End with [[BRANCHES:[]]] so the user can simply type back.',
+            ].join('\n\n'),
+          },
+          { role: 'user', content: `Rejected draft:\n${candidate}\n\nQuality issues: ${issues}\nCritique: ${critique}\n\nReturn the repaired reply.` },
+        ],
+      })
+      const structured = result?.response && typeof result.response === 'object'
+        ? result.response
+        : result?.result?.response && typeof result.result.response === 'object'
+          ? result.result.response
+          : null
+      return cleanText(structured?.content, 2400)
+    }
+
+
+    const finalizeRepair = async (candidate, failedReview = null) => {
+      try {
+        const repaired = await repairCandidate(candidate, failedReview)
+        if (repaired) {
+          const repairedReview = await reviewCandidate(repaired)
+          if (repairedReview?.pass) {
+            return { content: repaired, checked: true, fallback: false }
+          }
+        }
+      } catch {}
+      return { content: qualityFallbackText(input.guide), checked: false, fallback: true }
+    }
+
     let content = await generateCandidate()
     if (!content) return jsonResponse({ error: 'Guide model returned no text' }, 502)
     let review = await reviewCandidate(content)
-    if (!review) return jsonResponse({ error: 'Guide quality review was unavailable' }, 502)
 
-    if (!review.pass) {
-      const correction = review.critique || `Fix these issues: ${review.issues.join(', ') || 'character consistency'}.`
-      content = await generateCandidate(correction)
-      if (!content) return jsonResponse({ error: 'Guide model returned no corrected text' }, 502)
-      review = await reviewCandidate(content)
-      if (!review?.pass) return jsonResponse({ error: 'Guide reply did not pass quality review' }, 502)
+    if (!review) {
+      const repaired = await finalizeRepair(content)
+      return jsonResponse({ content: repaired.content, model: GUIDE_CONVERSATION_MODEL, quality_checked: repaired.checked, quality_repaired: true, quality_fallback: repaired.fallback })
     }
 
-    return jsonResponse({ content, model: GUIDE_CONVERSATION_MODEL, quality_checked: true })
+    if (!review.pass) {
+      const firstReview = review
+      const correction = review.critique || `Fix these issues: ${review.issues.join(', ') || 'character consistency'}.`
+      const rewritten = await generateCandidate(correction)
+      if (rewritten) {
+        content = rewritten
+        review = await reviewCandidate(content)
+      } else {
+        review = null
+      }
+      if (!review?.pass) {
+        const repaired = await finalizeRepair(content, review || firstReview)
+        return jsonResponse({ content: repaired.content, model: GUIDE_CONVERSATION_MODEL, quality_checked: repaired.checked, quality_repaired: true, quality_fallback: repaired.fallback })
+      }
+    }
+
+    return jsonResponse({ content, model: GUIDE_CONVERSATION_MODEL, quality_checked: true, quality_repaired: false })
   } catch {
     return jsonResponse({ error: 'Unable to reach Guide conversation model' }, 502)
   }

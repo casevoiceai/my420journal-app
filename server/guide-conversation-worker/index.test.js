@@ -138,22 +138,72 @@ test('quality gate catches Sunny mirroring the user and rewrites once', async ()
   assert.match(JSON.stringify(calls[2].input), /QUALITY CORRECTION/i)
 })
 
-test('quality gate fails closed after two rejected Guide drafts', async () => {
+test('quality gate repairs instead of reporting service unavailable after two rejected Guide drafts', async () => {
   let calls = 0
   const run = async () => {
     calls += 1
     if (calls === 1 || calls === 3) return { response: 'Whatever you like is the best!\n[[BRANCHES:[]]]' }
-    return { response: '{"pass":false,"issues":["mirroring"],"critique":"Do not mirror the user."}' }
+    if (calls === 2 || calls === 4) return { response: { pass: false, issues: ['mirroring'], critique: 'Do not mirror the user.' } }
+    if (calls === 5) return { response: { content: 'I can see why classics work for you. I am still more of a pop-and-live-show person myself. What is the part you come back to most?\n[[BRANCHES:[]]]' } }
+    return { response: { pass: true, issues: [], critique: '' } }
   }
   const response = await handleGuideConversationWorkerRequest(
     request({ mode: 'chat', guide: 'sunny', messages: [{ role: 'user', content: "I'm more into classics" }] }),
     { GUIDE_CONVERSATION_PROXY_SECRET: SECRET },
     run,
   )
-  assert.equal(response.status, 502)
+  assert.equal(response.status, 200)
   const body = await response.json()
-  assert.match(body.error, /did not pass quality review/i)
-  assert.equal(calls, 4)
+  assert.match(body.content, /pop-and-live-show person/i)
+  assert.equal(body.quality_repaired, true)
+  assert.equal(body.quality_checked, true)
+  assert.equal(body.quality_fallback, false)
+  assert.equal(calls, 6)
+})
+
+test('quality gate returns deterministic conversation recovery instead of unavailable or hallucinated repair', async () => {
+  let calls = 0
+  const run = async () => {
+    calls += 1
+    if (calls === 1 || calls === 3) return { response: 'Whatever you like is the best!\n[[BRANCHES:[]]]' }
+    if (calls === 2 || calls === 4) return { response: { pass: false, issues: ['mirroring'], critique: 'Do not mirror the user.' } }
+    if (calls === 5) return { response: { content: "Lorde's Melodrama is such a great choice.\n[[BRANCHES:[]]]" } }
+    return { response: { pass: false, issues: ['invented_user_memory'], critique: 'The user never chose that album.' } }
+  }
+  const response = await handleGuideConversationWorkerRequest(
+    request({ mode: 'chat', guide: 'sunny', messages: [{ role: 'user', content: 'album that resonates with you on a deeper level' }] }),
+    { GUIDE_CONVERSATION_PROXY_SECRET: SECRET },
+    run,
+  )
+  assert.equal(response.status, 200)
+  const body = await response.json()
+  assert.doesNotMatch(body.content, /Melodrama/i)
+  assert.match(body.content, /tangled that one up/i)
+  assert.equal(body.quality_repaired, true)
+  assert.equal(body.quality_checked, false)
+  assert.equal(body.quality_fallback, true)
+  assert.equal(calls, 6)
+})
+
+test('quality gate rejects reply chips that are fragments of the Guide question', async () => {
+  const calls = []
+  const run = async (model, input) => {
+    calls.push({ model, input })
+    if (calls.length === 1) return { response: 'Do you have a favorite song or album that resonates with you on a deeper level?\n[[BRANCHES:["album that resonates with you on a deeper level"]]]' }
+    if (calls.length === 2) return { response: { pass: false, issues: ['branch_quality'], critique: 'The reply chip is a fragment of the Guide question, not a natural user reply.' } }
+    if (calls.length === 3) return { response: 'Do you have a favorite song or album that really sticks with you?\n[[BRANCHES:["Disintegration","Violator"]]]' }
+    return { response: { pass: true, issues: [], critique: '' } }
+  }
+  const response = await handleGuideConversationWorkerRequest(
+    request({ mode: 'chat', guide: 'sunny', messages: [{ role: 'user', content: 'Their lyrics' }] }),
+    { GUIDE_CONVERSATION_PROXY_SECRET: SECRET },
+    run,
+  )
+  assert.equal(response.status, 200)
+  const body = await response.json()
+  assert.doesNotMatch(body.content, /album that resonates with you on a deeper level/)
+  assert.match(body.content, /Disintegration/)
+  assert.equal(calls.length, 4)
 })
 
 test('quality gate catches invented matching favorites after the user names exact artists', async () => {
