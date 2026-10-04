@@ -10,8 +10,15 @@ import {
   getPublicMarketRecord,
   isProductionPublicMarketRoute,
 } from './publicMarketRegistry.js'
+import {
+  GLOBAL_MARKET_PAGE_CONTENT,
+  US_REGIONAL_MARKET_CONTENT,
+  buildUSMarketPageModel,
+  validateUSMarketDelta,
+} from './marketPageInheritance.js'
 
 const registrySource = fs.readFileSync(new URL('./publicMarketRegistry.js', import.meta.url), 'utf8')
+const marketTemplateSource = fs.readFileSync(new URL('./USMarketPageTemplate.jsx', import.meta.url), 'utf8')
 const appSource = fs.readFileSync(new URL('../App.jsx', import.meta.url), 'utf8')
 
 const EXPECTED_STATUS_BY_ROUTE = new Map([
@@ -123,6 +130,55 @@ test('production-route helper requires active status plus recorded release metad
     releaseVersion: '1.0',
     releaseDate: '2026-08-27',
   }), true)
+})
+
+test('U.S. market page inheritance owns global and regional truth once', () => {
+  assert.equal(GLOBAL_MARKET_PAGE_CONTENT.privacyHeading, 'Private by design')
+  assert.equal(GLOBAL_MARKET_PAGE_CONTENT.boundaryHeading, 'A record, not a recommendation')
+  assert.match(GLOBAL_MARKET_PAGE_CONTENT.boundaryBody, /does not provide medical advice/i)
+  assert.match(GLOBAL_MARKET_PAGE_CONTENT.boundaryBody, /does not.*decide what you should buy or use/i)
+  assert.match(US_REGIONAL_MARKET_CONTENT.contextBody, /rules vary by state/i)
+  assert.match(US_REGIONAL_MARKET_CONTENT.contextBody, /does not treat a selected market as proof/i)
+})
+
+test('reusable U.S. market page model requires an explicit matching market delta', () => {
+  const pa = getPublicMarketRecord('/us/pennsylvania')
+  const delta = {
+    marketId: 'US-PA',
+    marketName: 'Pennsylvania',
+    heroTitle: 'Synthetic reviewed hero for test only',
+    heroBody: 'Synthetic reviewed support copy for test only.',
+    useCaseTitle: 'Synthetic reviewed use case',
+    useCaseBody: 'Synthetic reviewed use-case copy for test only.',
+    ageProgramText: 'Synthetic reviewed age/program note.',
+    footerNote: '',
+  }
+
+  assert.equal(validateUSMarketDelta(pa, delta), true)
+  assert.equal(validateUSMarketDelta(pa, { ...delta, marketId: 'US-NY' }), false)
+  assert.equal(validateUSMarketDelta(pa, { ...delta, heroBody: '' }), false)
+  assert.equal(validateUSMarketDelta(getPublicMarketRecord('/us'), delta), false)
+
+  const model = buildUSMarketPageModel(pa, delta)
+  assert.equal(model.marketId, 'US-PA')
+  assert.equal(model.ctaHref, '/app?market=US-PA')
+  assert.deepEqual(model.breadcrumb, ['My420Journal', 'United States', 'Pennsylvania'])
+  assert.equal(model.inheritedGlobal, GLOBAL_MARKET_PAGE_CONTENT)
+  assert.equal(model.inheritedRegional, US_REGIONAL_MARKET_CONTENT)
+  assert.equal(buildUSMarketPageModel(pa, null), null)
+})
+
+test('U.S. market template exists but remains unpublished and unregistered', () => {
+  assert.match(marketTemplateSource, /MarketingLayout/)
+  assert.match(marketTemplateSource, /FeatureGrid/)
+  assert.match(marketTemplateSource, /buildUSMarketPageModel/)
+  assert.match(marketTemplateSource, /Read the Privacy Notice/)
+  assert.match(marketTemplateSource, /Open My420Journal/)
+  assert.equal(appSource.includes('USMarketPageTemplate'), false)
+
+  for (const record of PUBLIC_MARKET_REGISTRY.filter((item) => item.parentRegion === 'US')) {
+    assert.equal(appSource.includes(`path="${record.route}"`), false)
+  }
 })
 
 test('registry routes and identifiers are unique and lookup fails closed', () => {
