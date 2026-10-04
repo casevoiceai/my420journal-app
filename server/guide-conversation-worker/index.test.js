@@ -234,3 +234,37 @@ test('quality gate catches invented matching favorites after the user names exac
   assert.equal(calls.length, 4)
   assert.match(JSON.stringify(calls[2].input), /QUALITY CORRECTION/i)
 })
+
+test('ordinary chat generation exception returns conversational fallback instead of 502', async () => {
+  const run = async () => { throw new Error('temporary Workers AI failure') }
+  const response = await handleGuideConversationWorkerRequest(
+    request({ mode: 'chat', guide: 'sunny', messages: [{ role: 'user', content: 'Keep talking to me.' }] }),
+    { GUIDE_CONVERSATION_PROXY_SECRET: SECRET },
+    run,
+  )
+  assert.equal(response.status, 200)
+  const body = await response.json()
+  assert.match(body.content, /tangled that one up/i)
+  assert.equal(body.quality_fallback, true)
+  assert.equal(body.quality_checked, false)
+})
+
+test('ordinary chat reviewer exception returns conversational fallback instead of 502', async () => {
+  let calls = 0
+  const run = async () => {
+    calls += 1
+    if (calls === 1) return { response: 'I was thinking about rainy-day playlists. What do you put on when the weather turns gray?\n[[BRANCHES:[]]]' }
+    throw new Error('temporary review failure')
+  }
+  const response = await handleGuideConversationWorkerRequest(
+    request({ mode: 'chat', guide: 'sunny', messages: [{ role: 'user', content: 'Keep talking to me.' }] }),
+    { GUIDE_CONVERSATION_PROXY_SECRET: SECRET },
+    run,
+  )
+  assert.equal(response.status, 200)
+  const body = await response.json()
+  assert.match(body.content, /tangled that one up/i)
+  assert.equal(body.quality_fallback, true)
+  assert.equal(body.quality_checked, false)
+  assert.ok(calls >= 2)
+})

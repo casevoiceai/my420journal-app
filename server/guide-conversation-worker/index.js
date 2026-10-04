@@ -330,9 +330,20 @@ export async function handleGuideConversationWorkerRequest(request, env, runMode
       return { content: qualityFallbackText(input.guide), checked: false, fallback: true }
     }
 
-    let content = await generateCandidate()
-    if (!content) return jsonResponse({ error: 'Guide model returned no text' }, 502)
-    let review = await reviewCandidate(content)
+    let content = ''
+    try { content = await generateCandidate() } catch {}
+    if (!content) {
+      return jsonResponse({
+        content: qualityFallbackText(input.guide),
+        model: GUIDE_CONVERSATION_MODEL,
+        quality_checked: false,
+        quality_repaired: true,
+        quality_fallback: true,
+      })
+    }
+
+    let review = null
+    try { review = await reviewCandidate(content) } catch {}
 
     if (!review) {
       const repaired = await finalizeRepair(content)
@@ -342,10 +353,11 @@ export async function handleGuideConversationWorkerRequest(request, env, runMode
     if (!review.pass) {
       const firstReview = review
       const correction = review.critique || `Fix these issues: ${review.issues.join(', ') || 'character consistency'}.`
-      const rewritten = await generateCandidate(correction)
+      let rewritten = ''
+      try { rewritten = await generateCandidate(correction) } catch {}
       if (rewritten) {
         content = rewritten
-        review = await reviewCandidate(content)
+        try { review = await reviewCandidate(content) } catch { review = null }
       } else {
         review = null
       }
