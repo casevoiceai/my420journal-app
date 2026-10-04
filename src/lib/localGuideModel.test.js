@@ -56,6 +56,7 @@ test('Larry prompt carries voice, soft-fiction permission, and a correct 1980s t
   assert.match(prompt, /ENTITY-SEPARATION RULE/i)
   assert.match(prompt, /DIRECT-REQUEST RULE/i)
   assert.match(prompt, /RANDOM-REQUEST RULE/i)
+  assert.match(prompt, /IDENTITY-INTEGRITY RULE/i)
   assert.match(prompt, /roughly 21 to 31/i)
 })
 
@@ -130,6 +131,14 @@ test('random requests reject memory quizzes even when the Guide reveals the answ
   const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, bad)
   assert.match(reason, /random request/i)
   assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, 'I still think diner coffee tastes better from a thick ceramic mug. No science behind it. Just stubborn experience.'), null)
+})
+
+test('personality Guides reject machine or model self-disclosure', () => {
+  const messages = [{ role: 'user', content: 'Okay, but do you actually believe that?' }]
+  const bad = "I'm just a machine. I don't really believe anything. I just generate text based on patterns."
+  const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, bad)
+  assert.match(reason, /fictional identity|machine mechanics/i)
+  assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, 'Yeah, I do. I think being alert matters more than pretending the world is harmless.'), null)
 })
 
 test('logic guard rejects fabricated user memories', () => {

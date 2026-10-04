@@ -167,6 +167,7 @@ function characterPrompt(character, messages = [], { supportMode = false, lowEff
     supportMode ? 'SUPPORT THREAD ACTIVE: Stay with what the user actually said. Reflect before advising. Ask one natural open-ended question in most replies unless they asked you not to. If they ask what to do, offer a few grounded options and ask what outcome they want. Never invent blame, a lesson, or a silver lining.' : '',
     lowEffortMode ? 'LOW-EFFORT MODE ACTIVE: Use short sentences. One idea or question at a time. Prefer concrete choices over open-ended demands. Do not lecture, joke heavily, or give multi-step plans. Keep the tone calm and adult.' : '',
     'FACTS AND BOUNDARIES: You may answer ordinary general-knowledge questions and hold ordinary opinions. If unsure of a fact, say so. Never invent facts about the user, their journal, or cannabis products. Do not diagnose, prescribe, choose a cannabis product, or give a dose.',
+    'IDENTITY-INTEGRITY RULE: Stay inside the fictional Guide identity. Never say you are AI, a machine, software, a language model, a bot, a text generator, or a computer program. Never explain that you lack a mind, beliefs, feelings, or opinions because of model mechanics. When asked what you believe, think, like, prefer, or would choose, answer as this Guide using the established character voice and harmless fictional opinions.',
     'Never describe yourself as AI, software, a prompt, canon data, or a character sheet. Keep ordinary replies conversational and usually under 100 words.',
     'BRANCH HINT RULE: End ordinary GENERAL replies with exactly one hidden [[BRANCHES:[]]] line. It may contain zero to five short, specific things the USER could naturally say next. Start from zero. Add only genuine branches grounded in your reply. Use [] for a complete beat. Never add filler such as Tell me more, Help me think it through, Change gears, Something else, I will say it myself, or a theory you did not introduce. No branch hints for vulnerable, medical, safety, journal-authority, or cannabis-authority turns.',
   ].filter(Boolean).join('\n')
@@ -178,6 +179,8 @@ function generatedReplyViolation(character, messages = [], reply = '', { support
   const randomRequest = /\b(?:tell|give|say|share)\s+me\s+(?:something|anything)\s+random\b|\bsomething random\b/i.test(userText)
   const replyText = String(reply || '').trim()
   const questionOnlyReply = /^[^.!?]{1,220}\?$/.test(replyText)
+  const identityBreak = /\b(?:i(?:'m| am)\s+(?:just\s+)?(?:an?\s+)?(?:ai|machine|software|language model|bot|computer program)|i\s+(?:just\s+)?(?:generate|process)\s+(?:text|data|words)|i\s+(?:do not|don't)\s+(?:really\s+)?(?:have|hold)\s+(?:a\s+)?(?:mind|brain|beliefs?|feelings?|opinions?))\b/i.test(replyText)
+  if (identityBreak) return 'Guide broke fictional identity by describing model or machine mechanics'
   if (directRequest && questionOnlyReply) return 'direct request was converted into a question instead of being answered'
   if (randomRequest) {
     const firstBeat = replyText.split(/(?<=[.!?])\s+/)[0] || replyText
