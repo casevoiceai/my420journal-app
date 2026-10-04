@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
+import { needsPostUseFollowUp } from '../lib/journalFollowUp'
 
 const S = {
   bg:            '#0A1A0A',
@@ -16,10 +17,10 @@ const fontInter    = "'Inter', sans-serif"
 const fontPlayfair = "'Playfair Display', serif"
 
 const MOCK_ENTRIES = [
-  { id: 'mock-1', product_name: 'Blue Dream', dispensary_name: 'Trulieve Scranton', category: 'Flower', strain_type: 'Sativa', mood_face: 'good', entry_type: 'cannabis', body_tags: ['Relaxed', 'Floaty'], mind_tags: ['Creative'], mood_tags: ['Introspective'], created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() },
+  { id: 'mock-1', product_name: 'Blue Dream', dispensary_name: 'Trulieve Scranton', category: 'Flower', strain_type: 'Sativa', mood_face: 'good', entry_type: 'cannabis', update_completed: true, body_tags: ['Relaxed', 'Floaty'], mind_tags: ['Creative'], mood_tags: ['Introspective'], created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() },
   { id: 'mock-sleep-1', product_name: 'Sleep Start', dispensary_name: null, category: null, strain_type: null, mood_face: null, entry_type: 'sleep_start', body_tags: [], mind_tags: [], mood_tags: [], created_at: new Date(Date.now() - 1000 * 60 * 60 * 10).toISOString() },
   { id: 'mock-note-1', product_name: 'Morning thoughts', dispensary_name: null, category: null, strain_type: null, mood_face: null, entry_type: 'note', body_tags: [], mind_tags: [], mood_tags: [], notes: 'Feeling clear today. Slept well.', created_at: new Date(Date.now() - 1000 * 60 * 60 * 14).toISOString() },
-  { id: 'mock-2', product_name: 'Gelato #33', dispensary_name: 'Holistic Industries', category: 'Vape', strain_type: 'Hybrid', mood_face: 'meh', entry_type: 'cannabis', body_tags: ['Tired'], mind_tags: ['Foggy', 'Scattered'], mood_tags: [], created_at: new Date(Date.now() - 1000 * 60 * 60 * 27).toISOString() },
+  { id: 'mock-2', product_name: 'Gelato #33', dispensary_name: 'Holistic Industries', category: 'Vape', strain_type: 'Hybrid', mood_face: 'meh', entry_type: 'cannabis', update_completed: false, body_tags: ['Tired'], mind_tags: ['Foggy', 'Scattered'], mood_tags: [], created_at: new Date(Date.now() - 1000 * 60 * 60 * 27).toISOString() },
 ]
 
 const MOOD_EMOJI   = { good: '😊', meh: '😐', off: '😞', eww: '🤢' }
@@ -52,12 +53,22 @@ function CategoryPill({ label }) {
   )
 }
 
-function InlineActions({ entry, onEdit, onDelete }) {
+function InlineActions({ entry, onEdit, onDelete, onFollowUp = null }) {
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      style={{ display: 'flex', gap: '14px', justifyContent: 'flex-end', marginTop: '6px' }}
+      style={{ display: 'flex', gap: '14px', justifyContent: 'flex-end', marginTop: '6px', flexWrap: 'wrap' }}
     >
+      {onFollowUp && needsPostUseFollowUp(entry) && (
+        <button
+          onClick={() => onFollowUp(entry)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: fontInter, fontSize: '11px', color: S.gold, padding: 0, fontWeight: '700', transition: 'opacity 0.12s ease' }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+        >
+          Add follow-up
+        </button>
+      )}
       <button
         onClick={() => onEdit(entry)}
         style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: fontInter, fontSize: '11px', color: S.gold, padding: 0, transition: 'opacity 0.12s ease' }}
@@ -78,7 +89,7 @@ function InlineActions({ entry, onEdit, onDelete }) {
   )
 }
 
-function EntryCard({ entry, onClick, onEdit, onDelete }) {
+function EntryCard({ entry, onClick, onEdit, onDelete, onFollowUp }) {
   const type = entry.entry_type
 
   // Note card
@@ -157,7 +168,7 @@ function EntryCard({ entry, onClick, onEdit, onDelete }) {
           </div>
         )}
       </div>
-      <InlineActions entry={entry} onEdit={onEdit} onDelete={onDelete} />
+      <InlineActions entry={entry} onEdit={onEdit} onDelete={onDelete} onFollowUp={onFollowUp} />
     </div>
   )
 }
@@ -246,7 +257,7 @@ export default function Journal() {
       if (!user) { setLoading(false); return }
       const { data } = await localStore
         .from('entries')
-        .select('id, product_name, dispensary_name, category, strain_type, mood_face, entry_type, body_tags, mind_tags, mood_tags, notes, created_at')
+        .select('id, product_name, dispensary_name, category, strain_type, mood_face, entry_type, update_completed, body_tags, mind_tags, mood_tags, notes, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50)
@@ -258,6 +269,10 @@ export default function Journal() {
 
   function handleEdit(entry) {
     navigate(`/entries/${entry.id}/edit`)
+  }
+
+  function handleFollowUp(entry) {
+    navigate(`/update/${entry.id}`)
   }
 
   function handleDelete(entry) {
@@ -302,6 +317,7 @@ export default function Journal() {
               onClick={() => navigate(getDestination(entry))}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onFollowUp={handleFollowUp}
             />
           ))
         )}
