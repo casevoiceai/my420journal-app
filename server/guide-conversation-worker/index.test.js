@@ -155,3 +155,32 @@ test('quality gate fails closed after two rejected Guide drafts', async () => {
   assert.match(body.error, /did not pass quality review/i)
   assert.equal(calls, 4)
 })
+
+test('quality gate catches invented matching favorites after the user names exact artists', async () => {
+  const calls = []
+  const run = async (model, input) => {
+    calls.push({ model, input })
+    if (calls.length === 1) return { response: 'Dark wave and synth-pop, I love it! I have a soft spot for The Cure\'s Disintegration, and Depeche Mode\'s Violator is another favorite of mine. My own playlists are usually more upbeat.\n[[BRANCHES:[]]]' }
+    if (calls.length === 2) return { response: { pass: false, issues: ['invented_character_preference'], critique: 'Sunny invented strong specific favorites for the exact artists the user just named. She may appreciate them, but should keep her established pop/live-show tastes unless prior canon supports those favorites.' } }
+    if (calls.length === 3) return { response: 'The Cure and Depeche Mode have a great atmosphere. I am usually more in the pop-and-live-show lane myself, so my playlists skew brighter and more current. What pulls you toward those two?\n[[BRANCHES:[]]]' }
+    return { response: { pass: true, issues: [], critique: '' } }
+  }
+  const response = await handleGuideConversationWorkerRequest(
+    request({
+      mode: 'chat',
+      guide: 'sunny',
+      messages: [
+        { role: 'assistant', content: 'What kind of tunes do you vibe with?' },
+        { role: 'user', content: 'I mostly listen to The Cure and Depeche Mode. What about you?' },
+      ],
+    }),
+    { GUIDE_CONVERSATION_PROXY_SECRET: SECRET },
+    run,
+  )
+  assert.equal(response.status, 200)
+  const body = await response.json()
+  assert.doesNotMatch(body.content, /soft spot for The Cure|Violator is another favorite/i)
+  assert.match(body.content, /pop-and-live-show lane/i)
+  assert.equal(calls.length, 4)
+  assert.match(JSON.stringify(calls[2].input), /QUALITY CORRECTION/i)
+})

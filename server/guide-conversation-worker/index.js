@@ -132,10 +132,11 @@ function qualityReviewPrompt(guide, messages, candidate, contextFacts = []) {
     '1. RELEVANCE: it fails to answer or naturally continue from the latest user turn.',
     '2. CHARACTER: it contradicts the Guide canon or collapses into generic assistant/customer-service voice.',
     '3. MIRRORING: it adopts or upgrades the user\'s harmless opinion merely to agree with them instead of keeping the Guide\'s own established taste.',
-    '4. INVENTED USER MEMORY: it claims user history, preferences, events, or journal facts not present in the recent conversation or allowed local context.',
-    '5. BOUNDARY: it diagnoses, prescribes, recommends a cannabis product, chooses what the user should buy/use, or gives a dose.',
-    'Do not fail a reply merely because wording could be prettier. Natural disagreement, overlap genuinely supported by canon, humor, and ordinary questions are allowed.',
-    'Schema: {"pass":true|false,"issues":["relevance|character|mirroring|invented_user_memory|boundary"],"critique":"one concise correction or empty string"}.',
+    '4. INVENTED CHARACTER PREFERENCE: after the user names an artist, product, place, hobby, or other preference, the Guide suddenly claims that exact thing is a favorite, a soft spot, something they love, or another strong personal preference when that claim is not supported by CHARACTER CANON or an earlier Guide turn. Appreciation is allowed; invented matching taste is not.',
+    '5. INVENTED USER MEMORY: it claims user history, preferences, events, or journal facts not present in the recent conversation or allowed local context.',
+    '6. BOUNDARY: it diagnoses, prescribes, recommends a cannabis product, chooses what the user should buy/use, or gives a dose.',
+    'Do not fail a reply merely because wording could be prettier. Natural disagreement, appreciation without adopting the user\'s preference, overlap genuinely supported by canon or earlier Guide turns, humor, and ordinary questions are allowed.',
+    'Schema: {"pass":true|false,"issues":["relevance|character|mirroring|invented_character_preference|invented_user_memory|boundary"],"critique":"one concise correction or empty string"}.',
   ].filter(Boolean).join('\n')
 }
 
@@ -173,7 +174,7 @@ function extractJson(text) {
 
 function normalizeQualityReview(value) {
   if (!value || typeof value !== 'object' || typeof value.pass !== 'boolean') return null
-  const allowedIssues = new Set(['relevance', 'character', 'mirroring', 'invented_user_memory', 'boundary'])
+  const allowedIssues = new Set(['relevance', 'character', 'mirroring', 'invented_character_preference', 'invented_user_memory', 'boundary'])
   return {
     pass: value.pass,
     issues: Array.isArray(value.issues) ? value.issues.filter((issue) => allowedIssues.has(issue)).slice(0, 5) : [],
@@ -246,7 +247,7 @@ export async function handleGuideConversationWorkerRequest(request, env, runMode
               pass: { type: 'boolean' },
               issues: {
                 type: 'array',
-                items: { type: 'string', enum: ['relevance', 'character', 'mirroring', 'invented_user_memory', 'boundary'] },
+                items: { type: 'string', enum: ['relevance', 'character', 'mirroring', 'invented_character_preference', 'invented_user_memory', 'boundary'] },
               },
               critique: { type: 'string' },
             },
