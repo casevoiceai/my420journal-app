@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
+import { resolveDispensaryName } from '../lib/dispensaryInput'
 
 const S = {
   bg:            '#0A1A0A',
@@ -226,7 +227,7 @@ function useVoiceInput({ onResult, onInterim }) {
 }
 
 // ── WHERE field with saved pills + search + voice ──────────────────────────────
-function DispensaryField({ accent, value, onChange }) {
+function DispensaryField({ accent, value, onChange, onManualChange = () => {} }) {
   const [saved,        setSaved]        = useState(() => loadSavedDispensaries())
   const [favs,         setFavs]         = useState(() => loadFavorites())
   const [city,         setCity]         = useState('')
@@ -277,6 +278,7 @@ function DispensaryField({ accent, value, onChange }) {
       lng:      detail?.geometry?.location?.lng ?? null,
     }
     onChange(d)
+    onManualChange('')
     saveDispensaryToStorage(d)
     setSaved(loadSavedDispensaries())
     setFavs(loadFavorites())
@@ -284,11 +286,11 @@ function DispensaryField({ accent, value, onChange }) {
   }
 
   function handleSelectSaved(d) {
-    onChange(d); setQuery(''); setPredictions([]); setDropdownOpen(false)
+    onChange(d); onManualChange(''); setQuery(''); setPredictions([]); setDropdownOpen(false)
   }
 
   function handleClear() {
-    onChange(null); setQuery(''); setPredictions([]); setDropdownOpen(false)
+    onChange(null); onManualChange(''); setQuery(''); setPredictions([]); setDropdownOpen(false)
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
@@ -302,8 +304,9 @@ function DispensaryField({ accent, value, onChange }) {
   const handleVoiceResult = useCallback((text) => {
     if (!text) return
     setQuery(text)
-  }, [])
-  const handleVoiceInterim = useCallback((text) => { setQuery(text) }, [])
+    onManualChange(text)
+  }, [onManualChange])
+  const handleVoiceInterim = useCallback((text) => { setQuery(text); onManualChange(text) }, [onManualChange])
   const { listening: voiceListening, supported: voiceSupported, start: startVoice, stop: stopVoice } =
     useVoiceInput({ onResult: handleVoiceResult, onInterim: handleVoiceInterim })
 
@@ -439,7 +442,7 @@ function DispensaryField({ accent, value, onChange }) {
           <input
             ref={inputRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); onManualChange(e.target.value) }}
             placeholder="Where did you get it?"
             spellCheck={false}
             style={{
@@ -596,6 +599,7 @@ export default function QuickEntry() {
 
   const [accent,      setAccent]      = useState(S.gold)
   const [dispensary,  setDispensary]  = useState(null)
+  const [dispensaryText, setDispensaryText] = useState('')
   const [product,     setProduct]     = useState('')
   const [mood,        setMood]        = useState(null)
   const [noteText,    setNoteText]    = useState('')
@@ -685,9 +689,7 @@ export default function QuickEntry() {
         capture_mode: 'quick',
       }
     } else {
-      const dispensaryName = dispensary
-        ? (typeof dispensary === 'string' ? dispensary : dispensary.name)
-        : null
+      const dispensaryName = resolveDispensaryName(dispensary, dispensaryText)
       payload = {
         user_id:         uid,
         dispensary_name: dispensaryName,
@@ -710,7 +712,7 @@ export default function QuickEntry() {
 
   function goToFullEntry() {
     const params = new URLSearchParams()
-    const dname  = dispensary ? (typeof dispensary === 'string' ? dispensary : dispensary.name) : null
+    const dname  = resolveDispensaryName(dispensary, dispensaryText)
     if (product) params.set('product',    product)
     if (dname)   params.set('dispensary', dname)
     if (mood)    params.set('mood',       mood)
@@ -768,7 +770,7 @@ export default function QuickEntry() {
         {!isSleepMode && (
           <div>
             <FieldLabel>Where</FieldLabel>
-            <DispensaryField accent={accent} value={dispensary} onChange={setDispensary} />
+            <DispensaryField accent={accent} value={dispensary} onChange={setDispensary} onManualChange={setDispensaryText} />
           </div>
         )}
 
