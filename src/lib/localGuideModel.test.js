@@ -55,6 +55,7 @@ test('Larry prompt carries voice, soft-fiction permission, and a correct 1980s t
   assert.match(prompt, /SOFT-FICTION RULE/i)
   assert.match(prompt, /ENTITY-SEPARATION RULE/i)
   assert.match(prompt, /DIRECT-REQUEST RULE/i)
+  assert.match(prompt, /RANDOM-REQUEST RULE/i)
   assert.match(prompt, /roughly 21 to 31/i)
 })
 
@@ -121,6 +122,14 @@ test('direct requests must be answered instead of turned into an unrelated quest
   const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, "What's the capital of France?")
   assert.match(reason, /direct request/i)
   assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, 'I once watched a crow steal a whole sandwich. What is the strangest thing you saw today?'), null)
+})
+
+test('random requests reject memory quizzes even when the Guide reveals the answer', () => {
+  const messages = [{ role: 'user', content: 'Tell me something random.' }]
+  const bad = 'Why not try to remember my birthday? September 17, 1958.'
+  const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, bad)
+  assert.match(reason, /random request/i)
+  assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, 'I still think diner coffee tastes better from a thick ceramic mug. No science behind it. Just stubborn experience.'), null)
 })
 
 test('logic guard rejects fabricated user memories', () => {
