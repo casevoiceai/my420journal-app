@@ -366,7 +366,6 @@ export const localStore = {
       users.unshift(user)
       saveUsers(users)
       localStorage.setItem(ACTIVE_USER_KEY, user.id)
-      try { sessionStorage.setItem('m420_session_last_activity_v1', String(Date.now())) } catch {}
       return { data: { user: publicUser(user), session: { user: publicUser(user), access_token: 'local-only' } }, error: null }
     },
     async signInWithPassword({ email, password }) {
@@ -384,7 +383,6 @@ export const localStore = {
       }
 
       localStorage.setItem(ACTIVE_USER_KEY, user.id)
-      try { sessionStorage.setItem('m420_session_last_activity_v1', String(Date.now())) } catch {}
       return { data: { user: publicUser(user), session: { user: publicUser(user), access_token: 'local-only' } }, error: null }
     },
     async resetPasswordForEmail() {
