@@ -8,7 +8,7 @@ const faqs = [
   },
   {
     question: 'Who can see my private journal?',
-    answer: 'The private journal is designed to stay on your device. Vogtcom, dispensaries, cannabis brands, and partners do not receive access to your raw private journal or private notes through the private journal system. As with any app, someone who can see or access your device may be able to see what is on the screen.',
+    answer: 'The private journal is designed to stay on your device. Vogtcom, dispensaries, cannabis brands, and partners do not receive access to your raw private journal or private notes through the private journal system. If you enable Conversational Guides, the online AI service processes the Guide messages you send and a limited recent Guide conversation to generate replies; it does not receive the full journal as a browsable database. As with any app, someone who can see or access your device may be able to see what is on the screen.',
   },
   {
     question: 'What are the privacy skins?',
@@ -16,7 +16,7 @@ const faqs = [
   },
   {
     question: 'Does My420Journal use the internet?',
-    answer: 'The private journal is stored locally and is not cloud-synced, but some optional features use network services. Weed Goblins sends limited game and narration context, including certain structured context derived from the local journal, through a server-side Cloudflare Workers AI path when you play. Browser voice input uses the browser speech-recognition implementation, whose processing depends on the browser and platform. Shared Journey remains off.',
+    answer: 'The private journal is stored locally and is not cloud-synced, but some optional features use network services. Conversational Guides use an online AI service when you turn them on and send the Guide messages you type plus a limited recent Guide conversation; the full journal database is not uploaded. Weed Goblins sends limited game and narration context, including certain structured context derived from the local journal, through a server-side Cloudflare Workers AI path when you play. Browser voice input uses the browser speech-recognition implementation, whose processing depends on the browser and platform. Shared Journey remains off.',
   },
   {
     question: 'Is Shared Journey available?',

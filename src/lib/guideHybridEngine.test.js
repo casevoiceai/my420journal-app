@@ -14,11 +14,11 @@ function fakeClient(decision, generated = 'general local-model answer') {
   }
 }
 
-test('disabled local model makes ordinary personality chat explicitly limited', async () => {
+test('disabled hosted conversation makes ordinary personality chat explicitly limited', async () => {
   const result = await buildHybridGuideResponse({
-    guide: 'larry', messages: [{ role: 'user', content: 'tell me something random' }], entries, localModelEnabled: false,
+    guide: 'larry', messages: [{ role: 'user', content: 'tell me something random' }], entries, conversationEnabled: false,
   })
-  assert.match(result, /Natural conversation is not set up/i)
+  assert.match(result, /Conversational Guides are off/i)
   assert.match(result, /journal|cannabis/i)
   assert.doesNotMatch(result, /What are you thinking about it|Keep going|Go on/i)
 })
@@ -208,7 +208,7 @@ test('general-chat model failure reports conversational mode unavailable instead
     guide: 'larry', messages: [{ role: 'user', content: "You're old. Coke or Pepsi?" }], entries,
     localModelEnabled: true, modelClient: client,
   })
-  assert.match(result, /Conversational mode could not start/i)
+  assert.match(result, /Conversational Guides are temporarily unavailable/i)
   assert.match(result, /journal|cannabis/i)
 })
 
@@ -220,6 +220,6 @@ test('playful chat model failure also reports conversational mode unavailable', 
     { role: 'user', content: 'Give me the ridiculous Larry version of this. Keep it obviously playful, do not invent facts about me, and end with one easy question.' },
   ]
   const result = await buildHybridGuideResponse({ guide: 'larry', messages, entries, localModelEnabled: true, modelClient: client })
-  assert.match(result, /Conversational mode could not start/i)
+  assert.match(result, /Conversational Guides are temporarily unavailable/i)
   assert.doesNotMatch(result, /ridiculous theory|rival uncles|picnic table/i)
 })

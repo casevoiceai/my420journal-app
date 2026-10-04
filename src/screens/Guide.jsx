@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
-import { LOCAL_GUIDE_MODEL, isLocalGuideModelEnabled, setLocalGuideModelEnabled, localGuideModelCapability, loadLocalGuideModel, resetLocalGuideModelRuntime } from '../lib/localGuideModel'
+import { isHostedGuideEnabled, setHostedGuideEnabled } from '../lib/hostedGuideModel'
 import { consumePendingCrisisFollowup, crisisFollowupMessage } from '../lib/guideSafety'
 
 const S = {
@@ -172,11 +172,8 @@ export default function Guide() {
   const [suggestionsDismissed, setSuggestionsDismissed] = useState(false)
   const [thinking,   setThinking]   = useState(false)
   const [loaded,     setLoaded]     = useState(false)
-  const [localModelEnabled, setLocalModelEnabledState] = useState(() => isLocalGuideModelEnabled())
-  const [localModelStatus, setLocalModelStatus] = useState(() => isLocalGuideModelEnabled() ? 'loading' : 'idle')
-  const [localModelProgress, setLocalModelProgress] = useState('')
-  const [localModelError, setLocalModelError] = useState('')
-  const [localModelCap] = useState(() => localGuideModelCapability())
+  const [conversationEnabled, setConversationEnabled] = useState(() => isHostedGuideEnabled())
+  const [conversationError, setConversationError] = useState('')
   const [lowEffortMode, setLowEffortMode] = useState(() => {
     try { return sessionStorage.getItem('m420_guide_low_effort') === '1' } catch { return false }
   })
@@ -254,20 +251,6 @@ export default function Guide() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, thinking])
 
-  useEffect(() => {
-    if (!localModelEnabled || !localModelCap.supported || ['stoner', 'unit', 'tool'].includes(guide)) return
-    let active = true
-    setLocalModelStatus('loading')
-    setLocalModelError('')
-    loadLocalGuideModel({ onProgress: (p) => {
-      if (!active) return
-      const pct = Number.isFinite(Number(p?.progress)) ? `${Math.round(Number(p.progress) * 100)}%` : ''
-      setLocalModelProgress(pct || p?.text || '')
-    }}).then(() => { if (active) { setLocalModelStatus('ready'); setLocalModelProgress('') } })
-      .catch((error) => { if (active) { setLocalModelStatus('error'); setLocalModelError(String(error?.message || 'load failed').slice(0, 160)); setLocalGuideModelEnabled(false); setLocalModelEnabledState(false); console.error('Local Guide model load failed', error) } })
-    return () => { active = false }
-  }, [localModelEnabled, localModelCap.supported, guide])
-
   const handleInterim = useCallback((text) => {
     setSuggestionsDismissed(true)
     setInput((prev) => {
@@ -325,20 +308,18 @@ export default function Guide() {
           guide,
           entryCount,
           tier,
-          localModelReady: localModelStatus === 'ready',
           accessibilityAction: options.accessibilityAction || null,
           lowEffortMode: effectiveLowEffort,
         },
       })
       if (error) throw error
       const reply = data?.content || data?.response || 'Try again.'
-      if (data?.localModelError) {
-        const detail = `${data.localModelError.phase || 'runtime'}: ${data.localModelError.message || data.localModelError.name || 'unknown error'}`
-        setLocalModelStatus('error')
-        setLocalModelError(detail.slice(0, 220))
-        setLocalGuideModelEnabled(false)
-        setLocalModelEnabledState(false)
-        console.error('Conversational Guide inference failed', data.localModelError)
+      if (data?.hostedModelError) {
+        const detail = `${data.hostedModelError.phase || 'runtime'}: ${data.hostedModelError.message || data.hostedModelError.name || 'unknown error'}`
+        setConversationError(detail.slice(0, 220))
+        console.error('Hosted Conversational Guide inference failed', data.hostedModelError)
+      } else {
+        setConversationError('')
       }
       if (data?.lowEffortMode === true && !lowEffortMode) {
         setLowEffortMode(true)
@@ -402,17 +383,15 @@ export default function Guide() {
     else startMic()
   }
 
-  async function setupConversationalGuides() {
-    if (!localModelCap.supported || localModelStatus === 'loading') return
-    setLocalModelError('')
-    setLocalModelStatus('loading')
-    if (localModelStatus === 'error') await resetLocalGuideModelRuntime()
-    setLocalGuideModelEnabled(true)
-    setLocalModelEnabledState(true)
+  function setupConversationalGuides() {
+    const okay = window.confirm('Turn on Conversational Guides? Guide conversations use an online AI service. Your journal remains stored on this device. The message you send and recent Guide conversation are sent to generate a reply; your full journal is not uploaded.')
+    if (!okay) return
+    setHostedGuideEnabled(true)
+    setConversationEnabled(true)
+    setConversationError('')
   }
 
   const isConversationalGuide = CONVERSATIONAL_GUIDES.has(guide)
-  const localModelGB = Math.round(LOCAL_GUIDE_MODEL.approximateDownloadMB / 100) / 10
   const canSend = input.trim().length > 0 && !thinking
   const activeChoices = !thinking && !input.trim() && !suggestionsDismissed && Array.isArray(messages.at(-1)?.choices)
     ? messages.at(-1).choices
@@ -550,28 +529,25 @@ export default function Guide() {
             backgroundColor: S.surface,
             boxSizing: 'border-box',
           }}>
-            {isConversationalGuide && localModelStatus !== 'ready' && (
+            {isConversationalGuide && !conversationEnabled && (
               <div style={{ padding: '12px 16px', borderBottom: `1px solid ${S.border}`, backgroundColor: `${accent}12` }}>
                 <div style={{ fontFamily: fontInter, fontSize: '13px', fontWeight: 700, color: S.textPrimary, marginBottom: '4px' }}>
-                  {localModelCap.supported ? 'Set up conversational Guides' : 'Conversational Guides are limited on this browser'}
+                  Turn on conversational Guides
                 </div>
                 <div style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, lineHeight: '1.45' }}>
-                  {!localModelCap.supported
-                    ? 'This browser cannot run the on-device conversation model. Journal lookup and reviewed cannabis information are still available.'
-                    : localModelStatus === 'loading'
-                      ? `Downloading and starting the on-device AI model${localModelProgress ? ` ${localModelProgress}` : ''}. Keep this page open.`
-                      : localModelStatus === 'error'
-                        ? `The on-device conversation model could not start. Limited journal and cannabis mode is still available.${localModelError ? ` (${localModelError})` : ''}`
-                        : `Natural conversation with Bud, Sunny, Larry, Herb, and Mary uses a one-time ~${localModelGB} GB on-device AI model download. It runs on this device; your journal is not uploaded. Until setup, this Guide stays in limited journal and cannabis mode.`}
+                  Natural Guide conversation uses an online AI service. Your journal stays stored on this device. The message you send and recent Guide conversation are sent to generate a reply; your full journal is not uploaded.
                 </div>
-                {localModelCap.supported && localModelStatus !== 'loading' && (
-                  <button
-                    onClick={setupConversationalGuides}
-                    style={{ marginTop: '9px', background: accent, border: 'none', borderRadius: '8px', padding: '8px 12px', color: S.bg, fontFamily: fontInter, fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    {localModelStatus === 'error' ? 'Try setup again' : `Set up (~${localModelGB} GB)`}
-                  </button>
-                )}
+                <button
+                  onClick={setupConversationalGuides}
+                  style={{ marginTop: '9px', background: accent, border: 'none', borderRadius: '8px', padding: '8px 12px', color: S.bg, fontFamily: fontInter, fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Turn on conversational Guides
+                </button>
+              </div>
+            )}
+            {isConversationalGuide && conversationEnabled && conversationError && (
+              <div style={{ padding: '10px 16px', borderBottom: `1px solid ${S.border}`, backgroundColor: `${accent}0D`, fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, lineHeight: '1.45' }}>
+                Conversational Guides are temporarily unavailable. Journal lookup and reviewed cannabis information are still available.
               </div>
             )}
 

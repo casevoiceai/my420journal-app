@@ -68,15 +68,13 @@ test('all five personality Guides have distinct, open emotional acknowledgements
   }
 })
 
-test('support-mode prompts preserve each Guide voice while sharing safety rules', async () => {
-  const { GUIDE_CHARACTERS } = await import('./guideCharacters.js')
-  const { localGuideModelInternals } = await import('./localGuideModel.js')
+test('hosted Guide prompts preserve each Guide voice while keeping shared boundaries', async () => {
+  const { guideConversationWorkerInternals } = await import('../../server/guide-conversation-worker/index.js')
   for (const guide of ['bud', 'sunny', 'larry', 'herb', 'mary']) {
-    const prompt = localGuideModelInternals.characterPrompt(GUIDE_CHARACTERS[guide], [
-      { role: 'user', content: 'My boss embarrassed me in front of everybody.' },
-    ], { supportMode: true })
-    assert.match(prompt, /SUPPORT THREAD ACTIVE/i)
-    assert.match(prompt, /VOICE SIGNATURE/i)
-    assert.match(prompt, /open-ended question/i)
+    const prompt = guideConversationWorkerInternals.characterPrompt(guide, [], false)
+    assert.match(prompt, /VOICE:/i)
+    assert.match(prompt, /EMOTIONAL RESTRAINT/i)
+    assert.match(prompt, /BOUNDARIES:/i)
+    assert.match(prompt, /MEMORY:/i)
   }
 })

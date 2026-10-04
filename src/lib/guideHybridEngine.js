@@ -1,6 +1,6 @@
 import { buildGuideResponse } from './guideEngine.js'
 import { semanticDecisionToCanonicalQuestion } from './guideSemanticModel.js'
-import { classifyWithLocalGuideModel, chatWithLocalGuideModel } from './localGuideModel.js'
+import { classifyWithHostedGuideModel, chatWithHostedGuideModel } from './hostedGuideModel.js'
 import { lookupCannabisKnowledge } from './cannabisKnowledge.js'
 import {
   detectGuideSafetyForConversation,
@@ -32,8 +32,8 @@ function normalizeText(value = '') {
   return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
-const CONVERSATIONAL_SETUP_REQUIRED = 'Natural conversation is not set up on this device yet. Use Set up conversational Guides below, or ask me about your journal or reviewed cannabis information.'
-const CONVERSATIONAL_MODEL_UNAVAILABLE = 'Conversational mode could not start on this device. You can still ask me about your journal or reviewed cannabis information.'
+const CONVERSATIONAL_SETUP_REQUIRED = 'Conversational Guides are off. Turn them on in Settings, or ask me about your journal or reviewed cannabis information.'
+const CONVERSATIONAL_MODEL_UNAVAILABLE = 'Conversational Guides are temporarily unavailable. You can still ask me about your journal or reviewed cannabis information.'
 
 function controlledWithoutConversationModel(text = '', entries = []) {
   const t = normalizeText(text)
@@ -92,8 +92,9 @@ function canonicalMessages(messages, canonicalQuestion) {
 }
 
 export async function buildHybridGuideResponse({
-  guide = 'bud', messages = [], entries = [], localModelEnabled = false, lowEffortMode = false, modelClient,
+  guide = 'bud', messages = [], entries = [], conversationEnabled = null, localModelEnabled = false, lowEffortMode = false, modelClient,
 } = {}) {
+  const generativeEnabled = conversationEnabled === null ? localModelEnabled : conversationEnabled
   const userText = latestUser(messages)
   const activeCrisis = readCrisisFollowup()
   if (activeCrisis && isCrisisFollowupDismissal(userText)) {
@@ -112,17 +113,17 @@ export async function buildHybridGuideResponse({
 
   const supportMode = safety.level === 'normal' && emotionalThread.active
   if (forceControlledBoundary(userText)) return deterministic()
-  // Emotional support must be immediate. Do not make a distressed or intoxicated user wait on local-model inference.
+  // Emotional support must be immediate. Do not make a distressed or intoxicated user wait on hosted inference.
   if (supportMode) return emotionalSupportFollowupResponse(guide, userText)
   if (guide === 'stoner') return deterministic()
-  if (!localModelEnabled) {
+  if (!generativeEnabled) {
     if (controlledWithoutConversationModel(userText, entries)) return deterministic()
     return CONVERSATIONAL_SETUP_REQUIRED
   }
 
   const client = modelClient || {
-    classify: (payload) => classifyWithLocalGuideModel(payload),
-    chat: (payload) => chatWithLocalGuideModel(payload),
+    classify: (payload) => classifyWithHostedGuideModel(payload),
+    chat: (payload) => chatWithHostedGuideModel(payload),
   }
 
   try {

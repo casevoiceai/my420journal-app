@@ -30,6 +30,9 @@ const bannedClaims = [
   'Everything in this app stays on this device only.',
   'No data was sent to any server.',
   'The only copy of your journal is on this device.',
+  'On-device AI conversation is enabled for Bud, Sunny, Larry, Herb, and Mary.',
+  'No cloud inference service is used.',
+  'The AI model then runs on this device; your journal is not uploaded.',
   'Dispensary deals and trip planning.',
   'Tracks dispensary prices and deals near you',
   'keep an eye on prices',
@@ -75,7 +78,7 @@ test('current disclosures describe the implemented privacy boundaries', () => {
   assert.equal(privacy.includes("heading: 'OPTIONAL NETWORK FEATURES'"), true)
   assert.equal(privacy.includes('Shared Journey / Layer 2 is currently OFF.'), true)
   assert.equal(privacy.includes('precise device GPS'), true)
-  assert.equal(features.includes('Camera label scanning is not available yet.'), true)
+  assert.equal(features.includes('Label scanning is still planned.'), true)
   assert.equal(readme.includes('Local JSON backup export/import is included.'), true)
   assert.equal(settings.includes('anonymous local profile'), true)
   assert.equal(onboarding.includes("tag: 'PRACTICAL TRIP JOURNAL'"), true)
@@ -87,16 +90,22 @@ test('current disclosures describe the implemented privacy boundaries', () => {
   assert.equal(home.includes('What are we logging today?'), true)
   assert.equal(layout.includes('Open my journal'), true)
   assert.equal(layout.includes('Shared Journey / Layer 2 is currently off'), true)
-  assert.equal(process.includes('does not independently read or analyze your journal history'), true)
-  assert.equal(process.includes('does not tell you what to buy or use'), true)
+  assert.equal(process.includes('Talk through what you choose to enter in the guide conversation.'), true)
+  assert.equal(process.includes('without deciding what you should buy or use'), true)
   assert.equal(about.includes('camera label scanning is not available yet'), true)
   assert.equal(about.includes('does not pull live deals, prices, nearby options, or purchasing recommendations'), true)
   assert.equal(about.includes('does not independently analyze your journal history'), true)
   assert.equal(about.includes('Some optional features use network services'), true)
   assert.equal(about.includes('This is an engineering principle.'), true)
-  assert.equal(hero.includes('Remember what you tried.'), true)
+  assert.equal(about.includes('Conversational Guides use an online AI service'), true)
+  assert.equal(privacy.includes('Conversational Guides are optional and off by default.'), true)
+  assert.equal(privacy.includes('The full journal database is not uploaded'), true)
+  assert.equal(settings.includes('Natural Guide conversation uses an online AI service.'), true)
+  assert.equal(settings.includes('The full journal is not uploaded'), true)
+  assert.equal(faq.includes('the full journal database is not uploaded'), true)
+  assert.equal(hero.includes('Remember what worked.'), true)
   assert.equal(hero.includes('Open My420Journal'), true)
-  assert.equal(features.includes('Small details.'), true)
-  assert.equal(features.includes('Your history.'), true)
+  assert.equal(features.includes('A record you can use later.'), true)
+  assert.equal(features.includes('Privacy you control now.'), true)
   assert.equal(process.includes('Product - Amount - Method - Mood'), true)
 })

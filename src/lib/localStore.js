@@ -2,7 +2,7 @@ import { SHARED_PROFILE_DEFAULTS } from './sharedPrivacy.js'
 import { buildHybridGuideResponse } from './guideHybridEngine.js'
 import { supportChoiceTurn } from './guideSafety.js'
 import { accessibilityAction, buildAccessibilityTurn, buildContextualBranches, buildModelSuggestedBranches } from './guideAccessibility.js'
-import { isLocalGuideModelEnabled, localGuideModelCapability, parseGeneratedGuideTurn, clearLastLocalGuideRuntimeError, getLastLocalGuideRuntimeError } from './localGuideModel.js'
+import { isHostedGuideEnabled, parseGeneratedGuideTurn, clearLastHostedGuideRuntimeError, getLastHostedGuideRuntimeError } from './hostedGuideModel.js'
 
 const STORAGE_PREFIX = 'my420journal_local_v1'
 const ACTIVE_USER_KEY = `${STORAGE_PREFIX}:active_user`
@@ -323,14 +323,14 @@ async function localGuideReply(body = {}) {
   const entries = user
     ? readTable('entries').filter((entry) => entry?.user_id === user.id)
     : []
-  const localModelEnabled = isLocalGuideModelEnabled() && localGuideModelCapability().supported && body.localModelReady === true
+  const conversationEnabled = isHostedGuideEnabled()
   const lowEffortMode = body.lowEffortMode === true
-  clearLastLocalGuideRuntimeError()
-  const rawContent = await buildHybridGuideResponse({ guide, messages, entries, localModelEnabled, lowEffortMode })
+  clearLastHostedGuideRuntimeError()
+  const rawContent = await buildHybridGuideResponse({ guide, messages, entries, conversationEnabled, lowEffortMode })
   const generatedTurn = parseGeneratedGuideTurn(rawContent)
   const aiChoices = buildModelSuggestedBranches({ messages, assistantText: generatedTurn.content, suggestions: generatedTurn.suggestions, lowEffortMode })
   const choices = aiChoices || buildContextualBranches({ guide, messages, assistantText: generatedTurn.content, lowEffortMode })
-  return { content: generatedTurn.content, choices, localModelError: getLastLocalGuideRuntimeError() }
+  return { content: generatedTurn.content, choices, hostedModelError: getLastHostedGuideRuntimeError() }
 }
 
 function localPlacesResponse(body = {}) {

@@ -5,7 +5,7 @@ import { hasPin, verifyPin, clearPin, storePin } from '../lib/pin'
 import { restoreSanitizedLegacyBackup } from '../lib/privacyMigrations'
 import { isDevMode, DEV_PROFILE } from '../lib/dev'
 import SharedOptInPanel from '../components/SharedOptInPanel'
-import { LOCAL_GUIDE_MODEL, isLocalGuideModelEnabled, setLocalGuideModelEnabled } from '../lib/localGuideModel'
+import { isHostedGuideEnabled, setHostedGuideEnabled } from '../lib/hostedGuideModel'
 
 const GUIDE_META = {
   bud:   { name: 'Bud Tendar',     accent: '#C9A84C', description: 'Practical trip-and-history tone.' },
@@ -455,7 +455,7 @@ export default function Settings() {
   const [backupError, setBackupError] = useState('')
   const [restoreStatus, setRestoreStatus] = useState('')
   const [restoreError, setRestoreError] = useState('')
-  const [localChatEnabled, setLocalChatEnabled] = useState(() => isLocalGuideModelEnabled())
+  const [hostedChatEnabled, setHostedChatEnabled] = useState(() => isHostedGuideEnabled())
 
   useEffect(() => {
     if (isDevMode()) return
@@ -501,19 +501,18 @@ export default function Settings() {
     navigate('/onboarding?step=list')
   }
 
-  function toggleLocalChat() {
-    if (localChatEnabled) {
-      const okay = window.confirm('Turn off conversational Guides on this browser? Bud, Sunny, Larry, Herb, and Mary will return to limited journal and cannabis mode until you turn it back on.')
+  function toggleHostedChat() {
+    if (hostedChatEnabled) {
+      const okay = window.confirm('Turn off Conversational Guides on this browser? Bud, Sunny, Larry, Herb, and Mary will return to limited journal and reviewed-cannabis mode until you turn it back on.')
       if (!okay) return
-      setLocalGuideModelEnabled(false)
-      setLocalChatEnabled(false)
+      setHostedGuideEnabled(false)
+      setHostedChatEnabled(false)
       return
     }
-    const gb = Math.round(LOCAL_GUIDE_MODEL.approximateDownloadMB / 100) / 10
-    const okay = window.confirm(`Set up conversational Guides? If the model is not already cached, the next Guide session will download about ${gb} GB once. The AI model then runs on this device; your journal is not uploaded.`)
+    const okay = window.confirm('Turn on Conversational Guides? Guide conversations use an online AI service. Your journal remains stored on this device. The message you send and recent Guide conversation are sent to generate a reply; your full journal is not uploaded.')
     if (!okay) return
-    setLocalGuideModelEnabled(true)
-    setLocalChatEnabled(true)
+    setHostedGuideEnabled(true)
+    setHostedChatEnabled(true)
   }
 
   function handleLocalBackup() {
@@ -754,15 +753,18 @@ export default function Settings() {
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderTop: `1px solid ${S.border}` }}>
           <div style={{ paddingRight: '16px' }}>
-            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, margin: '0 0 2px 0' }}>Conversational Guides AI</p>
+            <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, margin: '0 0 2px 0' }}>Conversational Guides</p>
             <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0, lineHeight: '1.4' }}>
-              {localChatEnabled ? 'On-device AI conversation is enabled for Bud, Sunny, Larry, Herb, and Mary.' : 'Off. Personality Guides stay in limited journal and cannabis mode until this is set up.'}
+              {hostedChatEnabled ? 'On. Natural Guide conversation uses an online AI service. Your journal remains stored on this device.' : 'Off. Personality Guides stay in limited journal and reviewed-cannabis mode.'}
             </p>
           </div>
-          <button onClick={toggleLocalChat} aria-label="Toggle conversational Guides AI" style={{ width: '48px', height: '28px', borderRadius: '14px', border: 'none', backgroundColor: localChatEnabled ? S.gold : S.border, cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s ease', flexShrink: 0, padding: 0 }}>
-            <div style={{ position: 'absolute', top: '3px', left: localChatEnabled ? '23px' : '3px', width: '22px', height: '22px', borderRadius: '11px', backgroundColor: '#fff', transition: 'left 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+          <button onClick={toggleHostedChat} aria-label="Toggle conversational Guides" style={{ width: '48px', height: '28px', borderRadius: '14px', border: 'none', backgroundColor: hostedChatEnabled ? S.gold : S.border, cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s ease', flexShrink: 0, padding: 0 }}>
+            <div style={{ position: 'absolute', top: '3px', left: hostedChatEnabled ? '23px' : '3px', width: '22px', height: '22px', borderRadius: '11px', backgroundColor: '#fff', transition: 'left 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
           </button>
         </div>
+        <p style={{ fontFamily: fontInter, fontSize: '12px', color: S.textSecondary, lineHeight: '1.5', margin: '0 0 8px 0' }}>
+          When enabled, the message you send and recent Guide conversation are sent to generate a reply. The full journal is not uploaded, and the AI service cannot browse local journal storage or save entries directly.
+        </p>
 
         <Divider />
 
