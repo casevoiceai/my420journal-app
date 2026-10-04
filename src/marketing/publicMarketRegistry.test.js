@@ -16,6 +16,13 @@ import {
   buildUSMarketPageModel,
   validateUSMarketDelta,
 } from './marketPageInheritance.js'
+import {
+  CONTENT_REVIEW_STATUS,
+  US_MARKET_CONTENT_PACKETS,
+  getApprovedUSMarketDelta,
+  getUSMarketContentPacket,
+  isApprovedUSMarketContentPacket,
+} from './usMarketContentPackets.js'
 
 const registrySource = fs.readFileSync(new URL('./publicMarketRegistry.js', import.meta.url), 'utf8')
 const marketTemplateSource = fs.readFileSync(new URL('./USMarketPageTemplate.jsx', import.meta.url), 'utf8')
@@ -141,7 +148,27 @@ test('U.S. market page inheritance owns global and regional truth once', () => {
   assert.match(US_REGIONAL_MARKET_CONTENT.contextBody, /does not treat a selected market as proof/i)
 })
 
-test('reusable U.S. market page model requires an explicit matching market delta', () => {
+test('state content packets exist only as fail-closed review gates', () => {
+  assert.deepEqual(
+    US_MARKET_CONTENT_PACKETS.map((packet) => packet.marketId),
+    ['US-PA', 'US-NY', 'US-NJ', 'US-MA']
+  )
+
+  for (const packet of US_MARKET_CONTENT_PACKETS) {
+    assert.equal(packet.reviewStatus, CONTENT_REVIEW_STATUS.REVIEW_REQUIRED)
+    assert.equal(packet.reviewReference, null)
+    assert.equal(packet.contentVersion, null)
+    assert.equal(packet.reviewedAt, null)
+    assert.equal(packet.delta, null)
+    assert.equal(isApprovedUSMarketContentPacket(packet), false)
+    assert.equal(getApprovedUSMarketDelta(packet.marketId), null)
+  }
+
+  assert.equal(getUSMarketContentPacket('US-CT'), null)
+  assert.equal(getUSMarketContentPacket('US-ZZ'), null)
+})
+
+test('reusable U.S. market page model requires approved content plus a matching market delta', () => {
   const pa = getPublicMarketRecord('/us/pennsylvania')
   const delta = {
     marketId: 'US-PA',
@@ -153,18 +180,30 @@ test('reusable U.S. market page model requires an explicit matching market delta
     ageProgramText: 'Synthetic reviewed age/program note.',
     footerNote: '',
   }
+  const approvedPacket = {
+    marketId: 'US-PA',
+    route: '/us/pennsylvania',
+    reviewStatus: CONTENT_REVIEW_STATUS.APPROVED,
+    reviewReference: 'synthetic-test-review',
+    contentVersion: 'test-v1',
+    reviewedAt: '2026-10-04',
+    delta,
+  }
 
   assert.equal(validateUSMarketDelta(pa, delta), true)
   assert.equal(validateUSMarketDelta(pa, { ...delta, marketId: 'US-NY' }), false)
   assert.equal(validateUSMarketDelta(pa, { ...delta, heroBody: '' }), false)
   assert.equal(validateUSMarketDelta(getPublicMarketRecord('/us'), delta), false)
+  assert.equal(isApprovedUSMarketContentPacket(approvedPacket), true)
 
-  const model = buildUSMarketPageModel(pa, delta)
+  const model = buildUSMarketPageModel(pa, approvedPacket)
   assert.equal(model.marketId, 'US-PA')
   assert.equal(model.ctaHref, '/app?market=US-PA')
   assert.deepEqual(model.breadcrumb, ['My420Journal', 'United States', 'Pennsylvania'])
   assert.equal(model.inheritedGlobal, GLOBAL_MARKET_PAGE_CONTENT)
   assert.equal(model.inheritedRegional, US_REGIONAL_MARKET_CONTENT)
+  assert.equal(buildUSMarketPageModel(pa, { ...approvedPacket, reviewStatus: CONTENT_REVIEW_STATUS.REVIEW_REQUIRED }), null)
+  assert.equal(buildUSMarketPageModel(pa, { ...approvedPacket, route: '/us/new-york' }), null)
   assert.equal(buildUSMarketPageModel(pa, null), null)
 })
 

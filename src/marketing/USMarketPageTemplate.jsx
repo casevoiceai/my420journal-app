@@ -36,8 +36,8 @@ function CopySection({ heading, children, tone = 'base' }) {
   )
 }
 
-export default function USMarketPageTemplate({ record, delta }) {
-  const page = buildUSMarketPageModel(record, delta)
+export default function USMarketPageTemplate({ record, packet }) {
+  const page = buildUSMarketPageModel(record, packet)
   if (!page) return null
 
   return (

@@ -1,4 +1,6 @@
-﻿export const GLOBAL_MARKET_PAGE_CONTENT = Object.freeze({
+﻿import { isApprovedUSMarketContentPacket } from './usMarketContentPackets.js'
+
+export const GLOBAL_MARKET_PAGE_CONTENT = Object.freeze({
   productHeading: 'What My420Journal does',
   privacyHeading: 'Private by design',
   privacyBody: 'Your private journal stays in this browser on this device. Optional network features are disclosed separately, and the full journal database is not uploaded to Conversational Guides.',
@@ -31,7 +33,11 @@ export function validateUSMarketDelta(record, delta) {
   )
 }
 
-export function buildUSMarketPageModel(record, delta) {
+export function buildUSMarketPageModel(record, packet) {
+  if (!isApprovedUSMarketContentPacket(packet)) return null
+  if (packet.marketId !== record?.marketId || packet.route !== record?.route) return null
+
+  const delta = packet.delta
   if (!validateUSMarketDelta(record, delta)) return null
 
   return Object.freeze({
