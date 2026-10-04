@@ -19,8 +19,10 @@ const newEntry = read('../screens/NewEntry.jsx')
 const guide = read('../screens/Guide.jsx')
 const home = read('../screens/Home.jsx')
 const ageGate = read('../screens/AgeGate.jsx')
+const pinEntry = read('../screens/PinEntry.jsx')
+const app = read('../App.jsx')
 const readme = read('../../README.md')
-const allClaims = [hero, layout, process, about, features, privacy, faq, settings, onboarding, newEntry, guide, home, ageGate, readme].join(String.fromCharCode(10))
+const allClaims = [hero, layout, process, about, features, privacy, faq, settings, onboarding, newEntry, guide, home, ageGate, pinEntry, app, readme].join(String.fromCharCode(10))
 
 const bannedClaims = [
   'Nothing leaves your device unless you choose to share it.',
@@ -119,4 +121,19 @@ test('current disclosures describe the implemented privacy boundaries', () => {
   assert.equal(features.includes('A record you can use later.'), true)
   assert.equal(features.includes('Privacy you control now.'), true)
   assert.equal(process.includes('Product - Amount - Method - Mood'), true)
+})
+
+test('private journal routes expose local-journal semantics while legacy account URLs only redirect', () => {
+  assert.equal(app.includes('path="/app/start"       element={<Signup />}'), true)
+  assert.equal(app.includes('path="/app/open"        element={<Login />}'), true)
+  assert.equal(app.includes('path="/signup"          element={<Navigate to="/app/start" replace />}'), true)
+  assert.equal(app.includes('path="/login"           element={<Navigate to="/app/open" replace />}'), true)
+  assert.equal(app.includes('path="/forgot-password" element={<Navigate to="/app/open" replace />}'), true)
+  assert.equal(app.includes("navigate('/login'"), false)
+  assert.equal(ageGate.includes("navigate(session ? '/app/open' : '/app/start'"), true)
+  assert.equal(ageGate.includes("'/login'"), false)
+  assert.equal(ageGate.includes("'/signup'"), false)
+  assert.equal(pinEntry.includes("navigate('/app/open'"), true)
+  assert.equal(pinEntry.includes("navigate('/login'"), false)
+  assert.equal(app.includes('ForgotPassword'), false)
 })

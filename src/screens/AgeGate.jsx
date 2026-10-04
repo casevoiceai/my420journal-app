@@ -115,7 +115,7 @@ export default function AgeGate() {
 
   async function continueIntoJournal() {
     const { data: { session } } = await localStore.auth.getSession()
-    navigate(session ? '/login' : '/signup', { replace: true })
+    navigate(session ? '/app/open' : '/app/start', { replace: true })
   }
 
   useEffect(() => {

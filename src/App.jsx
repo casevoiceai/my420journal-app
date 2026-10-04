@@ -25,7 +25,6 @@ import Profile from './screens/Profile'
 import Settings from './screens/Settings'
 import Strains from './screens/Strains'
 import StrainDetail from './screens/StrainDetail'
-import ForgotPassword from './screens/ForgotPassword'
 import CheckIn from './screens/CheckIn'
 import PostUseUpdate from './screens/PostUseUpdate'
 import QuickEntry from './screens/QuickEntry'
@@ -53,6 +52,8 @@ const NO_NAV_ROUTES = new Set([
   '/partners',
   '/privacy',
   '/app',
+  '/app/start',
+  '/app/open',
   '/signup',
   '/login',
   '/onboarding',
@@ -202,7 +203,11 @@ const HIDDEN_EXIT_ROUTES = new Set([
   '/partners',
   '/privacy',
   '/app',
+  '/app/start',
+  '/app/open',
   '/signup',
+  '/login',
+  '/forgot-password',
   '/games/weed-goblins',
 ])
 
@@ -269,7 +274,7 @@ function JournalAccessGuard() {
     async function checkSession() {
       const { data: { session } } = await localStore.auth.getSession()
       if (!session) {
-        navigate('/login', { replace: true })
+        navigate('/app/open', { replace: true })
         return
       }
       if (!cancelled) setSessionReady(true)
@@ -361,9 +366,11 @@ export default function App() {
         <Route path="/app"               element={<AgeGate />} />
 
         <Route element={<MarketAccessGuard />}>
-          <Route path="/signup"          element={<Signup />} />
-          <Route path="/login"           element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/app/start"       element={<Signup />} />
+          <Route path="/app/open"        element={<Login />} />
+          <Route path="/signup"          element={<Navigate to="/app/start" replace />} />
+          <Route path="/login"           element={<Navigate to="/app/open" replace />} />
+          <Route path="/forgot-password" element={<Navigate to="/app/open" replace />} />
           <Route path="/onboarding"      element={<Onboarding />} />
           <Route path="/pin-setup"       element={<PinSetup />} />
           <Route path="/pin"             element={<PinEntry />} />

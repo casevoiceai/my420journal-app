@@ -125,7 +125,7 @@ export default function PinEntry() {
 
     async function load() {
       const { data: { user } } = await localStore.auth.getUser()
-      if (!user) { navigate('/login'); return }
+      if (!user) { navigate('/app/open', { replace: true }); return }
       const { data } = await localStore
         .from('user_profiles')
         .select('guide_selected, guide_name')
