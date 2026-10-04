@@ -178,12 +178,14 @@ export default function EntryDetail() {
   }
 
   const mood          = entry.mood_face ? MOOD_FACES[entry.mood_face] : null
+  const followUpMoodKey = entry.follow_up_mood_face || (entry.update_completed === true ? entry.mood_face : null)
+  const followUpMood  = followUpMoodKey ? MOOD_FACES[followUpMoodKey] : null
   const allTags       = [...(entry.body_tags || []), ...(entry.mind_tags || []), ...(entry.mood_tags || [])]
   const hasCannabinoids = entry.cannabinoids && Object.keys(entry.cannabinoids).length > 0
   const hasTerpenes     = entry.terpenes     && Object.keys(entry.terpenes).length     > 0
   const hasDetails      = entry.category || entry.strain_type || entry.amount || entry.price
   const sideEffects     = Array.isArray(entry.side_effects) ? entry.side_effects : []
-  const hasFollowUp     = entry.update_completed === true || entry.rating != null || entry.sleep_quality != null || sideEffects.length > 0
+  const hasFollowUp     = entry.update_completed === true || entry.rating != null || entry.sleep_quality != null || sideEffects.length > 0 || Boolean(entry.follow_up_notes) || Boolean(entry.follow_up_mood_face)
   const needsFollowUp   = needsPostUseFollowUp(entry)
 
   return (
@@ -304,6 +306,12 @@ export default function EntryDetail() {
                     <span style={{ fontFamily: fontInter, fontSize: '14px', fontWeight: '700', color: S.textPrimary }}>{Number(entry.sleep_quality).toFixed(1)} / 5</span>
                   </div>
                 )}
+                {followUpMood && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'center' }}>
+                    <span style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary }}>Later mood</span>
+                    <span style={{ fontFamily: fontInter, fontSize: '14px', fontWeight: '700', color: S.textPrimary }}>{followUpMood.emoji} {followUpMood.label}</span>
+                  </div>
+                )}
                 <div>
                   <span style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary }}>Side effects</span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '7px' }}>
@@ -312,6 +320,12 @@ export default function EntryDetail() {
                     )}
                   </div>
                 </div>
+                {entry.follow_up_notes && (
+                  <div>
+                    <span style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary }}>Follow-up notes</span>
+                    <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textPrimary, lineHeight: '1.6', margin: '5px 0 0' }}>{entry.follow_up_notes}</p>
+                  </div>
+                )}
               </div>
             </>
           )}

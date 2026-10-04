@@ -1,3 +1,5 @@
+import { followUpMoodFace } from './journalFollowUp.js'
+
 function numericRating(value) {
   const n = Number(value)
   return Number.isFinite(n) && n >= 1 && n <= 5 ? n : null
@@ -88,7 +90,7 @@ export function analyzeInsights(entries = [], now = new Date()) {
   const ratings = cannabisEntries.map((entry) => numericRating(entry.rating)).filter((value) => value !== null)
   const sleepRatings = cannabisEntries.map((entry) => numericRating(entry.sleep_quality)).filter((value) => value !== null)
   const completedFollowups = cannabisEntries.filter((entry) => entry.update_completed === true).length
-  const moodCounts = countByValue(cannabisEntries.map((entry) => entry.mood_face))
+  const moodCounts = countByValue(cannabisEntries.map((entry) => followUpMoodFace(entry)))
   const sideEffectCounts = countByValue(flattenTags(cannabisEntries, 'side_effects'))
   const productCounts = countByValue(cannabisEntries.map(normalizedProductName))
   const timeCounts = countByValue(cannabisEntries.map((entry) => timeBucket(entry.created_at)))

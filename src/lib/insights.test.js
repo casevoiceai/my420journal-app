@@ -15,8 +15,8 @@ test('timeBucket reflects the local logging hour', () => {
 
 test('analyzeInsights uses only cannabis entries and preserves sample counts', () => {
   const entries = [
-    { entry_type: 'cannabis', product_name: 'Red Berries', rating: 5, sleep_quality: 4, update_completed: true, mood_face: 'good', side_effects: [], body_tags: ['Relaxed'], mind_tags: ['Focused'], mood_tags: ['Calm'], category: 'Flower', strain_type: 'Hybrid', created_at: '2026-10-04T01:00:00-04:00' },
-    { entry_type: 'cannabis', product_name: 'Red Berries', rating: 4, sleep_quality: 5, update_completed: true, mood_face: 'good', side_effects: ['Dry mouth'], body_tags: ['Relaxed'], mind_tags: ['Focused'], mood_tags: ['Calm'], category: 'Vape', strain_type: 'Hybrid', created_at: '2026-10-03T20:00:00-04:00' },
+    { entry_type: 'cannabis', product_name: 'Red Berries', rating: 5, sleep_quality: 4, update_completed: true, mood_face: 'meh', follow_up_mood_face: 'good', side_effects: [], body_tags: ['Relaxed'], mind_tags: ['Focused'], mood_tags: ['Calm'], category: 'Flower', strain_type: 'Hybrid', created_at: '2026-10-04T01:00:00-04:00' },
+    { entry_type: 'cannabis', product_name: 'Red Berries', rating: 4, sleep_quality: 5, update_completed: true, mood_face: 'off', follow_up_mood_face: 'good', side_effects: ['Dry mouth'], body_tags: ['Relaxed'], mind_tags: ['Focused'], mood_tags: ['Calm'], category: 'Vape', strain_type: 'Hybrid', created_at: '2026-10-03T20:00:00-04:00' },
     { entry_type: 'cannabis', product_name: 'Strawberry Cream', rating: 1, update_completed: true, mood_face: 'off', side_effects: [], body_tags: [], mind_tags: [], mood_tags: ['Disappointed'], category: 'Flower', strain_type: 'Hybrid', created_at: '2026-09-20T20:00:00-04:00' },
     { entry_type: 'note', title: 'Ignore me', rating: 5, created_at: '2026-10-04T12:00:00-04:00' },
   ]
@@ -35,6 +35,15 @@ test('analyzeInsights uses only cannabis entries and preserves sample counts', (
   assert.equal(result.highestRatedRepeatProduct.label, 'Red Berries')
   assert.equal(result.highestRatedRepeatProduct.averageRating, 4.5)
   assert.equal(result.highestRatedRepeatProduct.ratedSessions, 2)
+})
+
+test('initial mood is not counted as a post-use outcome before follow-up completion', () => {
+  const result = analyzeInsights([
+    { product_name: 'Still Open', mood_face: 'good', update_completed: false, created_at: '2026-10-04T12:00:00-04:00' },
+    { product_name: 'Finished', mood_face: 'meh', follow_up_mood_face: 'off', update_completed: true, created_at: '2026-10-04T13:00:00-04:00' },
+  ], new Date('2026-10-04T14:00:00-04:00'))
+
+  assert.deepEqual(result.moodOutcomeCounts, [['off', 1]])
 })
 
 test('repeat-product rating evidence requires at least two rated sessions for the same product', () => {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
+import { buildPostUseUpdatePatch } from '../lib/journalFollowUp'
 
 const S = {
   bg: '#0A1A0A',
@@ -219,16 +220,14 @@ export default function PostUseUpdate() {
     if (entryId) {
       const { error } = await localStore
         .from('entries')
-        .update({
-          rating: rating || null,
-          sleep_quality: sleepQuality || null,
-          mood_face: moodFace || null,
-          adverse_event_level: moodFace === 'eww' ? 1 : null,
-          side_effects: hasSideEffects ? sideEffects : [],
-          notes: notes || null,
-          update_completed: true,
-          updated_at: new Date().toISOString(),
-        })
+        .update(buildPostUseUpdatePatch({
+          rating,
+          sleepQuality,
+          moodFace,
+          hasSideEffects,
+          sideEffects,
+          notes,
+        }))
         .eq('id', entryId)
 
       if (error) { setSaveError('Could not save. Try again.'); setSaving(false); return }
