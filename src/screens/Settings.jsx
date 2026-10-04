@@ -773,6 +773,17 @@ export default function Settings() {
 
         <SharedOptInPanel profile={profile} onProfileChange={setProfile} />
 
+        <div style={{
+          padding: '14px 0', borderBottom: `1px solid ${S.border}`, marginBottom: '6px',
+        }}>
+          <p style={{ fontFamily: fontInter, fontSize: '15px', color: S.textPrimary, margin: '0 0 4px 0' }}>
+            Automatic privacy exit
+          </p>
+          <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, margin: 0, lineHeight: '1.5' }}>
+            After 15 minutes without activity, My420Journal leaves private journal screens and returns to the public site. Set an App PIN below if you want re-entry to require a PIN.
+          </p>
+        </div>
+
         {/* App PIN row */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',

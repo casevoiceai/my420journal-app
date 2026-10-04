@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { localStore } from './lib/localStore'
 import { clearPinUnlock, hasPin, isPinUnlocked } from './lib/pin'
+import { clearPrivateActivity, isPrivateSessionExpired, markPrivateActivity, readPrivateActivity, PRIVATE_INACTIVITY_MS } from './lib/privacySession'
 import { isDevMode } from './lib/dev'
 import { hasStoredMarketAccess } from './lib/residence'
 import { stageCrisisFollowupOnAppOpen } from './lib/guideSafety'
@@ -206,7 +207,6 @@ const HIDDEN_EXIT_ROUTES = new Set([
 ])
 
 function EmergencyExit() {
-  const navigate = useNavigate()
   const location = useLocation()
   const [closing, setClosing] = useState(false)
 
@@ -215,8 +215,9 @@ function EmergencyExit() {
 
   function handleExit() {
     clearPinUnlock()
+    clearPrivateActivity()
     setClosing(true)
-    setTimeout(() => { navigate('/') }, 1000)
+    setTimeout(() => { window.location.replace('/') }, 350)
   }
 
   return (
@@ -277,6 +278,62 @@ function JournalAccessGuard() {
     checkSession()
     return () => { cancelled = true }
   }, [navigate])
+
+  useEffect(() => {
+    if (isDevMode() || !sessionReady) return
+    let timer = null
+    let exiting = false
+
+    const privacyExit = () => {
+      if (exiting) return
+      exiting = true
+      clearPinUnlock()
+      clearPrivateActivity()
+      window.location.replace('/')
+    }
+
+    const scheduleFromCurrentState = () => {
+      const now = Date.now()
+      if (isPrivateSessionExpired(now)) {
+        privacyExit()
+        return
+      }
+      const last = readPrivateActivity()
+      if (!last) markPrivateActivity(now)
+      const remaining = last ? Math.max(1, PRIVATE_INACTIVITY_MS - (now - last)) : PRIVATE_INACTIVITY_MS
+      if (timer) window.clearTimeout(timer)
+      timer = window.setTimeout(privacyExit, remaining)
+    }
+
+    const noteActivity = () => {
+      if (exiting) return
+      markPrivateActivity()
+      if (timer) window.clearTimeout(timer)
+      timer = window.setTimeout(privacyExit, PRIVATE_INACTIVITY_MS)
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return
+      if (isPrivateSessionExpired()) privacyExit()
+      else noteActivity()
+    }
+
+    scheduleFromCurrentState()
+    window.addEventListener('pointerdown', noteActivity, { passive: true })
+    window.addEventListener('keydown', noteActivity)
+    window.addEventListener('touchstart', noteActivity, { passive: true })
+    window.addEventListener('scroll', noteActivity, { passive: true, capture: true })
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      if (timer) window.clearTimeout(timer)
+      window.removeEventListener('pointerdown', noteActivity)
+      window.removeEventListener('keydown', noteActivity)
+      window.removeEventListener('touchstart', noteActivity)
+      window.removeEventListener('scroll', noteActivity, true)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [sessionReady])
 
   if (!sessionReady) return null
   if (!isDevMode() && hasPin() && !isPinUnlocked()) {
