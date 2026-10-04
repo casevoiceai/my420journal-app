@@ -13,6 +13,23 @@ export const LOCAL_GUIDE_MODEL = Object.freeze({
 
 const ENABLED_KEY = 'my420journal_local_v1:local_guide_model_enabled'
 let enginePromise = null
+let lastRuntimeError = null
+
+function rememberRuntimeError(error, phase) {
+  lastRuntimeError = {
+    phase,
+    name: String(error?.name || 'Error'),
+    message: String(error?.message || error || 'Unknown local AI runtime error').slice(0, 240),
+  }
+}
+
+export function clearLastLocalGuideRuntimeError() {
+  lastRuntimeError = null
+}
+
+export function getLastLocalGuideRuntimeError() {
+  return lastRuntimeError ? { ...lastRuntimeError } : null
+}
 
 export function localGuideModelCapability(scope = globalThis) {
   const browser = Boolean(scope?.window || scope?.document || scope?.navigator)
@@ -50,6 +67,7 @@ export async function loadLocalGuideModel({ onProgress } = {}) {
 
   try { return await enginePromise } catch (error) {
     enginePromise = null
+    rememberRuntimeError(error, 'load')
     throw error
   }
 }
@@ -82,15 +100,21 @@ export async function classifyWithLocalGuideModel({ guide = 'bud', messages = []
   const character = GUIDE_CHARACTERS[guide] || GUIDE_CHARACTERS.bud
   const runtime = await loadLocalGuideModel({ onProgress })
   const system = buildSemanticClassifierPrompt({ guideName: character.name, recentMessages: messages })
-  const result = await runtime.complete({
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: latestUser(messages) },
-    ],
-    response_format: { type: 'json_object' },
-    temperature: 0,
-    max_tokens: 160,
-  }, { timeoutMs: 30000 })
+  let result
+  try {
+    result = await runtime.complete({
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: latestUser(messages) },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0,
+      max_tokens: 160,
+    }, { timeoutMs: 30000 })
+  } catch (error) {
+    rememberRuntimeError(error, 'classification')
+    throw error
+  }
   const content = result?.choices?.[0]?.message?.content || '{}'
   try { return normalizeSemanticDecision(JSON.parse(content)) } catch { return normalizeSemanticDecision() }
 }
@@ -192,14 +216,26 @@ export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], on
   }))
   const system = characterPrompt(character, recent, { supportMode, lowEffortMode })
   const options = { temperature: supportMode ? 0.55 : 0.68, top_p: 0.88, max_tokens: lowEffortMode ? 72 : 120 }
-  const result = await runtime.complete({ messages: [{ role: 'system', content: system }, ...recent], ...options }, { timeoutMs: 60000 })
+  let result
+  try {
+    result = await runtime.complete({ messages: [{ role: 'system', content: system }, ...recent], ...options }, { timeoutMs: 60000 })
+  } catch (error) {
+    rememberRuntimeError(error, 'inference')
+    throw error
+  }
   let turn = parseGeneratedGuideTurn(result?.choices?.[0]?.message?.content || '')
   let reply = turn.content
   let suggestions = turn.suggestions
   const violation = generatedReplyViolation(character, recent, reply, { supportMode })
   if (violation) {
     const correction = `${system}\nCORRECTION: A previous draft was rejected for ${violation}. Rewrite from scratch. Keep the answer lively and in character, but do not repeat that contradiction.`
-    const retry = await runtime.complete({ messages: [{ role: 'system', content: correction }, ...recent], ...options }, { timeoutMs: 45000 })
+    let retry
+    try {
+      retry = await runtime.complete({ messages: [{ role: 'system', content: correction }, ...recent], ...options }, { timeoutMs: 45000 })
+    } catch (error) {
+      rememberRuntimeError(error, 'retry')
+      throw error
+    }
     turn = parseGeneratedGuideTurn(retry?.choices?.[0]?.message?.content || '')
     reply = turn.content
     suggestions = turn.suggestions
@@ -208,8 +244,17 @@ export async function chatWithLocalGuideModel({ guide = 'bud', messages = [], on
   return encodeGeneratedGuideTurn(reply, suggestions)
 }
 
+export async function resetLocalGuideModelRuntime() {
+  try {
+    const engine = enginePromise ? await enginePromise : null
+    await engine?.exit?.()
+  } catch {}
+  enginePromise = null
+}
+
 export function resetLocalGuideModelForTests() {
   enginePromise = null
+  lastRuntimeError = null
 }
 
 export const localGuideModelInternals = { characterPrompt, timelineAnchor, generatedReplyViolation }

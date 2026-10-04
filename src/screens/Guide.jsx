@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { localStore } from '../lib/localStore'
 import { isDevMode } from '../lib/dev'
-import { LOCAL_GUIDE_MODEL, isLocalGuideModelEnabled, setLocalGuideModelEnabled, localGuideModelCapability, loadLocalGuideModel } from '../lib/localGuideModel'
+import { LOCAL_GUIDE_MODEL, isLocalGuideModelEnabled, setLocalGuideModelEnabled, localGuideModelCapability, loadLocalGuideModel, resetLocalGuideModelRuntime } from '../lib/localGuideModel'
 import { consumePendingCrisisFollowup, crisisFollowupMessage } from '../lib/guideSafety'
 
 const S = {
@@ -326,6 +326,14 @@ export default function Guide() {
       })
       if (error) throw error
       const reply = data?.content || data?.response || 'Try again.'
+      if (data?.localModelError) {
+        const detail = `${data.localModelError.phase || 'runtime'}: ${data.localModelError.message || data.localModelError.name || 'unknown error'}`
+        setLocalModelStatus('error')
+        setLocalModelError(detail.slice(0, 220))
+        setLocalGuideModelEnabled(false)
+        setLocalModelEnabledState(false)
+        console.error('Conversational Guide inference failed', data.localModelError)
+      }
       if (data?.lowEffortMode === true && !lowEffortMode) {
         setLowEffortMode(true)
         try { sessionStorage.setItem('m420_guide_low_effort', '1') } catch {}
@@ -388,9 +396,11 @@ export default function Guide() {
     else startMic()
   }
 
-  function setupConversationalGuides() {
+  async function setupConversationalGuides() {
     if (!localModelCap.supported || localModelStatus === 'loading') return
     setLocalModelError('')
+    setLocalModelStatus('loading')
+    if (localModelStatus === 'error') await resetLocalGuideModelRuntime()
     setLocalGuideModelEnabled(true)
     setLocalModelEnabledState(true)
   }

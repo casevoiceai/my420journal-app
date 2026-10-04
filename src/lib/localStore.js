@@ -2,7 +2,7 @@ import { SHARED_PROFILE_DEFAULTS } from './sharedPrivacy.js'
 import { buildHybridGuideResponse } from './guideHybridEngine.js'
 import { supportChoiceTurn } from './guideSafety.js'
 import { accessibilityAction, buildAccessibilityTurn, buildContextualBranches, buildModelSuggestedBranches } from './guideAccessibility.js'
-import { isLocalGuideModelEnabled, localGuideModelCapability, parseGeneratedGuideTurn } from './localGuideModel.js'
+import { isLocalGuideModelEnabled, localGuideModelCapability, parseGeneratedGuideTurn, clearLastLocalGuideRuntimeError, getLastLocalGuideRuntimeError } from './localGuideModel.js'
 
 const STORAGE_PREFIX = 'my420journal_local_v1'
 const ACTIVE_USER_KEY = `${STORAGE_PREFIX}:active_user`
@@ -325,11 +325,12 @@ async function localGuideReply(body = {}) {
     : []
   const localModelEnabled = isLocalGuideModelEnabled() && localGuideModelCapability().supported && body.localModelReady === true
   const lowEffortMode = body.lowEffortMode === true
+  clearLastLocalGuideRuntimeError()
   const rawContent = await buildHybridGuideResponse({ guide, messages, entries, localModelEnabled, lowEffortMode })
   const generatedTurn = parseGeneratedGuideTurn(rawContent)
   const aiChoices = buildModelSuggestedBranches({ messages, assistantText: generatedTurn.content, suggestions: generatedTurn.suggestions, lowEffortMode })
   const choices = aiChoices || buildContextualBranches({ guide, messages, assistantText: generatedTurn.content, lowEffortMode })
-  return { content: generatedTurn.content, choices }
+  return { content: generatedTurn.content, choices, localModelError: getLastLocalGuideRuntimeError() }
 }
 
 function localPlacesResponse(body = {}) {

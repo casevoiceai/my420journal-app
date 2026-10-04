@@ -19,7 +19,15 @@ function progressAdapter(onProgress) {
   }
 }
 
-export async function createBrowserLocalGuideRuntime({ model, onProgress } = {}) {
+function errorText(error) {
+  return String(error?.message || error?.name || error || 'unknown runtime error').trim()
+}
+
+function isAbortLikeError(error) {
+  return /abort|timeout|timed out/i.test(`${error?.name || ''} ${error?.message || ''}`)
+}
+
+async function loadRuntime({ model, onProgress, forceCpu = false } = {}) {
   const runtime = new Wllama({ default: wasmUrl }, {
     suppressNativeLog: true,
     parallelDownloads: 3,
@@ -33,18 +41,47 @@ export async function createBrowserLocalGuideRuntime({ model, onProgress } = {})
     progressCallback: progressAdapter(onProgress),
     n_ctx: 4096,
     n_threads: threadCount(),
+    n_gpu_layers: forceCpu ? 0 : undefined,
     log_level: 3,
   })
 
+  return runtime
+}
+
+export async function createBrowserLocalGuideRuntime({ model, onProgress } = {}) {
+  let runtime = await loadRuntime({ model, onProgress })
+  let backend = runtime.isSupportWebGPU() ? 'webgpu' : 'wasm-cpu'
+  let cpuFallbackAttempted = false
+
   return {
     async complete(params = {}, { timeoutMs = 15000 } = {}) {
-      return completeWithTimeout(runtime, params, timeoutMs)
+      try {
+        return await completeWithTimeout(runtime, params, timeoutMs)
+      } catch (error) {
+        if (backend !== 'webgpu' || cpuFallbackAttempted || isAbortLikeError(error)) throw error
+        cpuFallbackAttempted = true
+        const gpuError = errorText(error)
+        try { await runtime.exit() } catch {}
+        onProgress?.({ progress: 0, text: 'Retrying local AI on CPU' })
+        try {
+          runtime = await loadRuntime({ model, onProgress, forceCpu: true })
+          backend = 'wasm-cpu'
+          return await completeWithTimeout(runtime, params, timeoutMs)
+        } catch (cpuError) {
+          throw new Error(`WebGPU failed: ${gpuError}; CPU retry failed: ${errorText(cpuError)}`)
+        }
+      }
     },
-    backend: runtime.isSupportWebGPU() ? 'webgpu' : 'wasm-cpu',
+    get backend() { return backend },
+    async exit() {
+      try { await runtime.exit() } catch {}
+    },
   }
 }
 
 export const wllamaRuntimeInternals = {
   threadCount,
   progressAdapter,
+  errorText,
+  isAbortLikeError,
 }
