@@ -7,6 +7,7 @@ import { clearResidenceState, getStoredMarketConfig } from '../lib/residence'
 import { isDevMode, DEV_PROFILE } from '../lib/dev'
 import SharedOptInPanel from '../components/SharedOptInPanel'
 import { isHostedGuideEnabled, setHostedGuideEnabled } from '../lib/hostedGuideModel'
+import { erasePrivateLocalJournalData } from '../lib/localDataErase'
 
 const GUIDE_META = {
   bud:   { name: 'Bud Tendar',     accent: '#C9A84C', description: 'Practical trip-and-history tone.' },
@@ -606,6 +607,13 @@ export default function Settings() {
     reader.readAsText(file)
   }
 
+  function handleErasePrivateLocalJournal() {
+    const okay = window.confirm('Permanently erase the private My420Journal data stored on this device? This removes your journal, local profile, PIN, saved dispensaries, Guide settings, market selection, and local game history. Downloaded backup files are not affected. This cannot be undone without a backup.')
+    if (!okay) return
+    erasePrivateLocalJournalData()
+    window.location.assign('/')
+  }
+
   if (showPrivacyReceipt) {
     return (
       <div style={{ minHeight: '100dvh', backgroundColor: S.bg, boxSizing: 'border-box' }}>
@@ -914,9 +922,23 @@ export default function Settings() {
 
         {/* ── ACCOUNT ─────────────────────────────────────────────────────── */}
         <SectionHeading>Local profile</SectionHeading>
-        <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: 0 }}>
+        <p style={{ fontFamily: fontInter, fontSize: '14px', color: S.textSecondary, lineHeight: '1.6', margin: '0 0 10px 0' }}>
           This journal uses an anonymous local profile on this device. There is no email/password cloud account or cross-device sync.
         </p>
+        <p style={{ fontFamily: fontInter, fontSize: '13px', color: S.textSecondary, lineHeight: '1.5', margin: '0 0 16px 0' }}>
+          Erasing removes the private journal and related local settings from this device. Downloaded backup files are not affected. If a legacy Shared Journey cleanup record exists, its anonymous deletion identifier may be retained only for prior shared-data cleanup.
+        </p>
+        <button
+          onClick={handleErasePrivateLocalJournal}
+          style={{
+            width: '100%', minHeight: '48px', backgroundColor: 'transparent',
+            border: `1px solid ${S.error}`, borderRadius: '8px',
+            color: S.error, fontFamily: fontInter, fontSize: '14px',
+            fontWeight: '700', cursor: 'pointer', letterSpacing: '0.02em',
+          }}
+        >
+          Erase private local journal
+        </button>
 
       </div>
     </div>
