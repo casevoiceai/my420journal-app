@@ -366,6 +366,7 @@ export const localStore = {
       users.unshift(user)
       saveUsers(users)
       localStorage.setItem(ACTIVE_USER_KEY, user.id)
+      try { sessionStorage.setItem('m420_session_last_activity_v1', String(Date.now())) } catch {}
       return { data: { user: publicUser(user), session: { user: publicUser(user), access_token: 'local-only' } }, error: null }
     },
     async signInWithPassword({ email, password }) {
@@ -383,6 +384,7 @@ export const localStore = {
       }
 
       localStorage.setItem(ACTIVE_USER_KEY, user.id)
+      try { sessionStorage.setItem('m420_session_last_activity_v1', String(Date.now())) } catch {}
       return { data: { user: publicUser(user), session: { user: publicUser(user), access_token: 'local-only' } }, error: null }
     },
     async resetPasswordForEmail() {
@@ -390,6 +392,12 @@ export const localStore = {
     },
     async signOut() {
       localStorage.removeItem(ACTIVE_USER_KEY)
+      try {
+        sessionStorage.removeItem('m420_session_last_activity_v1')
+        sessionStorage.removeItem('m420_guide_chat')
+        sessionStorage.removeItem('m420_guide_low_effort')
+        sessionStorage.removeItem('m420_pin_unlocked_v1')
+      } catch {}
       return { error: null }
     },
   },

@@ -215,6 +215,7 @@ function EmergencyExit() {
 
   function handleExit() {
     clearPinUnlock()
+    localStore.auth.signOut()
     setClosing(true)
     setTimeout(() => { navigate('/') }, 1000)
   }
@@ -257,6 +258,97 @@ function MarketAccessGuard() {
   return <Outlet />
 }
 
+const PRIVATE_SESSION_TIMEOUT_MS = 15 * 60 * 1000
+const SESSION_ACTIVITY_KEY = 'm420_session_last_activity_v1'
+
+function markPrivateSessionActivity() {
+  try { sessionStorage.setItem(SESSION_ACTIVITY_KEY, String(Date.now())) } catch {}
+}
+
+function privateSessionExpired() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_ACTIVITY_KEY)
+    if (!raw) return true
+    const lastActivity = Number(raw)
+    return !Number.isFinite(lastActivity) || Date.now() - lastActivity >= PRIVATE_SESSION_TIMEOUT_MS
+  } catch {
+    return true
+  }
+}
+
+function AutoLogoutGuard() {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (isDevMode()) return undefined
+
+    let timer = null
+    let disposed = false
+    let loggingOut = false
+    const events = ['pointerdown', 'keydown', 'touchstart', 'scroll']
+
+    const disarm = () => {
+      if (timer) clearTimeout(timer)
+      timer = null
+    }
+
+    const logout = async () => {
+      if (loggingOut || disposed) return
+      loggingOut = true
+      disarm()
+      clearPinUnlock()
+      await localStore.auth.signOut()
+      if (!disposed) navigate('/login', { replace: true })
+    }
+
+    const arm = () => {
+      disarm()
+      timer = setTimeout(logout, PRIVATE_SESSION_TIMEOUT_MS)
+    }
+
+    const touch = () => {
+      markPrivateSessionActivity()
+      arm()
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return
+      if (privateSessionExpired()) {
+        logout()
+        return
+      }
+      touch()
+    }
+
+    async function initialise() {
+      const { data: { session } } = await localStore.auth.getSession()
+      if (disposed || !session) return
+
+      // Missing session activity means the browser/tab session ended previously.
+      if (privateSessionExpired()) {
+        await logout()
+        return
+      }
+
+      touch()
+      events.forEach((eventName) => window.addEventListener(eventName, touch, { passive: true }))
+      document.addEventListener('visibilitychange', onVisibilityChange)
+    }
+
+    initialise()
+
+    return () => {
+      disposed = true
+      disarm()
+      events.forEach((eventName) => window.removeEventListener(eventName, touch))
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [navigate, location.pathname])
+
+  return null
+}
+
 function JournalAccessGuard() {
   const navigate = useNavigate()
   const [sessionReady, setSessionReady] = useState(isDevMode())
@@ -271,6 +363,13 @@ function JournalAccessGuard() {
         navigate('/login', { replace: true })
         return
       }
+      if (privateSessionExpired()) {
+        clearPinUnlock()
+        await localStore.auth.signOut()
+        navigate('/login', { replace: true })
+        return
+      }
+      markPrivateSessionActivity()
       if (!cancelled) setSessionReady(true)
     }
 
@@ -294,6 +393,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <EmergencyExit />
+      <AutoLogoutGuard />
       <Routes>
         <Route path="/"                  element={<MarketingHome />} />
         <Route path="/about"             element={<MarketingAbout />} />

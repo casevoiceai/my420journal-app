@@ -87,11 +87,15 @@ const UNIT_RESPONSES = ["Logged.", "Noted.", "Confirmed."]
 const CHAT_KEY = 'm420_guide_chat'
 
 function loadChat() {
-  try { return JSON.parse(localStorage.getItem(CHAT_KEY) || '[]') }
-  catch { return [] }
+  try {
+    // Guide transcripts are private session state, not durable journal data.
+    // Purge the old persistent key so reopening the app never resurrects stale chat.
+    localStorage.removeItem(CHAT_KEY)
+    return JSON.parse(sessionStorage.getItem(CHAT_KEY) || '[]')
+  } catch { return [] }
 }
 function saveChat(msgs) {
-  localStorage.setItem(CHAT_KEY, JSON.stringify(msgs))
+  try { sessionStorage.setItem(CHAT_KEY, JSON.stringify(msgs)) } catch {}
 }
 
 function useVoiceInput(onInterim, onFinal) {
