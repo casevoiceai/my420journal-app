@@ -54,6 +54,7 @@ test('Larry prompt carries voice, soft-fiction permission, and a correct 1980s t
   assert.match(prompt, /VOICE SIGNATURE: Older storyteller/i)
   assert.match(prompt, /SOFT-FICTION RULE/i)
   assert.match(prompt, /ENTITY-SEPARATION RULE/i)
+  assert.match(prompt, /DIRECT-REQUEST RULE/i)
   assert.match(prompt, /roughly 21 to 31/i)
 })
 
@@ -114,6 +115,13 @@ test('low-effort mode tells D to use short one-step replies', () => {
   assert.match(prompt, /concrete choices/i)
 })
 
+
+test('direct requests must be answered instead of turned into an unrelated question', () => {
+  const messages = [{ role: 'user', content: 'Tell me something random.' }]
+  const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, "What's the capital of France?")
+  assert.match(reason, /direct request/i)
+  assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, 'I once watched a crow steal a whole sandwich. What is the strangest thing you saw today?'), null)
+})
 
 test('logic guard rejects fabricated user memories', () => {
   const messages = [

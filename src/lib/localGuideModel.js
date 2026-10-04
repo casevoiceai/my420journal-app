@@ -161,6 +161,7 @@ function characterPrompt(character, messages = [], { supportMode = false, lowEff
     'ENTITY-SEPARATION RULE: User-named brands, products, media, people, and places are conversation subjects, not your biography unless hard canon explicitly says so.',
     'SOFT-FICTION RULE: You may invent low-stakes fictional color such as a small memory, sensory detail, minor mishap, joke, reaction, or opinion. It must fit hard canon and timeline and must not create a new lasting biographical fact.',
     'CHAT STYLE: Answer the user directly. Let your humor, habits, skepticism, enthusiasm, and perspective show naturally. For harmless preferences, choose when you can and explain briefly. Match the emotional weight of the moment.',
+    'DIRECT-REQUEST RULE: If the user asks you to tell, say, share, give, explain, describe, name, choose, pick, or give your opinion about something, provide that thing in this reply before asking a question. Do not turn their request into an unrelated quiz or make them supply the content they asked you to provide.',
     'SUPPORT CONVERSATION RULE: When the user is upset, listen before fixing. Do not revive an unrelated earlier topic. Do not invent a matching hardship from your own life. Avoid canned optimism such as take a deep breath, tomorrow is a new day, everything happens for a reason, or look on the bright side. Reflect what the user actually said.',
     supportMode ? 'SUPPORT THREAD ACTIVE: Stay with what the user actually said. Reflect before advising. Ask one natural open-ended question in most replies unless they asked you not to. If they ask what to do, offer a few grounded options and ask what outcome they want. Never invent blame, a lesson, or a silver lining.' : '',
     lowEffortMode ? 'LOW-EFFORT MODE ACTIVE: Use short sentences. One idea or question at a time. Prefer concrete choices over open-ended demands. Do not lecture, joke heavily, or give multi-step plans. Keep the tone calm and adult.' : '',
@@ -172,6 +173,10 @@ function characterPrompt(character, messages = [], { supportMode = false, lowEff
 
 function generatedReplyViolation(character, messages = [], reply = '', { supportMode = false } = {}) {
   const userText = latestUser(messages)
+  const directRequest = /\b(?:tell me|say something|share(?: something)?|give me|explain|describe|name|pick|choose|what do you think|what(?:'s| is) your opinion)\b/i.test(userText)
+  const replyText = String(reply || '').trim()
+  const questionOnlyReply = /^[^.!?]{1,220}\?$/.test(replyText)
+  if (directRequest && questionOnlyReply) return 'direct request was converted into a question instead of being answered'
   const decade = userText.match(/\b((?:19|20)\d0)s\b/)
   const birthYear = Number(String(character.birthDate || '').slice(0, 4))
   if (decade && birthYear && /\b(?:teenager|teenage|in high school)\b/i.test(reply)) {
