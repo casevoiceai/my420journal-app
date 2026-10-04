@@ -66,11 +66,17 @@ function needsSemanticClassification(text = '', entries = []) {
   if (lookupCannabisKnowledge(text)) return true
   if (/\b(my journal|journal|entries?|logged|recorded|my notes?|what did i|did i|when did i|how many times did i)\b/.test(t)) return true
   if (/\b(cannabis|weed|marijuana|strain|cultivar|thc|cbd|terpene|terpenes|indica|sativa|hybrid|edible|edibles|vape|flower|dab|concentrate|rosin|resin)\b/.test(t)) return true
+  // Ambiguous personal-experience follow-ups may need journal disambiguation,
+  // but ordinary uses of "me" should stay conversational.
+  if (/\b(?:did|does|do|how did|how does|what did)\b.{0,50}\b(?:me|my)\b/.test(t)) return true
   if (entries.some((entry) => {
     const name = normalizeText(entry?.product_name)
     return Boolean(name && t.includes(name))
   })) return true
-  if (/\b(i|me|my|mine)\b/.test(t)) return true
+  // First-person pronouns are normal conversation, not evidence that the user
+  // is asking for journal/personal-data routing. "Tell me something random"
+  // must go straight to the conversational Guide instead of burning a model
+  // classification pass just because it contains "me".
   if (/\b(wife|husband|spouse|married|marriage|family|children|kids|career|hometown|birthday)\b/.test(t)) return true
   if (/\b(how old are you|where do you live|where were you born|what do you do for work|your job)\b/.test(t)) return true
   return false

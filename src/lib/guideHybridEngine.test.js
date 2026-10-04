@@ -195,6 +195,7 @@ test('clear factual topic shift exits emotional mode', async () => {
 test('ordinary general chat skips the semantic classifier', () => {
   assert.equal(hybridGuideInternals.needsSemanticClassification('Who was Napoleon?', entries), false)
   assert.equal(hybridGuideInternals.needsSemanticClassification('Coke or Pepsi?', entries), false)
+  assert.equal(hybridGuideInternals.needsSemanticClassification('Tell me something random.', entries), false)
 })
 
 test('journal and cannabis language still uses controlled semantic routing', () => {
