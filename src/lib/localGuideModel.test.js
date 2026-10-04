@@ -141,11 +141,12 @@ test('personality Guides reject machine or model self-disclosure', () => {
   assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.larry, messages, 'Yeah, I do. I think being alert matters more than pretending the world is harmless.'), null)
 })
 
-test('explicit invitations to carry the conversation reject service-desk prompts', () => {
+test('explicit invitations to carry the conversation reject service-desk prompts even behind friendly filler', () => {
   const messages = [{ role: 'user', content: "I'm bored. Talk to me." }]
-  const bad = 'What do you need?'
-  const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.sunny, messages, bad)
-  assert.match(reason, /taking initiative|service-desk/i)
+  for (const bad of ['What do you need?', "I'm here to keep you company. What do you need?", "I'm here to keep you company."]) {
+    const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.sunny, messages, bad)
+    assert.match(reason, /taking initiative|service-desk|companionship/i)
+  }
   assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.sunny, messages, 'Okay, weird question: what everyday smell instantly makes you think of summer? Mine is hot pavement after rain.'), null)
 })
 
