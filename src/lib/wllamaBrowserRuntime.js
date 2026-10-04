@@ -23,10 +23,6 @@ function errorText(error) {
   return String(error?.message || error?.name || error || 'unknown runtime error').trim()
 }
 
-function isAbortLikeError(error) {
-  return /abort|timeout|timed out/i.test(`${error?.name || ''} ${error?.message || ''}`)
-}
-
 async function loadRuntime({ model, onProgress, forceCpu = false } = {}) {
   const runtime = new Wllama({ default: wasmUrl }, {
     suppressNativeLog: true,
@@ -39,7 +35,9 @@ async function loadRuntime({ model, onProgress, forceCpu = false } = {}) {
   }, {
     useCache: true,
     progressCallback: progressAdapter(onProgress),
-    n_ctx: 4096,
+    // The Guide prompt + short recent history fits comfortably inside 2K.
+    // 4K materially increases KV/context work on modest GPUs for no V1 benefit.
+    n_ctx: 2048,
     n_threads: threadCount(),
     n_gpu_layers: forceCpu ? 0 : undefined,
     log_level: 3,
@@ -55,10 +53,14 @@ export async function createBrowserLocalGuideRuntime({ model, onProgress } = {})
 
   return {
     async complete(params = {}, { timeoutMs = 15000 } = {}) {
+      // Do not let a bad/slow WebGPU adapter consume the whole user-visible budget.
+      // If it cannot answer promptly, retry once on multithreaded CPU/WASM and keep
+      // that backend for the rest of this loaded session.
+      const firstAttemptMs = backend === 'webgpu' ? Math.min(timeoutMs, 30000) : timeoutMs
       try {
-        return await completeWithTimeout(runtime, params, timeoutMs)
+        return await completeWithTimeout(runtime, params, firstAttemptMs)
       } catch (error) {
-        if (backend !== 'webgpu' || cpuFallbackAttempted || isAbortLikeError(error)) throw error
+        if (backend !== 'webgpu' || cpuFallbackAttempted) throw error
         cpuFallbackAttempted = true
         const gpuError = errorText(error)
         try { await runtime.exit() } catch {}
@@ -83,5 +85,4 @@ export const wllamaRuntimeInternals = {
   threadCount,
   progressAdapter,
   errorText,
-  isAbortLikeError,
 }
