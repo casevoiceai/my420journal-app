@@ -123,14 +123,9 @@ function isOpenNow(openingHours) {
   return typeof v === 'boolean' ? v : null
 }
 
-async function placesAutocomplete(input, coords, radius = 64000) {
+async function placesAutocomplete(input) {
   try {
-    const body = {
-      input, type: 'autocomplete',
-      lat: coords?.lat ?? 41.4090,
-      lng: coords?.lng ?? -75.6624,
-      radius,
-    }
+    const body = { input, type: 'autocomplete' }
     const response = await localStore.tools.invoke('place-lookup', { body })
     if (response.error) return { status: 'ERROR', predictions: [] }
     const predictions = response?.data?.predictions || []
@@ -157,35 +152,6 @@ async function placesDetails(placeId) {
       url:                    data.url                    || '',
       geometry:               data.geometry               || null,
     }
-  } catch { return null }
-}
-
-function getUserCoords() {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) { resolve(null); return }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(null),
-      { timeout: 4000 }
-    )
-  })
-}
-
-async function getCoordsWithProfileFallback() {
-  const gps = await getUserCoords()
-  if (gps) return gps
-  try {
-    const { data: { user } } = await localStore.auth.getUser()
-    if (!user) return null
-    const { data: profile } = await localStore
-      .from('user_profiles').select('home_city').eq('user_id', user.id).maybeSingle()
-    const city = profile?.home_city?.trim()
-    if (!city) return null
-    const { data, error } = await localStore.tools.invoke('place-lookup', {
-      body: { type: 'geocode', input: city },
-    })
-    if (error || !data?.lat) return null
-    return { lat: data.lat, lng: data.lng }
   } catch { return null }
 }
 
@@ -268,31 +234,9 @@ function DispensaryField({ accent, value, onChange }) {
   const [predictions,  setPredictions]  = useState([])
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [searching,    setSearching]    = useState(false)
-  const [coords,       setCoords]       = useState(null)
-  const [gpsCoords,    setGpsCoords]    = useState(null)
-  const [travelRadius, setTravelRadius] = useState(64000)
   const debounceRef  = useRef(null)
   const wrapperRef   = useRef(null)
   const inputRef     = useRef(null)
-
-  // Load GPS and travel radius once on mount
-  useEffect(() => {
-    async function init() {
-      const gps = await getUserCoords()
-      if (gps) setGpsCoords(gps)
-      try {
-        const { data: { user } } = await localStore.auth.getUser()
-        if (!user) return
-        const { data: profile } = await localStore
-          .from('user_profiles').select('travel_radius_miles').eq('user_id', user.id).maybeSingle()
-        if (profile?.travel_radius_miles) setTravelRadius(profile.travel_radius_miles * 1609)
-      } catch { /* keep default */ }
-    }
-    init()
-  }, [])
-
-  // Keep coords in sync with GPS
-  useEffect(() => { setCoords(gpsCoords) }, [gpsCoords])
 
   // Close dropdown on outside tap
   useEffect(() => {
@@ -311,13 +255,13 @@ function DispensaryField({ accent, value, onChange }) {
     debounceRef.current = setTimeout(async () => {
       setSearching(true)
       const searchInput = city.trim() ? `${city.trim()} ${query} dispensary` : `${query} dispensary`
-      const res = await placesAutocomplete(searchInput, coords, travelRadius)
+      const res = await placesAutocomplete(searchInput)
       setSearching(false)
       setPredictions(res.predictions)
       setDropdownOpen(res.status === 'OK' && res.predictions.length > 0)
     }, 300)
     return () => clearTimeout(debounceRef.current)
-  }, [query, value, coords, travelRadius, city])
+  }, [query, value, city])
 
   async function handleSelectPrediction(p) {
     setDropdownOpen(false); setPredictions([])
