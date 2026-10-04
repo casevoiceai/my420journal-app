@@ -238,12 +238,33 @@ export async function handleGuideConversationWorkerRequest(request, env, runMode
       const result = await runModel(GUIDE_CONVERSATION_MODEL, {
         temperature: 0,
         max_tokens: 180,
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            type: 'object',
+            properties: {
+              pass: { type: 'boolean' },
+              issues: {
+                type: 'array',
+                items: { type: 'string', enum: ['relevance', 'character', 'mirroring', 'invented_user_memory', 'boundary'] },
+              },
+              critique: { type: 'string' },
+            },
+            required: ['pass', 'issues', 'critique'],
+            additionalProperties: false,
+          },
+        },
         messages: [
           { role: 'system', content: qualityReviewPrompt(input.guide, input.messages, candidate, input.contextFacts) },
-          { role: 'user', content: 'Return the quality-review JSON now.' },
+          { role: 'user', content: 'Return the quality review.' },
         ],
       })
-      return normalizeQualityReview(extractJson(extractText(result)))
+      const structured = result?.response && typeof result.response === 'object'
+        ? result.response
+        : result?.result?.response && typeof result.result.response === 'object'
+          ? result.result.response
+          : extractJson(extractText(result))
+      return normalizeQualityReview(structured)
     }
 
     let content = await generateCandidate()
