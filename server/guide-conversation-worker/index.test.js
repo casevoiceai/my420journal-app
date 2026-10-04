@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { handleGuideConversationWorkerRequest, GUIDE_CONVERSATION_MODEL } from './index.js'
+import { handleGuideConversationWorkerRequest, GUIDE_CONVERSATION_MODEL, guideConversationWorkerInternals } from './index.js'
 
 const SECRET = 'test-guide-secret'
 
@@ -88,4 +88,14 @@ test('Guide Worker does not expose browser CORS headers', async () => {
     run,
   )
   assert.equal(response.headers.has('Access-Control-Allow-Origin'), false)
+})
+
+test('hosted prompt preserves Guide-specific tastes instead of mirroring the user', () => {
+  const prompt = guideConversationWorkerInternals.characterPrompt('sunny')
+  assert.match(prompt, /Topic tastes:/i)
+  assert.match(prompt, /Music is dangerous because I can attach a whole year of my life to four notes/i)
+  assert.match(prompt, /I love pop, live shows, and playlists/i)
+  assert.match(prompt, /INDEPENDENT TASTE:/i)
+  assert.match(prompt, /Do not automatically agree with the user/i)
+  assert.match(prompt, /If your taste differs, acknowledge theirs naturally/i)
 })
