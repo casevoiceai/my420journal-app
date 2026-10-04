@@ -112,6 +112,7 @@ test('current disclosures describe the implemented privacy boundaries', () => {
   assert.equal(settings.includes('Practical trip-and-history tone.'), true)
   assert.equal(guide.includes('Ready to talk through what you logged?'), true)
   assert.equal(home.includes('What are we logging today?'), true)
+  assert.equal(home.includes("navigate('/insights')"), true)
   assert.equal(layout.includes('Open my journal'), true)
   assert.equal(layout.includes('Shared Journey / Layer 2 is currently off'), true)
   assert.equal(process.includes('Talk through what you choose to enter in the guide conversation.'), true)

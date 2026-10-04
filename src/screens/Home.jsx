@@ -133,6 +133,11 @@ export default function Home() {
           <GridButton label="Settings ⚙️" onClick={() => navigate('/settings')} borderColor={S.border} textColor={S.textSecondary} />
         </div>
 
+        {/* Local evidence patterns */}
+        <div style={{ display: 'flex' }}>
+          <GridButton label="Patterns 📊" onClick={() => navigate('/insights')} borderColor={S.gold} textColor={S.gold} />
+        </div>
+
       </div>
     </div>
   )
