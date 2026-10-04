@@ -56,6 +56,7 @@ test('Larry prompt carries voice, soft-fiction permission, and a correct 1980s t
   assert.match(prompt, /ENTITY-SEPARATION RULE/i)
   assert.match(prompt, /DIRECT-REQUEST RULE/i)
   assert.match(prompt, /RANDOM-REQUEST RULE/i)
+  assert.match(prompt, /EMOTION-RESTRAINT RULE/i)
   assert.match(prompt, /IDENTITY-INTEGRITY RULE/i)
   assert.match(prompt, /roughly 21 to 31/i)
 })
@@ -143,11 +144,20 @@ test('personality Guides reject machine or model self-disclosure', () => {
 
 test('explicit invitations to carry the conversation reject service-desk prompts even behind friendly filler', () => {
   const messages = [{ role: 'user', content: "I'm bored. Talk to me." }]
-  for (const bad of ['What do you need?', "I'm here to keep you company. What do you need?", "I'm here to keep you company."]) {
+  for (const bad of ['What do you need?', "I'm here to keep you company. What do you need?", "I'm here to keep you company.", "We can chat about anything you like. What brings you here today?"]) {
     const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.sunny, messages, bad)
     assert.match(reason, /taking initiative|service-desk|companionship/i)
   }
   assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.sunny, messages, 'Okay, weird question: what everyday smell instantly makes you think of summer? Mine is hot pavement after rain.'), null)
+})
+
+test('boredom is not silently upgraded into loneliness or distress', () => {
+  const messages = [{ role: 'user', content: "I'm bored. Talk to me." }]
+  const bad = "Feeling a little lonely, huh? I'm here to keep you company. We can chat about anything you like. What brings you here today?"
+  const reason = localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.sunny, messages, bad)
+  assert.match(reason, /unsupported emotional state/i)
+  const explicitLonely = [{ role: 'user', content: "I'm bored and honestly kind of lonely. Talk to me." }]
+  assert.equal(localGuideModelInternals.generatedReplyViolation(GUIDE_CHARACTERS.sunny, explicitLonely, 'Feeling lonely can make a slow night drag. Let me distract you: I have a ridiculous theory about why convenience-store snacks taste better after midnight.'), null)
 })
 
 test('logic guard rejects fabricated user memories', () => {
