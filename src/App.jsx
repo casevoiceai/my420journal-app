@@ -251,6 +251,26 @@ function EmergencyExit() {
   )
 }
 
+function TesterAccessGuard() {
+  const [authorized, setAuthorized] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/private-testing-session', { credentials: 'same-origin', cache: 'no-store' })
+      .then((response) => {
+        if (cancelled) return
+        if (response.ok) setAuthorized(true)
+        else window.location.replace('/app')
+      })
+      .catch(() => {
+        if (!cancelled) window.location.replace('/app')
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  return authorized ? <Outlet /> : null
+}
+
 function MarketAccessGuard() {
   if (isDevMode()) return <Outlet />
   if (!hasStoredMarketAccess()) return <Navigate to="/app" replace />
@@ -357,7 +377,8 @@ export default function App() {
         <Route path="/contact"           element={<MarketingContact />} />
         <Route path="/partners"          element={<MarketingPartners />} />
         <Route path="/privacy"           element={<MarketingPrivacy />} />
-        <Route path="/app"               element={<AgeGate />} />
+        <Route element={<TesterAccessGuard />}>
+          <Route path="/app"               element={<AgeGate />} />
 
         <Route element={<MarketAccessGuard />}>
           <Route path="/app/start"       element={<Signup />} />
@@ -390,6 +411,7 @@ export default function App() {
             <Route path="/checkin"           element={<CheckIn />} />
             <Route path="/update/:entryId"   element={<PostUseUpdate />} />
           </Route>
+        </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

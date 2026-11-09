@@ -34,13 +34,27 @@ async function continueAuthorized(context) {
   return response
 }
 
+const PUBLIC_MARKETING_PATHS = new Set(['/', '/about', '/faq', '/contact', '/partners', '/privacy'])
+const PUBLIC_ASSET_PATTERN = /^\/assets\/[a-zA-Z0-9._/-]+\.(?:js|css|png|jpe?g|webp|svg|woff2?|ttf)$/
+
+export function isPublicMarketingRequest(request) {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return false
+  const pathname = new URL(request.url).pathname
+  return PUBLIC_MARKETING_PATHS.has(pathname)
+    || PUBLIC_ASSET_PATTERN.test(pathname)
+    || pathname === '/favicon.svg'
+    || pathname === '/approved-brain-logo.webp'
+}
+
 export async function onRequest(context) {
   const { request, env } = context
   const url = new URL(request.url)
 
-  if (url.pathname === PRIVATE_TESTING_ACCESS_PATH) {
+  if (url.pathname === PRIVATE_TESTING_ACCESS_PATH || url.pathname === '/api/private-testing-session') {
     return context.next()
   }
+
+  if (isPublicMarketingRequest(request)) return continueAuthorized(context)
 
   const secret = String(env?.JOURNAL_ACCESS_CODE ?? '').trim()
   const authorized = secret
