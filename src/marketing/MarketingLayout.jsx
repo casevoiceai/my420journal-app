@@ -144,36 +144,42 @@ export default function MarketingLayout({ children }) {
           >
             <HeaderBrainMark />
             <span style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
               minWidth: 0,
-              fontFamily: marketingFonts.playfair,
-              fontSize: 'clamp(34px, 9.4vw, 81px)',
-              lineHeight: 0.95,
-              fontWeight: 700,
-              letterSpacing: '-0.035em',
-              whiteSpace: 'nowrap',
               textAlign: 'center',
             }}>
-              My420Journal
+              <span style={{
+                fontFamily: marketingFonts.playfair,
+                fontSize: 'clamp(34px, 9.4vw, 81px)',
+                lineHeight: 0.95,
+                fontWeight: 700,
+                letterSpacing: '-0.035em',
+                whiteSpace: 'nowrap',
+                textAlign: 'center',
+              }}>
+                My420Journal
+              </span>
+              <span style={{
+                marginTop: '10px',
+                maxWidth: '100%',
+                color: S.gold,
+                fontFamily: marketingFonts.inter,
+                fontSize: 'clamp(11px, 3.1vw, 16px)',
+                lineHeight: 1.3,
+                fontWeight: 800,
+                letterSpacing: 'clamp(0.07em, 0.45vw, 0.16em)',
+                textAlign: 'center',
+                textTransform: 'uppercase',
+                whiteSpace: 'normal',
+                overflowWrap: 'anywhere',
+              }}>
+                A PRIVATE CANNABIS JOURNAL
+              </span>
             </span>
           </Link>
-          <span style={{
-            width: '100%',
-            maxWidth: '100%',
-            padding: '0 8px',
-            boxSizing: 'border-box',
-            color: S.gold,
-            fontFamily: marketingFonts.inter,
-            fontSize: 'clamp(11px, 3.1vw, 16px)',
-            lineHeight: 1.3,
-            fontWeight: 800,
-            letterSpacing: 'clamp(0.07em, 0.45vw, 0.16em)',
-            textAlign: 'center',
-            textTransform: 'uppercase',
-            whiteSpace: 'normal',
-            overflowWrap: 'anywhere',
-          }}>
-            A PRIVATE CANNABIS JOURNAL
-          </span>
         </div>
 
         <nav
